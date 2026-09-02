@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # 1. Main Agency Service: FastAPI REST API + Dashboard + 24/7 Autonomous Worker
+  agency-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.prod
+    container_name: agency-app
+    restart: always
+    environment:
+      - APP_NAME=Autonomous B2B Lead-Gen & Sales Agency
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/agency.db
+      - SYNC_DATABASE_URL=sqlite:////app/data/agency.db
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-agency_admin_2026}
+      - API_SECRET_KEY=${API_SECRET_KEY:-agency_secret_master_key_2026}
+      - SESSION_SECRET=${SESSION_SECRET:-agency_session_hmac_secret_2026}
+      - BACKUP_DIR=/app/backups
+      - DOMAIN=${DOMAIN:-localhost}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-dry_run}
+      - EMAIL_DRY_RUN=${EMAIL_DRY_RUN:-true}
+      - PAYMENT_PROVIDER=${PAYMENT_PROVIDER:-dry_run}
+      - PAYMENTS_ENABLED=${PAYMENTS_ENABLED:-false}
+      - WORKER_ENABLED=true
+      - WORKER_CYCLE_INTERVAL_MINUTES=30
+    volumes:
+      - agency-data:/app/data
+      - agency-logs:/app/logs
+      - agency-backups:/app/backups
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # 2. Caddy Reverse Proxy: Automatic HTTPS & SSL Certificates for Custom Domain
+  caddy:
+    image: caddy:2-alpine
+    container_name: agency-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - TLS_EMAIL=${TLS_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - agency-logs:/var/log/caddy
+    depends_on:
+      agency-app:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  agency-data:
+    name: agency_production_data
+  agency-logs:
+    name: agency_production_logs
+  agency-backups:
+    name: agency_production_backups
+  caddy-data:
+    name: agency_caddy_data
+  caddy-config:
+    name: agency_caddy_config

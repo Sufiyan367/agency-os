@@ -29,6 +29,8 @@ ENV/
 *.sqlite
 *.sqlite3
 agency.db
+*.pre_restore
+backups/
 
 # Logs & Environment
 *.log

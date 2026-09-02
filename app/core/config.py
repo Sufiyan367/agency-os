@@ -16,8 +16,22 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
 
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///agency.db"
-    SYNC_DATABASE_URL: str = "sqlite:///agency.db"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///agency.db")
+    SYNC_DATABASE_URL: str = os.getenv("SYNC_DATABASE_URL", "sqlite:///agency.db")
+
+    # Production Cloud & Security Settings
+    AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
+    DASHBOARD_USERNAME: str = os.getenv("DASHBOARD_USERNAME", "admin")
+    DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "agency_admin_2026")
+    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "agency_master_secret_prod_key_2026")
+    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "agency_session_hmac_secret_2026")
+    SESSION_MAX_AGE_DAYS: int = 14
+
+    # Cloud VPS & Domain Configuration
+    DOMAIN: str = os.getenv("DOMAIN", "localhost")
+    TLS_EMAIL: str = os.getenv("TLS_EMAIL", "admin@localhost")
+    BACKUP_DIR: str = os.getenv("BACKUP_DIR", "backups")
+    BACKUP_RETENTION_DAYS: int = 30
 
     # Pipeline Safeguards & Compliance
     DRY_RUN: bool = True

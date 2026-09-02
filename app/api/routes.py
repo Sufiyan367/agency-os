@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request, Header, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import List, Dict, Any, Optional
@@ -23,13 +23,101 @@ from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
 from app.orchestrator.loop import orchestrator
 from app.core.config import settings
+from app.core.security import (
+    create_session_token, verify_session_token,
+    verify_login_credentials, verify_api_key
+)
+from app.database.backup import backup_manager
 
 router = APIRouter()
 
-# Health checks
+# --- Authentication Dependency ---
+def require_auth(request: Request) -> str:
+    if not settings.AUTH_ENABLED:
+        return "admin"
+    
+    # 1. Check secure session cookie
+    cookie_token = request.cookies.get("agency_session")
+    if cookie_token:
+        user = verify_session_token(cookie_token)
+        if user:
+            return user
+            
+    # 2. Check Authorization Header (Bearer or API Key)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        if verify_api_key(token):
+            return "api_client"
+        user = verify_session_token(token)
+        if user:
+            return user
+            
+    raise HTTPException(status_code=401, detail="Authentication required. Please log in.")
+
+# --- Authentication Endpoints ---
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@router.post("/api/auth/login")
+async def login(req: LoginRequest, response: Response):
+    if not verify_login_credentials(req.username, req.password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    token = create_session_token(req.username.strip())
+    response.set_cookie(
+        key="agency_session",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=settings.SESSION_MAX_AGE_DAYS * 86400,
+        secure=not settings.DEBUG
+    )
+    return {"status": "SUCCESS", "username": req.username, "token": token}
+
+@router.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("agency_session")
+    return {"status": "SUCCESS", "message": "Logged out successfully"}
+
+@router.get("/api/auth/me")
+async def auth_me(request: Request):
+    if not settings.AUTH_ENABLED:
+        return {"authenticated": True, "auth_enabled": False, "username": "admin"}
+    
+    token = request.cookies.get("agency_session")
+    user = verify_session_token(token) if token else None
+    return {
+        "authenticated": bool(user),
+        "auth_enabled": True,
+        "username": user
+    }
+
+# --- Cloud Health & Readiness ---
 @router.get("/health")
-async def health():
-    return {"status": "ok", "service": settings.APP_NAME, "env": settings.APP_ENV}
+@router.get("/api/health")
+async def health(db: AsyncSession = Depends(get_db)):
+    db_status = "connected"
+    try:
+        await db.execute(select(Business.id).limit(1))
+    except Exception:
+        db_status = "unreachable"
+
+    worker_status = agency_worker.get_status()
+    return {
+        "status": "ok" if db_status == "connected" else "degraded",
+        "service": settings.APP_NAME,
+        "env": settings.APP_ENV,
+        "database": db_status,
+        "worker": {
+            "is_running": worker_status.get("is_running", False),
+            "ticks_executed": worker_status.get("ticks_executed", 0),
+            "last_tick_at": worker_status.get("last_tick_at")
+        },
+        "cloud_mode": True,
+        "auth_enabled": settings.AUTH_ENABLED
+    }
 
 @router.get("/ready")
 async def ready(db: AsyncSession = Depends(get_db)):
@@ -38,6 +126,19 @@ async def ready(db: AsyncSession = Depends(get_db)):
         return {"status": "ready", "database": "connected"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database not ready: {str(e)}")
+
+# --- Database Backup & Recovery Endpoints ---
+@router.get("/api/system/backups", dependencies=[Depends(require_auth)])
+async def get_backups():
+    return {"backups": backup_manager.list_backups()}
+
+@router.post("/api/system/backup", dependencies=[Depends(require_auth)])
+async def trigger_backup():
+    try:
+        res = backup_manager.create_backup()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 
 # Metrics
 @router.get("/api/metrics")

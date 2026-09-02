@@ -389,5 +389,95 @@ def generate_checkout(business_id: int):
             console.print(f"Mode: {res.get('mode')}")
     asyncio.run(_chk())
 
+# --- Database Backup & Recovery ---
+@cli_app.command("backup")
+def backup_database():
+    """Creates an online, gzip-compressed snapshot of the agency database with integrity check."""
+    from app.database.backup import backup_manager
+    console.print("[cyan]Creating database snapshot...[/cyan]")
+    try:
+        res = backup_manager.create_backup()
+        console.print(f"[bold green]✓ Backup Created Successfully:[/bold green] {res['filename']}")
+        console.print(f"File: {res['filepath']}")
+        console.print(f"Original: {res['original_bytes']:,} bytes | Compressed: {res['compressed_bytes']:,} bytes ({res['compression_savings']} saved)")
+        console.print(f"Integrity Check: [bold green]PASSED[/bold green]")
+    except Exception as e:
+        console.print(f"[bold red]Backup failed:[/bold red] {e}")
+
+@cli_app.command("restore")
+def restore_database(backup_file: str):
+    """Restores the agency database from a compressed backup snapshot."""
+    from app.database.backup import backup_manager
+    console.print(f"[yellow]Restoring database from {backup_file}...[/yellow]")
+    try:
+        res = backup_manager.restore_backup(backup_file)
+        console.print(f"[bold green]✓ Database Restored Successfully:[/bold green] {res['active_db']}")
+    except Exception as e:
+        console.print(f"[bold red]Restore failed:[/bold red] {e}")
+
+# --- Windows Background Service Management ---
+service_app = typer.Typer(help="Manage persistent Windows background service (Auto-start on boot, restart on crash)")
+cli_app.add_typer(service_app, name="service")
+
+@service_app.command("install")
+def install_service():
+    """Installs the agency as a persistent Windows Scheduled Task that auto-starts on boot/logon."""
+    from app.service.windows_task import windows_service_manager
+    console.print("[cyan]Installing Autonomous Agency Windows Background Service...[/cyan]")
+    res = windows_service_manager.install()
+    if res.get("success"):
+        console.print("[bold green]Successfully installed Windows background service![/bold green]")
+        console.print(f"Service Name: {res.get('service_name')}")
+        console.print(f"Auto-Start: {res.get('auto_start')}")
+        console.print(f"Launcher: {res.get('launcher')}")
+        console.print(f"Crash Recovery: {res.get('crash_restart')}")
+        console.print(f"Web Dashboard: {res.get('dashboard_url')}")
+        console.print("\nTo start it immediately, run: [yellow]python -m app.cli service start[/yellow]")
+    else:
+        console.print(f"[bold red]Failed to install service:[/bold red] {res.get('error')}")
+
+@service_app.command("status")
+def service_status():
+    """Queries current status of the persistent Windows background service."""
+    from app.service.windows_task import windows_service_manager
+    status = windows_service_manager.get_status()
+
+    table = Table(title="Autonomous Agency Windows Background Service Status")
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", style="bold green")
+
+    table.add_row("Service Name", str(status.get("service_name")))
+    table.add_row("Auto-Start Installed", "YES (Windows Boot / Logon)" if status.get("installed") else "NO")
+    table.add_row("Execution State", str(status.get("state")))
+    table.add_row("Process Active", "YES" if status.get("running") else "NO")
+    table.add_row("Web Port (8000)", "LISTENING" if status.get("port_active") else "NOT LISTENING")
+    table.add_row("Control Center UI", str(status.get("dashboard_url") or "http://localhost:8000"))
+    table.add_row("Service Log File", str(status.get("log_file")))
+    console.print(table)
+
+@service_app.command("start")
+def start_service():
+    """Starts the persistent Windows background service immediately."""
+    from app.service.windows_task import windows_service_manager
+    console.print("[cyan]Starting Autonomous Agency Background Service...[/cyan]")
+    res = windows_service_manager.start()
+    console.print(f"[bold green]Service start signal sent.[/bold green] Dashboard will be accessible at http://localhost:8000")
+
+@service_app.command("stop")
+def stop_service():
+    """Stops the running Windows background service."""
+    from app.service.windows_task import windows_service_manager
+    console.print("[yellow]Stopping Autonomous Agency Background Service...[/yellow]")
+    windows_service_manager.stop()
+    console.print("[bold green]Service stopped successfully.[/bold green]")
+
+@service_app.command("uninstall")
+def uninstall_service():
+    """Unregisters and removes the persistent Windows background service."""
+    from app.service.windows_task import windows_service_manager
+    console.print("[yellow]Uninstalling Autonomous Agency Background Service...[/yellow]")
+    res = windows_service_manager.uninstall()
+    console.print(f"[bold green]{res.get('message', 'Service uninstalled.')}[/bold green]")
+
 if __name__ == "__main__":
     cli_app()

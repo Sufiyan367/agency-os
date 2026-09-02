@@ -1,5 +1,15 @@
 // Autonomous B2B Lead-Gen Dashboard Client
 
+// Auto-redirect to /login on 401 Unauthorized
+const _originalFetch = window.fetch;
+window.fetch = async function(...args) {
+    const resp = await _originalFetch.apply(this, args);
+    if (resp.status === 401 && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+    }
+    return resp;
+};
+
 let currentView = 'overview';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,10 +35,54 @@ function initNavigation() {
     document.getElementById('btn-run-cycle').addEventListener('click', runAutonomousCycle);
 }
 
+function toggleMobileDrawer() {
+    const drawer = document.getElementById('mobile-drawer');
+    const backdrop = document.getElementById('mobile-drawer-backdrop');
+    if (!drawer) return;
+    const isOpen = drawer.classList.contains('open');
+    if (isOpen) {
+        drawer.classList.remove('open');
+        if (backdrop) backdrop.style.display = 'none';
+    } else {
+        drawer.classList.add('open');
+        if (backdrop) backdrop.style.display = 'block';
+    }
+}
+
+function navToView(viewName) {
+    switchView(viewName);
+    const drawer = document.getElementById('mobile-drawer');
+    const backdrop = document.getElementById('mobile-drawer-backdrop');
+    if (drawer && drawer.classList.contains('open')) {
+        drawer.classList.remove('open');
+        if (backdrop) backdrop.style.display = 'none';
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
+    window.location.href = '/login';
+}
+
 function switchView(viewName) {
     currentView = viewName;
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelector(`.nav-item[data-view="${viewName}"]`)?.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('data-view') === viewName) {
+            n.classList.add('active');
+        } else {
+            n.classList.remove('active');
+        }
+    });
+
+    document.querySelectorAll('.bottom-nav-item').forEach(b => {
+        if (b.getAttribute('data-view') === viewName) {
+            b.classList.add('active');
+        } else {
+            b.classList.remove('active');
+        }
+    });
 
     document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
     document.getElementById(`view-${viewName}`)?.classList.add('active');

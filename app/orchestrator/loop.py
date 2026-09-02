@@ -205,7 +205,7 @@ class AutonomousCycleOrchestrator:
         return cycle_summary
 
     async def _recover_incomplete_stages(self, session: AsyncSession, logger):
-        """Crash recovery: Resumes any tasks that were interrupted."""
+        """Crash recovery: Resumes and actively processes any tasks that were interrupted across reboots."""
         # 1. Unaudited verified leads
         unaudited = (await session.execute(
             select(Business).where(
@@ -214,20 +214,41 @@ class AutonomousCycleOrchestrator:
             )
         )).scalars().all()
         if unaudited:
-            logger.info(f"[Crash Recovery] Found {len(unaudited)} verified leads awaiting audit.")
+            logger.info(f"[Crash Recovery] Resuming audits for {len(unaudited)} verified leads...")
+            for b in unaudited:
+                try:
+                    await website_audit_engine.audit_business(session, b)
+                except Exception as e:
+                    logger.warning(f"[Crash Recovery] Audit failed for {b.domain}: {e}")
 
         # 2. Audited unscored leads
         unscored = (await session.execute(
             select(Business).where(Business.pipeline_stage == PipelineStage.AUDITED.value)
         )).scalars().all()
         if unscored:
-            logger.info(f"[Crash Recovery] Found {len(unscored)} audited leads awaiting scoring.")
+            logger.info(f"[Crash Recovery] Resuming scoring and offers for {len(unscored)} audited leads...")
+            for b in unscored:
+                try:
+                    await lead_scoring_engine.score_business(session, b)
+                    await offer_engine.generate_offers_for_business(session, b)
+                except Exception as e:
+                    logger.warning(f"[Crash Recovery] Scoring failed for {b.domain}: {e}")
 
-        # 3. Approved unsent messages
+        # 3. Approved unsent messages (human approved before restart)
         approved_unsent = (await session.execute(
             select(OutreachMessage).where(OutreachMessage.status == OutreachStatus.APPROVED.value)
         )).scalars().all()
         if approved_unsent:
-            logger.info(f"[Crash Recovery] Found {len(approved_unsent)} approved messages awaiting dispatch.")
+            logger.info(f"[Crash Recovery] Dispatching {len(approved_unsent)} approved messages awaiting send...")
+            for m in approved_unsent:
+                try:
+                    await outreach_sender_adapter.send_approved_message(session, m.id)
+                except Exception as e:
+                    logger.warning(f"[Crash Recovery] Send failed for message #{m.id}: {e}")
+
+        # 4. Due follow-ups
+        due_followups = await followup_engine.process_due_followups(session)
+        if due_followups:
+            logger.info(f"[Crash Recovery] Dispatched {len(due_followups)} due follow-ups upon service reboot.")
 
 orchestrator = AutonomousCycleOrchestrator()

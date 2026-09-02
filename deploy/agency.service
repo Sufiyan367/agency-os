@@ -1,0 +1,37 @@
+[Unit]
+Description=Autonomous B2B Lead-Gen & Sales Agency 24/7 Cloud Daemon
+After=network.target network-online.target systemd-sysctl.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agency
+Group=agency
+WorkingDirectory=/opt/agency
+EnvironmentFile=/opt/agency/.env
+Environment="PYTHONPATH=/opt/agency"
+Environment="APP_ENV=production"
+
+# Launch the unified server with supervisor restart handling
+ExecStart=/opt/agency/venv/bin/python -m app.service.runner
+
+# Robust Crash Recovery: Auto-restart on any failure within 5 seconds
+Restart=always
+RestartSec=5s
+
+# Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+# Resource Limits
+LimitNOFILE=65535
+
+# Logging to journald and persistent file
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agency-daemon
+
+[Install]
+WantedBy=multi-user.target

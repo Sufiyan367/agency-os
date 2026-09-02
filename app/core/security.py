@@ -2,7 +2,7 @@ import ipaddress
 import re
 import socket
 from urllib.parse import urlparse
-from typing import Tuple
+from typing import Tuple, Optional
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,12}$")
 PHONE_CLEAN_REGEX = re.compile(r"[^\d+]")
@@ -88,3 +88,64 @@ def sanitize_phone(phone: str) -> str:
         return ""
     cleaned = PHONE_CLEAN_REGEX.sub("", phone)
     return cleaned
+
+# --- Production Dashboard & Cloud Authentication ---
+import hmac
+import hashlib
+import time
+import secrets
+from app.core.config import settings
+
+def create_session_token(username: str, expires_in_days: int = 14) -> str:
+    """Creates a cryptographically signed HMAC-SHA256 session token."""
+    expires_at = int(time.time()) + (expires_in_days * 86400)
+    data = f"{username}:{expires_at}"
+    sig = hmac.new(
+        settings.SESSION_SECRET.encode("utf-8"),
+        data.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+    return f"{username}.{expires_at}.{sig}"
+
+def verify_session_token(token: str) -> Optional[str]:
+    """
+    Verifies the HMAC signature and expiration of a session token.
+    Returns username if valid, None if expired, tampered, or invalid.
+    """
+    if not token or not isinstance(token, str):
+        return None
+    parts = token.split(".")
+    if len(parts) != 3:
+        return None
+    username, expires_at_str, sig = parts
+    try:
+        expires_at = int(expires_at_str)
+    except ValueError:
+        return None
+
+    if time.time() > expires_at:
+        return None  # Expired
+
+    expected_data = f"{username}:{expires_at}"
+    expected_sig = hmac.new(
+        settings.SESSION_SECRET.encode("utf-8"),
+        expected_data.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    if secrets.compare_digest(sig, expected_sig):
+        return username
+    return None
+
+def verify_login_credentials(username: str, password: str) -> bool:
+    """Constant-time credential verification against configured dashboard credentials."""
+    user_match = secrets.compare_digest(username.strip(), settings.DASHBOARD_USERNAME.strip())
+    pass_match = secrets.compare_digest(password.strip(), settings.DASHBOARD_PASSWORD.strip())
+    return user_match and pass_match
+
+def verify_api_key(token: str) -> bool:
+    """Verifies a bearer token or API key against settings.API_SECRET_KEY."""
+    if not token:
+        return False
+    return secrets.compare_digest(token.strip(), settings.API_SECRET_KEY.strip())
+

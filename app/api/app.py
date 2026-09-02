@@ -50,6 +50,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import HTMLResponse, RedirectResponse
+from app.core.security import verify_session_token
+
 # Mount static and templates
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -59,8 +62,30 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR) if os.path.exists(TEMPLATES
 # Include API endpoints
 app.include_router(router)
 
+@app.get("/login", response_class=HTMLResponse)
+async def serve_login(request: Request):
+    if not settings.AUTH_ENABLED:
+        return RedirectResponse(url="/")
+    token = request.cookies.get("agency_session")
+    if token and verify_session_token(token):
+        return RedirectResponse(url="/")
+    if templates:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "app_name": settings.APP_NAME
+        })
+    return HTMLResponse("<h1>Login Required</h1>")
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
+    if settings.AUTH_ENABLED:
+        token = request.cookies.get("agency_session")
+        if not token or not verify_session_token(token):
+            return RedirectResponse(url="/login")
     if templates:
-        return templates.TemplateResponse("index.html", {"request": request, "app_name": settings.APP_NAME})
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "app_name": settings.APP_NAME,
+            "auth_enabled": settings.AUTH_ENABLED
+        })
     return HTMLResponse("<h1>Autonomous B2B Agency API is active</h1><p>Navigate to /docs for API documentation.</p>")

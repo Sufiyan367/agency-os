@@ -1,0 +1,42 @@
+{
+    # Global options
+    email {$TLS_EMAIL:admin@example.com}
+    admin off
+}
+
+# Production Domain or IP with Automatic Let's Encrypt SSL
+{$DOMAIN:localhost} {
+    # Encode responses with gzip or zstandard
+    encode zstd gzip
+
+    # Reverse proxy to FastAPI application
+    reverse_proxy agency-app:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Production Security Headers
+    header {
+        # Strict-Transport-Security
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # X-Frame-Options to prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions Policy
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        # Hide server signature
+        -Server
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}
