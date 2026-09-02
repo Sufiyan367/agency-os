@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import time
 import uuid
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 import httpx
 
 from app.core.config import settings
@@ -88,6 +88,38 @@ class StripePaymentProvider:
                 "status": "open",
                 "mode": "live_stripe"
             }
+
+    async def fetch_completed_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Polls Stripe API for completed checkout sessions to guarantee automatic payment detection.
+        In DRY_RUN or unconfigured, returns empty list.
+        """
+        if not self.enabled or not self.secret_key:
+            return []
+
+        url = f"https://api.stripe.com/v1/checkout/sessions?status=complete&limit={limit}"
+        headers = {"Authorization": f"Bearer {self.secret_key}"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json().get("data", [])
+                    completed = []
+                    for s in data:
+                        meta = s.get("metadata", {})
+                        biz_id_str = meta.get("business_id") or s.get("client_reference_id")
+                        if biz_id_str and str(biz_id_str).isdigit():
+                            amount_cents = s.get("amount_total", 0)
+                            completed.append({
+                                "business_id": int(biz_id_str),
+                                "reference_id": s.get("id"),
+                                "amount_usd": float(amount_cents) / 100.0 if amount_cents else 0.0,
+                                "customer_email": s.get("customer_details", {}).get("email") or s.get("customer_email")
+                            })
+                    return completed
+        except Exception as e:
+            logger.warning(f"[Stripe] Error fetching completed sessions: {e}")
+        return []
 
     def verify_webhook_signature(
         self,

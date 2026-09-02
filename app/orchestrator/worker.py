@@ -9,6 +9,8 @@ from app.database.connection import AsyncSessionLocal
 from app.database.models import SystemRun, Business, PipelineStage
 from app.crm.inbox_poller import inbox_poller
 from app.followups.engine import followup_engine
+from app.payments.provider import stripe_payment_provider
+from app.payments.service import payment_service
 from app.orchestrator.loop import orchestrator
 from app.core.config import settings
 from app.core.logging import logger
@@ -85,15 +87,31 @@ class PersistentAgencyWorker:
             await session.commit()
 
             try:
-                # Job 1: Inbound Reply Polling & Classification
+                # Job 1: Inbound Reply Polling (CONTINUOUS) & CRM (AUTOMATIC)
                 replies = await inbox_poller.poll_inbox(session)
                 summary["inbox_replies_processed"] = len(replies)
 
-                # Job 2: Process Due Follow-up Cadences
+                # Job 2: Process Due Follow-up Cadences (AUTOMATIC)
                 followups = await followup_engine.process_due_followups(session)
                 summary["followups_dispatched"] = len(followups)
 
-                # Job 3: Check if an autonomous discovery cycle should run
+                # Job 3: Payment Detection (AUTOMATIC) & Delivery (AUTOMATIC)
+                completed_payments = await stripe_payment_provider.fetch_completed_sessions()
+                summary["payments_detected"] = len(completed_payments)
+                for pmt in completed_payments:
+                    try:
+                        await payment_service.confirm_payment_and_onboard(
+                            session=session,
+                            business_id=pmt["business_id"],
+                            amount_usd=pmt["amount_usd"],
+                            reference_id=pmt["reference_id"],
+                            payer_email=pmt.get("customer_email")
+                        )
+                        logger.info(f"[PersistentWorker] Automatic payment detected and client onboarded: Ref {pmt.get('reference_id')}")
+                    except Exception as pe:
+                        logger.error(f"[PersistentWorker] Automatic delivery failed for payment {pmt.get('reference_id')}: {pe}")
+
+                # Job 4: Lead Discovery (CONTINUOUS WORKER) & Audit/Scoring (AUTOMATIC) & Outreach (QUEUE + APPROVAL)
                 cycle_interval_mins = settings.WORKER_CYCLE_INTERVAL_MINUTES
                 should_run_cycle = False
                 if not self.last_cycle_at:
