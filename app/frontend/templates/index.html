@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} — Control Center</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">AG</div>
+            <div>Autonomous Agency</div>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item active" data-view="overview">📊 Overview & Revenue</li>
+            <li class="nav-item" data-view="markets">🌍 Market Intelligence</li>
+            <li class="nav-item" data-view="leads">🎯 Prospects & Leads</li>
+            <li class="nav-item" data-view="queue">📬 Outreach Queue</li>
+            <li class="nav-item" data-view="pipeline">📈 Sales Pipeline</li>
+            <li class="nav-item" data-view="runs">⚡ System Health & Runs</li>
+        </ul>
+        <div class="sidebar-footer">
+            <p><strong>Mode:</strong> <span class="badge badge-b">DRY_RUN (Safe)</span></p>
+            <p style="margin-top:4px;">Autonomous Engine v1.0</p>
+        </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="header-title">
+                <h1 id="page-title">Autonomous Revenue Dashboard</h1>
+            </div>
+            <div class="header-actions">
+                <span class="badge badge-a" style="padding:6px 12px;">● System Active</span>
+                <button id="btn-run-cycle" class="btn btn-primary">⚡ Run Autonomous Cycle</button>
+            </div>
+        </header>
+
+        <!-- View 1: Overview & Revenue -->
+        <section id="view-overview" class="view-container active">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Pipeline Value</span>
+                    <span class="metric-val" id="val-pipeline">$0</span>
+                    <span class="metric-sub">Active commercial offers</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Won Revenue</span>
+                    <span class="metric-val" id="val-won" style="color:#10b981;">$0</span>
+                    <span class="metric-sub">Closed contracts</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Discovered Prospects</span>
+                    <span class="metric-val" id="val-leads">0</span>
+                    <span class="metric-sub">Verified businesses</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Qualified Leads</span>
+                    <span class="metric-val" id="val-qualified">0</span>
+                    <span class="metric-sub">Commercial Score &gt;= 55</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Outreach Sent</span>
+                    <span class="metric-val" id="val-outreach-sent">0</span>
+                    <span class="metric-sub">Approved & executed</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Reply Rate</span>
+                    <span class="metric-val" id="val-reply-rate">0%</span>
+                    <span class="metric-sub">High-intent response rate</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Conversion Funnel & Operational Efficiency</div>
+                <div id="funnel-breakdown">
+                    <p style="color:#9ca3af;">Loading efficiency indicators...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 2: Markets -->
+        <section id="view-markets" class="view-container">
+            <div class="card">
+                <div class="card-title">
+                    <span>Global Market Opportunities Ranked by Empirical Potential</span>
+                    <span style="font-size:0.85rem; color:#9ca3af; font-weight:normal;">Multi-factor evaluation: Need, Ability to Pay, Digital Deficit, Competition</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Country</th>
+                                <th>Niche</th>
+                                <th>Opportunity Score</th>
+                                <th>Expected Deal</th>
+                                <th>Digital Weakness</th>
+                                <th>Reasoning & Key Drivers</th>
+                            </tr>
+                        </thead>
+                        <tbody id="markets-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 3: Leads -->
+        <section id="view-leads" class="view-container">
+            <div class="card">
+                <div class="card-title">
+                    <span>Verified Prospect Roster</span>
+                    <span style="font-size:0.85rem; color:#9ca3af; font-weight:normal;">Quality-first commercial prospects</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Business & Domain</th>
+                                <th>Niche</th>
+                                <th>Geography</th>
+                                <th>Lead Score</th>
+                                <th>Pipeline Stage</th>
+                                <th>Public Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 4: Outreach Approval Queue -->
+        <section id="view-queue" class="view-container">
+            <div class="card">
+                <div class="card-title">
+                    <span>Outreach Human Approval Gate</span>
+                    <span style="font-size:0.85rem; color:#9ca3af; font-weight:normal;">Review evidence-grounded proposals before dispatch</span>
+                </div>
+                <div id="queue-cards-container">
+                    <p style="color:#9ca3af;">Loading queued messages...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 5: Sales Pipeline Kanban -->
+        <section id="view-pipeline" class="view-container">
+            <div class="card">
+                <div class="card-title">CRM Pipeline Kanban</div>
+                <div class="kanban-board">
+                    <div class="kanban-col" id="kanban-DISCOVERED"></div>
+                    <div class="kanban-col" id="kanban-VERIFIED"></div>
+                    <div class="kanban-col" id="kanban-AUDITED"></div>
+                    <div class="kanban-col" id="kanban-QUALIFIED"></div>
+                    <div class="kanban-col" id="kanban-APPROVAL"></div>
+                    <div class="kanban-col" id="kanban-CONTACTED"></div>
+                    <div class="kanban-col" id="kanban-QUALIFIED_REPLY"></div>
+                    <div class="kanban-col" id="kanban-WON"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 6: System Runs -->
+        <section id="view-runs" class="view-container">
+            <div class="card">
+                <div class="card-title">System Execution & Observability Log</div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Job Name</th>
+                                <th>Status</th>
+                                <th>Records Processed</th>
+                                <th>Duration</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="runs-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Lead Detail Modal -->
+    <div id="lead-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modal-body-content">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

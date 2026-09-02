@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Autonomous B2B Lead-Gen & Sales Agency
+      - APP_ENV=production
+      - DATABASE_URL=sqlite+aiosqlite:///agency.db
+      - DRY_RUN=true
+      - MAX_OUTREACH_PER_DAY=50
+      - MAX_FOLLOWUPS=3
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
