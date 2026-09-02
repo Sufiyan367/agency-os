@@ -9,7 +9,7 @@ from app.database.connection import AsyncSessionLocal
 from app.database.models import SystemRun, Business, PipelineStage
 from app.crm.inbox_poller import inbox_poller
 from app.followups.engine import followup_engine
-from app.payments.provider import stripe_payment_provider
+from app.payments.provider import stripe_payment_provider, get_active_payment_provider
 from app.payments.service import payment_service
 from app.orchestrator.loop import orchestrator
 from app.core.config import settings
@@ -96,7 +96,8 @@ class PersistentAgencyWorker:
                 summary["followups_dispatched"] = len(followups)
 
                 # Job 3: Payment Detection (AUTOMATIC) & Delivery (AUTOMATIC)
-                completed_payments = await stripe_payment_provider.fetch_completed_sessions()
+                active_pmt_provider = get_active_payment_provider()
+                completed_payments = await active_pmt_provider.fetch_completed_payments()
                 summary["payments_detected"] = len(completed_payments)
                 for pmt in completed_payments:
                     try:

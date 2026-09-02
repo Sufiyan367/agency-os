@@ -32,13 +32,14 @@ async def test_persistent_worker_automatic_payment_detection():
         "amount_usd": 750.0,
         "customer_email": "auto@client.com"
     }]
+    mock_provider = AsyncMock()
+    mock_provider.fetch_completed_payments.return_value = fake_pmt
     with patch("app.crm.inbox_poller.inbox_poller.poll_inbox", new_callable=AsyncMock) as mock_inbox, \
          patch("app.followups.engine.followup_engine.process_due_followups", new_callable=AsyncMock) as mock_fu, \
-         patch("app.payments.provider.stripe_payment_provider.fetch_completed_sessions", new_callable=AsyncMock) as mock_pmt, \
+         patch("app.orchestrator.worker.get_active_payment_provider", return_value=mock_provider), \
          patch("app.payments.service.payment_service.confirm_payment_and_onboard", new_callable=AsyncMock) as mock_onboard:
         mock_inbox.return_value = []
         mock_fu.return_value = []
-        mock_pmt.return_value = fake_pmt
         mock_onboard.return_value = {"status": "SUCCESS"}
 
         summary = await worker.execute_tick()

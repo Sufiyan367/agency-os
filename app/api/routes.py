@@ -17,7 +17,8 @@ from app.outreach.sender import outreach_sender_adapter
 from app.crm.pipeline import pipeline_manager
 from app.crm.reply_classifier import reply_classifier
 from app.crm.inbox_poller import inbox_poller
-from app.payments.provider import stripe_payment_provider
+from app.payments.provider import stripe_payment_provider, get_active_payment_provider
+from app.payments.razorpay import razorpay_payment_provider
 from app.payments.service import payment_service
 from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
@@ -406,7 +407,8 @@ async def create_checkout_session(req: CheckoutSessionRequest, db: AsyncSession 
     title = offer.title if offer else "Website Turnaround & Optimization Package"
     amount = offer.recommended_price if offer else 650.0
 
-    session_data = await stripe_payment_provider.create_checkout_session(
+    provider = get_active_payment_provider()
+    session_data = await provider.create_payment_link(
         business_id=biz.id,
         offer_id=offer.id if offer else 0,
         title=title,
@@ -450,6 +452,68 @@ async def confirm_payment_manual(req: ManualPaymentConfirmRequest, db: AsyncSess
         payer_email=req.payer_email
     )
     return res
+
+@router.post("/api/webhooks/razorpay")
+async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    payload_bytes = await request.body()
+    sig_header = request.headers.get("x-razorpay-signature")
+
+    is_valid, reason = razorpay_payment_provider.verify_webhook_signature(payload_bytes, sig_header)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"Webhook signature verification failed: {reason}")
+
+    try:
+        event = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event_type = event.get("event", "")
+    payload = event.get("payload", {})
+
+    # 1. Payment Link Paid Event
+    if event_type == "payment_link.paid":
+        plink_entity = payload.get("payment_link", {}).get("entity", {})
+        pmt_entity = payload.get("payment", {}).get("entity", {})
+        notes = plink_entity.get("notes") or pmt_entity.get("notes") or {}
+        biz_id_str = notes.get("business_id")
+        amount_subunits = plink_entity.get("amount_paid") or pmt_entity.get("amount") or 0
+        amount_usd = float(amount_subunits) / 100.0 if amount_subunits > 100 else float(amount_subunits)
+        customer_email = plink_entity.get("customer", {}).get("email") or pmt_entity.get("email")
+        ref_id = pmt_entity.get("id") or plink_entity.get("id", f"rzp_{event.get('created_at', 'evt')}")
+
+        if biz_id_str and str(biz_id_str).isdigit():
+            biz_id = int(biz_id_str)
+            await payment_service.confirm_payment_and_onboard(
+                session=db,
+                business_id=biz_id,
+                amount_usd=amount_usd,
+                reference_id=ref_id,
+                payer_email=customer_email
+            )
+            return {"status": "SUCCESS", "event": event_type, "business_id": biz_id}
+
+    # 2. Payment Captured / Order Paid Event
+    elif event_type in ("payment.captured", "order.paid"):
+        pmt_entity = payload.get("payment", {}).get("entity", {})
+        notes = pmt_entity.get("notes", {})
+        biz_id_str = notes.get("business_id")
+        amount_subunits = pmt_entity.get("amount", 0)
+        amount_usd = float(amount_subunits) / 100.0 if amount_subunits > 100 else float(amount_subunits)
+        customer_email = pmt_entity.get("email")
+        ref_id = pmt_entity.get("id", f"rzp_{event.get('created_at', 'evt')}")
+
+        if biz_id_str and str(biz_id_str).isdigit():
+            biz_id = int(biz_id_str)
+            await payment_service.confirm_payment_and_onboard(
+                session=db,
+                business_id=biz_id,
+                amount_usd=amount_usd,
+                reference_id=ref_id,
+                payer_email=customer_email
+            )
+            return {"status": "SUCCESS", "event": event_type, "business_id": biz_id}
+
+    return {"status": "ACKNOWLEDGED", "event": event_type}
 
 @router.post("/api/webhooks/stripe")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):

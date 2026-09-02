@@ -65,9 +65,17 @@ class Settings(BaseSettings):
     OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co")
     OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
 
-    # Payment Gateway (Stripe & Dry Run)
-    PAYMENT_PROVIDER: str = "dry_run"  # 'dry_run', 'stripe'
-    PAYMENTS_ENABLED: bool = False
+    # Payment Gateway (Razorpay Primary, Stripe Optional, Dry Run)
+    PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "razorpay")  # 'razorpay' (primary), 'stripe', 'dry_run'
+    PAYMENTS_ENABLED: bool = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
+    
+    # Razorpay (Primary)
+    RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: Optional[str] = os.getenv("RAZORPAY_KEY_SECRET")
+    RAZORPAY_WEBHOOK_SECRET: Optional[str] = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+    RAZORPAY_CURRENCY: str = os.getenv("RAZORPAY_CURRENCY", "USD")
+
+    # Stripe (Optional Secondary)
     STRIPE_SECRET_KEY: Optional[str] = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET: Optional[str] = os.getenv("STRIPE_WEBHOOK_SECRET")
 

@@ -171,4 +171,42 @@ class StripePaymentProvider:
         except Exception as e:
             return False, f"Signature verification error: {str(e)}"
 
+    async def create_payment_link(
+        self,
+        business_id: int,
+        offer_id: int,
+        title: str,
+        amount_usd: float,
+        customer_name: Optional[str] = None,
+        customer_email: Optional[str] = None,
+        customer_phone: Optional[str] = None,
+        callback_url: str = "http://localhost:8000/?payment=success"
+    ) -> Dict[str, Any]:
+        """
+        Unified alias for checkout session generation.
+        """
+        return await self.create_checkout_session(
+            business_id=business_id,
+            offer_id=offer_id,
+            title=title,
+            amount_usd=amount_usd,
+            customer_email=customer_email,
+            success_url=callback_url
+        )
+
+    async def fetch_completed_payments(self, limit: int = 10) -> List[Dict[str, Any]]:
+        return await self.fetch_completed_sessions(limit=limit)
+
 stripe_payment_provider = StripePaymentProvider()
+
+from app.payments.razorpay import RazorpayPaymentProvider, razorpay_payment_provider
+
+def get_active_payment_provider():
+    """
+    Returns the active payment provider based on configuration.
+    Defaults to Razorpay as primary, Stripe as secondary.
+    """
+    if settings.PAYMENT_PROVIDER == "stripe":
+        return stripe_payment_provider
+    return razorpay_payment_provider
+

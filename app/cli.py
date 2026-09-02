@@ -361,8 +361,8 @@ def list_payments():
 
 @cli_app.command("checkout")
 def generate_checkout(business_id: int):
-    """Generates a checkout session link for a prospect offer."""
-    from app.payments.provider import stripe_payment_provider
+    """Generates a payment link (Razorpay / Stripe) for a prospect offer."""
+    from app.payments.provider import get_active_payment_provider
     from app.database.models import Offer
     async def _chk():
         await init_db()
@@ -376,16 +376,17 @@ def generate_checkout(business_id: int):
             title = offer.title if offer else "Website Turnaround Package"
             amount = offer.recommended_price if offer else 650.0
 
-            res = await stripe_payment_provider.create_checkout_session(
+            provider = get_active_payment_provider()
+            res = await provider.create_payment_link(
                 business_id=biz.id,
                 offer_id=offer.id if offer else 0,
                 title=title,
                 amount_usd=amount,
                 customer_email=biz.public_email
             )
-            console.print(f"[bold green]Checkout Session Created:[/bold green]")
-            console.print(f"URL: {res.get('checkout_url')}")
-            console.print(f"Amount: ${res.get('amount'):,.2f}")
+            console.print(f"[bold green]Payment Link Created ({res.get('provider', 'gateway')}):[/bold green]")
+            console.print(f"URL: [cyan]{res.get('checkout_url')}[/cyan]")
+            console.print(f"Amount: ${res.get('amount'):,.2f} {res.get('currency', 'USD')}")
             console.print(f"Mode: {res.get('mode')}")
     asyncio.run(_chk())
 
