@@ -4,8 +4,10 @@ import socket
 from urllib.parse import urlparse
 from typing import Tuple
 
-EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,12}$")
 PHONE_CLEAN_REGEX = re.compile(r"[^\d+]")
+
+DISALLOWED_EMAIL_PREFIXES = ("you@company", "test@", "example@", "sentry@", "wixpress", "domain@domain")
 
 PRIVATE_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),
@@ -70,11 +72,13 @@ def normalize_domain(domain_or_url: str) -> str:
     return d.strip("/")
 
 def validate_email_syntax(email: str) -> bool:
-    """Verifies email syntax conforms to basic standard."""
+    """Verifies email syntax conforms to standard and is not a placeholder/script."""
     if not email or not isinstance(email, str):
         return False
     email = email.strip()
     if len(email) > 254:
+        return False
+    if any(p in email.lower() for p in DISALLOWED_EMAIL_PREFIXES):
         return False
     return bool(EMAIL_REGEX.match(email))
 

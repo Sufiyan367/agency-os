@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database.models import Business, Contact, PipelineStage, VerificationStatus, PipelineEvent
-from app.lead_generation.adapters.seed import SeedLeadDiscoveryAdapter
+from app.lead_generation.adapters.real_web_discovery import RealWebDiscoveryAdapter
 from app.lead_generation.adapters.directory import DirectoryDiscoveryAdapter
 from app.lead_generation.adapters.web_search import WebSearchDiscoveryAdapter
 from app.lead_generation.verification import lead_verification_engine
@@ -12,13 +12,13 @@ from app.core.logging import logger
 
 class LeadDiscoveryCoordinator:
     """
-    Coordinates multi-adapter lead discovery, strict domain deduplication,
-    verification, contact creation, and pipeline stage assignment.
+    Coordinates real web prospect discovery, strict domain deduplication,
+    multi-vector network verification, contact creation, and pipeline stage assignment.
     """
     def __init__(self):
+        # Production adapters: 100% REAL public web discovery, NO SEED LEADS
         self.adapters = [
-            SeedLeadDiscoveryAdapter(),
-            DirectoryDiscoveryAdapter(),
+            RealWebDiscoveryAdapter(),
             WebSearchDiscoveryAdapter()
         ]
 
@@ -27,12 +27,12 @@ class LeadDiscoveryCoordinator:
         session: AsyncSession,
         country_code: str = "US",
         niche_slug: str = "roofing-contractors",
-        target_count: int = 10
+        target_count: int = 50
     ) -> List[Business]:
-        logger.info(f"Starting lead discovery for Country: {country_code}, Niche: {niche_slug}, Target: {target_count}")
+        logger.info(f"Starting REAL lead discovery for Country: {country_code}, Niche: {niche_slug}, Target: {target_count}")
         discovered_records = []
 
-        # Run discovery through registered adapters
+        # Run discovery through real public search adapters
         for adapter in self.adapters:
             try:
                 leads = await adapter.discover_leads(country_code, niche_slug, limit=target_count)
@@ -82,7 +82,7 @@ class LeadDiscoveryCoordinator:
                 pipeline_stage=p_stage
             )
             session.add(biz)
-            await session.flush()  # populate biz.id
+            await session.flush()
 
             # Create primary Contact record if public contact details exist
             if lead_data.public_email:
@@ -103,7 +103,7 @@ class LeadDiscoveryCoordinator:
                 from_stage=PipelineStage.DISCOVERED.value,
                 to_stage=p_stage,
                 deal_value=0.0,
-                note=f"Lead discovered via {lead_data.source}. Verification: {reason}."
+                note=f"Real business discovered via {lead_data.source}. Verification: {reason}."
             )
             session.add(event)
             created_businesses.append(biz)
@@ -112,7 +112,7 @@ class LeadDiscoveryCoordinator:
                 break
 
         await session.commit()
-        logger.info(f"Discovery completed: {len(created_businesses)} new verified businesses stored.")
+        logger.info(f"REAL Discovery completed: {len(created_businesses)} authentic verified businesses stored.")
         return created_businesses
 
 lead_discovery_coordinator = LeadDiscoveryCoordinator()

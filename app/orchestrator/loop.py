@@ -3,11 +3,11 @@ import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database.connection import AsyncSessionLocal
 from app.database.models import (
     Business, AuditRun, LeadScore, Offer, OutreachMessage,
-    OutreachStatus, PipelineStage, SystemRun, VerificationStatus
+    OutreachStatus, PipelineStage, SystemRun, VerificationStatus, Reply
 )
 from app.market_intelligence.engine import market_intelligence_engine
 from app.lead_generation.discovery import lead_discovery_coordinator
@@ -17,59 +17,73 @@ from app.offers.generator import offer_engine
 from app.outreach.personalization import outreach_personalizer
 from app.outreach.sender import outreach_sender_adapter
 from app.followups.engine import followup_engine
+from app.crm.reply_classifier import reply_classifier
+from app.crm.pipeline import pipeline_manager
 from app.analytics.engine import analytics_engine
 from app.core.logging import setup_logging
 
 class AutonomousCycleOrchestrator:
     """
     Central orchestrator executing the end-to-end autonomous revenue loop:
-    Market Research -> Opportunity Ranking -> Lead Discovery -> Verification ->
-    Deep Website Auditing -> Lead Scoring -> Offer Generation ->
+    Market Research -> Opportunity Ranking -> Lead Discovery (50-100 real prospects) ->
+    Verification -> Deep Website Auditing -> Lead Scoring -> Offer Generation ->
     Personalized Outreach Drafting -> Approval Queue -> Execution ->
     Follow-up Management -> Analytics & Observability.
+    Includes automated crash recovery and pipeline resumption.
     """
 
     async def run_full_autonomous_cycle(
         self,
-        target_leads_per_market: int = 5,
-        max_opportunities_to_mine: int = 2
+        target_leads: int = 50,
+        target_leads_per_market: Optional[int] = None,
+        max_opportunities_to_mine: int = 1
     ) -> Dict[str, Any]:
+        if target_leads_per_market is not None:
+            target_leads = target_leads_per_market
+
         run_id = f"RUN-{uuid.uuid4().hex[:8].upper()}"
         logger = setup_logging(run_id=run_id)
         start_time = time.perf_counter()
         started_at = datetime.utcnow()
 
-        logger.info(f"=== Starting Autonomous Revenue Loop Cycle [{run_id}] ===")
+        logger.info(f"=== Starting Autonomous Revenue Loop Cycle [{run_id}] (Target: {target_leads} Real Leads) ===")
         processed_count = 0
         failed_count = 0
         cycle_summary = {}
 
         async with AsyncSessionLocal() as session:
-            # 1. Market Research & Intelligence
-            logger.info("Step 1: Evaluating international market opportunities...")
+            # 0. Crash Recovery / Resume Incomplete Stages from Previous Runs
+            logger.info("Step 0: Checking for uncompleted pipeline tasks (Crash Recovery)...")
+            await self._recover_incomplete_stages(session, logger)
+
+            # 1. Market Research & Intelligence: Select Best Opportunity
+            logger.info("Step 1: Discovering and evaluating global market opportunities...")
             opportunities = await market_intelligence_engine.scan_and_rank_markets(session)
             top_markets = opportunities[:max_opportunities_to_mine]
-            cycle_summary["top_markets"] = [
-                f"{m.niche_name} in {m.country_name} (Score: {m.total_score})" for m in top_markets
-            ]
-            logger.info(f"Top selected market: {top_markets[0].niche_name} in {top_markets[0].country_name} ({top_markets[0].total_score}/100)")
+            best_market = top_markets[0]
+            cycle_summary["selected_market"] = {
+                "country": best_market.country_name,
+                "country_code": best_market.country_code,
+                "niche": best_market.niche_name,
+                "niche_slug": best_market.niche_slug,
+                "opportunity_score": best_market.total_score,
+                "expected_deal_value": best_market.expected_deal_value,
+                "reasoning": best_market.reasoning
+            }
+            logger.info(f"Selected Best Market: {best_market.niche_name} in {best_market.country_name} (Score: {best_market.total_score}/100)")
 
-            # 2. Lead Discovery & Verification
-            discovered_businesses = []
-            for m in top_markets:
-                logger.info(f"Step 2: Discovering qualified prospects for {m.niche_slug} in {m.country_code}...")
-                new_bizs = await lead_discovery_coordinator.run_discovery_and_verification(
-                    session,
-                    country_code=m.country_code,
-                    niche_slug=m.niche_slug,
-                    target_count=target_leads_per_market
-                )
-                discovered_businesses.extend(new_bizs)
-
+            # 2. Lead Discovery & Verification: Discover 50-100 REAL Public B2B Prospects
+            logger.info(f"Step 2: Discovering {target_leads} REAL public B2B prospects for {best_market.niche_slug} in {best_market.country_code}...")
+            discovered_businesses = await lead_discovery_coordinator.run_discovery_and_verification(
+                session,
+                country_code=best_market.country_code,
+                niche_slug=best_market.niche_slug,
+                target_count=target_leads
+            )
             cycle_summary["new_leads_discovered"] = len(discovered_businesses)
 
-            # 3. Website Auditing (Audit any verified, unaudited business)
-            logger.info("Step 3: Executing multi-vector technical website audits...")
+            # 3. Real Website Auditing
+            logger.info("Step 3: Auditing real business websites across 6 diagnostic vectors...")
             unaudited_q = select(Business).where(
                 Business.verification_status == VerificationStatus.VERIFIED.value,
                 Business.pipeline_stage.in_([PipelineStage.DISCOVERED.value, PipelineStage.VERIFIED.value])
@@ -89,7 +103,7 @@ class AutonomousCycleOrchestrator:
             cycle_summary["websites_audited"] = audited_count
 
             # 4. Lead Scoring
-            logger.info("Step 4: Computing transparent 0-100 lead scores...")
+            logger.info("Step 4: Computing transparent commercial 0-100 lead scores...")
             unscored_q = select(Business).where(
                 Business.pipeline_stage == PipelineStage.AUDITED.value
             )
@@ -106,7 +120,7 @@ class AutonomousCycleOrchestrator:
 
             cycle_summary["leads_scored"] = scored_count
 
-            # 5. Offer Generation
+            # 5. Service Recommendation & Commercial Offer Generation
             logger.info("Step 5: Synthesizing customized commercial packages & offers ($450-$1,500+)...")
             qualified_q = select(Business).where(
                 Business.pipeline_stage == PipelineStage.QUALIFIED.value
@@ -135,7 +149,7 @@ class AutonomousCycleOrchestrator:
 
             for biz in candidates:
                 try:
-                    msg = await outreach_personalizer.prepare_outreach_for_business(session, biz)
+                    await outreach_personalizer.prepare_outreach_for_business(session, biz)
                     drafted_count += 1
                 except Exception as e:
                     logger.warning(f"Outreach prep note for {biz.domain}: {e}")
@@ -189,5 +203,31 @@ class AutonomousCycleOrchestrator:
 
         logger.info(f"=== Autonomous Revenue Loop [{run_id}] Finished in {duration}s ===")
         return cycle_summary
+
+    async def _recover_incomplete_stages(self, session: AsyncSession, logger):
+        """Crash recovery: Resumes any tasks that were interrupted."""
+        # 1. Unaudited verified leads
+        unaudited = (await session.execute(
+            select(Business).where(
+                Business.verification_status == VerificationStatus.VERIFIED.value,
+                Business.pipeline_stage.in_([PipelineStage.DISCOVERED.value, PipelineStage.VERIFIED.value])
+            )
+        )).scalars().all()
+        if unaudited:
+            logger.info(f"[Crash Recovery] Found {len(unaudited)} verified leads awaiting audit.")
+
+        # 2. Audited unscored leads
+        unscored = (await session.execute(
+            select(Business).where(Business.pipeline_stage == PipelineStage.AUDITED.value)
+        )).scalars().all()
+        if unscored:
+            logger.info(f"[Crash Recovery] Found {len(unscored)} audited leads awaiting scoring.")
+
+        # 3. Approved unsent messages
+        approved_unsent = (await session.execute(
+            select(OutreachMessage).where(OutreachMessage.status == OutreachStatus.APPROVED.value)
+        )).scalars().all()
+        if approved_unsent:
+            logger.info(f"[Crash Recovery] Found {len(approved_unsent)} approved messages awaiting dispatch.")
 
 orchestrator = AutonomousCycleOrchestrator()

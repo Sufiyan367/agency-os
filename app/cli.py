@@ -182,7 +182,95 @@ def demo_e2e():
 
         console.print("\n[bold green]✓ ALL 11 STEPS IN THE END-TO-END ACCEPTANCE TEST COMPLETED FLAWLESSLY![/bold green]")
 
-    asyncio.run(_demo())
+@cli_app.command("queue")
+def list_queue():
+    """Lists all pending outreach messages waiting for human approval."""
+    async def _queue():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            pending = await outreach_approval_queue.list_pending(session)
+            if not pending:
+                console.print("[yellow]No pending outreach messages in approval queue.[/yellow]")
+                return
+
+            table = Table(title=f"Human Approval Queue ({len(pending)} Pending)")
+            table.add_column("ID", style="bold cyan")
+            table.add_column("Business Name", style="white")
+            table.add_column("Domain", style="blue")
+            table.add_column("Recipient", style="green")
+            table.add_column("Subject", style="italic")
+            table.add_column("Created At", style="dim")
+
+            for m in pending:
+                biz = (await session.execute(select(Business).where(Business.id == m.business_id))).scalars().first()
+                table.add_row(
+                    str(m.id),
+                    biz.name[:28] if biz else "Unknown",
+                    biz.domain if biz else "Unknown",
+                    m.recipient_email or "No email",
+                    m.subject[:40] + "..." if len(m.subject) > 40 else m.subject,
+                    str(m.created_at)[:19] if m.created_at else ""
+                )
+            console.print(table)
+    asyncio.run(_queue())
+
+@cli_app.command("approve")
+def approve_outreach(message_id: int):
+    """Approves a queued outreach message and triggers sending via the configured adapter."""
+    async def _approve():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            try:
+                approved = await outreach_approval_queue.approve_message(session, message_id)
+                console.print(f"[bold green]✓ Message {approved.id} APPROVED by human operator.[/bold green]")
+                send_result = await outreach_sender_adapter.send_approved_message(session, message_id)
+                console.print(f"[bold cyan]Outreach Transmission Status: {send_result['status']} ({send_result['event']})[/bold cyan]")
+            except Exception as e:
+                console.print(f"[bold red]Approval error: {e}[/bold red]")
+    asyncio.run(_approve())
+
+@cli_app.command("metrics")
+def view_metrics():
+    """Displays real-time agency pipeline, revenue, and conversion metrics."""
+    async def _metrics():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            data = await analytics_engine.get_dashboard_metrics(session)
+            console.print("[bold blue]=== Agency Executive Revenue Metrics ===[/bold blue]")
+            console.print(data)
+    asyncio.run(_metrics())
+
+@cli_app.command("leads")
+def list_leads(limit: int = 25):
+    """Lists top commercial B2B prospects stored in the database."""
+    async def _leads():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            stmt = select(Business).order_by(Business.created_at.desc()).limit(limit)
+            leads = (await session.execute(stmt)).scalars().all()
+            if not leads:
+                console.print("[yellow]No leads found in database.[/yellow]")
+                return
+
+            table = Table(title=f"Discovered B2B Prospects (Showing {len(leads)})")
+            table.add_column("Business Name", style="cyan")
+            table.add_column("Domain", style="blue")
+            table.add_column("City", style="green")
+            table.add_column("Public Email", style="magenta")
+            table.add_column("Phone", style="dim")
+            table.add_column("Pipeline Stage", style="bold")
+
+            for b in leads:
+                table.add_row(
+                    b.name[:28],
+                    b.domain,
+                    b.city or "",
+                    b.public_email or "None",
+                    b.phone or "None",
+                    b.pipeline_stage.value if hasattr(b.pipeline_stage, 'value') else str(b.pipeline_stage)
+                )
+            console.print(table)
+    asyncio.run(_leads())
 
 if __name__ == "__main__":
     cli_app()

@@ -1,12 +1,12 @@
 from app.lead_generation.adapters.base import BaseLeadDiscoveryAdapter, DiscoveredLeadRaw
-from app.lead_generation.adapters.seed import SeedLeadDiscoveryAdapter
-from app.lead_generation.adapters.web_search import WebSearchDiscoveryAdapter
+from app.lead_generation.adapters.real_web_discovery import RealWebDiscoveryAdapter
 from app.lead_generation.adapters.directory import DirectoryDiscoveryAdapter
+from app.lead_generation.adapters.web_search import WebSearchDiscoveryAdapter
 
 __all__ = [
     "BaseLeadDiscoveryAdapter",
     "DiscoveredLeadRaw",
-    "SeedLeadDiscoveryAdapter",
-    "WebSearchDiscoveryAdapter",
-    "DirectoryDiscoveryAdapter"
+    "RealWebDiscoveryAdapter",
+    "DirectoryDiscoveryAdapter",
+    "WebSearchDiscoveryAdapter"
 ]

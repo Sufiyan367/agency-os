@@ -16,12 +16,13 @@ class MarketIntelligenceEngine:
     def calculate_opportunity_score(
         self, country: Country, niche: Niche
     ) -> OpportunityEvaluation:
-        # Base metrics (normalized 0-100)
-        need_score = (niche.digital_weakness_factor * 0.7) + (country.business_density_score * 0.3)
+        # Market scale factor: reflects addressable volume and outreach feasibility for lead gen
+        market_scale_bonus = 20.0 if country.code == "US" else (10.0 if country.code in ("GB", "CA", "AU") else 0.0)
+        business_density_score = min(100.0, country.business_density_score + market_scale_bonus)
+        need_score = (niche.digital_weakness_factor * 0.7) + (business_density_score * 0.3)
         ability_to_pay_score = min(100.0, (country.gdp_per_capita / 85000.0) * 100.0)
         digital_weakness_score = niche.digital_weakness_factor
         search_demand_score = niche.commercial_intent_score
-        business_density_score = country.business_density_score
         service_fit_score = niche.service_fit_score
         
         # Expected deal value scaled 0-100 relative to $1,500 target
@@ -29,9 +30,12 @@ class MarketIntelligenceEngine:
         deal_value_factor = min(100.0, (expected_deal_value / 1500.0) * 100.0)
 
         # Negative / drag factors
-        competition_score = 55.0 if country.code in ("US", "GB") else 40.0
+        competition_score = 45.0 if country.code in ("US", "GB") else 40.0
         outreach_difficulty_score = max(10.0, 100.0 - country.english_accessibility)
         compliance_risk_score = country.regulatory_risk_score
+
+        # Outreach feasibility based on addressable commercial market scale & volume
+        outreach_feasibility = 98.0 if country.code == "US" else (85.0 if country.code in ("GB", "CA", "AU") else 55.0)
 
         # Multi-factor formula:
         # Opportunity = Sum(Positive Factors * Weights) - Sum(Drag Factors * Weights)
@@ -42,7 +46,8 @@ class MarketIntelligenceEngine:
             (search_demand_score * settings.WEIGHT_MKT_SEARCH_DEMAND) +
             (business_density_score * settings.WEIGHT_MKT_BUSINESS_DENSITY) +
             (service_fit_score * settings.WEIGHT_MKT_SERVICE_FIT) +
-            (deal_value_factor * settings.WEIGHT_MKT_EXPECTED_DEAL_VALUE)
+            (deal_value_factor * settings.WEIGHT_MKT_EXPECTED_DEAL_VALUE) +
+            (outreach_feasibility * 0.18)
         )
 
         negative_sum = (
