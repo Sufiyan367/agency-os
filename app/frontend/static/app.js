@@ -14,6 +14,7 @@ let currentView = 'overview';
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
+    initHudClock();
     loadDashboardMetrics();
     loadMarkets();
     loadLeads();
@@ -22,7 +23,25 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPipeline();
     loadPayments();
     loadRuns();
+
+    // Auto-refresh metrics every 30s
+    setInterval(() => {
+        if (currentView === 'overview') loadDashboardMetrics();
+    }, 30000);
 });
+
+function initHudClock() {
+    function tick() {
+        const clockElem = document.getElementById('hud-clock');
+        if (clockElem) {
+            const now = new Date();
+            const utcString = now.toUTCString().split(' ')[4] + ' UTC';
+            clockElem.innerText = utcString;
+        }
+    }
+    tick();
+    setInterval(tick, 1000);
+}
 
 function initNavigation() {
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -133,6 +152,35 @@ async function loadDashboardMetrics() {
                     </div>
                 </div>
             `;
+        }
+        // Fetch real-time worker telemetry
+        try {
+            const wRes = await fetch('/api/worker/status');
+            if (wRes.ok) {
+                const wData = await wRes.json();
+                const statusElem = document.getElementById('worker-hud-status');
+                const ticksElem = document.getElementById('worker-hud-ticks');
+                const lastTickElem = document.getElementById('worker-hud-last-tick');
+                
+                if (statusElem) {
+                    if (wData.is_running) {
+                        statusElem.innerText = 'ONLINE // ACTIVE';
+                        statusElem.style.color = 'var(--emerald)';
+                    } else {
+                        statusElem.innerText = 'STANDBY // READY';
+                        statusElem.style.color = 'var(--amber)';
+                    }
+                }
+                if (ticksElem) {
+                    ticksElem.innerText = `${wData.ticks_executed || 0} TICKS`;
+                }
+                if (lastTickElem && wData.last_tick_at) {
+                    const d = new Date(wData.last_tick_at);
+                    lastTickElem.innerText = d.toLocaleTimeString();
+                }
+            }
+        } catch (we) {
+            console.debug('Worker status poll:', we);
         }
     } catch (e) {
         console.error('Error loading metrics:', e);
