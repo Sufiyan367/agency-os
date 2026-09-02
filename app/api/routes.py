@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import List, Dict, Any, Optional
@@ -7,13 +7,19 @@ from pydantic import BaseModel
 from app.database.connection import get_db
 from app.database.models import (
     Business, Contact, AuditRun, AuditFinding, LeadScore,
-    Offer, OutreachMessage, OutreachStatus, PipelineStage, SystemRun, MarketOpportunity, Customer
+    Offer, OutreachMessage, OutreachStatus, PipelineStage, SystemRun, MarketOpportunity, Customer,
+    Payment, Reply, Project
 )
 from app.analytics.engine import analytics_engine
 from app.market_intelligence.engine import market_intelligence_engine
 from app.outreach.queue import outreach_approval_queue
 from app.outreach.sender import outreach_sender_adapter
 from app.crm.pipeline import pipeline_manager
+from app.crm.reply_classifier import reply_classifier
+from app.crm.inbox_poller import inbox_poller
+from app.payments.provider import stripe_payment_provider
+from app.payments.service import payment_service
+from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
 from app.orchestrator.loop import orchestrator
 from app.core.config import settings
@@ -276,3 +282,188 @@ async def get_system_runs(db: AsyncSession = Depends(get_db)):
 async def export_audit_report(business_id: int, db: AsyncSession = Depends(get_db)):
     report_md = await delivery_report_generator.generate_audit_report_markdown(db, business_id)
     return {"business_id": business_id, "markdown": report_md}
+
+# --- Payments & Stripe Webhooks ---
+
+class CheckoutSessionRequest(BaseModel):
+    business_id: int
+    offer_id: Optional[int] = None
+
+@router.post("/api/payments/checkout-session")
+async def create_checkout_session(req: CheckoutSessionRequest, db: AsyncSession = Depends(get_db)):
+    biz = await db.get(Business, req.business_id)
+    if not biz:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    offer = None
+    if req.offer_id:
+        offer = await db.get(Offer, req.offer_id)
+    else:
+        q_off = select(Offer).where(Offer.business_id == req.business_id).order_by(desc(Offer.created_at))
+        offer = (await db.execute(q_off)).scalars().first()
+
+    title = offer.title if offer else "Website Turnaround & Optimization Package"
+    amount = offer.recommended_price if offer else 650.0
+
+    session_data = await stripe_payment_provider.create_checkout_session(
+        business_id=biz.id,
+        offer_id=offer.id if offer else 0,
+        title=title,
+        amount_usd=amount,
+        customer_email=biz.public_email
+    )
+    return session_data
+
+@router.get("/api/payments")
+async def list_payments(db: AsyncSession = Depends(get_db)):
+    q = select(Payment).order_by(desc(Payment.created_at))
+    payments = (await db.execute(q)).scalars().all()
+    results = []
+    for p in payments:
+        cust = await db.get(Customer, p.customer_id)
+        results.append({
+            "id": p.id,
+            "customer_id": p.customer_id,
+            "company_name": cust.company_name if cust else "Unknown",
+            "amount": p.amount,
+            "currency": p.currency,
+            "status": p.status,
+            "reference_id": p.reference_id,
+            "created_at": p.created_at.isoformat() if p.created_at else None
+        })
+    return results
+
+class ManualPaymentConfirmRequest(BaseModel):
+    business_id: int
+    amount: float
+    reference_id: str
+    payer_email: Optional[str] = None
+
+@router.post("/api/payments/confirm-manual")
+async def confirm_payment_manual(req: ManualPaymentConfirmRequest, db: AsyncSession = Depends(get_db)):
+    res = await payment_service.confirm_payment_and_onboard(
+        session=db,
+        business_id=req.business_id,
+        amount_usd=req.amount,
+        reference_id=req.reference_id,
+        payer_email=req.payer_email
+    )
+    return res
+
+@router.post("/api/webhooks/stripe")
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    payload_bytes = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    is_valid, reason = stripe_payment_provider.verify_webhook_signature(payload_bytes, sig_header)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"Webhook signature verification failed: {reason}")
+
+    try:
+        event = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event_type = event.get("type", "")
+    data_obj = event.get("data", {}).get("object", {})
+
+    if event_type in ("checkout.session.completed", "payment_intent.succeeded"):
+        meta = data_obj.get("metadata", {})
+        biz_id_str = meta.get("business_id") or data_obj.get("client_reference_id")
+        amount_total = data_obj.get("amount_total") or data_obj.get("amount") or 0
+        amount_usd = float(amount_total) / 100.0 if amount_total > 100 else float(amount_total)
+        customer_email = data_obj.get("customer_details", {}).get("email") or data_obj.get("customer_email")
+        ref_id = data_obj.get("id", f"stripe_{event.get('id', 'evt')}")
+
+        if biz_id_str and str(biz_id_str).isdigit():
+            biz_id = int(biz_id_str)
+            await payment_service.confirm_payment_and_onboard(
+                session=db,
+                business_id=biz_id,
+                amount_usd=amount_usd,
+                reference_id=ref_id,
+                payer_email=customer_email
+            )
+            return {"status": "SUCCESS", "event": event_type, "business_id": biz_id}
+
+    return {"status": "ACKNOWLEDGED", "event": event_type}
+
+# --- Inbound Email & Reply Webhooks ---
+
+class InboundEmailWebhook(BaseModel):
+    sender_email: str
+    subject: str = ""
+    body: str
+
+@router.post("/api/webhooks/inbound-email")
+async def inbound_email_webhook(data: InboundEmailWebhook, db: AsyncSession = Depends(get_db)):
+    reply = await inbox_poller.process_inbound_message(
+        session=db,
+        sender_email=data.sender_email,
+        subject=data.subject,
+        body=data.body
+    )
+    if not reply:
+        return {"status": "IGNORED", "message": "Sender does not match any active lead."}
+    return {
+        "status": "PROCESSED",
+        "reply_id": reply.id,
+        "classification": reply.classification,
+        "confidence": reply.confidence,
+        "suggested_response": reply.suggested_response
+    }
+
+# --- Replies Management ---
+
+@router.get("/api/replies")
+async def list_replies(db: AsyncSession = Depends(get_db)):
+    q = select(Reply).order_by(desc(Reply.received_at))
+    replies = (await db.execute(q)).scalars().all()
+    results = []
+    for r in replies:
+        biz = await db.get(Business, r.business_id)
+        results.append({
+            "id": r.id,
+            "business_id": r.business_id,
+            "business_name": biz.name if biz else "Unknown",
+            "domain": biz.domain if biz else "",
+            "sender_email": r.sender_email,
+            "raw_body": r.raw_body,
+            "classification": r.classification,
+            "confidence": r.confidence,
+            "suggested_response": r.suggested_response,
+            "received_at": r.received_at.isoformat() if r.received_at else None
+        })
+    return results
+
+class SimulateReplyRequest(BaseModel):
+    business_id: int
+    sender_email: str
+    body: str
+
+@router.post("/api/replies/simulate")
+async def simulate_incoming_reply(req: SimulateReplyRequest, db: AsyncSession = Depends(get_db)):
+    reply = await reply_classifier.process_incoming_reply(
+        session=db,
+        business_id=req.business_id,
+        sender_email=req.sender_email,
+        raw_body=req.body
+    )
+    return {
+        "status": "SUCCESS",
+        "reply_id": reply.id,
+        "classification": reply.classification,
+        "confidence": reply.confidence,
+        "suggested_response": reply.suggested_response
+    }
+
+# --- Background Worker Control ---
+
+@router.get("/api/worker/status")
+async def get_worker_status():
+    return agency_worker.get_status()
+
+@router.post("/api/worker/tick")
+async def trigger_worker_tick():
+    summary = await agency_worker.execute_tick()
+    return summary

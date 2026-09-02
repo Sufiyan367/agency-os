@@ -272,5 +272,122 @@ def list_leads(limit: int = 25):
             console.print(table)
     asyncio.run(_leads())
 
+@cli_app.command("worker")
+def run_worker(once: bool = typer.Option(False, "--once", help="Run a single pass and exit"), interval: int = 60):
+    """Runs the persistent background worker for replies, follow-ups, and auto-cycles."""
+    from app.orchestrator.worker import agency_worker
+    async def _worker():
+        await init_db()
+        if once:
+            console.print("[bold cyan]Executing single worker tick...[/bold cyan]")
+            res = await agency_worker.execute_tick()
+            console.print(f"[bold green]Worker pass complete:[/bold green] {res}")
+        else:
+            agency_worker.interval_seconds = interval
+            console.print(f"[bold cyan]Starting persistent worker (interval: {interval}s)... Press Ctrl+C to stop.[/bold cyan]")
+            await agency_worker.start()
+            try:
+                while agency_worker.is_running:
+                    await asyncio.sleep(1)
+            except (KeyboardInterrupt, asyncio.CancelledError):
+                await agency_worker.stop()
+                console.print("[yellow]Worker stopped.[/yellow]")
+    asyncio.run(_worker())
+
+@cli_app.command("replies")
+def list_replies():
+    """Lists incoming prospect replies and AI classifications."""
+    from app.database.models import Reply
+    async def _replies():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            stmt = select(Reply).order_by(Reply.received_at.desc())
+            replies = (await session.execute(stmt)).scalars().all()
+            if not replies:
+                console.print("[yellow]No replies recorded yet.[/yellow]")
+                return
+
+            table = Table(title=f"Inbound Prospect Replies ({len(replies)})")
+            table.add_column("ID", style="dim")
+            table.add_column("Sender", style="cyan")
+            table.add_column("Classification", style="bold")
+            table.add_column("Conf.", style="green")
+            table.add_column("Snippet", style="white")
+            table.add_column("Suggested Response", style="dim")
+
+            for r in replies:
+                table.add_row(
+                    str(r.id),
+                    r.sender_email,
+                    r.classification,
+                    f"{r.confidence*100:.0f}%",
+                    r.raw_body[:40] + "..." if len(r.raw_body) > 40 else r.raw_body,
+                    (r.suggested_response or "")[:35] + "..." if len(r.suggested_response or "") > 35 else (r.suggested_response or "")
+                )
+            console.print(table)
+    asyncio.run(_replies())
+
+@cli_app.command("payments")
+def list_payments():
+    """Lists confirmed payments and customer revenue."""
+    from app.database.models import Payment, Customer
+    async def _pmts():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            stmt = select(Payment).order_by(Payment.created_at.desc())
+            pmts = (await session.execute(stmt)).scalars().all()
+            if not pmts:
+                console.print("[yellow]No payments recorded yet.[/yellow]")
+                return
+
+            table = Table(title=f"Confirmed Payments ({len(pmts)})")
+            table.add_column("Ref ID", style="dim")
+            table.add_column("Customer", style="cyan")
+            table.add_column("Amount", style="bold green")
+            table.add_column("Status", style="bold")
+            table.add_column("Date", style="magenta")
+
+            for p in pmts:
+                cust = await session.get(Customer, p.customer_id)
+                table.add_row(
+                    p.reference_id,
+                    cust.company_name if cust else "Unknown",
+                    f"${p.amount:,.2f} {p.currency}",
+                    p.status,
+                    p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else ""
+                )
+            console.print(table)
+    asyncio.run(_pmts())
+
+@cli_app.command("checkout")
+def generate_checkout(business_id: int):
+    """Generates a checkout session link for a prospect offer."""
+    from app.payments.provider import stripe_payment_provider
+    from app.database.models import Offer
+    async def _chk():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            biz = await session.get(Business, business_id)
+            if not biz:
+                console.print(f"[red]Business #{business_id} not found.[/red]")
+                return
+            q_off = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
+            offer = (await session.execute(q_off)).scalars().first()
+            title = offer.title if offer else "Website Turnaround Package"
+            amount = offer.recommended_price if offer else 650.0
+
+            res = await stripe_payment_provider.create_checkout_session(
+                business_id=biz.id,
+                offer_id=offer.id if offer else 0,
+                title=title,
+                amount_usd=amount,
+                customer_email=biz.public_email
+            )
+            console.print(f"[bold green]Checkout Session Created:[/bold green]")
+            console.print(f"URL: {res.get('checkout_url')}")
+            console.print(f"Amount: ${res.get('amount'):,.2f}")
+            console.print(f"Mode: {res.get('mode')}")
+    asyncio.run(_chk())
+
 if __name__ == "__main__":
     cli_app()

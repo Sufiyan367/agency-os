@@ -18,7 +18,9 @@
             <li class="nav-item" data-view="markets">🌍 Market Intelligence</li>
             <li class="nav-item" data-view="leads">🎯 Prospects & Leads</li>
             <li class="nav-item" data-view="queue">📬 Outreach Queue</li>
+            <li class="nav-item" data-view="replies">💬 Inbound Replies</li>
             <li class="nav-item" data-view="pipeline">📈 Sales Pipeline</li>
+            <li class="nav-item" data-view="payments">💳 Payments & Deals</li>
             <li class="nav-item" data-view="runs">⚡ System Health & Runs</li>
         </ul>
         <div class="sidebar-footer">
@@ -164,6 +166,61 @@
                     <div class="kanban-col" id="kanban-CONTACTED"></div>
                     <div class="kanban-col" id="kanban-QUALIFIED_REPLY"></div>
                     <div class="kanban-col" id="kanban-WON"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: Inbound Replies -->
+        <section id="view-replies" class="view-container">
+            <div class="card">
+                <div class="card-title">
+                    <span>Inbound Prospect Replies & Classification</span>
+                    <span style="font-size:0.85rem; color:#9ca3af; font-weight:normal;">Real-time sentiment, AI intent classification, and suggested response drafts</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Prospect & Domain</th>
+                                <th>Classification</th>
+                                <th>Confidence</th>
+                                <th>Prospect Message</th>
+                                <th>Suggested Response Draft</th>
+                                <th>Received At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="replies-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: Payments & Deals -->
+        <section id="view-payments" class="view-container">
+            <div class="card">
+                <div class="card-title">
+                    <span>Closed Deals & Confirmed Payments</span>
+                    <span style="font-size:0.85rem; color:#9ca3af; font-weight:normal;">Stripe webhooks & confirmed client engagements</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Reference ID</th>
+                                <th>Customer / Company</th>
+                                <th>Amount</th>
+                                <th>Currency</th>
+                                <th>Status</th>
+                                <th>Confirmed Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>

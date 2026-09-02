@@ -39,13 +39,34 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-4o-mini"
     NVIDIA_MODEL: str = "meta/llama-3.1-70b-instruct"
 
-    # Sender Info
-    SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
-    OUTREACH_FROM_EMAIL: str = "prospects@agencygrowth.co"
-    OUTREACH_FROM_NAME: str = "Elena Vance | Digital Strategy Director"
+    # Email Providers & Outreach Delivery
+    EMAIL_PROVIDER: str = "dry_run"  # 'dry_run', 'resend', 'sendgrid', 'smtp'
+    EMAIL_DRY_RUN: bool = True
+    RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
+    SENDGRID_API_KEY: Optional[str] = os.getenv("SENDGRID_API_KEY")
+    SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
+    SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
+    OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co")
+    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
+
+    # Payment Gateway (Stripe & Dry Run)
+    PAYMENT_PROVIDER: str = "dry_run"  # 'dry_run', 'stripe'
+    PAYMENTS_ENABLED: bool = False
+    STRIPE_SECRET_KEY: Optional[str] = os.getenv("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET: Optional[str] = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    # Inbound Inbox Polling (IMAP & Webhooks)
+    IMAP_HOST: Optional[str] = os.getenv("IMAP_HOST")
+    IMAP_PORT: int = int(os.getenv("IMAP_PORT", "993"))
+    IMAP_USER: Optional[str] = os.getenv("IMAP_USER")
+    IMAP_PASSWORD: Optional[str] = os.getenv("IMAP_PASSWORD")
+    INBOX_POLL_INTERVAL_SECONDS: int = 120
+
+    # Background Autonomous Worker / Scheduler
+    WORKER_ENABLED: bool = True
+    WORKER_CYCLE_INTERVAL_MINUTES: int = 30
 
     # Lead Scoring Weights (must sum to 1.0)
     WEIGHT_WEBSITE_WEAKNESS: float = 0.25

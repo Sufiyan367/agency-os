@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMarkets();
     loadLeads();
     loadQueue();
+    loadReplies();
     loadPipeline();
+    loadPayments();
     loadRuns();
 });
 
@@ -36,7 +38,9 @@ function switchView(viewName) {
     if (viewName === 'markets') loadMarkets();
     if (viewName === 'leads') loadLeads();
     if (viewName === 'queue') loadQueue();
+    if (viewName === 'replies') loadReplies();
     if (viewName === 'pipeline') loadPipeline();
+    if (viewName === 'payments') loadPayments();
     if (viewName === 'runs') loadRuns();
 }
 
@@ -368,5 +372,91 @@ async function runAutonomousCycle() {
     } finally {
         btn.disabled = false;
         btn.innerText = '⚡ Run Autonomous Cycle';
+    }
+}
+
+async function loadReplies() {
+    try {
+        const res = await fetch('/api/replies');
+        const replies = await res.json();
+        const tbody = document.getElementById('replies-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (replies.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9ca3af; padding:24px;">No prospect replies received yet.</td></tr>';
+            return;
+        }
+
+        replies.forEach(r => {
+            const tr = document.createElement('tr');
+            let badgeClass = 'badge-b';
+            if (['INTERESTED', 'MEETING_REQUEST', 'PRICE_REQUEST'].includes(r.classification)) {
+                badgeClass = 'badge-a';
+            } else if (['UNSUBSCRIBE', 'BOUNCE', 'NOT_INTERESTED'].includes(r.classification)) {
+                badgeClass = 'badge-c';
+            }
+
+            tr.innerHTML = `
+                <td><strong>${r.business_name}</strong><br><span style="color:#6b7280; font-size:0.85rem;">${r.sender_email}</span></td>
+                <td><span class="badge ${badgeClass}">${r.classification}</span></td>
+                <td>${(r.confidence * 100).toFixed(0)}%</td>
+                <td style="max-width:260px; word-break:break-word; font-size:0.9rem;">"${r.raw_body}"</td>
+                <td style="max-width:260px; word-break:break-word; font-style:italic; font-size:0.85rem; color:#d1d5db;">${r.suggested_response || 'None'}</td>
+                <td style="font-size:0.85rem; color:#9ca3af;">${r.received_at ? new Date(r.received_at).toLocaleString() : ''}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error('Error loading replies:', e);
+    }
+}
+
+async function loadPayments() {
+    try {
+        const res = await fetch('/api/payments');
+        const payments = await res.json();
+        const tbody = document.getElementById('payments-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#9ca3af; padding:24px;">No payments recorded yet.</td></tr>';
+            return;
+        }
+
+        payments.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><code>${p.reference_id}</code></td>
+                <td><strong>${p.company_name}</strong></td>
+                <td style="font-weight:bold; color:#10b981;">$${p.amount.toLocaleString()}</td>
+                <td>${p.currency}</td>
+                <td><span class="badge badge-a">${p.status}</span></td>
+                <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}</td>
+                <td><button class="btn btn-secondary" onclick="viewAuditReport(${p.customer_id})">📄 Delivery Pack</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error('Error loading payments:', e);
+    }
+}
+
+async function createCheckoutLink(businessId) {
+    try {
+        const res = await fetch('/api/payments/checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ business_id: businessId })
+        });
+        const data = await res.json();
+        if (data.checkout_url) {
+            window.open(data.checkout_url, '_blank');
+        } else {
+            alert('Failed to generate checkout link: ' + JSON.stringify(data));
+        }
+    } catch (e) {
+        alert('Error creating checkout: ' + e);
     }
 }

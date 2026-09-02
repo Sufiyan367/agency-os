@@ -10,6 +10,7 @@ from app.database.models import (
 from app.core.config import settings
 from app.core.logging import logger
 from app.outreach.compliance import compliance_guard
+from app.outreach.providers.factory import get_email_provider
 
 class OutreachSenderAdapter:
     """
@@ -40,35 +41,17 @@ class OutreachSenderAdapter:
 
         biz = await session.get(Business, msg.business_id)
 
-        # 1. Execution
-        if settings.DRY_RUN:
-            # Simulated send mode
-            event_type = "dry_run_simulated"
-            details = {
-                "dry_run": True,
-                "simulated_at": datetime.utcnow().isoformat(),
-                "recipient": msg.recipient_email,
-                "from": settings.OUTREACH_FROM_EMAIL,
-                "status": "DELIVERED_SIMULATED"
-            }
-            logger.info(f"[DRY_RUN] Simulated outreach sent to {msg.recipient_email} for {biz.name if biz else 'Unknown'}")
-        else:
-            # Live SMTP transmission
-            if not settings.SMTP_HOST or not settings.SMTP_USER:
-                raise ValueError("SMTP_HOST or SMTP_USER not configured. Keep DRY_RUN=True for testing.")
-            
-            mime_msg = MIMEText(msg.body, "plain", "utf-8")
-            mime_msg["Subject"] = msg.subject
-            mime_msg["From"] = f"{settings.OUTREACH_FROM_NAME} <{settings.OUTREACH_FROM_EMAIL}>"
-            mime_msg["To"] = msg.recipient_email
-
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD or "")
-                server.send_message(mime_msg)
-            
-            event_type = "smtp_delivered"
-            details = {"recipient": msg.recipient_email, "smtp_host": settings.SMTP_HOST}
+        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP)
+        provider = get_email_provider()
+        delivery_res = await provider.send_email(
+            to_email=msg.recipient_email,
+            subject=msg.subject,
+            body=msg.body,
+            from_email=settings.OUTREACH_FROM_EMAIL,
+            from_name=settings.OUTREACH_FROM_NAME
+        )
+        event_type = delivery_res.get("event", "email_dispatched")
+        details = delivery_res.get("details", {})
 
         # 2. Update status and log event
         msg.status = OutreachStatus.SENT.value

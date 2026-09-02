@@ -28,6 +28,7 @@ ENV/
 # Database
 *.sqlite
 *.sqlite3
+agency.db
 
 # Logs & Environment
 *.log

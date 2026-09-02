@@ -16,6 +16,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(BASE_DIR, "frontend", "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "frontend", "templates")
 
+from app.orchestrator.worker import agency_worker
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Autonomous B2B Lead-Gen & Sales Agency Application...")
@@ -23,7 +25,14 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as session:
         await seed_initial_data(session)
     logger.info("Application initialized and ready.")
+
+    if settings.WORKER_ENABLED:
+        await agency_worker.start()
+
     yield
+
+    if settings.WORKER_ENABLED:
+        await agency_worker.stop()
     logger.info("Application shutdown.")
 
 app = FastAPI(
