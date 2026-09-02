@@ -24,6 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPayments();
     loadRuns();
 
+    // Backdrop click closes lead modal
+    const modal = document.getElementById('lead-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
     // Auto-refresh metrics every 30s
     setInterval(() => {
         if (currentView === 'overview') loadDashboardMetrics();
@@ -105,6 +113,21 @@ function switchView(viewName) {
 
     document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
     document.getElementById(`view-${viewName}`)?.classList.add('active');
+
+    const titles = {
+        'overview': '// COMMAND CENTER TELEMETRY',
+        'markets': '// GLOBAL MARKET RADAR',
+        'leads': '// TARGET PROSPECT REGISTRY',
+        'queue': '// OUTREACH AUTHORIZATION TERMINAL',
+        'replies': '// INBOUND SIGNAL INTERCEPTION',
+        'pipeline': '// SALES PIPELINE KANBAN',
+        'payments': '// FINANCIAL LEDGER & DEALS',
+        'runs': '// SCHEDULER & WORKER HEARTBEATS'
+    };
+    const titleElem = document.getElementById('page-title');
+    if (titleElem && titles[viewName]) {
+        titleElem.innerText = titles[viewName];
+    }
 
     // Refresh view data
     if (viewName === 'overview') loadDashboardMetrics();
@@ -254,32 +277,35 @@ async function viewLeadDetail(leadId) {
         const outreach = data.outreach;
 
         modalBody.innerHTML = `
-            <h2>${data.business.name}</h2>
-            <p style="color:#9ca3af; margin-bottom:16px;">
-                <a href="${data.business.website_url}" target="_blank" style="color:#3b82f6;">${data.business.domain}</a> | 
-                ${data.business.niche} in ${data.business.city || ''}, ${data.business.country}
-            </p>
+            <div style="border-bottom:1px solid rgba(0,229,255,0.2); padding-bottom:12px; margin-bottom:16px;">
+                <span class="badge badge-b">// TARGET PROSPECT DOSSIER</span>
+                <h2 style="font-family:var(--font-hud); color:#fff; margin-top:4px; font-size:1.25rem;">${data.business.name}</h2>
+                <p style="color:#94a3b8; font-size:0.88rem; margin-top:4px;">
+                    <a href="${data.business.website_url}" target="_blank" style="color:var(--hud-cyan); text-decoration:none;">${data.business.domain} ↗</a> | 
+                    ${data.business.niche} in ${data.business.city || 'Regional'}, ${data.business.country}
+                </p>
+            </div>
 
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:24px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-bottom:20px;">
                 <div class="metric-card">
                     <span class="metric-label">Commercial Score</span>
-                    <span class="metric-val" style="font-size:1.4rem;">${score.total_score || 'N/A'}/100</span>
-                    <span class="badge ${score.priority === 'A' ? 'badge-a' : 'badge-b'}">Priority ${score.priority}</span>
+                    <span class="metric-val" style="font-size:1.35rem;">${score.total_score || 'N/A'}/100</span>
+                    <span class="badge ${score.priority === 'A' ? 'badge-a' : 'badge-b'}">Priority ${score.priority || 'B'}</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Website Health</span>
-                    <span class="metric-val" style="font-size:1.4rem;">${audit.overall_health || 'N/A'}/100</span>
+                    <span class="metric-val" style="font-size:1.35rem;">${audit.overall_health || 'N/A'}/100</span>
                     <span class="metric-sub">${findings.length} Actionable Items</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Pipeline Stage</span>
-                    <span class="metric-val" style="font-size:1.2rem;">${data.business.pipeline_stage}</span>
-                    <span style="font-size:0.8rem; color:#9ca3af;">Contact: ${data.business.email || 'None'}</span>
+                    <span class="metric-val" style="font-size:1.1rem; color:var(--hud-cyan);">${data.business.pipeline_stage}</span>
+                    <span style="font-size:0.75rem; color:#94a3b8; word-break:break-all;">Contact: ${data.business.email || 'None'}</span>
                 </div>
             </div>
 
-            <h3 style="margin-bottom:8px;">Diagnostic Vector Health</h3>
-            <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+            <h3 style="font-family:var(--font-hud); font-size:0.88rem; margin-bottom:8px; color:var(--hud-cyan);">Diagnostic Vector Health</h3>
+            <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
                 <span class="badge badge-b">Speed: ${audit.performance}/100</span>
                 <span class="badge badge-b">SEO: ${audit.seo}/100</span>
                 <span class="badge badge-b">A11y: ${audit.accessibility}/100</span>
@@ -288,38 +314,38 @@ async function viewLeadDetail(leadId) {
                 <span class="badge badge-b">Content: ${audit.content}/100</span>
             </div>
 
-            <h3 style="margin-bottom:8px;">Key Technical Findings (${findings.length})</h3>
-            <div style="max-height:220px; overflow-y:auto; border:1px solid #1f293d; border-radius:6px; padding:12px; margin-bottom:24px;">
-                ${findings.map(f => `
-                    <div style="margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <strong>[${f.category}] ${f.finding}</strong>
-                            <span class="badge ${f.severity === 'CRITICAL' ? 'badge-low' : 'badge-c'}">${f.severity}</span>
+            <h3 style="font-family:var(--font-hud); font-size:0.88rem; margin-bottom:8px; color:var(--hud-cyan);">Key Technical Findings (${findings.length})</h3>
+            <div style="max-height:200px; overflow-y:auto; border:1px solid rgba(0,229,255,0.15); border-radius:4px; padding:12px; margin-bottom:20px; background:rgba(4,9,20,0.6);">
+                ${findings.length > 0 ? findings.map(f => `
+                    <div style="margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <strong style="color:#fff; font-size:0.88rem;">[${f.category}] ${f.finding}</strong>
+                            <span class="badge ${f.severity === 'CRITICAL' ? 'badge-c' : 'badge-b'}">${f.severity}</span>
                         </div>
-                        <p style="font-size:0.85rem; color:#9ca3af; margin:4px 0;">Evidence: ${f.evidence}</p>
-                        <p style="font-size:0.85rem; color:#10b981;">Fix: ${f.recommended_fix}</p>
+                        <p style="font-size:0.82rem; color:#94a3b8; margin:3px 0;">Evidence: ${f.evidence}</p>
+                        <p style="font-size:0.82rem; color:var(--hud-emerald);">Fix: ${f.recommended_fix}</p>
                     </div>
-                `).join('')}
+                `).join('') : '<p style="color:#94a3b8; font-size:0.85rem;">No critical findings recorded.</p>'}
             </div>
 
             ${offer.title ? `
-                <div class="card" style="margin-bottom:24px; border-color:#3b82f6;">
-                    <div class="card-title" style="color:#60a5fa;">
+                <div class="card" style="margin-bottom:16px; border-color:var(--hud-cyan);">
+                    <div class="card-title" style="color:var(--hud-cyan); font-size:0.9rem;">
                         <span>Recommended Service: ${offer.title}</span>
-                        <span>$${offer.recommended_price} USD</span>
+                        <span style="color:var(--hud-emerald);">$${offer.recommended_price} USD</span>
                     </div>
-                    <p style="font-size:0.9rem; margin-bottom:12px;">${offer.value_prop}</p>
-                    <ul style="padding-left:20px; font-size:0.85rem; color:#9ca3af;">
+                    <p style="font-size:0.88rem; margin-bottom:8px; color:#e2e8f0;">${offer.value_prop}</p>
+                    <ul style="padding-left:18px; font-size:0.82rem; color:#94a3b8;">
                         ${offer.deliverables.map(d => `<li>${d}</li>`).join('')}
                     </ul>
                 </div>
             ` : ''}
 
             ${outreach.subject ? `
-                <h3 style="margin-bottom:8px;">Prepared Personalized Outreach (${outreach.variant})</h3>
-                <div class="card">
-                    <p><strong>Subject:</strong> ${outreach.subject}</p>
-                    <pre style="background:#0b0f19; padding:12px; border-radius:6px; margin-top:8px; white-space:pre-wrap; font-size:0.85rem; color:#d1d5db;">${outreach.body}</pre>
+                <h3 style="font-family:var(--font-hud); font-size:0.88rem; margin-bottom:8px; color:var(--hud-cyan);">Prepared Personalized Outreach (${outreach.variant})</h3>
+                <div class="card" style="margin-bottom:0;">
+                    <p style="font-size:0.88rem;"><strong>Subject:</strong> ${outreach.subject}</p>
+                    <pre style="background:rgba(4,9,20,0.8); padding:10px; border-radius:4px; margin-top:8px; white-space:pre-wrap; font-size:0.82rem; color:#cbd5e1; font-family:var(--font-mono);">${outreach.body}</pre>
                 </div>
             ` : ''}
         `;
@@ -327,6 +353,37 @@ async function viewLeadDetail(leadId) {
         modal.classList.add('active');
     } catch (e) {
         console.error('Error fetching lead detail:', e);
+    }
+}
+
+async function viewAuditReport(businessId) {
+    if (!businessId) {
+        alert('Diagnostic audit report not found for this record.');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/reports/audit/${businessId}`);
+        if (!res.ok) {
+            alert('Unable to load delivery report. Status: ' + res.status);
+            return;
+        }
+        const data = await res.json();
+        const modal = document.getElementById('lead-modal');
+        const modalBody = document.getElementById('modal-body-content');
+
+        modalBody.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,229,255,0.2); padding-bottom:12px; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <span class="badge badge-a">// CLIENT DELIVERY PACKET</span>
+                    <h2 style="font-family:var(--font-hud); color:#fff; margin-top:4px; font-size:1.15rem;">Technical Remediation Deliverable</h2>
+                </div>
+                <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('report-text-content').innerText); alert('Audit report copied to clipboard!');">📋 Copy Packet</button>
+            </div>
+            <div id="report-text-content" style="background:rgba(4,9,20,0.9); padding:16px; border-radius:4px; border:1px solid rgba(0,229,255,0.15); max-height:60vh; overflow-y:auto; font-family:var(--font-mono); font-size:0.82rem; color:#d1d5db; white-space:pre-wrap; line-height:1.6;">${data.markdown || 'No report content generated.'}</div>
+        `;
+        modal.classList.add('active');
+    } catch (e) {
+        alert('Error fetching delivery report: ' + e);
     }
 }
 
@@ -342,7 +399,7 @@ async function loadQueue() {
         container.innerHTML = '';
 
         if (queue.length === 0) {
-            container.innerHTML = '<p style="color:#9ca3af;">No outreach messages currently pending approval. Run a cycle to populate!</p>';
+            container.innerHTML = '<div style="text-align:center; padding:32px 16px; color:var(--text-muted); font-family:var(--font-mono); font-size:0.85rem;">// NO OUTREACH TRANSMISSIONS PENDING AUTHORIZATION. ENGAGE AUTONOMOUS PROTOCOL TO POPULATE.</div>';
             return;
         }
 
@@ -351,23 +408,24 @@ async function loadQueue() {
             card.className = 'card';
             card.innerHTML = `
                 <div class="card-title">
-                    <div>
-                        <strong>${item.business_name}</strong> (${item.domain})
-                        <span class="badge badge-a" style="margin-left:8px;">Score: ${item.lead_score}/100</span>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <strong style="color:#fff;">${item.business_name}</strong>
+                        <span style="color:var(--hud-cyan); font-family:var(--font-mono); font-size:0.8rem;">(${item.domain})</span>
+                        <span class="badge badge-a">Score: ${item.lead_score}/100</span>
                     </div>
                     <div>
                         <span class="badge badge-stage">${item.recommended_service} ($${item.recommended_price})</span>
                     </div>
                 </div>
-                <p style="font-size:0.88rem; margin-bottom:6px;"><strong>To:</strong> ${item.recipient_email}</p>
-                <p style="font-size:0.88rem; margin-bottom:10px;"><strong>Subject:</strong> ${item.subject}</p>
-                <div style="background:#0b0f19; padding:12px; border-radius:6px; margin-bottom:16px; max-height:140px; overflow-y:auto; font-size:0.85rem; color:#d1d5db; white-space:pre-wrap;">
+                <p style="font-size:0.85rem; margin-bottom:4px;"><strong style="color:var(--text-muted);">TO:</strong> <span style="font-family:var(--font-mono); color:var(--text-cyan);">${item.recipient_email}</span></p>
+                <p style="font-size:0.85rem; margin-bottom:8px;"><strong style="color:var(--text-muted);">SUBJECT:</strong> <span style="color:#fff;">${item.subject}</span></p>
+                <div style="background:rgba(4,9,20,0.85); padding:12px; border-radius:4px; margin-bottom:12px; max-height:140px; overflow-y:auto; font-size:0.82rem; color:#cbd5e1; white-space:pre-wrap; font-family:var(--font-mono); border:1px solid rgba(0,229,255,0.1);">
                     ${item.body}
                 </div>
-                <div style="display:flex; gap:12px;">
-                    <button class="btn btn-success" onclick="approveMessage(${item.message_id})">Approve & Send</button>
-                    <button class="btn btn-danger" onclick="rejectMessage(${item.message_id})">Reject</button>
-                    <button class="btn btn-outline" onclick="viewLeadDetail(${item.business_id})">View Audit</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-success" onclick="approveMessage(${item.message_id})">✓ Approve & Send</button>
+                    <button class="btn btn-danger" onclick="rejectMessage(${item.message_id})">✕ Reject</button>
+                    <button class="btn btn-outline" onclick="viewLeadDetail(${item.business_id})">Inspect Audit</button>
                 </div>
             `;
             container.appendChild(card);
@@ -486,7 +544,7 @@ async function loadReplies() {
         tbody.innerHTML = '';
 
         if (replies.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9ca3af; padding:24px;">No prospect replies received yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:0.85rem; padding:28px;">// NO INBOUND SIGNALS INTERCEPTED. WAITING FOR PROSPECT TRANSMISSIONS.</td></tr>';
             return;
         }
 
@@ -523,7 +581,7 @@ async function loadPayments() {
         tbody.innerHTML = '';
 
         if (payments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#9ca3af; padding:24px;">No payments recorded yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:0.85rem; padding:28px;">// FINANCIAL LEDGER ZEROED. PENDING CONTRACT EXECUTION.</td></tr>';
             return;
         }
 
@@ -536,7 +594,7 @@ async function loadPayments() {
                 <td>${p.currency}</td>
                 <td><span class="badge badge-a">${p.status}</span></td>
                 <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}</td>
-                <td><button class="btn btn-secondary" onclick="viewAuditReport(${p.customer_id})">📄 Delivery Pack</button></td>
+                <td><button class="btn btn-secondary" onclick="viewAuditReport(${p.business_id || p.customer_id})">📄 Delivery Pack</button></td>
             `;
             tbody.appendChild(tr);
         });
