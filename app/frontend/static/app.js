@@ -1263,3 +1263,21 @@ async function handleCreateProposal(event) {
     }
 }
 
+async function handleProductionReset() {
+    const ok = confirm("⚠️ INITIALIZE CLEAN PRODUCTION BASELINE?\n\nThis will safely archive your existing database to backups/ and reset operational data to a zero baseline:\n\n• Prospects: 0\n• Qualified Leads: 0\n• Outreach Sent: 0\n• Replies: 0\n• Meetings: 0\n• Won Deals: 0\n• Pipeline Value: $0\n\nAll reference market metadata (countries, niches) will be preserved.");
+    if (!ok) return;
+
+    try {
+        const res = await fetch('/api/production/reset', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Clean Production Baseline Initialized!\n\nBackup Archived: ${data.backup_file || 'backups/'}\nMode: FIRST CLIENT MODE\nAll operational metrics set to 0.`);
+            location.reload();
+        } else {
+            alert("Reset failed: " + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert("Error resetting production environment: " + e);
+    }
+}
+

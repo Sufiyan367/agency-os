@@ -900,3 +900,20 @@ async def update_payment_settings_endpoint(req: UpdatePaymentSettingsRequest):
         )
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+
+# --- First Client Mode & Production Lifecycle Endpoints ---
+
+@router.get("/api/production/status")
+async def get_production_status_endpoint():
+    from app.core.production_mode import first_client_mode
+    return first_client_mode.get_mode_status()
+
+@router.post("/api/production/reset")
+async def reset_production_database_endpoint():
+    from app.database.production_init import production_reset_service
+    try:
+        summary = production_reset_service.initialize_clean_production(create_backup=True)
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset production environment: {e}")
+

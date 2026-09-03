@@ -236,6 +236,10 @@
                 <span id="worker-hud-last-tick" style="display:none;"></span>
             </div>
             <div class="header-right">
+                <div class="system-status-pill" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                    <span class="pulse-dot" style="background:#10b981; box-shadow: 0 0 8px #10b981;"></span>
+                    <span style="color:#34d399; font-weight:700; font-size:0.75rem; letter-spacing:0.5px;">FIRST CLIENT MODE</span>
+                </div>
                 <div class="system-status-pill">
                     <span class="pulse-dot"></span>
                     <span id="worker-hud-status">ONLINE</span>
@@ -882,6 +886,15 @@
                         <p style="margin-top:14px; font-size:0.75rem; color:var(--text-muted);">
                             All secrets are stored exclusively in local environment configuration and never sent to the browser. Real outbound messaging and real payment collection remain securely blocked until explicit operator setup.
                         </p>
+                        <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+                            <div style="font-weight:600; font-size:0.85rem; color:var(--text-white); margin-bottom:4px;">Clean Production Initialization</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px;">
+                                Archives current database to <code style="color:var(--hud-cyan-bright);">backups/</code> and resets to 0 prospects, 0 leads, $0 pipeline for the first real client.
+                            </div>
+                            <button type="button" class="btn btn-secondary" style="padding:6px 14px; font-size:0.75rem;" onclick="handleProductionReset()">
+                                ↺ Initialize Clean Production (Reset to 0)
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
