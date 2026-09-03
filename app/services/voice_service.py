@@ -158,6 +158,16 @@ class VoiceSalesService:
                     if biz:
                         biz.pipeline_stage = PipelineStage.MEETING.value
 
+                    from app.database.models import ProspectMemory
+                    q_mem = select(ProspectMemory).where(ProspectMemory.business_id == call_log.business_id)
+                    mem = (await db.execute(q_mem)).scalars().first()
+                    if mem:
+                        mem.pipeline_stage = PipelineStage.MEETING.value
+                        mem.call_sid = call_sid
+                        mem.last_interaction = "Autonomous voice call scheduled diagnostic consultation."
+                        mem.next_expected_action = "ATTEND_MEETING"
+                        mem.updated_at = datetime.utcnow()
+
             elif qual.escalate_to_human:
                 if call_log.business_id:
                     q_biz = select(Business).where(Business.id == call_log.business_id)
@@ -165,6 +175,16 @@ class VoiceSalesService:
                     biz = b_res.scalar_one_or_none()
                     if biz:
                         biz.pipeline_stage = "HUMAN_TAKEOVER"
+
+                    from app.database.models import ProspectMemory
+                    q_mem = select(ProspectMemory).where(ProspectMemory.business_id == call_log.business_id)
+                    mem = (await db.execute(q_mem)).scalars().first()
+                    if mem:
+                        mem.pipeline_stage = "HUMAN_TAKEOVER"
+                        mem.call_sid = call_sid
+                        mem.last_interaction = "Voice call escalated to human specialist."
+                        mem.next_expected_action = "OPERATOR_CALLBACK"
+                        mem.updated_at = datetime.utcnow()
 
             await db.commit()
 

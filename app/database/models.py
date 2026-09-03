@@ -171,6 +171,7 @@ class Business(Base):
     outreach_messages: Mapped[List["OutreachMessage"]] = relationship("OutreachMessage", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     pipeline_events: Mapped[List["PipelineEvent"]] = relationship("PipelineEvent", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="business", uselist=False, lazy="selectin")
+    memory: Mapped[Optional["ProspectMemory"]] = relationship("ProspectMemory", back_populates="business", uselist=False, cascade="all, delete-orphan", lazy="selectin")
 
 # 5. Contacts
 class Contact(Base):
@@ -556,6 +557,41 @@ class Meeting(Base):
     status: Mapped[str] = mapped_column(String(50), default="SCHEDULED")  # SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# 23. Event-Driven Prospect Memory
+class ProspectMemory(Base):
+    __tablename__ = "prospect_memories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), unique=True, index=True)
+    domain: Mapped[str] = mapped_column(String(255), index=True)
+    contact_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    contact_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    thread_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    call_sid: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    payment_link_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+
+    channel_used: Mapped[str] = mapped_column(String(50), default="EMAIL")
+    pipeline_stage: Mapped[str] = mapped_column(String(50), default="CONTACTED")
+
+    audit_results: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    buyer_score: Mapped[float] = mapped_column(Float, default=0.0)
+    opportunity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    estimated_value: Mapped[float] = mapped_column(Float, default=500.0)
+
+    offer_proposal: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    outreach_message: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    last_interaction: Mapped[str] = mapped_column(Text, default="")
+    next_expected_action: Mapped[str] = mapped_column(String(100), default="AWAITING_INBOUND_EVENT")
+    conversation_history: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    business: Mapped["Business"] = relationship("Business", back_populates="memory", lazy="selectin")
 
 
 # Backward-compatibility alias

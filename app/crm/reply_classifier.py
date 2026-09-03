@@ -164,6 +164,30 @@ class ReplyClassifier:
                 )
                 session.add(event)
 
+                # Sync ProspectMemory
+                from app.database.models import ProspectMemory
+                q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+                mem = (await session.execute(q_mem)).scalars().first()
+                if mem:
+                    mem.pipeline_stage = new_stage
+                    mem.last_interaction = f"Reply received from {sender_email}: {cat}"
+                    mem.next_expected_action = "MEETING_CONFIRMATION" if new_stage == PipelineStage.QUALIFIED_REPLY.value else "FOLLOW_UP"
+                    history = list(mem.conversation_history or [])
+                    history.append({
+                        "sender": "PROSPECT",
+                        "message": raw_body,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    if suggested:
+                        history.append({
+                            "sender": "AGENT",
+                            "message": suggested,
+                            "intent": cat,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    mem.conversation_history = history
+                    mem.updated_at = datetime.utcnow()
+
         await session.commit()
         logger.info(f"Processed reply from {sender_email} for business {business_id}. Classified as {cat}")
         return reply

@@ -6,6 +6,12 @@ from app.database.seed_data import seed_initial_data
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+@pytest_asyncio.fixture(autouse=True)
+async def ensure_db_schema():
+    from app.database.connection import init_db
+    await init_db()
+
+
 @pytest_asyncio.fixture
 async def db_session():
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
@@ -18,3 +24,4 @@ async def db_session():
         yield session
     
     await engine.dispose()
+

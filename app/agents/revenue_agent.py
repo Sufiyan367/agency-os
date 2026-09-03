@@ -106,7 +106,7 @@ class RevenueAgentOrchestrator:
             "message": "Autonomous Revenue Agent stopped."
         }
 
-    def trigger_kill_switch(self) -> Dict[str, Any]:
+    def trigger_kill_switch(self, reason: str = "") -> Dict[str, Any]:
         """Emergency kill switch: disables autonomous agent immediately."""
         self.is_running = False
         self.is_paused = False
@@ -114,13 +114,15 @@ class RevenueAgentOrchestrator:
             self._task.cancel()
         settings.AUTONOMOUS_AGENT_ENABLED = False
         settings.AUTONOMOUS_OUTREACH = False
-        logger.warning("[RevenueAgentOrchestrator] EMERGENCY KILL SWITCH ACTIVATED.")
+        logger.warning(f"[RevenueAgentOrchestrator] EMERGENCY KILL SWITCH ACTIVATED. {reason}".strip())
         return {
             "status": "KILLED",
             "kill_switch_active": True,
             "worker_active": False,
-            "message": "EMERGENCY KILL SWITCH ACTIVATED. Agent halted."
+            "message": f"EMERGENCY KILL SWITCH ACTIVATED. {reason}".strip()
         }
+
+    trigger_emergency_kill_switch = trigger_kill_switch
 
     async def _continuous_loop(self):
         """Persistent background worker loop processing one prospect at a time."""
@@ -353,9 +355,79 @@ class RevenueAgentOrchestrator:
         self.stats["contacts_attempted"] += 1
         self.stats["prospects_processed"] += 1
 
+        # Event-Driven Architecture: Persist full prospect memory before moving to next candidate
+        from app.crm.memory_service import memory_service
+        thread_id = candidate_data.get("thread_id") or f"thread-{candidate_data.get('domain')}"
+        call_sid = res.get("call_sid") if isinstance(res, dict) and route.channel == ChannelType.VOICE else None
+
+        async with AsyncSessionLocal() as session:
+            biz = None
+            if candidate_data.get("id"):
+                biz = await session.get(Business, candidate_data["id"])
+            if not biz and candidate_data.get("domain"):
+                res_b = await session.execute(select(Business).where(Business.domain == candidate_data["domain"]))
+                biz = res_b.scalar_one_or_none()
+            if not biz:
+                biz = Business(
+                    name=b_name,
+                    domain=candidate_data.get("domain", f"prospect-{b_name.lower().replace(' ', '')}.com"),
+                    website_url=candidate_data.get("website", ""),
+                    country=candidate_data.get("country", "US"),
+                    city=candidate_data.get("city", "Austin"),
+                    niche=candidate_data.get("niche", "Commercial Services"),
+                    public_email=candidate_data.get("email"),
+                    phone=candidate_data.get("phone"),
+                    pipeline_stage=PipelineStage.CONTACTED.value
+                )
+                session.add(biz)
+                await session.commit()
+                await session.refresh(biz)
+
+            await memory_service.save_memory(
+                session,
+                business_id=biz.id,
+                domain=biz.domain,
+                contact_name=candidate_data.get("contact_name", "Business Owner"),
+                contact_email=candidate_data.get("email") or biz.public_email,
+                contact_phone=candidate_data.get("phone") or biz.phone,
+                thread_id=thread_id,
+                call_sid=call_sid,
+                channel_used=route.channel.value,
+                pipeline_stage=PipelineStage.CONTACTED.value,
+                audit_results={
+                    "performance_score": candidate_data.get("performance_score", 48.0),
+                    "load_time_seconds": candidate_data.get("load_time_seconds", 4.3),
+                    "audit_evidence": candidate_data.get("audit_evidence", {})
+                },
+                buyer_score=candidate_data.get("buyer_score", 82.0),
+                opportunity_score=candidate_data.get("opportunity_score", 76.0),
+                estimated_value=candidate_data.get("estimated_value", 750.0),
+                offer_proposal={
+                    "service_type": "web_turnaround",
+                    "title": "Speed & Mobile Conversion Turnaround",
+                    "recommended_price": max(candidate_data.get("estimated_value", 750.0), 500.0),
+                    "deliverables": ["Core Web Vitals Optimization", "Image & Script Payloads Caching", "Local SEO Schema"]
+                },
+                outreach_message={
+                    "destination": route.destination,
+                    "channel": route.channel.value,
+                    "subject": f"Turnaround diagnostic for {b_name}",
+                    "snippet": f"Audit summary: {candidate_data.get('load_time_seconds', 4.3)}s load time."
+                },
+                last_interaction=f"Autonomous outreach placed via {route.channel.value} (DRY RUN)",
+                next_expected_action="AWAITING_INBOUND_EVENT"
+            )
+
+        # Record candidate conversation state as WAITING_RESPONSE and return NEXT_PROSPECT to non-blocking loop
         self.current_state = ProspectState.WAITING_RESPONSE
-        await self._persist_stage(candidate_data, PipelineStage.REPLIED.value)
-        return {"status": "CONTACTED", "channel": route.channel.value, "next": "WAITING_RESPONSE"}
+        self._record_transition(b_name, ProspectState.CONTACTED, ProspectState.WAITING_RESPONSE, "Outreach dispatched. Awaiting event callback.", 1.0)
+        return {
+            "status": "CONTACTED",
+            "channel": route.channel.value,
+            "next": "NEXT_PROSPECT",
+            "prospect": b_name,
+            "domain": candidate_data.get("domain")
+        }
 
     async def _persist_stage(self, candidate_data: Dict[str, Any], stage_name: str):
         """Persists the updated pipeline stage to database if business record exists."""
@@ -408,6 +480,21 @@ class RevenueAgentOrchestrator:
             confidence=conf
         )
         self.history.append(rec)
+
+    async def handle_inbound_event(
+        self,
+        event_type: str,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Event-Driven Entrypoint:
+        Restores context for the prospect from persistent memory,
+        processes the event via agent logic, updates pipeline state,
+        and saves new memory WITHOUT interrupting or blocking the prospecting loop.
+        """
+        from app.crm.memory_service import memory_service
+        async with AsyncSessionLocal() as session:
+            return await memory_service.handle_inbound_event(session, event_type, payload)
 
 
 revenue_agent_orchestrator = RevenueAgentOrchestrator()

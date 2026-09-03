@@ -68,6 +68,16 @@ class PaymentService:
         )
         session.add(event)
 
+        # Sync ProspectMemory
+        from app.database.models import ProspectMemory
+        q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+        mem = (await session.execute(q_mem)).scalars().first()
+        if mem:
+            mem.pipeline_stage = PipelineStage.WON.value
+            mem.last_interaction = f"Payment confirmed ({reference_id}): ${amount_usd:,.2f} USD. Deal won."
+            mem.next_expected_action = "DELIVERY_IN_PROGRESS"
+            mem.updated_at = datetime.utcnow()
+
         # 4. Provision Customer
         q_cust = select(Customer).where(Customer.business_id == business_id)
         cust = (await session.execute(q_cust)).scalars().first()

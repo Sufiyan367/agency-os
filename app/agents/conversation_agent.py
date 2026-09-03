@@ -129,6 +129,22 @@ class ConversationAgent:
                 session.add_message(sender="AGENT", content=resp.reply_text, intent=resp.intent_detected)
             return resp
 
+        # 5.5 Explicit human demand or legal escalation -> Hand off to human immediately
+        if any(w in lower for w in ["human", "real person", "operator", "manager", "lawyer", "attorney", "legal", "speak with someone"]):
+            reply = "Thank you for the note. I have routed your message directly to our senior human management team to review and follow up with you personally."
+            resp = ConversationResponse(
+                reply_text=reply,
+                detected_language=lang,
+                intent_detected="HUMAN_TAKEOVER_REQUEST",
+                propose_meeting=False,
+                handoff_to_human=True,
+                confidence=0.96
+            )
+            if session:
+                session.add_message(sender="AGENT", content=resp.reply_text, intent=resp.intent_detected)
+                session.handed_off_to_human = True
+            return resp
+
         # 6. Meeting request / positive interest
         meeting_keywords = [
             "schedule", "call", "meet", "book", "zoom", "interested", "available",
