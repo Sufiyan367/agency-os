@@ -128,6 +128,34 @@ class VoiceSalesAgent:
                 confidence=0.91
             )
 
+        # 3. AI Identity & Transparency Disclosure (never claims to be human or impersonates operator)
+        if cls._contains_phrase(text, ["are you an ai", "are you ai", "are you human", "are you a bot", "are you a robot", "is this an ai", "is this automated"]):
+            return VoiceQualificationResult(
+                qualified=True,
+                intent="AI_IDENTITY_DISCLOSED",
+                recommended_action="CLARIFY_AI_ROLE_AND_OFFER_CONSULTATION",
+                suggested_reply=(
+                    "I am the automated technical assistant calling from Agency Growth. "
+                    "I review public mobile diagnostic speeds for local businesses before our senior human engineers evaluate them. "
+                    "Would you like me to book a quick 15-minute consultation with our lead human engineer to review the findings?"
+                ),
+                confidence=0.98
+            )
+
+        # 4. Service Explanation
+        if cls._contains_phrase(text, ["what do you do", "what service", "how does this work", "why are you calling"]):
+            return VoiceQualificationResult(
+                qualified=True,
+                intent="SERVICE_EXPLANATION",
+                recommended_action="EXPLAIN_CORE_WEB_VITALS",
+                suggested_reply=(
+                    f"We specialize in Core Web Vitals and mobile performance turnaround. "
+                    f"Our scanner found your site loads in over 4 seconds on mobile devices with a performance score of {perf:.0f}/100. "
+                    f"We optimize code, caching, and images so you stop losing mobile customers. Would you be open to a 10-minute walkthrough?"
+                ),
+                confidence=0.93
+            )
+
         # 3. Meeting confirmation / positive interest
         if cls._contains_phrase(text, ["sure", "yes", "interested", "let's talk", "schedule", "thursday", "tomorrow", "sounds good", "si", "sí", "d'accord", "نعم"]):
             meeting_time = datetime.utcnow() + timedelta(days=2, hours=4)

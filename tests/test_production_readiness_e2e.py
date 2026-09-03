@@ -171,3 +171,45 @@ async def test_production_and_compliance_api_routes():
         assert data_t["success"] is True
         assert len(data_t["steps"]) == 10
         assert data_t["final_pipeline_stage"] == "WON"
+
+
+def test_ai_identity_transparency_and_routine_conversation_autonomy():
+    """
+    Verifies:
+    1. AI never impersonates operator or falsely claims to be human.
+    2. Transparently discloses AI identity when asked.
+    3. Handles routine questions (service, existing webmaster, pricing) autonomously.
+    4. Escalates to human strictly on explicit demand or exceptional unhandled cases.
+    """
+    from app.agents.conversation_agent import ConversationAgent
+    from app.agents.voice_sales_agent import VoiceSalesAgent
+
+    audit = {"performance_score": 45.0, "load_time_seconds": 4.8}
+
+    # 1. Email/Chat: "Are you an AI?"
+    resp_ai_email = ConversationAgent.process_reply("Are you an AI?", audit_evidence=audit, offered_service_value=750.0)
+    assert resp_ai_email.intent_detected == "AI_IDENTITY_DISCLOSED"
+    assert resp_ai_email.handoff_to_human is False
+    assert "automated AI technical assistant" in resp_ai_email.reply_text
+
+    # 2. Email/Chat: Routine service inquiry
+    resp_svc = ConversationAgent.process_reply("What do you do?", audit_evidence=audit, offered_service_value=750.0)
+    assert resp_svc.intent_detected == "SERVICE_EXPLANATION"
+    assert resp_svc.handoff_to_human is False
+    assert resp_svc.propose_meeting is True
+
+    # 3. Voice: "Are you an AI?"
+    resp_ai_voice = VoiceSalesAgent.process_prospect_speech("Are you an AI?", audit_evidence=audit)
+    assert resp_ai_voice.intent == "AI_IDENTITY_DISCLOSED"
+    assert resp_ai_voice.escalate_to_human is False
+    assert "automated technical assistant" in resp_ai_voice.suggested_reply
+
+    # 4. Voice: Routine inquiry "What service is this?"
+    resp_svc_voice = VoiceSalesAgent.process_prospect_speech("What service is this?", audit_evidence=audit)
+    assert resp_svc_voice.intent == "SERVICE_EXPLANATION"
+    assert resp_svc_voice.escalate_to_human is False
+
+    # 5. Explicit demand to talk to human supervisor -> Escalates
+    resp_esc = VoiceSalesAgent.process_prospect_speech("I demand to speak to your manager or a real person right now", audit_evidence=audit)
+    assert resp_esc.intent == "HUMAN_ESCALATION"
+    assert resp_esc.escalate_to_human is True
