@@ -199,12 +199,22 @@ class RealProspectProvider(BaseProspectProvider, BaseLeadDiscoveryProvider):
         logger.info(f"[RealProspectProvider] Querying real businesses for '{niche}' in {city}, {c_code} (Target: {limit})...")
 
         # Source 1: Verified Commercial Registry for authentic high-ticket local contractors
-        registry_matches = REAL_COMMERCIAL_BUSINESSES.get((c_code, norm_niche), [])
+        c_aliases = [c_code]
+        if c_code == "UK":
+            c_aliases.append("GB")
+        elif c_code == "GB":
+            c_aliases.append("UK")
+
+        registry_matches = []
+        for alias in c_aliases:
+            matches = REAL_COMMERCIAL_BUSINESSES.get((alias, norm_niche), [])
+            if matches:
+                registry_matches.extend(matches)
+
         if not registry_matches:
             for (c, n), items in REAL_COMMERCIAL_BUSINESSES.items():
-                if c == c_code and (norm_niche in n or n in norm_niche):
-                    registry_matches = items
-                    break
+                if c in c_aliases and (norm_niche in n or n in norm_niche):
+                    registry_matches.extend(items)
 
         for item in registry_matches:
             dom = item.get("domain")
