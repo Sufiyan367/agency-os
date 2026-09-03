@@ -66,10 +66,10 @@ async def run_lifecycle_demo():
         print(f"✓ Business record active: ID {biz.id} | {biz.name} | {biz.city}, {biz.state}")
 
         # ----------------------------------------------------------------------
-        # STEP 2: Create Lead
+        # STEP 2: Create Inbound Lead
         # ----------------------------------------------------------------------
         print_step(2, "Create Inbound Lead")
-        contact_email = f"lead-{biz.id}@austinhomes.example.com"
+        contact_email = f"marcus.vance@austinhomes.example.com"
         lead_res = await db.execute(select(Lead).where(Lead.contact_email == contact_email))
         lead = lead_res.scalar_one_or_none()
         if not lead:
@@ -78,13 +78,14 @@ async def run_lifecycle_demo():
                 contact_name="Marcus Vance",
                 contact_email=contact_email,
                 contact_phone="+1 (512) 555-8821",
-                status=LeadStatus.NEW.value
+                status=LeadStatus.NEW.value,
+                human_takeover=False,
+                human_takeover_reason=None
             )
             db.add(lead)
             await db.commit()
             await db.refresh(lead)
 
-            # Record discovery event
             event = LeadEvent(
                 lead_id=lead.id,
                 event_type=EventType.LEAD_DISCOVERED.value,
@@ -92,10 +93,20 @@ async def run_lifecycle_demo():
             )
             db.add(event)
             await db.commit()
+        else:
+            # Clean fixture reset for repeatable demo execution
+            lead.human_takeover = False
+            lead.human_takeover_reason = None
+            lead.status = LeadStatus.NEW.value
+            await db.commit()
+            await db.refresh(lead)
+
+        assert lead.human_takeover is False, "Safety Check: Human takeover must NOT be active before Step 6!"
         print(f"✓ Lead captured: ID {lead.id} | {lead.contact_name} <{lead.contact_email}> | Status: {lead.status}")
+        print(f"✓ Human Takeover Guard Status: STANDBY (False) - Automated flow permitted")
 
         # ----------------------------------------------------------------------
-        # STEP 3: Run Audit
+        # STEP 3: Execute Technical Website Audit
         # ----------------------------------------------------------------------
         print_step(3, "Execute Technical Website Diagnostic Audit")
         audit_res = await db.execute(select(Audit).where(Audit.business_id == biz.id))
@@ -140,7 +151,7 @@ async def run_lifecycle_demo():
             print(f"  • [{f['category']}] {f['finding']}")
 
         # ----------------------------------------------------------------------
-        # STEP 4: Qualify Lead
+        # STEP 4: AI Qualification & Scoring
         # ----------------------------------------------------------------------
         print_step(4, "AI Qualification & Scoring")
         qual_svc = QualificationService()
@@ -151,60 +162,73 @@ async def run_lifecycle_demo():
         print(f"✓ Analytical Rationale: {qual_res.reasoning}")
 
         # ----------------------------------------------------------------------
-        # STEP 5: Generate Personalized Outreach
+        # STEP 5: Generate Outreach Copy
         # ----------------------------------------------------------------------
         print_step(5, "Generate Evidence-Grounded Outreach Copy")
         outreach_svc = OutreachService()
         msg = await outreach_svc.draft_outreach_for_lead(db, lead.id)
+        assert msg.status == MessageStatus.PENDING_APPROVAL.value
+        assert lead.human_takeover is False, "Takeover must remain inactive while drafting."
         print(f"✓ Outreach Drafted (ID: {msg.id}):")
         print(f"  To:      {msg.recipient}")
         print(f"  Subject: {msg.subject}")
-        print(f"  Status:  {msg.status} (Mandatory Human Approval Gate Active)")
+        print(f"  Status:  {msg.status} (Human Sign-Off Mandatory)")
         print(f"  Body Preview:\n{msg.body[:220]}...")
 
         # ----------------------------------------------------------------------
-        # STEP 6: Store Outreach Event
+        # STEP 6: Human Approval
         # ----------------------------------------------------------------------
-        print_step(6, "Approve & Record Outreach Event")
-        sent_msg = await outreach_svc.approve_and_send(db, msg.id)
-        print(f"✓ Operator Sign-Off complete. Message status: {sent_msg.status} (MOCKED - No external emails sent)")
+        print_step(6, "Human Approval Gate")
+        assert lead.human_takeover is False, "Human takeover must NOT be active before Step 6!"
+        print(f"✓ Operator reviews outreach draft for {lead.contact_name}.")
+        print(f"✓ Explicit human approval granted for message ID {msg.id}.")
 
         # ----------------------------------------------------------------------
-        # STEP 7: Schedule Follow-Up Sequence
+        # STEP 7: Successfully Send & Record Approved Outreach Event
         # ----------------------------------------------------------------------
-        print_step(7, "Schedule Automated Follow-Up Cadence")
-        # Use 1000x time compression for demo so days translate to seconds
+        print_step(7, "Successfully Send & Record Approved Outreach Event")
+        sent_msg = await outreach_svc.approve_and_send(db, msg.id)
+        assert sent_msg.status in (MessageStatus.MOCKED_SENT.value, MessageStatus.SENT.value)
+        assert lead.status == LeadStatus.CONTACTED.value
+        print(f"✓ Outreach succeeded before takeover: Message ID {sent_msg.id} marked {sent_msg.status}.")
+        print(f"✓ Lead status advanced to: {lead.status}")
+
+        # ----------------------------------------------------------------------
+        # STEP 8: Schedule Automated Follow-Up Sequence
+        # ----------------------------------------------------------------------
+        print_step(8, "Schedule Automated Follow-Up Cadence")
         engine = FollowUpEngine(time_compression_factor=86400.0) # 1 day = 1 second
         now = datetime.utcnow()
-        # Clean previous pending followups for a clean demonstration run
-        await engine.cancel_followups_for_lead(db, lead.id, reason="New demo run reset")
+        await engine.cancel_followups_for_lead(db, lead.id, reason="Demo sequence reset")
         schedules = await engine.schedule_sequence_for_lead(db, lead.id, base_time=now)
+        assert len(schedules) == 3
         print(f"✓ Scheduled {len(schedules)} follow-up touchpoints:")
         for s in schedules:
             print(f"  • Step {s.step_number}: '{s.subject}' scheduled for {s.scheduled_for.isoformat()}Z")
 
         # ----------------------------------------------------------------------
-        # STEP 8: Execute Compressed-Time Follow-Up
+        # STEP 9: Process Compressed-Time Follow-Up
         # ----------------------------------------------------------------------
-        print_step(8, "Execute Compressed-Time Follow-Up Dispatch")
-        # Advance simulated clock by 3 days (3 seconds in test mode)
+        print_step(9, "Process Compressed-Time Follow-Up Dispatch")
         simulated_future = now + timedelta(days=3)
         executed = await engine.process_due_followups(db, now=simulated_future)
+        assert len(executed) > 0, "Expected follow-ups to execute prior to takeover!"
         print(f"✓ Time advanced 3 simulated days. Processed {len(executed)} due follow-up(s):")
         for ex in executed:
             print(f"  • Step {ex.step_number} sent to {lead.contact_email} (Status: {ex.status})")
 
         # ----------------------------------------------------------------------
-        # STEP 9: Trigger Owner Notification
+        # STEP 10: Dispatch Local Owner Notification
         # ----------------------------------------------------------------------
-        print_step(9, "Dispatch Local Owner Notification")
+        print_step(10, "Dispatch Local Owner Notification")
         notifier = LocalNotificationService()
         await notifier.notify_owner_new_qualified_lead(db, lead, audit=audit, outreach=sent_msg)
+        print("✓ Local owner banner dispatched to console and logged in audit trail.")
 
         # ----------------------------------------------------------------------
-        # STEP 10: Enable Human Takeover
+        # STEP 11: Trigger Human Takeover
         # ----------------------------------------------------------------------
-        print_step(10, "Trigger Human Takeover / Pause Automation Switch")
+        print_step(11, "Trigger Human Takeover / Pause Automation Switch")
         lead.human_takeover = True
         lead.human_takeover_reason = "Customer requested live phone discussion regarding pricing."
         lead.status = LeadStatus.HUMAN_TAKEOVER.value
@@ -219,33 +243,35 @@ async def run_lifecycle_demo():
         db.add(event)
         await db.commit()
         await db.refresh(lead)
-        print(f"✓ Human Takeover ENABLED for Lead {lead.id}.")
-        print(f"✓ Cancelled {cancelled_count} pending automated follow-ups.")
+
+        assert lead.human_takeover is True, "Assertion Error: Takeover must be active at Step 11!"
+        print(f"✓ Takeover became ACTIVE at the intended step for Lead {lead.id}.")
+        print(f"✓ Automatically cancelled {cancelled_count} pending automated follow-ups.")
 
         # ----------------------------------------------------------------------
-        # STEP 11: Verify Automation Stops
+        # STEP 12: Verify Subsequent Automated Actions Are Blocked
         # ----------------------------------------------------------------------
-        print_step(11, "Verify Automation Halt Under Human Takeover")
-        # Advance clock to day 10
+        print_step(12, "Verify Subsequent Automated Actions Blocked Under Human Takeover")
+
+        # 1. Verify follow-up automation respects human takeover
         future_day_10 = now + timedelta(days=10)
         due_after_takeover = await engine.process_due_followups(db, now=future_day_10)
-        print(f"✓ Due follow-ups processed after takeover: {len(due_after_takeover)} (Expected: 0)")
         assert len(due_after_takeover) == 0, "Error: Follow-ups executed during active human takeover!"
+        print(f"✓ Follow-up automation respects human takeover (Processed: {len(due_after_takeover)} due follow-ups).")
 
-        # Try to draft and send new outreach; must raise RuntimeError
-        blocked = False
+        # 2. Verify subsequent automated outreach is rejected by production guardrail
+        new_msg = await outreach_svc.draft_outreach_for_lead(db, lead.id)
+        outreach_blocked = False
         try:
-            new_msg = await outreach_svc.draft_outreach_for_lead(db, lead.id)
             await outreach_svc.approve_and_send(db, new_msg.id)
         except RuntimeError as e:
-            blocked = True
-            print(f"✓ Outbound outreach blocked successfully by guardrail: '{e}'")
-        assert blocked, "Error: Outbound outreach was not blocked by human takeover guard!"
+            outreach_blocked = True
+            assert "Human takeover is ACTIVE" in str(e)
+            print(f"✓ Subsequent automated outreach rejected by guardrail: '{e}'")
 
-        # ----------------------------------------------------------------------
-        # STEP 12: Print Final Lead Lifecycle Audit Trail
-        # ----------------------------------------------------------------------
-        print_step(12, "Final Lead Lifecycle Audit Trail")
+        assert outreach_blocked, "Safety Failure: approve_and_send() did not block outreach during active takeover!"
+
+        # 3. Print Final Lead Lifecycle Audit Trail
         events_res = await db.execute(
             select(LeadEvent).where(LeadEvent.lead_id == lead.id).order_by(LeadEvent.created_at.asc())
         )
@@ -259,7 +285,7 @@ async def run_lifecycle_demo():
         print(f"Final Lead Status: {lead.status} | Human Takeover: {lead.human_takeover}")
 
     print("\n" + "#"*75)
-    print("  ✓ ALL 12 LIFECYCLE STEPS DEMONSTRATED AND VERIFIED SUCCESSFULLY!")
+    print("  ✓ ALL 12 LIFECYCLE STEPS COMPLETED & VERIFIED SUCCESSFULLY!")
     print("#"*75 + "\n")
 
 if __name__ == "__main__":
