@@ -326,6 +326,8 @@ class ControlledTestService:
                 paid_at=datetime.utcnow()
             )
             session.add(payment)
+            await session.commit()
+            await session.refresh(payment)
 
             q_proj = select(Project).where(Project.customer_id == customer.id)
             project = (await session.execute(q_proj)).scalar_one_or_none()
