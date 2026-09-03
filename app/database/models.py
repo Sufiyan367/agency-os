@@ -556,3 +556,7 @@ class Meeting(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
+# Backward-compatibility alias
+LocalBusiness = Business
+

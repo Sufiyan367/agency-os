@@ -66,7 +66,7 @@ class RevenueAgentOrchestrator:
             "commercial_floor_usd": getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0),
             "current_state": self.current_state.value,
             "current_prospect": self.current_prospect,
-            "decision": self.last_decision.dict() if self.last_decision else None,
+            "decision": self.last_decision.model_dump() if self.last_decision else None,
             "stats": self.stats
         }
 
@@ -148,12 +148,12 @@ class RevenueAgentOrchestrator:
                             "id": cand_biz.id,
                             "name": cand_biz.name,
                             "domain": cand_biz.domain,
-                            "website": cand_biz.website_url or f"https://{cand_biz.domain}",
+                            "website": getattr(cand_biz, "website_url", None) or f"https://{cand_biz.domain}",
                             "phone": cand_biz.phone,
-                            "email": cand_biz.public_email,
-                            "city": cand_biz.city or "Austin",
-                            "country": cand_biz.country or "US",
-                            "niche": cand_biz.niche or "Commercial Services",
+                            "email": getattr(cand_biz, "public_email", None) or getattr(cand_biz, "email", None),
+                            "city": getattr(cand_biz, "city", None) or "Austin",
+                            "country": getattr(cand_biz, "country", None) or "US",
+                            "niche": getattr(cand_biz, "niche", None) or "Commercial Services",
                             "estimated_value": 750.0,
                             "buyer_score": 82.0,
                             "opportunity_score": 76.0,
@@ -373,7 +373,19 @@ class RevenueAgentOrchestrator:
                 biz = res.scalar_one_or_none()
                 if biz:
                     biz.pipeline_stage = stage_name
-                    await session.commit()
+
+                # Also update LocalBusiness/LocalLead if domain exists in local_businesses
+                from app.models.entities import LocalBusiness, LocalLead, LeadStatus
+                q_lead = select(LocalLead).join(LocalBusiness).where(LocalBusiness.domain == domain)
+                res_lead = await session.execute(q_lead)
+                lead = res_lead.scalar_one_or_none()
+                if lead:
+                    if stage_name == "CONTACTED":
+                        lead.status = LeadStatus.CONTACTED.value
+                    elif stage_name == "REJECTED":
+                        lead.status = LeadStatus.DISQUALIFIED.value
+
+                await session.commit()
         except Exception as e:
             logger.warning(f"[RevenueAgent] Could not persist pipeline stage {stage_name}: {e}")
 

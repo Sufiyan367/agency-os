@@ -251,7 +251,10 @@ async def test_continuous_worker_lifecycle_startup_pause_stop_kill():
 
     # 3. Stop
     stop_res = orch.stop()
-    await asyncio.sleep(0.01)
+    try:
+        await asyncio.wait_for(orch._task, timeout=1.0)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        pass
     assert stop_res["status"] == "IDLE"
     assert stop_res["worker_active"] is False
     assert orch.is_running is False
@@ -262,7 +265,10 @@ async def test_continuous_worker_lifecycle_startup_pause_stop_kill():
     orch.start()
     assert orch.is_running is True
     kill_res = orch.trigger_kill_switch()
-    await asyncio.sleep(0.01)
+    try:
+        await asyncio.wait_for(orch._task, timeout=1.0)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        pass
     assert kill_res["status"] == "KILLED"
     assert kill_res["kill_switch_active"] is True
     assert orch.is_running is False
@@ -502,4 +508,99 @@ async def test_safety_gates_kill_switch_and_human_takeover():
     res_takeover = await orch.step_single_prospect(prospect_with_takeover, commercial_floor=500.0)
     assert res_takeover["status"] == "HUMAN_TAKEOVER"
     assert orch.current_state == ProspectState.OUTREACH_PENDING
+
+
+@pytest.mark.asyncio
+async def test_prospect_worker_get_next_uncontacted_prospect_regression():
+    """
+    Regression Test: Reproduces and verifies the fix for:
+    AttributeError: type object 'LocalBusiness' has no attribute 'contacted'
+    Ensures that get_next_uncontacted_prospect successfully queries uncontacted prospects
+    using canonical lifecycle stages (PipelineStage.DISCOVERED / CONTACTED) without crashing.
+    """
+    import uuid
+    from app.agents.prospect_agent import SingleProspectAgent
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import Business, PipelineStage
+
+    worker = SingleProspectAgent(provider_type="mock")
+    uid = uuid.uuid4().hex[:8]
+
+    async with AsyncSessionLocal() as session:
+        # 1. Calling get_next_uncontacted_prospect must NOT raise AttributeError: type object 'LocalBusiness' has no attribute 'contacted'
+        try:
+            cand = await worker.get_next_uncontacted_prospect(session)
+        except AttributeError as e:
+            pytest.fail(f"Regression detected! get_next_uncontacted_prospect raised AttributeError: {e}")
+
+        # 2. Insert an uncontacted Business
+        uncontacted_biz = Business(
+            name="Uncontacted Business",
+            domain=f"uncontacted-{uid}.com",
+            website_url=f"https://uncontacted-{uid}.com",
+            country="US",
+            city="Austin",
+            niche="roofing",
+            public_email=f"info@{uid}.com",
+            phone="+1-512-555-0101",
+            pipeline_stage=PipelineStage.DISCOVERED.value
+        )
+        session.add(uncontacted_biz)
+        await session.commit()
+        await session.refresh(uncontacted_biz)
+
+        # 3. Query must find the uncontacted business
+        fetched = await worker.get_next_uncontacted_prospect(session)
+        assert fetched is not None
+        assert hasattr(fetched, "domain")
+
+        # 4. Advance to CONTACTED
+        uncontacted_biz.pipeline_stage = PipelineStage.CONTACTED.value
+        await session.commit()
+
+        # 5. Advance another test business to WON
+        won_biz = Business(
+            name="Won Business",
+            domain=f"won-{uid}.com",
+            website_url=f"https://won-{uid}.com",
+            country="US",
+            city="Austin",
+            niche="plumbing",
+            public_email=f"won@{uid}.com",
+            phone="+1-512-555-0102",
+            pipeline_stage=PipelineStage.WON.value
+        )
+        session.add(won_biz)
+        await session.commit()
+
+        # Neither CONTACTED nor WON business should be returned if queried for this domain
+        q_check = (
+            await worker.get_next_uncontacted_prospect(session)
+        )
+        if q_check:
+            assert q_check.domain not in (f"uncontacted-{uid}.com", f"won-{uid}.com")
+
+
+@pytest.mark.asyncio
+async def test_continuous_worker_fetches_and_processes_from_db_without_crash():
+    """Verifies that the continuous worker loop successfully fetches from DB without AttributeError."""
+    import asyncio
+    orch = RevenueAgentOrchestrator()
+    orch.poll_interval_seconds = 0.05
+
+    # Start worker and let it cycle past line 143 (cand_biz = await self.prospect_worker.get_next_uncontacted_prospect)
+    orch.start()
+    assert orch.is_running is True
+
+    await asyncio.sleep(0.15)
+
+    # Status must still be running without crashing
+    status = orch.get_status()
+    assert status["is_running"] is True
+    assert status["worker_active"] is True
+
+    # Stop worker cleanly
+    orch.stop()
+    assert orch.is_running is False
+
 
