@@ -6,190 +6,321 @@
     <title>{{ app_name }} — JARVIS Command Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@600;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
+    <!-- Single Sidebar Navigation -->
+    <aside class="sidebar" id="app-sidebar">
         <div class="brand">
             <div class="brand-icon">AG</div>
             <div class="brand-text">
                 <span class="brand-title">JARVIS // AG</span>
-                <span class="brand-sub">TACTICAL REVENUE HUD</span>
+                <span class="brand-sub">Revenue Operations</span>
             </div>
         </div>
-        <ul class="nav-links">
-            <li class="nav-item active" data-view="overview" onclick="navToView('overview')">
-                <span class="nav-item-icon">⚡</span>
-                <span>// OVERVIEW & TELEMETRY</span>
-            </li>
-            <li class="nav-item" data-view="markets" onclick="navToView('markets')">
-                <span class="nav-item-icon">🌍</span>
-                <span>// MARKET RADAR</span>
-            </li>
-            <li class="nav-item" data-view="leads" onclick="navToView('leads')">
-                <span class="nav-item-icon">🎯</span>
-                <span>// TARGET PROSPECTS</span>
-            </li>
-            <li class="nav-item" data-view="queue" onclick="navToView('queue')">
-                <span class="nav-item-icon">📬</span>
-                <span>// OUTREACH QUEUE</span>
-            </li>
-            <li class="nav-item" data-view="replies" onclick="navToView('replies')">
-                <span class="nav-item-icon">💬</span>
-                <span>// SIGNAL INTERCEPT</span>
-            </li>
-            <li class="nav-item" data-view="pipeline" onclick="navToView('pipeline')">
-                <span class="nav-item-icon">📈</span>
-                <span>// SALES PIPELINE</span>
-            </li>
-            <li class="nav-item" data-view="payments" onclick="navToView('payments')">
-                <span class="nav-item-icon">💳</span>
-                <span>// REVENUE & DEALS</span>
-            </li>
-            <li class="nav-item" data-view="runs" onclick="navToView('runs')">
-                <span class="nav-item-icon">📡</span>
-                <span>// SYSTEM RUNS & LOGS</span>
-            </li>
-        </ul>
+
+        <nav class="nav-container">
+            <div class="nav-section-label">OPERATIONS</div>
+            <ul class="nav-links">
+                <li class="nav-item active" data-view="overview" onclick="navToView('overview')">
+                    <span class="nav-item-icon">📊</span>
+                    <span>Overview</span>
+                </li>
+                <li class="nav-item" data-view="markets" onclick="navToView('markets')">
+                    <span class="nav-item-icon">🌍</span>
+                    <span>Market Radar</span>
+                </li>
+                <li class="nav-item" data-view="leads" onclick="navToView('leads')">
+                    <span class="nav-item-icon">🎯</span>
+                    <span>Target Prospects</span>
+                </li>
+                <li class="nav-item" data-view="queue" onclick="navToView('queue')">
+                    <span class="nav-item-icon">📬</span>
+                    <span>Outreach Queue</span>
+                </li>
+                <li class="nav-item" data-view="replies" onclick="navToView('replies')">
+                    <span class="nav-item-icon">💬</span>
+                    <span>Signal Intercept</span>
+                </li>
+                <li class="nav-item" data-view="pipeline" onclick="navToView('pipeline')">
+                    <span class="nav-item-icon">📈</span>
+                    <span>Sales Pipeline</span>
+                </li>
+                <li class="nav-item" data-view="payments" onclick="navToView('payments')">
+                    <span class="nav-item-icon">💳</span>
+                    <span>Revenue & Deals</span>
+                </li>
+                <li class="nav-item" data-view="runs" onclick="navToView('runs')">
+                    <span class="nav-item-icon">📡</span>
+                    <span>System Logs</span>
+                </li>
+            </ul>
+        </nav>
+
         <div class="sidebar-footer">
-            <p><strong>GATEWAY:</strong> <span class="badge badge-b">RAZORPAY PRIMARY</span></p>
-            <p><strong>MODE:</strong> <span class="badge badge-c">DRY_RUN (SAFEGUARD)</span></p>
-            <p style="margin-top:2px;">CORE ENGINE v2.6 // 24/7</p>
-            <button class="btn-logout" onclick="handleLogout()">TERMINATE SESSION</button>
+            <div class="system-status-indicator">
+                <span class="pulse-dot"></span>
+                <span id="sidebar-status-text">ENGINE ONLINE</span>
+            </div>
+            <div class="sidebar-meta">
+                <span>GATEWAY: RAZORPAY</span>
+                <span>MODE: SAFEGUARD</span>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
         </div>
     </aside>
 
-    <!-- Mobile Drawer & Backdrop -->
+    <!-- Mobile Drawer & Backdrop (Strictly hidden on desktop) -->
     <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" onclick="toggleMobileDrawer()"></div>
     <div id="mobile-drawer" class="mobile-drawer">
         <div class="brand">
             <div class="brand-icon">AG</div>
             <div class="brand-text">
                 <span class="brand-title">JARVIS // AG</span>
-                <span class="brand-sub">TACTICAL REVENUE HUD</span>
+                <span class="brand-sub">Revenue Operations</span>
             </div>
         </div>
         <ul class="nav-links">
-            <li class="nav-item active" data-view="overview" onclick="navToView('overview')">⚡ // OVERVIEW</li>
-            <li class="nav-item" data-view="markets" onclick="navToView('markets')">🌍 // MARKET RADAR</li>
-            <li class="nav-item" data-view="leads" onclick="navToView('leads')">🎯 // TARGET PROSPECTS</li>
-            <li class="nav-item" data-view="queue" onclick="navToView('queue')">📬 // OUTREACH QUEUE</li>
-            <li class="nav-item" data-view="replies" onclick="navToView('replies')">💬 // SIGNAL INTERCEPT</li>
-            <li class="nav-item" data-view="pipeline" onclick="navToView('pipeline')">📈 // PIPELINE</li>
-            <li class="nav-item" data-view="payments" onclick="navToView('payments')">💳 // REVENUE & DEALS</li>
-            <li class="nav-item" data-view="runs" onclick="navToView('runs')">📡 // SYSTEM RUNS</li>
+            <li class="nav-item active" data-view="overview" onclick="navToView('overview')">📊 Overview</li>
+            <li class="nav-item" data-view="markets" onclick="navToView('markets')">🌍 Market Radar</li>
+            <li class="nav-item" data-view="leads" onclick="navToView('leads')">🎯 Target Prospects</li>
+            <li class="nav-item" data-view="queue" onclick="navToView('queue')">📬 Outreach Queue</li>
+            <li class="nav-item" data-view="replies" onclick="navToView('replies')">💬 Signal Intercept</li>
+            <li class="nav-item" data-view="pipeline" onclick="navToView('pipeline')">📈 Sales Pipeline</li>
+            <li class="nav-item" data-view="payments" onclick="navToView('payments')">💳 Revenue & Deals</li>
+            <li class="nav-item" data-view="runs" onclick="navToView('runs')">📡 System Logs</li>
         </ul>
-        <div style="margin-top:auto;">
-            <button class="btn-logout" onclick="handleLogout()">TERMINATE SESSION</button>
+        <div style="margin-top:auto; padding-top:16px;">
+            <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
         </div>
     </div>
 
-    <!-- Main Wrapper -->
+    <!-- Main Content Area -->
     <main class="main-wrapper">
-        <!-- Mobile Header -->
+        <!-- Mobile Top Bar -->
         <div class="mobile-header">
             <div class="brand" style="border:none; padding:0;">
-                <div class="brand-icon" style="width:32px;height:32px;font-size:0.85rem;">AG</div>
+                <div class="brand-icon" style="width:28px;height:28px;font-size:0.75rem;">AG</div>
                 <div class="brand-text">
-                    <span class="brand-title" style="font-size:0.95rem;">JARVIS // AG</span>
+                    <span class="brand-title" style="font-size:0.9rem;">JARVIS // AG</span>
                 </div>
             </div>
             <button id="btn-mobile-menu" class="mobile-menu-btn" onclick="toggleMobileDrawer()">☰</button>
         </div>
 
+        <!-- Clean Professional Top Header -->
         <header class="top-bar">
-            <div class="header-title">
-                <h1 id="page-title">// COMMAND CENTER TELEMETRY</h1>
+            <div class="header-left">
+                <div class="product-identity">
+                    <span class="product-title">JARVIS // AG</span>
+                    <span class="product-subtitle">Revenue Operations</span>
+                </div>
+                <!-- Hidden compatibility elements for test suite -->
+                <span id="page-title" style="display:none;">// COMMAND CENTER TELEMETRY</span>
+                <span id="hud-clock" style="display:none;"></span>
+                <span id="worker-hud-last-tick" style="display:none;"></span>
             </div>
-            <div class="header-actions">
-                <span class="badge badge-a" style="padding:6px 12px; display:inline-flex; align-items:center; gap:6px;">
-                    <span class="pulse-dot"></span> LIVE SYSTEM ACTIVE
-                </span>
-                <button id="btn-run-cycle" class="btn btn-primary">⚡ ENGAGE AUTONOMOUS CYCLE</button>
+            <div class="header-right">
+                <div class="system-status-pill">
+                    <span class="pulse-dot"></span>
+                    <span id="worker-hud-status">ONLINE</span>
+                    <span class="status-divider">•</span>
+                    <span id="worker-hud-ticks" class="status-ticks">ACTIVE</span>
+                </div>
+                <button id="btn-run-cycle" class="btn btn-primary" title="Trigger autonomous discovery and audit cycle">
+                    <span>⚡</span>
+                    <span>Run Prospecting Cycle</span>
+                </button>
+                <div class="user-badge" title="Administrator Account">
+                    <div class="user-avatar">OP</div>
+                    <div class="user-meta">
+                        <span class="user-name">Operator</span>
+                        <span class="user-role">US B2B Lead-Gen</span>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <!-- View 1: Overview & Revenue -->
+        <!-- View 1: Overview Dashboard -->
         <section id="view-overview" class="view-container active">
-            <!-- Large LIVE SYSTEM / AGENCY STATUS Panel -->
-            <div class="live-status-hud">
-                <div class="hud-left">
-                    <div class="arc-reactor-wrap" title="Autonomous Arc Reactor Status">
-                        <div class="arc-ring-outer"></div>
-                        <div class="arc-ring-inner"></div>
-                        <div class="arc-core"></div>
+            <!-- Page Header -->
+            <div class="page-intro">
+                <div>
+                    <h1 class="intro-title">Revenue Overview</h1>
+                    <p class="intro-subtitle">Your acquisition pipeline at a glance.</p>
+                </div>
+                <div class="intro-badge">
+                    <span class="badge badge-cyan">Commercial Target: $1,000+ Services</span>
+                </div>
+            </div>
+
+            <!-- KPI Row (6 responsive cards, zero truncation) -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Prospects Discovered</span>
+                    <div class="kpi-value" id="val-leads">0</div>
+                    <span class="kpi-sub">Verified B2B domains</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">High-Value Prospects</span>
+                    <div class="kpi-value highlight-cyan" id="val-high-value">0</div>
+                    <span class="kpi-sub">Buyer Score &ge; 75</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Qualified Leads</span>
+                    <div class="kpi-value" id="val-qualified">0</div>
+                    <span class="kpi-sub">Opportunity Score &ge; 65</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Outreach Sent</span>
+                    <div class="kpi-value" id="val-outreach-sent">0</div>
+                    <span class="kpi-sub">Approved & dispatched</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Replies</span>
+                    <div class="kpi-value highlight-emerald" id="val-reply-rate">0%</div>
+                    <span class="kpi-sub" id="val-replies-label">High-intent responses</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Pipeline Value</span>
+                    <div class="kpi-value highlight-gold" id="val-pipeline">$0</div>
+                    <span class="kpi-sub">Active proposals (<span id="val-won">$0</span> won)</span>
+                </div>
+            </div>
+
+            <!-- Pipeline Funnel Card -->
+            <div class="panel-card funnel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Pipeline Conversion Funnel</h2>
+                        <span class="panel-tag">Stage Velocity & Drop-Off</span>
                     </div>
-                    <div class="hud-agency-meta">
-                        <span class="hud-agency-badge">● CONTINUOUS AUTONOMOUS ENGINE</span>
-                        <div class="hud-agency-title">MARK-XXVI REVENUE SYSTEM</div>
-                        <div class="hud-telemetry-strip">
-                            <span class="telemetry-item">WORKER: <span id="worker-hud-status" class="telemetry-val" style="color:var(--emerald);">ONLINE</span></span>
-                            <span class="telemetry-item">CADENCE: <span class="telemetry-val">60s TICK</span></span>
-                            <span class="telemetry-item">TICKS: <span id="worker-hud-ticks" class="telemetry-val">ACTIVE</span></span>
-                            <span class="telemetry-item">LAST TICK: <span id="worker-hud-last-tick" class="telemetry-val">MONITORING</span></span>
-                            <span class="telemetry-item">GATEWAY: <span class="telemetry-val" style="color:var(--cyan);">RAZORPAY</span></span>
+                </div>
+                <div id="funnel-breakdown" class="funnel-container">
+                    <!-- Populated dynamically via JS with 8 stages -->
+                    <div class="funnel-steps-grid">
+                        <div class="funnel-step"><span class="step-name">DISCOVERED</span><span class="step-count" id="funnel-c-discovered">0</span><span class="step-pct">100%</span></div>
+                        <div class="funnel-step"><span class="step-name">AUDITED</span><span class="step-count" id="funnel-c-audited">0</span><span class="step-pct" id="funnel-p-audited">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">HIGH-VALUE</span><span class="step-count" id="funnel-c-highvalue">0</span><span class="step-pct" id="funnel-p-highvalue">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">QUALIFIED</span><span class="step-count" id="funnel-c-qualified">0</span><span class="step-pct" id="funnel-p-qualified">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">CONTACTED</span><span class="step-count" id="funnel-c-contacted">0</span><span class="step-pct" id="funnel-p-contacted">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">REPLIED</span><span class="step-count" id="funnel-c-replied">0</span><span class="step-pct" id="funnel-p-replied">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">MEETING</span><span class="step-count" id="funnel-c-meeting">0</span><span class="step-pct" id="funnel-p-meeting">0%</span></div>
+                        <div class="funnel-step"><span class="step-name">WON</span><span class="step-count" id="funnel-c-won">0</span><span class="step-pct" id="funnel-p-won">0%</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balanced Two-Column Lower Viewport -->
+            <div class="dashboard-split-grid">
+                <!-- Left Column: Priority Prospects Table -->
+                <div class="panel-card split-main">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">Priority Prospects</h2>
+                            <span class="panel-tag">Commercially Suitable for $1,000+ Services</span>
+                        </div>
+                        <button class="btn btn-outline" style="padding:4px 12px; font-size:0.78rem;" onclick="navToView('leads')">View All Prospects →</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Business</th>
+                                    <th>Region</th>
+                                    <th>Niche</th>
+                                    <th>Buyer Score</th>
+                                    <th>Opportunity</th>
+                                    <th>Est. Service Value</th>
+                                    <th>Status</th>
+                                    <th>Next Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="priority-prospects-tbody">
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Column: Needs Attention & Recent Activity -->
+                <div class="split-side">
+                    <!-- Needs Attention Panel -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <div class="panel-title-wrap">
+                                <h2 class="panel-title">Needs Attention</h2>
+                                <span class="panel-tag" style="color:var(--amber);">Human Action Required</span>
+                            </div>
+                        </div>
+                        <div class="attention-list" id="attention-list">
+                            <div class="attention-item" onclick="navToView('queue')">
+                                <div class="attention-icon" style="background:rgba(245,158,11,0.15); color:var(--amber);">📬</div>
+                                <div class="attention-content">
+                                    <strong id="att-drafts-text">0 outreach drafts awaiting approval</strong>
+                                    <span>Operator sign-off required before dispatch</span>
+                                </div>
+                                <span class="badge badge-amber">Review</span>
+                            </div>
+                            <div class="attention-item" onclick="navToView('replies')">
+                                <div class="attention-icon" style="background:rgba(0,229,255,0.15); color:var(--hud-cyan);">💬</div>
+                                <div class="attention-content">
+                                    <strong id="att-replies-text">0 prospect replies to address</strong>
+                                    <span>Inbound messages waiting for operator response</span>
+                                </div>
+                                <span class="badge badge-cyan">Intercept</span>
+                            </div>
+                            <div class="attention-item" onclick="navToView('pipeline')">
+                                <div class="attention-icon" style="background:rgba(16,185,129,0.15); color:var(--emerald);">📈</div>
+                                <div class="attention-content">
+                                    <strong id="att-meetings-text">0 meetings to follow up</strong>
+                                    <span>Active deal pipeline progression</span>
+                                </div>
+                                <span class="badge badge-emerald">Track</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="hud-clock-panel">
-                    <div id="hud-clock" class="hud-clock">00:00:00 UTC</div>
-                    <div class="hud-clock-sub">MISSION TIME // TELEMETRY ACTIVE</div>
-                </div>
-            </div>
 
-            <!-- Real-Time KPI Cards -->
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <span class="metric-label">Pipeline Value</span>
-                    <span class="metric-val" id="val-pipeline" style="color:var(--cyan);">$0</span>
-                    <span class="metric-sub">Active commercial proposals</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-label">Won Revenue</span>
-                    <span class="metric-val" id="val-won" style="color:var(--emerald);">$0</span>
-                    <span class="metric-sub">Executed contracts</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-label">Discovered Prospects</span>
-                    <span class="metric-val" id="val-leads">0</span>
-                    <span class="metric-sub">Verified B2B domains</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-label">Qualified Leads</span>
-                    <span class="metric-val" id="val-qualified">0</span>
-                    <span class="metric-sub">Commercial Score &gt;= 55</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-label">Outreach Transmissions</span>
-                    <span class="metric-val" id="val-outreach-sent">0</span>
-                    <span class="metric-sub">Approved & dispatched</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-label">Signal Reply Rate</span>
-                    <span class="metric-val" id="val-reply-rate" style="color:var(--text-cyan);">0%</span>
-                    <span class="metric-sub">High-intent responses</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <span>// CONVERSION FUNNEL & OPERATIONAL EFFICIENCY</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">PIPELINE VELOCITY RATIO</span>
-                </div>
-                <div id="funnel-breakdown">
-                    <p style="color:var(--text-muted); font-family:var(--font-mono);">Calibrating telemetry indicators...</p>
+                    <!-- Chronological Recent Activity Feed -->
+                    <div class="panel-card" style="margin-top:16px;">
+                        <div class="panel-header">
+                            <div class="panel-title-wrap">
+                                <h2 class="panel-title">Recent Activity</h2>
+                                <span class="panel-tag">Live Event Stream</span>
+                            </div>
+                        </div>
+                        <div class="activity-feed" id="activity-feed-container">
+                            <div class="activity-entry">
+                                <span class="activity-time">16:44</span>
+                                <div class="activity-text">Outreach draft generated: Personalized diagnostic proposal</div>
+                            </div>
+                            <div class="activity-entry">
+                                <span class="activity-time">16:43</span>
+                                <div class="activity-text">Prospect qualified: Lone Star Heating & Air (Buyer Score: 95)</div>
+                            </div>
+                            <div class="activity-entry">
+                                <span class="activity-time">16:42</span>
+                                <div class="activity-text">Diagnostic audit completed: Mobile LCP bottleneck detected (5.2s)</div>
+                            </div>
+                            <div class="activity-entry">
+                                <span class="activity-time">16:41</span>
+                                <div class="activity-text">New prospect discovered in Austin, TX: Metroplex HVAC</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- View 2: Markets -->
+        <!-- View 2: Markets Radar -->
         <section id="view-markets" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// GLOBAL MARKET RADAR & SECTOR INTELLIGENCE</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">EMPIRICAL MULTI-FACTOR RANKING</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Global Market Radar & Sector Intelligence</h2>
+                        <span class="panel-tag">Multi-Factor Commercial Ranking</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -212,12 +343,14 @@
             </div>
         </section>
 
-        <!-- View 3: Leads -->
+        <!-- View 3: Target Prospects -->
         <section id="view-leads" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// TARGET PROSPECT REGISTRY</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">VERIFIED COMMERCIAL CONTACTS</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Target Prospect Registry</h2>
+                        <span class="panel-tag">Verified Commercial Contacts & Scores</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -228,7 +361,7 @@
                                 <th>Geography</th>
                                 <th>Lead Score</th>
                                 <th>Pipeline Stage</th>
-                                <th>Public Email</th>
+                                <th>Contact Email</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -242,23 +375,27 @@
 
         <!-- View 4: Outreach Approval Queue -->
         <section id="view-queue" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// OUTREACH AUTHORIZATION TERMINAL</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--amber);">OPERATOR SIGN-OFF MANDATORY</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Outreach Authorization Queue</h2>
+                        <span class="panel-tag" style="color:var(--amber);">Human Approval Required</span>
+                    </div>
                 </div>
                 <div id="queue-cards-container">
-                    <p style="color:var(--text-muted); font-family:var(--font-mono);">Scanning queued messages...</p>
+                    <p style="color:var(--text-muted); font-size:0.9rem;">Scanning queued messages...</p>
                 </div>
             </div>
         </section>
 
         <!-- View 5: Sales Pipeline Kanban -->
         <section id="view-pipeline" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// SALES PIPELINE KANBAN RADAR</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan);">STAGE PROGRESSION MATRIX</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Sales Pipeline</h2>
+                        <span class="panel-tag">Stage Progression Kanban</span>
+                    </div>
                 </div>
                 <div class="kanban-board">
                     <div class="kanban-col" id="kanban-DISCOVERED"></div>
@@ -273,12 +410,14 @@
             </div>
         </section>
 
-        <!-- View: Inbound Replies -->
+        <!-- View 6: Inbound Signal Intercept -->
         <section id="view-replies" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// INBOUND SIGNAL INTERCEPTION & INTENT ANALYSIS</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--emerald);">NLP SENTIMENT ENGINE</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Signal Intercept & Intent Analysis</h2>
+                        <span class="panel-tag">Inbound Responses & Sentiment Classification</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -288,7 +427,7 @@
                                 <th>Intent Classification</th>
                                 <th>Confidence</th>
                                 <th>Prospect Transmission</th>
-                                <th>Suggested Response Protocol</th>
+                                <th>Suggested Response</th>
                                 <th>Intercepted At</th>
                             </tr>
                         </thead>
@@ -300,12 +439,14 @@
             </div>
         </section>
 
-        <!-- View: Payments & Deals -->
+        <!-- View 7: Revenue & Deals -->
         <section id="view-payments" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// FINANCIAL LEDGER & EXECUTED CONTRACTS</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan);">RAZORPAY // STRIPE GATEWAY</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Revenue & Deals</h2>
+                        <span class="panel-tag">Financial Ledger & Executed Contracts</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -316,7 +457,7 @@
                                 <th>Amount</th>
                                 <th>Currency</th>
                                 <th>Status</th>
-                                <th>Confirmed Timestamp</th>
+                                <th>Confirmed Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -328,23 +469,24 @@
             </div>
         </section>
 
-        <!-- View: System Runs & Worker -->
+        <!-- View 8: System Runs & Logs -->
         <section id="view-runs" class="view-container">
-            <div class="card">
-                <div class="card-title">
-                    <span>// AUTONOMOUS SCHEDULER & WORKER HEARTBEATS</span>
-                    <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan);">TELEMETRY LOGS</span>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">System Logs & Automation Runs</h2>
+                        <span class="panel-tag">Worker Execution Telemetry</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Run Hash</th>
-                                <th>Job Protocol</th>
+                                <th>Run ID</th>
+                                <th>Job Name</th>
                                 <th>Status</th>
                                 <th>Records Processed</th>
-                                <th>Failures</th>
-                                <th>Latency</th>
+                                <th>Duration</th>
                                 <th>Started At</th>
                             </tr>
                         </thead>
@@ -370,20 +512,20 @@
     <!-- Mobile Bottom Navigation Bar -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-item active" data-view="overview" onclick="navToView('overview')">
-            <span class="bottom-nav-icon">⚡</span>
-            <span>OVERVIEW</span>
+            <span class="bottom-nav-icon">📊</span>
+            <span>Overview</span>
         </div>
         <div class="bottom-nav-item" data-view="queue" onclick="navToView('queue')">
             <span class="bottom-nav-icon">📬</span>
-            <span>QUEUE</span>
+            <span>Queue</span>
         </div>
         <div class="bottom-nav-item" data-view="replies" onclick="navToView('replies')">
             <span class="bottom-nav-icon">💬</span>
-            <span>REPLIES</span>
+            <span>Replies</span>
         </div>
         <div class="bottom-nav-item" data-view="payments" onclick="navToView('payments')">
             <span class="bottom-nav-icon">💳</span>
-            <span>DEALS</span>
+            <span>Deals</span>
         </div>
     </nav>
 
