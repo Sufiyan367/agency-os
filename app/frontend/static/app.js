@@ -686,6 +686,67 @@ async function loadReplies() {
 
 async function loadPayments() {
     try {
+        // 1. Fetch Real Database-Derived Deal Metrics
+        const metricsRes = await fetch('/api/deals/metrics?include_mock=true');
+        if (metricsRes.ok) {
+            const m = await metricsRes.json();
+            const elOpen = document.getElementById('deal-metric-open-proposals');
+            const elPending = document.getElementById('deal-metric-payment-pending');
+            const elAdvance = document.getElementById('deal-metric-advance-received');
+            const elWon = document.getElementById('deal-metric-won-deals');
+            const elCash = document.getElementById('deal-metric-cash-received');
+            const elBal = document.getElementById('deal-metric-outstanding-balance');
+            const elPipe = document.getElementById('deal-metric-pipeline-value');
+
+            if (elOpen) elOpen.textContent = m.open_proposals || 0;
+            if (elPending) elPending.textContent = m.payment_pending || 0;
+            if (elAdvance) elAdvance.textContent = m.advance_received_deals || 0;
+            if (elWon) elWon.textContent = m.won_deals || 0;
+            if (elCash) elCash.textContent = `$${(m.cash_received_usd || 0).toLocaleString()}`;
+            if (elBal) elBal.textContent = `$${(m.outstanding_balance_usd || 0).toLocaleString()}`;
+            if (elPipe) elPipe.textContent = `$${(m.pipeline_value_usd || 0).toLocaleString()}`;
+        }
+
+        // 2. Fetch Commercial Proposals & Deals
+        const dealsRes = await fetch('/api/deals');
+        const dealsTable = document.getElementById('deals-table-body');
+        if (dealsRes.ok && dealsTable) {
+            const deals = await dealsRes.json();
+            dealsTable.innerHTML = '';
+            if (deals.length === 0) {
+                dealsTable.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:24px;">No commercial proposals created yet. Create a proposal for any qualified prospect.</td></tr>';
+            } else {
+                deals.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const badgeClass = d.status === 'WON' ? 'badge-emerald' :
+                                       d.status === 'ADVANCE_RECEIVED' ? 'badge-cyan' :
+                                       d.status === 'PAYMENT_PENDING' ? 'badge-amber' :
+                                       d.status === 'APPROVED' ? 'badge-indigo' : 'badge-slate';
+                    
+                    let actionBtn = `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="openDealDetail(${d.id})">👁 Detail</button>`;
+                    if (d.status === 'DRAFT') {
+                        actionBtn += ` <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; margin-left:4px;" onclick="approveProposal(${d.id})">✓ Approve</button>`;
+                    } else if (d.status === 'APPROVED') {
+                        actionBtn += ` <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; margin-left:4px;" onclick="requestPayment(${d.id})">💳 Pay Order</button>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td><code>#${d.id}</code></td>
+                        <td><strong>${d.business_name}</strong> ${d.is_mock ? '<span style="font-size:0.65rem; color:var(--hud-amber);">[SIM]</span>' : ''}</td>
+                        <td>${d.service_type}</td>
+                        <td style="font-weight:700; color:var(--text-bright);">$${(d.total_value || 0).toLocaleString()}</td>
+                        <td style="color:var(--hud-emerald); font-weight:600;">$${(d.advance_received || 0).toLocaleString()}</td>
+                        <td style="color:var(--hud-amber); font-weight:600;">$${(d.remaining_balance || 0).toLocaleString()}</td>
+                        <td><span class="badge ${badgeClass}">${d.status}</span></td>
+                        <td><span style="font-size:0.75rem; color:var(--text-muted);">${d.delivery_status}</span></td>
+                        <td>${actionBtn}</td>
+                    `;
+                    dealsTable.appendChild(tr);
+                });
+            }
+        }
+
+        // 3. Fetch Verified Payment Transactions
         const res = await fetch('/api/payments');
         const payments = await res.json();
         const tbody = document.getElementById('payments-table-body');
@@ -711,7 +772,142 @@ async function loadPayments() {
             tbody.appendChild(tr);
         });
     } catch (e) {
-        console.error('Error loading payments:', e);
+        console.error('Error loading payments and deals:', e);
+    }
+}
+
+async function approveProposal(proposalId) {
+    if (!confirm(`Approve Proposal #${proposalId} for payment request?`)) return;
+    try {
+        const res = await fetch(`/api/proposals/${proposalId}/approve`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Proposal #${proposalId} Approved!`);
+            loadPayments();
+        } else {
+            alert(`Approval failed: ${data.detail || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert(`Error approving proposal: ${e}`);
+    }
+}
+
+async function requestPayment(proposalId) {
+    try {
+        const res = await fetch(`/api/proposals/${proposalId}/request-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_type: 'ADVANCE' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Payment order created: ${data.order_id}\nAmount: $${data.amount}\nCheckout URL: ${data.checkout_url}`);
+            loadPayments();
+        } else {
+            alert(`Payment order failed: ${data.detail || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert(`Error requesting payment: ${e}`);
+    }
+}
+
+async function openDealDetail(dealId) {
+    const modal = document.getElementById('lead-modal');
+    const content = document.getElementById('modal-body-content');
+    if (!modal || !content) return;
+
+    content.innerHTML = '<div style="text-align:center; padding:32px;">Loading Deal Details...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/deals/${dealId}`);
+        if (!res.ok) {
+            content.innerHTML = `<div style="color:var(--hud-rose);">Failed to load deal #${dealId}</div>`;
+            return;
+        }
+        const deal = await res.json();
+
+        let paymentsHtml = '';
+        if (deal.payments && deal.payments.length > 0) {
+            paymentsHtml = deal.payments.map(p => `
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); padding:10px; border-radius:6px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong style="color:var(--hud-emerald);">$${p.amount.toLocaleString()} ${p.currency}</strong>
+                        <span class="badge badge-emerald">${p.status}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                        Order Ref: <code>${p.reference_id}</code> | Payment ID: <code>${p.razorpay_payment_id || 'N/A'}</code>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            paymentsHtml = '<div style="color:var(--text-muted); font-size:0.85rem;">No payment transactions recorded yet.</div>';
+        }
+
+        let auditHtml = '';
+        if (deal.audit_trail && deal.audit_trail.length > 0) {
+            auditHtml = deal.audit_trail.map(a => `
+                <div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong style="color:var(--hud-cyan-bright);">${a.event_type.toUpperCase()}</strong>
+                        <span style="color:var(--text-muted);">${new Date(a.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <div style="color:var(--text-muted); margin-top:2px;">Operator: ${a.operator}</div>
+                </div>
+            `).join('');
+        } else {
+            auditHtml = '<div style="color:var(--text-muted); font-size:0.85rem;">No audit events recorded.</div>';
+        }
+
+        content.innerHTML = `
+            <div style="margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h2 style="font-size:1.4rem; color:var(--text-bright); margin-bottom:4px;">${deal.business_name}</h2>
+                        <div style="color:var(--hud-cyan-bright); font-size:0.9rem;">${deal.service_type}</div>
+                    </div>
+                    <span class="badge badge-indigo" style="font-size:0.85rem;">${deal.status}</span>
+                </div>
+            </div>
+
+            <!-- Financial Summary Grid -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px;">
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); padding:12px; border-radius:8px;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Proposal Value</div>
+                    <div style="font-size:1.2rem; font-weight:700; color:var(--text-bright); margin-top:4px;">$${deal.total_value.toLocaleString()}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); padding:12px; border-radius:8px;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Advance Required / Recv</div>
+                    <div style="font-size:1.2rem; font-weight:700; color:var(--hud-emerald); margin-top:4px;">$${deal.advance_received.toLocaleString()} <span style="font-size:0.8rem; color:var(--text-muted);">/ $${deal.advance_required.toLocaleString()}</span></div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); padding:12px; border-radius:8px;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Outstanding Balance</div>
+                    <div style="font-size:1.2rem; font-weight:700; color:var(--hud-amber); margin-top:4px;">$${deal.remaining_balance.toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <!-- Payment Transactions -->
+                <div>
+                    <h4 style="font-size:0.95rem; margin-bottom:10px; color:var(--text-bright);">Payment Transactions</h4>
+                    ${paymentsHtml}
+                </div>
+
+                <!-- Audit Trail -->
+                <div>
+                    <h4 style="font-size:0.95rem; margin-bottom:10px; color:var(--text-bright);">Chronological Audit Trail</h4>
+                    <div style="max-height:220px; overflow-y:auto;">
+                        ${auditHtml}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        `;
+    } catch (e) {
+        content.innerHTML = `<div style="color:var(--hud-rose);">Error rendering deal detail: ${e}</div>`;
     }
 }
 

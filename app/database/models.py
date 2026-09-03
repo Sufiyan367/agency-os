@@ -387,11 +387,91 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), index=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    lead_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    deal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    proposal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    
     amount: Mapped[float] = mapped_column(Float, default=0.0)
     currency: Mapped[str] = mapped_column(String(10), default="USD")
-    status: Mapped[str] = mapped_column(String(50), default="COMPLETED")
-    reference_id: Mapped[str] = mapped_column(String(100), default="")
+    payment_type: Mapped[str] = mapped_column(String(50), default="FULL_PAYMENT")  # ADVANCE, FULL_PAYMENT, FINAL_BALANCE
+    status: Mapped[str] = mapped_column(String(50), default="COMPLETED")  # DRAFT, PAYMENT_PENDING, PAID, FAILED, REFUNDED, CANCELLED
+    reference_id: Mapped[str] = mapped_column(String(100), default="", index=True)
+    provider: Mapped[str] = mapped_column(String(50), default="razorpay")
+    
+    razorpay_order_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    razorpay_payment_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    razorpay_signature: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+# 17b. Commercial Proposals
+class Proposal(Base):
+    __tablename__ = "proposals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    lead_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    
+    title: Mapped[str] = mapped_column(String(255), default="B2B Optimization & Automation Package")
+    service_type: Mapped[str] = mapped_column(String(100), default="Website Turnaround")
+    total_value: Mapped[float] = mapped_column(Float, default=1000.0)
+    advance_required: Mapped[float] = mapped_column(Float, default=500.0)
+    advance_received: Mapped[float] = mapped_column(Float, default=0.0)
+    remaining_balance: Mapped[float] = mapped_column(Float, default=1000.0)
+    
+    # State Machine: DRAFT -> APPROVED -> PAYMENT_REQUESTED -> PAYMENT_PENDING -> ADVANCE_RECEIVED -> PAID -> WON
+    status: Mapped[str] = mapped_column(String(50), default="DRAFT", index=True)
+    delivery_status: Mapped[str] = mapped_column(String(50), default="NOT_STARTED", index=True)  # NOT_STARTED, READY_TO_START, IN_PROGRESS, COMPLETED
+    
+    approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    payment_requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+# 17c. Commercial Deals
+class Deal(Base):
+    __tablename__ = "deals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    lead_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    proposal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    
+    title: Mapped[str] = mapped_column(String(255))
+    service_type: Mapped[str] = mapped_column(String(100), default="Technical Engagement")
+    total_value: Mapped[float] = mapped_column(Float, default=1000.0)
+    advance_required: Mapped[float] = mapped_column(Float, default=500.0)
+    cash_received: Mapped[float] = mapped_column(Float, default=0.0)
+    outstanding_balance: Mapped[float] = mapped_column(Float, default=1000.0)
+    
+    status: Mapped[str] = mapped_column(String(50), default="PROPOSAL_DRAFT", index=True)
+    delivery_status: Mapped[str] = mapped_column(String(50), default="NOT_STARTED", index=True)
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# 17d. Deal Audit Trail
+class DealAuditTrail(Base):
+    __tablename__ = "deal_audit_trail"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    proposal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    
+    event_type: Mapped[str] = mapped_column(String(100), index=True)  # proposal_created, proposal_approved, payment_requested, payment_succeeded, payment_failed, advance_received, deal_won, delivery_unlocked
+    operator: Mapped[Optional[str]] = mapped_column(String(100), default="system")
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 # 18. Suppression List

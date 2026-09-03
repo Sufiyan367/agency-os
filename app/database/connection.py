@@ -49,3 +49,23 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE local_businesses ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Safe migration for payments table
+        for col, col_type in [
+            ("business_id", "INTEGER"),
+            ("lead_id", "INTEGER"),
+            ("deal_id", "INTEGER"),
+            ("proposal_id", "INTEGER"),
+            ("payment_type", "VARCHAR(50) DEFAULT 'FULL_PAYMENT'"),
+            ("provider", "VARCHAR(50) DEFAULT 'razorpay'"),
+            ("razorpay_order_id", "VARCHAR(100)"),
+            ("razorpay_payment_id", "VARCHAR(100)"),
+            ("razorpay_signature", "VARCHAR(255)"),
+            ("is_mock", "BOOLEAN DEFAULT 0"),
+            ("paid_at", "TIMESTAMP"),
+            ("extra_metadata", "JSON DEFAULT '{}'")
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE payments ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass

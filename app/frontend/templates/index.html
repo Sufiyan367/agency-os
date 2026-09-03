@@ -550,11 +550,81 @@
 
         <!-- View 7: Revenue & Deals -->
         <section id="view-payments" class="view-container">
+            <!-- 7 Real Database-Derived Revenue & Deal Metrics -->
+            <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 24px;">
+                <div class="kpi-card">
+                    <div class="kpi-label">Open Proposals</div>
+                    <div class="kpi-value" id="deal-metric-open-proposals">0</div>
+                    <div class="kpi-subtext">Drafts & Approved</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Payment Pending</div>
+                    <div class="kpi-value" id="deal-metric-payment-pending">0</div>
+                    <div class="kpi-subtext">Orders Awaiting Payment</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Advance Received</div>
+                    <div class="kpi-value" id="deal-metric-advance-received">0</div>
+                    <div class="kpi-subtext">Deposits Verified</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Won Deals</div>
+                    <div class="kpi-value" id="deal-metric-won-deals">0</div>
+                    <div class="kpi-subtext">Fully Paid Engagements</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Cash Received</div>
+                    <div class="kpi-value" id="deal-metric-cash-received" style="color:var(--hud-emerald);">$0</div>
+                    <div class="kpi-subtext">Verified Bank Receipts</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Outstanding Balance</div>
+                    <div class="kpi-value" id="deal-metric-outstanding-balance" style="color:var(--hud-amber);">$0</div>
+                    <div class="kpi-subtext">Remaining Contract Value</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Pipeline Value</div>
+                    <div class="kpi-value" id="deal-metric-pipeline-value" style="color:var(--hud-cyan-bright);">$0</div>
+                    <div class="kpi-subtext">Approved Active Value</div>
+                </div>
+            </div>
+
+            <!-- Proposals & Deals Ledger -->
+            <div class="panel-card" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Commercial Proposals & Deals</h2>
+                        <span class="panel-tag">$1,000+ Engagements</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Business / Client</th>
+                                <th>Service Scope</th>
+                                <th>Total Value</th>
+                                <th>Advance Paid</th>
+                                <th>Balance Due</th>
+                                <th>Commercial Status</th>
+                                <th>Delivery</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deals-table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Transactions -->
             <div class="panel-card">
                 <div class="panel-header">
                     <div class="panel-title-wrap">
-                        <h2 class="panel-title">Revenue & Deals</h2>
-                        <span class="panel-tag">Financial Ledger & Executed Contracts</span>
+                        <h2 class="panel-title">Verified Payment Transactions</h2>
+                        <span class="panel-tag">Razorpay Cryptographic Ledger</span>
                     </div>
                 </div>
                 <div class="table-responsive">

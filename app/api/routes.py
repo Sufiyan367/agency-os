@@ -8,7 +8,7 @@ from app.database.connection import get_db
 from app.database.models import (
     Business, Contact, AuditRun, AuditFinding, LeadScore,
     Offer, OutreachMessage, OutreachStatus, PipelineStage, SystemRun, MarketOpportunity, Customer,
-    Payment, Reply, Project
+    Payment, Reply, Project, Proposal, Deal, DealAuditTrail
 )
 from app.analytics.engine import analytics_engine
 from app.market_intelligence.engine import market_intelligence_engine
@@ -20,6 +20,7 @@ from app.crm.inbox_poller import inbox_poller
 from app.payments.provider import stripe_payment_provider, get_active_payment_provider
 from app.payments.razorpay import razorpay_payment_provider
 from app.payments.service import payment_service
+from app.payments.deal_service import deal_closing_service
 from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
 from app.orchestrator.loop import orchestrator
@@ -513,7 +514,182 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_db))
             )
             return {"status": "SUCCESS", "event": event_type, "business_id": biz_id}
 
+    # Check if this event belongs to a commercial proposal/deal
+    prop_id = None
+    pmt_entity = payload.get("payment", {}).get("entity", {})
+    plink_entity = payload.get("payment_link", {}).get("entity", {})
+    notes = pmt_entity.get("notes") or plink_entity.get("notes") or {}
+    if "proposal_id" in notes and str(notes["proposal_id"]).isdigit():
+        prop_id = int(notes["proposal_id"])
+    
+    if prop_id or pmt_entity.get("order_id"):
+        try:
+            deal_res = await deal_closing_service.process_payment_webhook(
+                session=db,
+                payload_bytes=payload_bytes,
+                signature=sig_header,
+                event_dict=event
+            )
+            return deal_res
+        except Exception as de:
+            logger.warning(f"[Razorpay Webhook] Deal closing service check: {de}")
+
     return {"status": "ACKNOWLEDGED", "event": event_type}
+
+# --- Commercial Proposal & Deal Endpoints ---
+class CreateProposalRequest(BaseModel):
+    business_id: int
+    title: str
+    total_value: float
+    advance_required: float
+    service_type: Optional[str] = "Website Turnaround & Automation"
+    lead_id: Optional[int] = None
+    is_mock: Optional[bool] = None
+
+class RequestPaymentOrderRequest(BaseModel):
+    payment_type: Optional[str] = "ADVANCE"
+
+@router.post("/api/proposals")
+async def create_proposal_endpoint(req: CreateProposalRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        prop = await deal_closing_service.create_proposal(
+            session=db,
+            business_id=req.business_id,
+            title=req.title,
+            total_value=req.total_value,
+            advance_required=req.advance_required,
+            service_type=req.service_type or "Website Turnaround & Automation",
+            lead_id=req.lead_id,
+            is_mock=req.is_mock
+        )
+        return {
+            "id": prop.id,
+            "business_id": prop.business_id,
+            "title": prop.title,
+            "total_value": prop.total_value,
+            "advance_required": prop.advance_required,
+            "remaining_balance": prop.remaining_balance,
+            "status": prop.status,
+            "delivery_status": prop.delivery_status,
+            "created_at": prop.created_at.isoformat()
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+@router.post("/api/proposals/{proposal_id}/approve")
+async def approve_proposal_endpoint(proposal_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        operator = "operator"
+        prop = await deal_closing_service.approve_proposal(db, proposal_id, operator=operator)
+        return {
+            "status": "APPROVED",
+            "proposal_id": prop.id,
+            "approved_by": prop.approved_by,
+            "approved_at": prop.approved_at.isoformat() if prop.approved_at else None,
+            "total_value": prop.total_value,
+            "advance_required": prop.advance_required
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+@router.post("/api/proposals/{proposal_id}/request-payment")
+async def request_payment_order_endpoint(
+    proposal_id: int,
+    req: RequestPaymentOrderRequest = RequestPaymentOrderRequest(),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        res = await deal_closing_service.request_payment_order(
+            session=db,
+            proposal_id=proposal_id,
+            payment_type=req.payment_type or "ADVANCE"
+        )
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+@router.get("/api/deals/metrics")
+async def get_deals_metrics(include_mock: bool = False, db: AsyncSession = Depends(get_db)):
+    return await deal_closing_service.get_real_deal_metrics(session=db, include_mock=include_mock)
+
+@router.get("/api/deals")
+async def list_deals(db: AsyncSession = Depends(get_db)):
+    q = select(Proposal).order_by(desc(Proposal.id))
+    props = (await db.execute(q)).scalars().all()
+    results = []
+    for p in props:
+        biz = await db.get(Business, p.business_id)
+        results.append({
+            "id": p.id,
+            "business_id": p.business_id,
+            "business_name": biz.name if biz else f"Business #{p.business_id}",
+            "title": p.title,
+            "service_type": p.service_type,
+            "total_value": p.total_value,
+            "advance_required": p.advance_required,
+            "advance_received": p.advance_received,
+            "remaining_balance": p.remaining_balance,
+            "status": p.status,
+            "delivery_status": p.delivery_status,
+            "approved_by": p.approved_by,
+            "is_mock": p.is_mock,
+            "created_at": p.created_at.isoformat() if p.created_at else None
+        })
+    return results
+
+@router.get("/api/deals/{proposal_id}")
+async def get_deal_detail(proposal_id: int, db: AsyncSession = Depends(get_db)):
+    prop = await db.get(Proposal, proposal_id)
+    if not prop:
+        raise HTTPException(status_code=404, detail=f"Deal/Proposal #{proposal_id} not found")
+    biz = await db.get(Business, prop.business_id)
+    
+    q_audit = select(DealAuditTrail).where(DealAuditTrail.proposal_id == proposal_id).order_by(DealAuditTrail.created_at.asc())
+    audits = (await db.execute(q_audit)).scalars().all()
+    
+    q_pmts = select(Payment).where(Payment.proposal_id == proposal_id).order_by(Payment.created_at.desc())
+    pmts = (await db.execute(q_pmts)).scalars().all()
+
+    return {
+        "id": prop.id,
+        "business_id": prop.business_id,
+        "business_name": biz.name if biz else f"Business #{prop.business_id}",
+        "domain": biz.domain if biz else "",
+        "title": prop.title,
+        "service_type": prop.service_type,
+        "total_value": prop.total_value,
+        "advance_required": prop.advance_required,
+        "advance_received": prop.advance_received,
+        "remaining_balance": prop.remaining_balance,
+        "status": prop.status,
+        "delivery_status": prop.delivery_status,
+        "approved_by": prop.approved_by,
+        "approved_at": prop.approved_at.isoformat() if prop.approved_at else None,
+        "is_mock": prop.is_mock,
+        "created_at": prop.created_at.isoformat() if prop.created_at else None,
+        "payments": [
+            {
+                "id": p.id,
+                "amount": p.amount,
+                "currency": p.currency,
+                "payment_type": p.payment_type,
+                "status": p.status,
+                "reference_id": p.reference_id,
+                "razorpay_payment_id": p.razorpay_payment_id,
+                "paid_at": p.paid_at.isoformat() if p.paid_at else None
+            }
+            for p in pmts
+        ],
+        "audit_trail": [
+            {
+                "event_type": a.event_type,
+                "operator": a.operator,
+                "payload": a.payload,
+                "created_at": a.created_at.isoformat()
+            }
+            for a in audits
+        ]
+    }
 
 @router.post("/api/webhooks/stripe")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
