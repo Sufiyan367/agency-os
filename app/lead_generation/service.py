@@ -360,7 +360,15 @@ class LeadDiscoveryService:
             )
             db.add(event)
 
-            # 8. Synchronize to Core Business & Technical Audit (for Dashboard UI & KPIs)
+            # 8. If qualified priority lead with observed email, automatically move into outreach workflow (PENDING_APPROVAL)
+            if is_priority and contact_res.is_valid and lead.contact_email:
+                try:
+                    from app.outreach.delivery_service import outreach_delivery_service
+                    await outreach_delivery_service.draft_evidence_grounded_outreach(session=db, lead_id=lead.id)
+                except Exception as e:
+                    logger.debug(f"Outreach drafting skipped for lead {lead.id}: {e}")
+
+            # 9. Synchronize to Core Business & Technical Audit (for Dashboard UI & KPIs)
             existing_core = (await db.execute(select(CoreBusiness).where(CoreBusiness.domain == clean_domain))).scalar_one_or_none()
             if not existing_core:
                 core_stage = CorePipelineStage.QUALIFIED.value if is_priority else CorePipelineStage.DISCOVERED.value
@@ -401,7 +409,7 @@ class LeadDiscoveryService:
                     summary=f"Technical audit for {clean_domain}: Speed bottleneck and conversion optimization opportunities identified."
                 ))
 
-                if is_priority and scored.estimated_service_value.min_value >= 1000:
+                if is_priority and scored.estimated_service_value.min_value >= targeting.commercial.minimum_target_service_value_usd:
                     db.add(CoreOffer(
                         business_id=core_biz.id,
                         service_type="Website & Automation",
@@ -433,6 +441,7 @@ class LeadDiscoveryService:
             high_value_buyer_candidates=high_buyer_count,
             high_opportunity_candidates=high_opp_count,
             priority_prospects=priority_count,
+            five_hundred_plus_prospects=thousand_plus_count,
             thousand_plus_prospects=thousand_plus_count,
             discarded_prospects=discarded_count,
             average_buyer_score=avg_buyer,
@@ -443,7 +452,7 @@ class LeadDiscoveryService:
         logger.info(
             f"Prospecting Run Finished: {stats.businesses_discovered} raw -> "
             f"{stats.valid_businesses} valid ({stats.duplicates_removed} duplicates, "
-            f"{stats.invalid_rejected} invalid junk, {stats.thousand_plus_prospects} $1,000+ prospects, "
+            f"{stats.invalid_rejected} invalid junk, {stats.five_hundred_plus_prospects} $500+ prospects, "
             f"{stats.priority_prospects} PRIORITY PROSPECTS)"
         )
         return valid_prospects, stats

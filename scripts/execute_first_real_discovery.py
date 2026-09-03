@@ -8,7 +8,7 @@ SAFE LOCAL-FIRST MODE: Real discovery, real audits, zero emails dispatched.
 Targets:
 - Countries: US, UK, Canada, Australia, UAE, Saudi Arabia
 - Niches: HVAC, Roofing, Plumbing, Commercial Cleaning, Solar, Dental
-- Commercial Floor: $1,000+ Contract Minimum
+- Commercial Floor: $500+ Contract Minimum
 - Quality: Standalone business website required, directories rejected.
 ==============================================================================
 """
@@ -178,7 +178,7 @@ async def execute_cycle():
     print(f"Total rejected (junk/directory): {total_rejected_count}")
     print(f"Total duplicates removed:        {total_duplicates_count}")
     print(f"Total websites audited:          {total_audited_count}")
-    print(f"Total $1,000+ prospects:         {thousand_plus_count}")
+    print(f"Total $500+ prospects:           {thousand_plus_count}")
     print(f"Total high-value prospects:      {high_value_count}")
 
     print("\n" + "="*80)

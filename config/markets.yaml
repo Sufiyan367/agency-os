@@ -92,8 +92,8 @@ niches:
   - name: "Commercial Cleaning"
     slug: "commercial-cleaning"
     category: "Facility Management & Janitorial"
-    min_estimated_service_value: 1000
-    typical_range: [1000, 3000]
+    min_estimated_service_value: 500
+    typical_range: [500, 2500]
     keywords: ["commercial cleaning", "office cleaning", "janitorial"]
   - name: "Solar"
     slug: "solar"
@@ -109,7 +109,7 @@ niches:
     keywords: ["dentist", "dental practice", "orthodontics"]
 
 commercial:
-  minimum_target_service_value_usd: 1000
+  minimum_target_service_value_usd: 500
   high_value_buyer_threshold: 75.0
   opportunity_score_threshold: 65.0
   max_prospects_per_cycle: 50

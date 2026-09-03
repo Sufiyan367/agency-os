@@ -37,22 +37,34 @@ async def create_test_business(session, name="Test Co", domain=None) -> Business
 
 @pytest.mark.asyncio
 async def test_commercial_threshold_minimum_service_value():
-    """Verifies that proposals below the $1,000 commercial threshold are rejected."""
+    """Verifies that proposals below the $500 commercial threshold are rejected and $500+ accepted."""
     service = DealClosingService(payment_provider=MockPaymentProvider())
     async with AsyncSessionLocal() as session:
         biz = await create_test_business(session, "Small Budget Co")
 
-        # Should reject $500 proposal
+        # Should reject $499 proposal (<$500 floor)
         with pytest.raises(ValueError, match="commercial qualification requirement"):
             await service.create_proposal(
                 session=session,
                 business_id=biz.id,
                 title="Low-Ticket Basic Site",
-                total_value=500.0,
-                advance_required=250.0
+                total_value=499.0,
+                advance_required=200.0
             )
 
-        # Should accept $1,000 proposal
+        # Should accept $500 proposal (at threshold)
+        prop_500 = await service.create_proposal(
+            session=session,
+            business_id=biz.id,
+            title="Entry Automation Audit",
+            total_value=500.0,
+            advance_required=200.0
+        )
+        assert prop_500.id is not None
+        assert prop_500.total_value == 500.0
+        assert prop_500.status == "DRAFT"
+
+        # Should accept $1,000 proposal (above threshold)
         prop = await service.create_proposal(
             session=session,
             business_id=biz.id,
@@ -373,12 +385,12 @@ async def test_rest_api_proposal_and_deal_lifecycle():
             b = await create_test_business(session, "REST Deal Corp")
             biz_id = b.id
 
-        # 1. Reject <$1,000
+        # 1. Reject <$500 ($499.00)
         res_fail = await ac.post("/api/proposals", json={
             "business_id": biz_id,
             "title": "Low Ticket",
-            "total_value": 750.0,
-            "advance_required": 375.0
+            "total_value": 499.0,
+            "advance_required": 200.0
         })
         assert res_fail.status_code == 400
 

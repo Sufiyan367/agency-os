@@ -1232,8 +1232,8 @@ async function handleCreateProposal(event) {
     const totalVal = parseFloat(document.getElementById('prop-total-value').value);
     const advancePct = parseFloat(document.getElementById('prop-advance-pct').value);
 
-    if (totalVal < 1000) {
-        alert('Commercial Floor: Total project value must be at least $1,000+ to ensure agency profitability.');
+    if (totalVal < 500) {
+        alert('Commercial Floor: Total project value must be at least $500+ to ensure agency profitability.');
         return;
     }
 

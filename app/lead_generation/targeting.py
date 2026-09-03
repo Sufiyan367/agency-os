@@ -12,7 +12,7 @@ class TargetingFilters(BaseModel):
     target_results_per_city: int = Field(default=20, ge=1)
 
 class CommercialConfig(BaseModel):
-    minimum_target_service_value_usd: int = Field(default=1000, description="Minimum contract service size")
+    minimum_target_service_value_usd: int = Field(default=500, description="Minimum contract service size")
     high_value_buyer_threshold: float = Field(default=75.0, ge=0.0, le=100.0, description="Buyer score threshold for priority pipeline")
     opportunity_score_threshold: float = Field(default=65.0, ge=0.0, le=100.0, description="Opportunity score threshold for priority pipeline")
     max_prospects_per_cycle: int = Field(default=50, ge=1, le=500, description="Maximum prospects to process per prospecting run")
@@ -28,8 +28,8 @@ class NicheConfig(BaseModel):
     name: str
     slug: str
     category: str
-    min_estimated_service_value: int = 1000
-    typical_range: List[int] = Field(default_factory=lambda: [1000, 3000])
+    min_estimated_service_value: int = 500
+    typical_range: List[int] = Field(default_factory=lambda: [500, 2500])
     keywords: List[str] = Field(default_factory=list)
 
 class TargetingConfig(BaseModel):

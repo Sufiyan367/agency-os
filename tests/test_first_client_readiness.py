@@ -96,7 +96,7 @@ async def test_first_client_mode_safeguards_active():
     assert perms["human_approval_mandatory"] is True
     assert perms["autonomous_negotiation_allowed"] is False
     assert perms["autonomous_contract_acceptance"] is False
-    assert perms["commercial_threshold_usd"] >= 1000.0
+    assert perms["commercial_threshold_usd"] >= 500.0
 
     # Human approval gate check
     with pytest.raises(RuntimeError) as exc:
@@ -129,15 +129,15 @@ async def test_real_prospect_discovery_and_directory_rejection():
 
 
 @pytest.mark.asyncio
-async def test_thousand_dollar_commercial_threshold_and_scoring():
+async def test_five_hundred_dollar_commercial_threshold_and_scoring():
     """
-    Verifies that the $1,000+ commercial threshold is strictly enforced and
+    Verifies that the $500+ commercial threshold is strictly enforced and
     sub-threshold / low-capacity operators are rejected with explainable reasons.
     """
     targeting = load_targeting_config()
     scorer = HighValueBuyerScorer(targeting.commercial)
 
-    # 1. Sub-$1,000 solo operator
+    # 1. Sub-$500 solo operator
     tiny_biz = NormalizedBusinessRecord(
         business_name="Solo Handyman",
         category="Cleaning",
@@ -154,9 +154,9 @@ async def test_thousand_dollar_commercial_threshold_and_scoring():
     )
     res_tiny = scorer.evaluate_prospect(tiny_biz)
     assert res_tiny.classification == ProspectClassification.LOW_VALUE
-    assert "unlikely to purchase a $1,000+ service" in res_tiny.classification_rationale or "Low estimated purchasing capacity" in res_tiny.classification_rationale
+    assert "unlikely to purchase" in res_tiny.classification_rationale or "Low estimated purchasing capacity" in res_tiny.classification_rationale
 
-    # 2. Large established business ($1,000+ capable)
+    # 2. Large established business ($500+ capable)
     large_biz = NormalizedBusinessRecord(
         business_name="Lone Star Industrial HVAC & Mechanical",
         category="HVAC",
@@ -180,7 +180,7 @@ async def test_thousand_dollar_commercial_threshold_and_scoring():
     )
     res_large = scorer.evaluate_prospect(large_biz)
     assert res_large.classification == ProspectClassification.PRIORITY_PROSPECT
-    assert res_large.estimated_service_value.min_value >= 1000
+    assert res_large.estimated_service_value.min_value >= 500
     assert "Strong evidence that this business is commercially suitable" in res_large.classification_rationale
 
 

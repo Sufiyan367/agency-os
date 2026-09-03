@@ -252,13 +252,13 @@ async def test_advance_and_remaining_balance_calculation():
         assert prop.remaining_balance == 2500.0
         assert prop.advance_received == 0.0
 
-        # Commercial floor check (<$1,000 must fail)
+        # Commercial floor check (<$500 must fail)
         with pytest.raises(ValueError) as exc:
             await deal_closing_service.create_proposal(
                 session=db,
                 business_id=biz.id,
                 title="Tiny Sub-threshold Proposal",
-                total_value=500.0,
+                total_value=499.0,
                 advance_required=200.0
             )
         assert "commercial qualification requirement" in str(exc.value)

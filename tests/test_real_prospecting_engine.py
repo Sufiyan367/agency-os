@@ -138,11 +138,11 @@ def test_invalid_prospect_rejection_social_and_parked():
     assert reason is None
 
 # ------------------------------------------------------------------------------
-# 5. $1,000+ Minimum Commercial Filter
+# 5. $500+ Minimum Commercial Filter
 # ------------------------------------------------------------------------------
 def test_thousand_dollar_minimum_filter_enforcement():
     commercial_cfg = CommercialConfig(
-        minimum_target_service_value_usd=1000,
+        minimum_target_service_value_usd=500,
         high_value_buyer_threshold=75.0,
         opportunity_score_threshold=65.0
     )
@@ -193,7 +193,7 @@ def test_thousand_dollar_minimum_filter_enforcement():
     )
 
     scored_comm = scorer.evaluate_prospect(commercial_biz)
-    assert scored_comm.estimated_service_value.min_value >= 1000
+    assert scored_comm.estimated_service_value.min_value >= 500
     assert scored_comm.classification == ProspectClassification.PRIORITY_PROSPECT
     assert scored_comm.pipeline_stage in (RealPipelineStage.HIGH_VALUE, RealPipelineStage.CONTACTABLE)
     assert "technical/automation engagement" in scored_comm.estimated_service_value.reasoning

@@ -23,6 +23,6 @@ filters:
   target_results_per_city: 20
 
 commercial:
-  minimum_target_service_value_usd: 1000
+  minimum_target_service_value_usd: 500
   high_value_buyer_threshold: 75
   opportunity_score_threshold: 65

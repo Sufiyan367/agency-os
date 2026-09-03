@@ -38,8 +38,8 @@ class RejectionReason(str, enum.Enum):
     LOW_REVIEW_COUNT = "LOW_REVIEW_COUNT"
 
 class EstimatedServiceValue(BaseModel):
-    min_value: int = Field(default=1000, description="Minimum estimated contract service engagement")
-    max_value: int = Field(default=3000, description="Maximum estimated contract service engagement")
+    min_value: int = Field(default=500, description="Minimum estimated contract service engagement")
+    max_value: int = Field(default=2500, description="Maximum estimated contract service engagement")
     currency: str = Field(default="USD", description="Currency ISO code")
     reasoning: str = Field(..., description="Explainable rationale based on observable operational and digital signals")
 
@@ -111,10 +111,11 @@ class DiscoveryStats(BaseModel):
     with_phone_numbers: int = Field(default=0)
     cities_covered: List[str] = Field(default_factory=list)
 
-    # Commercial High-Value Analytics ($1,000+ Engagement)
+    # Commercial High-Value Analytics ($500+ Engagement)
     high_value_buyer_candidates: int = Field(default=0)
     high_opportunity_candidates: int = Field(default=0)
     priority_prospects: int = Field(default=0)
+    five_hundred_plus_prospects: int = Field(default=0)
     thousand_plus_prospects: int = Field(default=0)
     discarded_prospects: int = Field(default=0)
     average_buyer_score: float = Field(default=0.0)

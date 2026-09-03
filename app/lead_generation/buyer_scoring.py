@@ -14,7 +14,7 @@ class HighValueBuyerScorer:
     """
     Evaluates observable business signals to compute an evidence-grounded
     High-Value Buyer Score and Opportunity Score, estimates explainable service value,
-    and applies the strict $1,000+ commercial qualification filter.
+    and applies the strict $500+ commercial qualification filter.
     """
 
     def __init__(self, commercial_config: CommercialConfig):
@@ -31,22 +31,22 @@ class HighValueBuyerScorer:
         grounded in business category, operational indicators, and digital gaps.
         """
         cat_lower = business.category.lower()
-        base_min = 1000
-        base_max = 3000
+        base_min = 500
+        base_max = 2000
 
         # Category-based base tier
         if any(k in cat_lower for k in ["solar", "renewable"]):
-            base_min, base_max = 2500, 7500
-        elif any(k in cat_lower for k in ["roofing", "commercial roof"]):
             base_min, base_max = 2000, 6000
-        elif any(k in cat_lower for k in ["hvac", "heating", "cooling", "mechanical"]):
+        elif any(k in cat_lower for k in ["roofing", "commercial roof"]):
             base_min, base_max = 1500, 4500
-        elif any(k in cat_lower for k in ["plumb"]):
+        elif any(k in cat_lower for k in ["hvac", "heating", "cooling", "mechanical"]):
             base_min, base_max = 1200, 3500
+        elif any(k in cat_lower for k in ["plumb"]):
+            base_min, base_max = 750, 2500
         elif any(k in cat_lower for k in ["dental"]):
-            base_min, base_max = 1500, 4000
-        elif any(k in cat_lower for k in ["cleaning", "janitorial"]):
             base_min, base_max = 1000, 3000
+        elif any(k in cat_lower for k in ["cleaning", "janitorial"]):
+            base_min, base_max = 500, 2000
 
         # Observable scale adjustments
         if business.num_locations > 1:
@@ -61,8 +61,8 @@ class HighValueBuyerScorer:
 
         # Adjust for very small or solo operators
         if buyer_score < 40.0:
-            base_min = max(400, base_min - 600)
-            base_max = max(900, base_max - 1200)
+            base_min = max(250, base_min - 400)
+            base_max = max(500, base_max - 800)
 
         reasoning = (
             f"Business category '{business.category}' in {business.city}, {business.country} "
