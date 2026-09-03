@@ -515,3 +515,43 @@ class AgentTask(Base):
     status: Mapped[str] = mapped_column(String(50), default="PENDING")
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+# 21. Voice Call Logs
+class CallLog(Base):
+    __tablename__ = "call_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    call_sid: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    caller_id: Mapped[str] = mapped_column(String(50))
+    recipient_phone: Mapped[str] = mapped_column(String(50), index=True)
+    direction: Mapped[str] = mapped_column(String(20), default="OUTBOUND")
+    status: Mapped[str] = mapped_column(String(50), default="INITIATED")  # INITIATED, RINGING, IN_PROGRESS, COMPLETED, BUSY, NO_ANSWER, FAILED
+    duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    recording_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    recording_consent_disclosed: Mapped[bool] = mapped_column(Boolean, default=True)
+    transcript: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sentiment: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    qualification_intent: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    action_taken: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+# 22. Scheduled Meetings
+class Meeting(Base):
+    __tablename__ = "meetings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    prospect_name: Mapped[str] = mapped_column(String(255))
+    prospect_contact: Mapped[str] = mapped_column(String(100))
+    title: Mapped[str] = mapped_column(String(255), default="Diagnostic Walkthrough & Strategy Consultation")
+    scheduled_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=15)
+    meeting_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="SCHEDULED")  # SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+

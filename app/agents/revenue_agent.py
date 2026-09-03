@@ -167,7 +167,18 @@ class RevenueAgentOrchestrator:
         if route.channel == ChannelType.EMAIL:
             await self.email_provider.send_email(route.destination, f"Turnaround diagnostic for {b_name}", "Audit summary...")
         elif route.channel == ChannelType.VOICE:
-            await self.voice_provider.place_call(route.destination, "Audit consultation script...")
+            from app.services.voice_service import VoiceSalesService
+            await VoiceSalesService.initiate_outbound_call(
+                prospect_phone=route.destination,
+                business_name=b_name,
+                niche=candidate_data.get("niche", "Commercial Services"),
+                city=candidate_data.get("city", "Austin"),
+                audit_data={
+                    "performance_score": candidate_data.get("performance_score", 48.0),
+                    "load_time_seconds": candidate_data.get("load_time_seconds", 4.3)
+                },
+                language=candidate_data.get("language", "en")
+            )
 
         self.current_state = ProspectState.CONTACTED
         self._record_transition(b_name, ProspectState.OUTREACH_PREP, ProspectState.CONTACTED, f"Contact attempt placed via {route.channel.value} (DRY RUN).", 0.95)

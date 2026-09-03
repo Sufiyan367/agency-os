@@ -488,6 +488,71 @@ async def step_agent(req: AgentStepRequest):
     from app.agents.revenue_agent import revenue_agent_orchestrator
     return await revenue_agent_orchestrator.step_single_prospect(req.model_dump())
 
+# --- Production Voice-Sales Layer Endpoints ---
+
+class VoiceCallRequest(BaseModel):
+    phone: str
+    business_name: str
+    niche: str = "Commercial Services"
+    city: str = "Austin"
+    business_id: Optional[int] = None
+    language: str = "en"
+
+class VoiceTranscriptWebhookRequest(BaseModel):
+    call_sid: str
+    transcript: str
+    duration_seconds: int = 0
+    recording_url: Optional[str] = None
+
+@router.get("/api/voice/config")
+async def get_voice_config():
+    """Returns active telephony provider configuration, caller ID, and safety gates."""
+    return {
+        "voice_provider": settings.VOICE_PROVIDER,
+        "voice_dry_run": settings.VOICE_DRY_RUN,
+        "caller_id": settings.VOICE_CALLER_ID,
+        "recording_enabled": settings.VOICE_RECORDING_ENABLED,
+        "consent_disclosure": settings.VOICE_CONSENT_DISCLOSURE,
+        "has_twilio_credentials": bool(settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN),
+        "has_bland_credentials": bool(settings.BLAND_API_KEY)
+    }
+
+@router.post("/api/voice/call")
+async def trigger_voice_call(req: VoiceCallRequest):
+    """Initiates an outbound voice call to a qualified prospect."""
+    from app.services.voice_service import VoiceSalesService
+    return await VoiceSalesService.initiate_outbound_call(
+        prospect_phone=req.phone,
+        business_name=req.business_name,
+        niche=req.niche,
+        city=req.city,
+        business_id=req.business_id,
+        language=req.language
+    )
+
+@router.post("/api/voice/webhook/transcript")
+async def voice_transcript_webhook(req: VoiceTranscriptWebhookRequest):
+    """Processes incoming transcript callbacks from telephony providers to qualify and schedule."""
+    from app.services.voice_service import VoiceSalesService
+    return await VoiceSalesService.process_call_transcript(
+        call_sid=req.call_sid,
+        transcript=req.transcript,
+        duration=req.duration_seconds,
+        recording_url=req.recording_url
+    )
+
+@router.get("/api/voice/calls")
+async def list_voice_calls(limit: int = 50):
+    """Returns history of voice sales calls, transcripts, and outcomes."""
+    from app.services.voice_service import VoiceSalesService
+    return await VoiceSalesService.get_call_logs(limit=limit)
+
+@router.get("/api/voice/meetings")
+async def list_scheduled_meetings(limit: int = 50):
+    """Returns booked meetings and consultations scheduled by the voice agent."""
+    from app.services.voice_service import VoiceSalesService
+    return await VoiceSalesService.get_meetings(limit=limit)
+
 # System Runs
 @router.get("/api/runs")
 async def get_system_runs(db: AsyncSession = Depends(get_db)):

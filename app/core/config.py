@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "dry_run"  # 'dry_run', 'resend', 'sendgrid', 'smtp'
     EMAIL_DRY_RUN: bool = True
     VOICE_DRY_RUN: bool = os.getenv("VOICE_DRY_RUN", "true").lower() in ("true", "1", "yes")
+    VOICE_PROVIDER: str = os.getenv("VOICE_PROVIDER", "dry_run")  # 'dry_run', 'twilio', 'bland'
+    VOICE_CALLER_ID: str = os.getenv("VOICE_CALLER_ID", "+15125550100")
+    VOICE_RECORDING_ENABLED: bool = os.getenv("VOICE_RECORDING_ENABLED", "true").lower() in ("true", "1", "yes")
+    VOICE_CONSENT_DISCLOSURE: str = os.getenv("VOICE_CONSENT_DISCLOSURE", "This call may be recorded for quality and diagnostic assurance.")
+    VOICE_MAX_CALL_DURATION_MINUTES: int = int(os.getenv("VOICE_MAX_CALL_DURATION_MINUTES", "15"))
+    TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
+    BLAND_API_KEY: Optional[str] = os.getenv("BLAND_API_KEY")
     AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "false").lower() in ("true", "1", "yes")
     AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "false").lower() in ("true", "1", "yes")
     MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))

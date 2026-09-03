@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPayments();
     loadRuns();
     loadAgentStatus();
+    loadVoiceOperations();
 
     // Backdrop click closes lead modal
     const modal = document.getElementById('lead-modal');
@@ -149,6 +150,7 @@ function switchView(viewName) {
     if (viewName === 'pipeline') loadPipeline();
     if (viewName === 'payments') loadPayments();
     if (viewName === 'runs') loadRuns();
+    if (viewName === 'voice') loadVoiceOperations();
     if (viewName === 'settings') loadSettings();
 }
 
@@ -1586,5 +1588,111 @@ async function loadAgentStatus() {
         console.debug('Error loading agent status:', e);
     }
 }
+
+// ==============================================================================
+// Voice Sales Operations Controller
+// ==============================================================================
+async function loadVoiceOperations() {
+    try {
+        // 1. Config
+        const resCfg = await fetch('/api/voice/config');
+        if (resCfg.ok) {
+            const cfg = await resCfg.json();
+            const provBadge = document.getElementById('voice-provider-badge');
+            const cidBadge = document.getElementById('voice-caller-id-badge');
+            if (provBadge) {
+                provBadge.textContent = `PROVIDER: ${cfg.voice_provider.toUpperCase()} (${cfg.voice_dry_run ? 'DRY-RUN' : 'LIVE'})`;
+            }
+            if (cidBadge) {
+                cidBadge.textContent = `CALLER ID: ${cfg.caller_id || 'Not Set'}`;
+            }
+        }
+
+        // 2. Scheduled Meetings
+        const resMeets = await fetch('/api/voice/meetings');
+        const meetsBody = document.getElementById('voice-meetings-table-body');
+        if (resMeets.ok && meetsBody) {
+            const meets = await resMeets.json();
+            if (meets.length === 0) {
+                meetsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">No meetings scheduled yet.</td></tr>`;
+            } else {
+                meetsBody.innerHTML = meets.map(m => `
+                    <tr>
+                        <td><strong>${escapeHtml(m.prospect_name || m.prospect_contact)}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(m.prospect_contact)}</span></td>
+                        <td>${escapeHtml(m.title)}</td>
+                        <td>${m.scheduled_time ? new Date(m.scheduled_time).toLocaleString() : 'TBD'}</td>
+                        <td>${m.duration_minutes} min</td>
+                        <td><a href="${escapeHtml(m.meeting_url || '#')}" target="_blank" class="badge badge-cyan" style="text-decoration:none;">Open Link</a></td>
+                        <td><span class="badge badge-emerald">${escapeHtml(m.status)}</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // 3. Voice Calls History
+        const resCalls = await fetch('/api/voice/calls');
+        const callsBody = document.getElementById('voice-calls-table-body');
+        if (resCalls.ok && callsBody) {
+            const calls = await resCalls.json();
+            if (calls.length === 0) {
+                callsBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:16px;">No voice calls placed yet.</td></tr>`;
+            } else {
+                callsBody.innerHTML = calls.map(c => `
+                    <tr>
+                        <td><span style="font-family:var(--font-mono); font-size:0.75rem;">${escapeHtml(c.call_sid)}</span></td>
+                        <td>${escapeHtml(c.recipient_phone)}</td>
+                        <td>${escapeHtml(c.caller_id)}</td>
+                        <td>${c.duration_seconds}s</td>
+                        <td><span class="badge ${c.status === 'COMPLETED' ? 'badge-emerald' : 'badge-amber'}">${escapeHtml(c.status)}</span></td>
+                        <td><span class="badge badge-stage">${escapeHtml(c.qualification_intent || 'N/A')}</span></td>
+                        <td>${escapeHtml(c.action_taken || 'N/A')}</td>
+                        <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.transcript || '')}">${escapeHtml(c.transcript || 'No transcript')}</td>
+                        <td>${c.created_at ? new Date(c.created_at).toLocaleTimeString() : ''}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        console.debug('Error loading voice operations data:', e);
+    }
+}
+
+async function handleTriggerVoiceCall(event) {
+    if (event) event.preventDefault();
+    const phone = document.getElementById('voice-input-phone')?.value;
+    const name = document.getElementById('voice-input-name')?.value;
+    const niche = document.getElementById('voice-input-niche')?.value || 'Services';
+    const city = document.getElementById('voice-input-city')?.value || 'Austin';
+    const lang = document.getElementById('voice-input-lang')?.value || 'en';
+
+    if (!phone || !name) {
+        alert('Please enter recipient phone and business name.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/voice/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: phone,
+                business_name: name,
+                niche: niche,
+                city: city,
+                language: lang
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Voice Consultation Call Dispatched!\n\nCall SID: ${data.call_sid}\nProvider: ${data.provider.toUpperCase()}\nStatus: ${data.status}\nDry Run: ${data.dry_run}`);
+            loadVoiceOperations();
+        } else {
+            alert(`Call failed: ${data.detail || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert(`Error triggering call: ${e}`);
+    }
+}
+
 
 

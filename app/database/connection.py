@@ -34,6 +34,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db():
     """Initializes the database schema and creates all tables."""
+    import app.database.models  # noqa
+    import app.models.entities  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # Safe migration for new discovery columns if tables already existed
