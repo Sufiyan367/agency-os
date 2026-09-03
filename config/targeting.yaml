@@ -1,20 +1,18 @@
 # ==============================================================================
-# Local Lead Discovery Targeting Configuration
+# Local Lead Discovery & Commercial Targeting Configuration
 # ==============================================================================
 
-country: "United States"
-country_code: "US"
-
-regions:
-  - "Texas"
-
-cities:
-  - "Austin"
-  - "Dallas"
-  - "Houston"
-
-niches:
-  - "HVAC"
+targeting:
+  country: "United States"
+  country_code: "US"
+  regions:
+    - "Texas"
+  cities:
+    - "Austin"
+    - "Dallas"
+    - "Houston"
+  niches:
+    - "HVAC"
 
 filters:
   min_rating: 3.5
@@ -23,3 +21,8 @@ filters:
   require_website: true
   require_phone: false
   target_results_per_city: 20
+
+commercial:
+  minimum_target_service_value_usd: 1000
+  high_value_buyer_threshold: 75
+  opportunity_score_threshold: 65
