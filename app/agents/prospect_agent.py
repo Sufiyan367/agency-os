@@ -58,26 +58,39 @@ class SingleProspectAgent:
             return cand_biz
 
         # 2. Fall back to LocalBusiness table for uncontacted leads
+        uncontacted_statuses = [
+            LeadStatus.NEW.value,
+            LeadStatus.QUALIFIED.value,
+            LeadStatus.CONTACTABLE.value,
+            LeadStatus.OUTREACH_DRAFTED.value,
+            LeadStatus.OUTREACH_PENDING.value
+        ]
+        terminal_or_contacted_statuses = [
+            LeadStatus.CONTACTED.value,
+            LeadStatus.SENT.value,
+            LeadStatus.REPLIED.value,
+            LeadStatus.REPLY_PENDING_HUMAN_REVIEW.value,
+            LeadStatus.BOOKED.value,
+            LeadStatus.HUMAN_TAKEOVER.value,
+            LeadStatus.OPT_OUT.value,
+            LeadStatus.LOST.value,
+            LeadStatus.DISQUALIFIED.value,
+            LeadStatus.REJECTED.value,
+            LeadStatus.CONTACT_UNAVAILABLE.value
+        ]
         q_local = (
             select(LocalBusiness)
             .outerjoin(LocalLead, LocalBusiness.id == LocalLead.business_id)
             .where(
                 or_(
-                    LocalLead.status == None,
-                    LocalLead.status.in_([
-                        LeadStatus.NEW.value,
-                        LeadStatus.VERIFIED.value,
-                        LeadStatus.AUDITED.value,
-                        LeadStatus.SCORED.value,
-                        LeadStatus.QUALIFIED.value,
-                        LeadStatus.APPROVED.value
-                    ])
+                    LocalLead.status.is_(None),
+                    LocalLead.status.in_(uncontacted_statuses)
                 )
             )
             .where(
                 or_(
-                    LocalLead.status == None,
-                    LocalLead.status != LeadStatus.CONTACTED.value
+                    LocalLead.status.is_(None),
+                    ~LocalLead.status.in_(terminal_or_contacted_statuses)
                 )
             )
             .order_by(

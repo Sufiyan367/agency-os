@@ -96,6 +96,8 @@ class ProspectMemoryService:
             )
             session.add(memory)
         else:
+            memory.business_id = business_id
+            memory.domain = domain
             if contact_name:
                 memory.contact_name = contact_name
             if contact_email:
@@ -147,44 +149,79 @@ class ProspectMemoryService:
         call_sid: Optional[str] = None,
         payment_link_id: Optional[str] = None
     ) -> Optional[ProspectMemory]:
-        """Looks up persistent prospect memory by any recognized identifier."""
-        filters = []
-        if business_id:
-            filters.append(ProspectMemory.business_id == business_id)
+        """Looks up persistent prospect memory by prioritizing exact identifiers."""
         if domain:
-            filters.append(ProspectMemory.domain.ilike(domain.strip()))
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.domain.ilike(domain.strip())).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
+
         if email:
             clean_email = email.strip().lower()
-            filters.append(ProspectMemory.contact_email.ilike(clean_email))
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.contact_email.ilike(clean_email)).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
             if "@" in clean_email:
                 email_domain = clean_email.split("@")[-1]
-                filters.append(ProspectMemory.domain.ilike(email_domain))
-        if phone:
-            clean_phone = phone.strip()
-            filters.append(ProspectMemory.contact_phone == clean_phone)
+                res = await session.execute(
+                    select(ProspectMemory).where(ProspectMemory.domain.ilike(email_domain)).order_by(ProspectMemory.updated_at.desc())
+                )
+                mem = res.scalars().first()
+                if mem:
+                    return mem
+
         if thread_id:
-            filters.append(ProspectMemory.thread_id == thread_id)
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.thread_id == thread_id).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
+
         if call_sid:
-            filters.append(ProspectMemory.call_sid == call_sid)
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.call_sid == call_sid).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
+
         if payment_link_id:
-            filters.append(ProspectMemory.payment_link_id == payment_link_id)
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.payment_link_id == payment_link_id).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
 
-        if not filters:
-            return None
+        if phone:
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.contact_phone == phone.strip()).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
 
-        q = select(ProspectMemory).where(or_(*filters)).order_by(ProspectMemory.updated_at.desc())
-        res = await session.execute(q)
-        memory = res.scalars().first()
-        if memory:
-            return memory
+        if business_id:
+            res = await session.execute(
+                select(ProspectMemory).where(ProspectMemory.business_id == business_id).order_by(ProspectMemory.updated_at.desc())
+            )
+            mem = res.scalars().first()
+            if mem:
+                return mem
 
         # Fallback: if no ProspectMemory record yet, check Business table
         biz = None
-        if business_id:
-            biz = await session.get(Business, business_id)
-        elif domain:
+        if domain:
             res_biz = await session.execute(select(Business).where(Business.domain.ilike(domain.strip())))
             biz = res_biz.scalars().first()
+        elif business_id:
+            biz = await session.get(Business, business_id)
         elif email:
             res_biz = await session.execute(select(Business).where(Business.public_email.ilike(email.strip())))
             biz = res_biz.scalars().first()

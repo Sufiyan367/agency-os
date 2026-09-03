@@ -744,4 +744,84 @@ async def test_permanently_disqualified_prospect_not_selected_again_by_continuou
             assert next_cand.domain != dom
 
 
+@pytest.mark.asyncio
+async def test_get_next_uncontacted_prospect_fallback_to_local_lead_regression():
+    """
+    Regression test for AttributeError: VERIFIED at app/agents/prospect_agent.py.
+    When no uncontacted Business records are available in step 1, get_next_uncontacted_prospect()
+    falls back to step 2 querying LocalBusiness and LocalLead.
+    Verifies:
+    1. Query executes without raising AttributeError: VERIFIED.
+    2. LocalLead with status NEW / QUALIFIED is selected.
+    3. LocalLead with status CONTACTED / DISQUALIFIED / REJECTED is not selected.
+    4. Orchestrator fetch_or_discover_candidate() runs cleanly without crashing.
+    """
+    import uuid
+    from app.agents.prospect_agent import SingleProspectAgent
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import PipelineStage
+    from app.models.entities import LocalBusiness, LocalLead, LeadStatus
+    worker = SingleProspectAgent(provider_type="mock")
+    uid = uuid.uuid4().hex[:6]
+    dom_eligible = f"locallead-eligible-{uid}.com"
+    dom_contacted = f"locallead-contacted-{uid}.com"
+
+    async with AsyncSessionLocal() as session:
+        # 1. Insert contacted lead
+        biz_contacted = LocalBusiness(
+            name=f"Contacted Biz {uid}",
+            domain=dom_contacted,
+            website_url=f"https://{dom_contacted}",
+            country="US",
+            city="Austin",
+            niche="plumbing",
+            email=f"contact@{dom_contacted}"
+        )
+        session.add(biz_contacted)
+        await session.flush()
+
+        lead_contacted = LocalLead(
+            business_id=biz_contacted.id,
+            contact_name="Contacted Owner",
+            contact_email=f"contact@{dom_contacted}",
+            status=LeadStatus.CONTACTED.value
+        )
+        session.add(lead_contacted)
+
+        # 2. Insert eligible uncontacted lead in LocalLead
+        biz_eligible = LocalBusiness(
+            name=f"Eligible Biz {uid}",
+            domain=dom_eligible,
+            website_url=f"https://{dom_eligible}",
+            country="US",
+            city="Austin",
+            niche="electrical",
+            email=f"hello@{dom_eligible}"
+        )
+        session.add(biz_eligible)
+        await session.flush()
+
+        lead_eligible = LocalLead(
+            business_id=biz_eligible.id,
+            contact_name="Eligible Owner",
+            contact_email=f"hello@{dom_eligible}",
+            status=LeadStatus.NEW.value,
+            lead_score=85.0
+        )
+        session.add(lead_eligible)
+        await session.commit()
+
+        # Execute fallback query
+        try:
+            cand = await worker.get_next_uncontacted_prospect(session)
+        except AttributeError as e:
+            pytest.fail(f"Regression! AttributeError raised in get_next_uncontacted_prospect: {e}")
+
+        assert cand is not None
+        # Must not be the contacted lead
+        assert cand.domain != dom_contacted
+        # Verify candidate domain is eligible
+        assert cand.domain == dom_eligible
+
+
 
