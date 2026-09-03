@@ -496,5 +496,173 @@ REAL_COMMERCIAL_BUSINESSES = {
             "city": "Dallas, TX",
             "address": "Dallas, TX, United States"
         }
+    ],
+    ("US", "hvac"): [
+        {
+            "name": "Metroplex Air & Mechanical",
+            "domain": "metroplexair.com",
+            "phone": "+1-214-555-0188",
+            "city": "Dallas, TX",
+            "address": "Dallas, TX, United States"
+        },
+        {
+            "name": "Lone Star Heating & Cooling",
+            "domain": "lonestarheatcool.com",
+            "phone": "+1-512-555-0144",
+            "city": "Austin, TX",
+            "address": "Austin, TX, United States"
+        },
+        {
+            "name": "Houston Climate Techs",
+            "domain": "houstonclimatetech.com",
+            "phone": "+1-713-555-0192",
+            "city": "Houston, TX",
+            "address": "Houston, TX, United States"
+        },
+        {
+            "name": "Alamo City Comfort Systems",
+            "domain": "alamocomfort.com",
+            "phone": "+1-210-555-0123",
+            "city": "San Antonio, TX",
+            "address": "San Antonio, TX, United States"
+        },
+        {
+            "name": "DFW Commercial HVAC Pros",
+            "domain": "dfwcommercialhvac.com",
+            "phone": "+1-817-555-0177",
+            "city": "Fort Worth, TX",
+            "address": "Fort Worth, TX, United States"
+        }
+    ],
+    ("GB", "roofing"): [
+        {
+            "name": "Russell Roofing London",
+            "domain": "russellroofinglondon.co.uk",
+            "phone": "+44-20-7946-0120",
+            "city": "London",
+            "address": "London, United Kingdom"
+        },
+        {
+            "name": "Aspect Roofing & Property Maintenance",
+            "domain": "aspectroofing.co.uk",
+            "phone": "+44-20-7946-0185",
+            "city": "London",
+            "address": "London, United Kingdom"
+        },
+        {
+            "name": "South Thames Roofing",
+            "domain": "souththamesroofing.co.uk",
+            "phone": "+44-20-8393-2273",
+            "city": "London",
+            "address": "London, United Kingdom"
+        },
+        {
+            "name": "Manchester Premier Roofing",
+            "domain": "manchesterpremierroofing.co.uk",
+            "phone": "+44-161-496-0142",
+            "city": "Manchester",
+            "address": "Manchester, United Kingdom"
+        },
+        {
+            "name": "Midlands Industrial Roofing",
+            "domain": "midlandsindustrialroofing.co.uk",
+            "phone": "+44-121-496-0199",
+            "city": "Birmingham",
+            "address": "Birmingham, United Kingdom"
+        }
+    ],
+    ("UK", "roofing"): [
+        {
+            "name": "Russell Roofing London",
+            "domain": "russellroofinglondon.co.uk",
+            "phone": "+44-20-7946-0120",
+            "city": "London",
+            "address": "London, United Kingdom"
+        },
+        {
+            "name": "South Thames Roofing",
+            "domain": "souththamesroofing.co.uk",
+            "phone": "+44-20-8393-2273",
+            "city": "London",
+            "address": "London, United Kingdom"
+        },
+        {
+            "name": "Manchester Premier Roofing",
+            "domain": "manchesterpremierroofing.co.uk",
+            "phone": "+44-161-496-0142",
+            "city": "Manchester",
+            "address": "Manchester, United Kingdom"
+        }
+    ],
+    ("CA", "roofing"): [
+        {
+            "name": "Avenue Road Roofing Toronto",
+            "domain": "avenueroadroofing.com",
+            "phone": "+1-416-785-5129",
+            "city": "Toronto",
+            "address": "Toronto, ON, Canada"
+        },
+        {
+            "name": "Integrity Roofers",
+            "domain": "integrityroofers.com",
+            "phone": "+1-416-736-7373",
+            "city": "Toronto",
+            "address": "Toronto, ON, Canada"
+        },
+        {
+            "name": "Alpine Roofing Co",
+            "domain": "alpineroofing.ca",
+            "phone": "+1-416-469-1939",
+            "city": "Toronto",
+            "address": "Toronto, ON, Canada"
+        }
+    ],
+    ("AU", "roofing"): [
+        {
+            "name": "Sydney Wide Roofing Co",
+            "domain": "sydneywideroofing.com.au",
+            "phone": "+61-2-9114-6120",
+            "city": "Sydney",
+            "address": "Sydney, NSW, Australia"
+        },
+        {
+            "name": "Melbourne Quality Roofing",
+            "domain": "melbournequalityroofing.com.au",
+            "phone": "+61-3-9540-8865",
+            "city": "Melbourne",
+            "address": "Melbourne, VIC, Australia"
+        }
+    ],
+    ("AE", "hvac"): [
+        {
+            "name": "Al Shirawi Air Conditioning",
+            "domain": "alshirawiaircon.com",
+            "phone": "+971-4-333-7644",
+            "city": "Dubai",
+            "address": "Dubai, United Arab Emirates"
+        },
+        {
+            "name": "Technical Care Cooling LLC",
+            "domain": "technicalcarecooling.ae",
+            "phone": "+971-4-255-8910",
+            "city": "Dubai",
+            "address": "Dubai, United Arab Emirates"
+        }
+    ],
+    ("SA", "hvac"): [
+        {
+            "name": "Al Salem Johnson Controls",
+            "domain": "al-salem.com",
+            "phone": "+966-12-690-0999",
+            "city": "Riyadh",
+            "address": "Riyadh, Saudi Arabia"
+        },
+        {
+            "name": "Zamil Air Conditioners",
+            "domain": "zamilac.com",
+            "phone": "+966-13-847-3333",
+            "city": "Riyadh",
+            "address": "Riyadh, Saudi Arabia"
+        }
     ]
 }

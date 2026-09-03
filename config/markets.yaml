@@ -1,0 +1,122 @@
+# ==============================================================================
+# Global Markets & Niches Configuration
+# Autonomous B2B Lead-Gen & Revenue Operations Platform
+# ==============================================================================
+
+markets:
+  countries:
+    - code: "US"
+      name: "United States"
+      currency: "USD"
+      regions:
+        - "Texas"
+        - "Florida"
+        - "California"
+      cities:
+        - "Austin"
+        - "Dallas"
+        - "Houston"
+        - "Miami"
+        - "Phoenix"
+    - code: "UK"
+      name: "United Kingdom"
+      currency: "GBP"
+      regions:
+        - "Greater London"
+        - "Greater Manchester"
+        - "West Midlands"
+      cities:
+        - "London"
+        - "Manchester"
+        - "Birmingham"
+    - code: "CA"
+      name: "Canada"
+      currency: "CAD"
+      regions:
+        - "Ontario"
+        - "British Columbia"
+        - "Alberta"
+      cities:
+        - "Toronto"
+        - "Vancouver"
+        - "Calgary"
+    - code: "AU"
+      name: "Australia"
+      currency: "AUD"
+      regions:
+        - "New South Wales"
+        - "Victoria"
+        - "Queensland"
+      cities:
+        - "Sydney"
+        - "Melbourne"
+        - "Brisbane"
+    - code: "AE"
+      name: "United Arab Emirates"
+      currency: "AED"
+      regions:
+        - "Dubai"
+        - "Abu Dhabi"
+      cities:
+        - "Dubai"
+        - "Abu Dhabi"
+    - code: "SA"
+      name: "Saudi Arabia"
+      currency: "SAR"
+      regions:
+        - "Riyadh Province"
+        - "Makkah Province"
+      cities:
+        - "Riyadh"
+        - "Jeddah"
+
+niches:
+  - name: "HVAC"
+    slug: "hvac"
+    category: "Heating & Air Conditioning"
+    min_estimated_service_value: 1500
+    typical_range: [1500, 4500]
+    keywords: ["hvac", "heating", "air conditioning", "cooling"]
+  - name: "Roofing"
+    slug: "roofing"
+    category: "Commercial & Residential Roofing"
+    min_estimated_service_value: 2000
+    typical_range: [2000, 6000]
+    keywords: ["roofing", "roof repair", "commercial roofing"]
+  - name: "Plumbing"
+    slug: "plumbing"
+    category: "Plumbing & Mechanical Services"
+    min_estimated_service_value: 1200
+    typical_range: [1200, 3500]
+    keywords: ["plumber", "plumbing", "commercial plumbing"]
+  - name: "Commercial Cleaning"
+    slug: "commercial-cleaning"
+    category: "Facility Management & Janitorial"
+    min_estimated_service_value: 1000
+    typical_range: [1000, 3000]
+    keywords: ["commercial cleaning", "office cleaning", "janitorial"]
+  - name: "Solar"
+    slug: "solar"
+    category: "Renewable Energy & Solar Installation"
+    min_estimated_service_value: 2500
+    typical_range: [2500, 8000]
+    keywords: ["solar", "solar installation", "commercial solar"]
+  - name: "Dental"
+    slug: "dental"
+    category: "Specialized Healthcare & Dental"
+    min_estimated_service_value: 1500
+    typical_range: [1500, 4000]
+    keywords: ["dentist", "dental practice", "orthodontics"]
+
+commercial:
+  minimum_target_service_value_usd: 1000
+  high_value_buyer_threshold: 75.0
+  opportunity_score_threshold: 65.0
+  max_prospects_per_cycle: 50
+
+filters:
+  min_rating: 3.5
+  max_rating: 5.0
+  min_reviews: 5
+  require_website: true
+  require_phone: false

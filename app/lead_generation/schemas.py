@@ -1,4 +1,5 @@
 import enum
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,34 @@ class ProspectClassification(str, enum.Enum):
     NURTURE = "NURTURE"
     PRIORITY_PROSPECT = "PRIORITY_PROSPECT"
 
+class RealPipelineStage(str, enum.Enum):
+    DISCOVERED = "DISCOVERED"
+    AUDITED = "AUDITED"
+    HIGH_VALUE = "HIGH_VALUE"
+    QUALIFIED = "QUALIFIED"
+    CONTACTABLE = "CONTACTABLE"
+    OUTREACH_PENDING = "OUTREACH_PENDING"
+
+class RejectionReason(str, enum.Enum):
+    DIRECTORY_AGGREGATOR = "DIRECTORY_AGGREGATOR"
+    SOCIAL_PROFILE = "SOCIAL_PROFILE"
+    PARKED_DOMAIN = "PARKED_DOMAIN"
+    INACCESSIBLE_WEBSITE = "INACCESSIBLE_WEBSITE"
+    NON_BUSINESS_PAGE = "NON_BUSINESS_PAGE"
+    DUPLICATE_DOMAIN = "DUPLICATE_DOMAIN"
+    DUPLICATE_PHONE = "DUPLICATE_PHONE"
+    DUPLICATE_NAME_LOCATION = "DUPLICATE_NAME_LOCATION"
+    BELOW_COMMERCIAL_THRESHOLD = "BELOW_COMMERCIAL_THRESHOLD"
+    NO_LEGITIMATE_CONTACT = "NO_LEGITIMATE_CONTACT"
+    RATING_OUT_OF_BOUNDS = "RATING_OUT_OF_BOUNDS"
+    LOW_REVIEW_COUNT = "LOW_REVIEW_COUNT"
+
+class EstimatedServiceValue(BaseModel):
+    min_value: int = Field(default=1000, description="Minimum estimated contract service engagement")
+    max_value: int = Field(default=3000, description="Maximum estimated contract service engagement")
+    currency: str = Field(default="USD", description="Currency ISO code")
+    reasoning: str = Field(..., description="Explainable rationale based on observable operational and digital signals")
+
 class HighValueBuyerScore(BaseModel):
     score: float = Field(..., ge=0.0, le=100.0, description="Overall purchasing capacity score (0-100)")
     tier: BuyerTier = Field(..., description="Commercial buyer tier")
@@ -21,6 +50,7 @@ class HighValueBuyerScore(BaseModel):
         ...,
         description="Estimated service budget range based on capacity proxies (NOT confirmed revenue or guaranteed budget)"
     )
+    estimated_service_value: Optional[EstimatedServiceValue] = Field(default=None, description="Structured explainable valuation")
     buying_capacity_signals: List[str] = Field(default_factory=list, description="Observed proxies of scale, team size, multi-location, premium positioning")
     opportunity_signals: List[str] = Field(default_factory=list, description="Observed digital gaps, slow mobile UX, conversion bottlenecks, missing SEO")
     negative_signals: List[str] = Field(default_factory=list, description="Signals indicating small solo operation, low review volume, or budget constraint")
@@ -29,26 +59,28 @@ class HighValueBuyerScore(BaseModel):
 
 class NormalizedBusinessRecord(BaseModel):
     business_name: str = Field(..., description="Cleaned, normalized legal/trade name of the business")
-    category: str = Field(..., description="Business category or trade (e.g. HVAC Contractor)")
+    category: str = Field(..., description="Business category or trade (e.g. HVAC, Roofing)")
     address: Optional[str] = Field(default=None, description="Physical street address if available")
     city: str = Field(..., description="City location")
-    region: str = Field(..., description="State or province (e.g. Texas, TX)")
+    region: str = Field(..., description="State or province")
     country: str = Field(default="US", description="Country name or ISO code")
     website: Optional[str] = Field(default=None, description="Official company website URL")
-    phone: Optional[str] = Field(default=None, description="E.164 or normalized standard phone number")
-    email: Optional[str] = Field(default=None, description="Direct email if observed")
+    domain: Optional[str] = Field(default=None, description="Normalized hostname (e.g. company.com)")
+    phone: Optional[str] = Field(default=None, description="Public telephone number if legitimately available")
+    email: Optional[str] = Field(default=None, description="Public business email if legitimately available")
     rating: Optional[float] = Field(default=None, ge=0.0, le=5.0, description="Average review rating")
     review_count: Optional[int] = Field(default=None, ge=0, description="Total verified review count")
-    source: str = Field(default="mock_discovery", description="Origin provider or directory source")
-    source_url: Optional[str] = Field(default=None, description="Direct URL of the listing or directory page")
+    source: str = Field(default="real_web_discovery", description="Origin provider or registry source")
+    source_url: Optional[str] = Field(default=None, description="Direct URL of the listing or discovery reference")
+    discovery_timestamp: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of initial discovery")
 
-    # Observable Operational & Market Signals
-    num_locations: int = Field(default=1, ge=1, description="Number of active physical locations")
+    # Observable Operational & Market Signals (Never invented; populated if observable)
+    num_locations: int = Field(default=1, ge=1, description="Number of active physical locations observed")
     years_in_business: Optional[int] = Field(default=None, description="Years in operation if observable")
     is_commercial_and_residential: bool = Field(default=False, description="Operates commercial contracts in addition to residential")
     has_fleet_or_technicians: bool = Field(default=False, description="Observable indicators of field technicians, dispatcher, or fleet vehicles")
     offers_emergency_service: bool = Field(default=False, description="Offers 24/7 or emergency dispatch")
-    authorized_dealer_or_financing: bool = Field(default=False, description="Authorized Trane/Carrier dealer or offers customer financing")
+    authorized_dealer_or_financing: bool = Field(default=False, description="Authorized dealer or offers customer financing")
     hiring_active: bool = Field(default=False, description="Public job postings for technicians/installers")
     affluent_service_area: bool = Field(default=False, description="Servicing high-income zip codes")
 
@@ -62,22 +94,29 @@ class ScoredProspect(BaseModel):
     business: NormalizedBusinessRecord
     buyer_score: HighValueBuyerScore
     opportunity_score: float = Field(..., ge=0.0, le=100.0)
+    estimated_service_value: EstimatedServiceValue
     classification: ProspectClassification
+    pipeline_stage: RealPipelineStage = Field(default=RealPipelineStage.DISCOVERED)
     has_contact_path: bool = Field(default=True)
     classification_rationale: str = Field(...)
 
 class DiscoveryStats(BaseModel):
+    markets_searched: int = Field(default=0)
     businesses_discovered: int = Field(default=0)
     valid_businesses: int = Field(default=0)
     duplicates_removed: int = Field(default=0)
+    invalid_rejected: int = Field(default=0)
+    websites_audited: int = Field(default=0)
     with_websites: int = Field(default=0)
     with_phone_numbers: int = Field(default=0)
     cities_covered: List[str] = Field(default_factory=list)
 
-    # Commercial High-Value Analytics
+    # Commercial High-Value Analytics ($1,000+ Engagement)
     high_value_buyer_candidates: int = Field(default=0)
     high_opportunity_candidates: int = Field(default=0)
     priority_prospects: int = Field(default=0)
+    thousand_plus_prospects: int = Field(default=0)
     discarded_prospects: int = Field(default=0)
     average_buyer_score: float = Field(default=0.0)
     average_opportunity_score: float = Field(default=0.0)
+    rejection_reasons: Dict[str, int] = Field(default_factory=dict)
