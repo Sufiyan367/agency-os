@@ -26,6 +26,9 @@ class OutreachSenderAdapter:
         if not msg:
             raise ValueError(f"Message {message_id} not found.")
 
+        if msg.status == OutreachStatus.SENT.value or msg.sent_at is not None:
+            raise ValueError(f"Message {message_id} has already been sent at {msg.sent_at}. Duplicate dispatch is prohibited.")
+
         if msg.status != OutreachStatus.APPROVED.value:
             raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED).")
 
@@ -43,13 +46,25 @@ class OutreachSenderAdapter:
 
         # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP)
         provider = get_email_provider()
-        delivery_res = await provider.send_email(
-            to_email=msg.recipient_email,
-            subject=msg.subject,
-            body=msg.body,
-            from_email=settings.OUTREACH_FROM_EMAIL,
-            from_name=settings.OUTREACH_FROM_NAME
-        )
+        try:
+            delivery_res = await provider.send_email(
+                to_email=msg.recipient_email,
+                subject=msg.subject,
+                body=msg.body,
+                from_email=settings.EMAIL_FROM,
+                from_name=settings.OUTREACH_FROM_NAME,
+                reply_to=settings.EMAIL_REPLY_TO
+            )
+        except Exception as e:
+            msg.status = OutreachStatus.FAILED.value
+            await session.commit()
+            raise RuntimeError(f"Email delivery failed via {provider.__class__.__name__}: {e}")
+
+        if delivery_res.get("status") != "SUCCESS":
+            msg.status = OutreachStatus.FAILED.value
+            await session.commit()
+            raise RuntimeError(f"Email delivery failed via {provider.__class__.__name__}: {delivery_res}")
+
         event_type = delivery_res.get("event", "email_dispatched")
         details = delivery_res.get("details", {})
 

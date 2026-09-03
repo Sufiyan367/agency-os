@@ -484,11 +484,50 @@
 
         <!-- View 4: Outreach Approval Queue -->
         <section id="view-queue" class="view-container">
+            <!-- Outreach Real Metrics KPI Row -->
+            <div class="kpi-grid" style="margin-bottom: 20px;">
+                <div class="kpi-card">
+                    <span class="kpi-label">Pending Approval</span>
+                    <div class="kpi-value" id="kpi-outreach-pending" style="color:var(--hud-amber);">0</div>
+                    <span class="kpi-sub">Human sign-off required</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Approved</span>
+                    <div class="kpi-value" id="kpi-outreach-approved" style="color:var(--hud-cyan-bright);">0</div>
+                    <span class="kpi-sub">Operator cleared</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Sent</span>
+                    <div class="kpi-value" id="kpi-outreach-sent" style="color:var(--hud-green);">0</div>
+                    <span class="kpi-sub">Confirmed transmitted</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Failed</span>
+                    <div class="kpi-value" id="kpi-outreach-failed" style="color:var(--hud-red);">0</div>
+                    <span class="kpi-sub">Delivery errors</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Replies in Review</span>
+                    <div class="kpi-value" id="kpi-outreach-replies" style="color:var(--hud-blue);">0</div>
+                    <span class="kpi-sub">Inbound customer responses</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Human Takeover</span>
+                    <div class="kpi-value" id="kpi-outreach-takeover" style="color:var(--hud-amber);">0</div>
+                    <span class="kpi-sub">Automation paused</span>
+                </div>
+            </div>
+
             <div class="panel-card">
                 <div class="panel-header">
                     <div class="panel-title-wrap">
                         <h2 class="panel-title">Outreach Authorization Queue</h2>
                         <span class="panel-tag" style="color:var(--hud-amber);">Human Approval Required</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="provider-status-badge" class="badge badge-cyan" style="font-family:var(--font-mono); font-size:0.75rem;">
+                            PROVIDER: DRY_RUN (SAFE MOCK)
+                        </span>
                     </div>
                 </div>
                 <div id="queue-cards-container">

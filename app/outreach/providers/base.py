@@ -12,7 +12,8 @@ class BaseEmailProvider(ABC):
         body: str,
         html_body: Optional[str] = None,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Sends an email and returns delivery metadata:

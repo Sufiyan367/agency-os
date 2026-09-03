@@ -17,9 +17,16 @@ class LeadQualification(str, enum.Enum):
 class LeadStatus(str, enum.Enum):
     NEW = "NEW"
     QUALIFIED = "QUALIFIED"
+    CONTACTABLE = "CONTACTABLE"
+    CONTACT_UNAVAILABLE = "CONTACT_UNAVAILABLE"
+    OUTREACH_DRAFTED = "OUTREACH_DRAFTED"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     OUTREACH_PENDING = "OUTREACH_PENDING"
+    SENT = "SENT"
+    SEND_FAILED = "SEND_FAILED"
     CONTACTED = "CONTACTED"
     REPLIED = "REPLIED"
+    REPLY_PENDING_HUMAN_REVIEW = "REPLY_PENDING_HUMAN_REVIEW"
     BOOKED = "BOOKED"
     HUMAN_TAKEOVER = "HUMAN_TAKEOVER"
     OPT_OUT = "OPT_OUT"
@@ -33,6 +40,7 @@ class MessageStatus(str, enum.Enum):
     MOCKED_SENT = "MOCKED_SENT"
     SENT = "SENT"
     FAILED = "FAILED"
+    SEND_FAILED = "SEND_FAILED"
 
 class FollowupStatus(str, enum.Enum):
     PENDING = "PENDING"
@@ -46,9 +54,12 @@ class EventType(str, enum.Enum):
     LEAD_DISCOVERED = "LEAD_DISCOVERED"
     AUDIT_COMPLETED = "AUDIT_COMPLETED"
     LEAD_QUALIFIED = "LEAD_QUALIFIED"
+    CONTACT_VERIFIED = "CONTACT_VERIFIED"
+    CONTACT_UNAVAILABLE = "CONTACT_UNAVAILABLE"
     OUTREACH_GENERATED = "OUTREACH_GENERATED"
     OUTREACH_APPROVED = "OUTREACH_APPROVED"
     OUTREACH_SENT = "OUTREACH_SENT"
+    OUTREACH_FAILED = "OUTREACH_FAILED"
     FOLLOWUP_SCHEDULED = "FOLLOWUP_SCHEDULED"
     FOLLOWUP_EXECUTED = "FOLLOWUP_EXECUTED"
     FOLLOWUP_CANCELLED = "FOLLOWUP_CANCELLED"
@@ -97,8 +108,11 @@ class LocalLead(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     business_id: Mapped[int] = mapped_column(Integer, ForeignKey("local_businesses.id"), index=True)
     contact_name: Mapped[str] = mapped_column(String(200), default="Business Owner")
-    contact_email: Mapped[str] = mapped_column(String(255), index=True)
+    contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     contact_phone: Mapped[Optional[str]] = mapped_column(String(50), default=None)
+    contact_email_source: Mapped[Optional[str]] = mapped_column(String(100), default=None)
+    contact_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    contact_verification_reason: Mapped[Optional[str]] = mapped_column(String(255), default=None)
     
     status: Mapped[str] = mapped_column(String(50), default=LeadStatus.NEW.value, index=True)
     qualification: Mapped[str] = mapped_column(String(20), default=LeadQualification.WARM.value, index=True)
@@ -153,6 +167,10 @@ class LocalOutreachMessage(Base):
     body: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(50), default=MessageStatus.PENDING_APPROVAL.value, index=True)
     is_mocked: Mapped[bool] = mapped_column(Boolean, default=True)
+    provider: Mapped[Optional[str]] = mapped_column(String(50), default=None)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(100), default=None)
+    reply_to: Mapped[Optional[str]] = mapped_column(String(255), default=None)
+    evidence_used: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=None)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

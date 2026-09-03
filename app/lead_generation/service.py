@@ -17,6 +17,7 @@ from app.lead_generation.providers.base import BaseLeadDiscoveryProvider
 from app.lead_generation.providers.mock import MockLeadDiscoveryProvider
 from app.lead_generation.providers.prospect_provider import BaseProspectProvider, MockProspectProvider
 from app.lead_generation.buyer_scoring import HighValueBuyerScorer
+from app.outreach.contact_verifier import contactability_verifier
 from app.models.entities import LocalBusiness, LocalLead, LocalLeadEvent, EventType, LeadStatus
 
 logger = logging.getLogger(__name__)
@@ -290,17 +291,32 @@ class LeadDiscoveryService:
             db.add(biz)
             await db.flush()
 
-            # 6. Persist LocalLead with Commercial Valuation
-            lead_status = (
-                LeadStatus.QUALIFIED.value
-                if scored.classification == ProspectClassification.PRIORITY_PROSPECT
-                else LeadStatus.NEW.value
+            # 6. Verify Contactability (strictly reject guessed/fabricated emails)
+            contact_res = contactability_verifier.verify_contact_email(
+                email=biz.email,
+                business_domain=biz.domain,
+                source=candidate.source
             )
+
+            # Determine lifecycle stage:
+            is_priority = (scored.classification == ProspectClassification.PRIORITY_PROSPECT)
+            if is_priority:
+                lead_status = (
+                    LeadStatus.QUALIFIED.value
+                    if contact_res.is_valid
+                    else LeadStatus.CONTACT_UNAVAILABLE.value
+                )
+            else:
+                lead_status = LeadStatus.NEW.value
+
             lead = LocalLead(
                 business_id=biz.id,
                 contact_name=f"Managing Partner ({candidate.business_name})",
-                contact_email=biz.email or f"info@{clean_domain}",
+                contact_email=contact_res.email or "",
                 contact_phone=candidate.phone,
+                contact_email_source=contact_res.email_source,
+                contact_verified=contact_res.verified,
+                contact_verification_reason=contact_res.reason,
                 status=lead_status,
                 qualification=scored.classification.value,
                 lead_score=scored.buyer_score.score,

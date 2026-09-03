@@ -497,6 +497,30 @@ function closeModal() {
 
 async function loadQueue() {
     try {
+        // Fetch Real Database Outreach Metrics
+        try {
+            const mRes = await fetch('/api/outreach/delivery-metrics');
+            if (mRes.ok) {
+                const metrics = await mRes.json();
+                const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+                setVal('kpi-outreach-pending', metrics.outreach_pending_approval ?? 0);
+                setVal('kpi-outreach-approved', metrics.outreach_approved ?? 0);
+                setVal('kpi-outreach-sent', metrics.outreach_sent ?? 0);
+                setVal('kpi-outreach-failed', metrics.outreach_failed ?? 0);
+                setVal('kpi-outreach-replies', metrics.replies_in_human_review ?? 0);
+                setVal('kpi-outreach-takeover', metrics.human_takeovers_active ?? 0);
+
+                const badge = document.getElementById('provider-status-badge');
+                if (badge) {
+                    const dryRun = metrics.dry_run_enabled ? 'MOCK / DRY-RUN' : 'LIVE';
+                    badge.innerText = `PROVIDER: ${metrics.active_provider.toUpperCase()} (${dryRun})`;
+                    badge.className = metrics.dry_run_enabled ? 'badge badge-cyan' : 'badge badge-success';
+                }
+            }
+        } catch (mErr) {
+            console.warn('Could not load delivery metrics:', mErr);
+        }
+
         const res = await fetch('/api/queue');
         const queue = await res.json();
         const container = document.getElementById('queue-cards-container');

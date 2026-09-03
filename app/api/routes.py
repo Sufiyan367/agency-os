@@ -319,6 +319,11 @@ async def get_outreach_queue(db: AsyncSession = Depends(get_db)):
         })
     return items
 
+@router.get("/api/outreach/delivery-metrics")
+async def get_outreach_delivery_metrics(db: AsyncSession = Depends(get_db)):
+    from app.outreach.delivery_service import outreach_delivery_service
+    return await outreach_delivery_service.get_outreach_metrics(db)
+
 @router.post("/api/queue/{message_id}/approve")
 async def approve_outreach(message_id: int, auto_send: bool = True, db: AsyncSession = Depends(get_db)):
     appr = await outreach_approval_queue.approve_message(db, message_id)

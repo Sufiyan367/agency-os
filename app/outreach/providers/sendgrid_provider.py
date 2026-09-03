@@ -22,13 +22,15 @@ class SendGridEmailProvider(BaseEmailProvider):
         body: str,
         html_body: Optional[str] = None,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise ValueError("SENDGRID_API_KEY is not configured in .env")
 
-        sender_addr = from_email or settings.OUTREACH_FROM_EMAIL
+        sender_addr = from_email or settings.EMAIL_FROM
         sender_name = from_name or settings.OUTREACH_FROM_NAME
+        effective_reply_to = reply_to or settings.EMAIL_REPLY_TO
 
         content = [{"type": "text/plain", "value": body}]
         if html_body:
@@ -37,6 +39,7 @@ class SendGridEmailProvider(BaseEmailProvider):
         payload = {
             "personalizations": [{"to": [{"email": to_email}]}],
             "from": {"email": sender_addr, "name": sender_name},
+            "reply_to": {"email": effective_reply_to},
             "subject": subject,
             "content": content
         }

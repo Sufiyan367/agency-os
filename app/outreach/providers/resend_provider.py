@@ -22,20 +22,23 @@ class ResendEmailProvider(BaseEmailProvider):
         body: str,
         html_body: Optional[str] = None,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None
     ) -> Dict[str, Any]:
         if not self.api_key:
             raise ValueError("RESEND_API_KEY is not configured in .env")
 
-        sender_addr = from_email or settings.OUTREACH_FROM_EMAIL
+        sender_addr = from_email or settings.EMAIL_FROM
         sender_name = from_name or settings.OUTREACH_FROM_NAME
         from_header = f"{sender_name} <{sender_addr}>"
+        effective_reply_to = reply_to or settings.EMAIL_REPLY_TO
 
         payload = {
             "from": from_header,
             "to": [to_email],
             "subject": subject,
             "text": body,
+            "reply_to": effective_reply_to
         }
         if html_body:
             payload["html"] = html_body

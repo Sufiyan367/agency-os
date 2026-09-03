@@ -31,12 +31,13 @@ class SMTPEmailProvider(BaseEmailProvider):
         body: str,
         html_body: Optional[str] = None,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None
     ) -> Dict[str, Any]:
         if not self.host or not self.user:
             raise ValueError("SMTP_HOST and SMTP_USER must be configured in .env for SMTP delivery.")
 
-        sender_addr = from_email or settings.OUTREACH_FROM_EMAIL
+        sender_addr = from_email or settings.EMAIL_FROM
         sender_name = from_name or settings.OUTREACH_FROM_NAME
 
         if html_body:
@@ -49,6 +50,7 @@ class SMTPEmailProvider(BaseEmailProvider):
         msg["Subject"] = subject
         msg["From"] = f"{sender_name} <{sender_addr}>"
         msg["To"] = to_email
+        msg["Reply-To"] = reply_to or settings.EMAIL_REPLY_TO
 
         def _sync_send():
             with smtplib.SMTP(self.host, self.port, timeout=10) as server:

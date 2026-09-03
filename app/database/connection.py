@@ -69,3 +69,38 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE payments ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Safe migration for local_leads table
+        for col, col_type in [
+            ("contact_email_source", "VARCHAR(100)"),
+            ("contact_verified", "BOOLEAN DEFAULT 0"),
+            ("contact_verification_reason", "VARCHAR(255)")
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE local_leads ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
+
+        # Safe migration for local_outreach_messages table
+        for col, col_type in [
+            ("provider", "VARCHAR(50)"),
+            ("provider_message_id", "VARCHAR(100)"),
+            ("reply_to", "VARCHAR(255)"),
+            ("evidence_used", "JSON DEFAULT '{}'")
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE local_outreach_messages ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
+
+        # Safe migration for outreach_messages table
+        for col, col_type in [
+            ("provider", "VARCHAR(50)"),
+            ("provider_message_id", "VARCHAR(100)"),
+            ("reply_to", "VARCHAR(255)"),
+            ("evidence_used", "JSON DEFAULT '{}'")
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE outreach_messages ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass

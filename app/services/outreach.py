@@ -107,6 +107,12 @@ class OutreachService:
             raise ValueError(f"OutreachMessage {message_id} not found")
 
         lead = msg.lead
+        # Idempotency Guard: prevent duplicate sends
+        if msg.sent_at is not None or msg.status in (MessageStatus.SENT.value, MessageStatus.MOCKED_SENT.value):
+            raise ValueError(
+                f"OutreachMessage {message_id} has already been sent at {msg.sent_at}. Duplicate sending is prohibited."
+            )
+
         # Human Takeover Check: If enabled, prevent automated sending!
         if lead and lead.human_takeover:
             raise RuntimeError(
