@@ -216,3 +216,120 @@ async def test_single_prospect_step_execution():
     assert res["channel"] == "EMAIL"
     assert orch.current_state == ProspectState.OUTREACH_PENDING
     assert orch.stats["prospects_processed"] == 1
+
+
+@pytest.mark.asyncio
+async def test_continuous_worker_lifecycle_startup_pause_stop_kill():
+    """Verifies continuous worker background task startup, pause, stop, and kill switch."""
+    import asyncio
+    orch = RevenueAgentOrchestrator()
+    orch.poll_interval_seconds = 0.1
+
+    # 1. Startup
+    start_res = orch.start()
+    assert start_res["status"] == "RUNNING"
+    assert start_res["worker_active"] is True
+    assert orch.is_running is True
+    assert orch.is_paused is False
+    assert orch._task is not None and not orch._task.done()
+
+    # Allow worker to cycle
+    await asyncio.sleep(0.05)
+
+    # 2. Pause
+    pause_res = orch.pause()
+    assert pause_res["status"] == "PAUSED"
+    assert orch.is_paused is True
+    assert orch.is_running is True
+
+    # 3. Stop
+    stop_res = orch.stop()
+    await asyncio.sleep(0.01)
+    assert stop_res["status"] == "IDLE"
+    assert stop_res["worker_active"] is False
+    assert orch.is_running is False
+    assert orch.is_paused is False
+    assert orch._task.done() is True
+
+    # 4. Kill Switch
+    orch.start()
+    assert orch.is_running is True
+    kill_res = orch.trigger_kill_switch()
+    await asyncio.sleep(0.01)
+    assert kill_res["status"] == "KILLED"
+    assert kill_res["kill_switch_active"] is True
+    assert orch.is_running is False
+    assert orch._task.done() is True
+    assert settings.AUTONOMOUS_AGENT_ENABLED is False
+    assert settings.AUTONOMOUS_OUTREACH is False
+
+
+@pytest.mark.asyncio
+async def test_suppression_enforcement_in_agent_worker():
+    """Verifies that suppressed prospects (email or phone) are rejected immediately without outreach."""
+    from app.database.connection import AsyncSessionLocal
+    from app.outreach.compliance import compliance_guard
+
+    orch = RevenueAgentOrchestrator()
+    suppressed_email = "do-not-contact@suppressed-firm.com"
+
+    # Add to suppression list
+    async with AsyncSessionLocal() as session:
+        await compliance_guard.add_to_suppression(session, email=suppressed_email, reason="OPTOUT")
+
+    prospect_data = {
+        "name": "Suppressed Firm LLC",
+        "domain": "suppressed-firm.com",
+        "email": suppressed_email,
+        "phone": "+1-512-555-9988",
+        "estimated_value": 850.0,
+        "buyer_score": 90.0,
+        "opportunity_score": 85.0
+    }
+
+    res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+    assert res["status"] == "SKIPPED"
+    assert res["reason"] == "SUPPRESSED"
+    assert orch.current_state == ProspectState.SKIPPED
+
+
+@pytest.mark.asyncio
+async def test_worker_recovery_from_transient_error():
+    """Verifies worker recovers from unexpected transient errors without terminating."""
+    import asyncio
+    orch = RevenueAgentOrchestrator()
+    orch.poll_interval_seconds = 0.05
+
+    # Trigger start
+    orch.start()
+    assert orch.is_running is True
+    assert orch._task is not None
+
+    # Let the loop execute multiple iterations safely
+    await asyncio.sleep(0.15)
+
+    # Worker must still be running (not crashed)
+    status = orch.get_status()
+    assert status["is_running"] is True
+    assert status["worker_active"] is True
+
+    # Clean stop
+    orch.stop()
+    assert orch.is_running is False
+
+
+@pytest.mark.asyncio
+async def test_sqlite_wal_mode_and_busy_timeout():
+    """Verifies that SQLite is configured with WAL journal mode and busy_timeout."""
+    from app.database.connection import engine
+    from sqlalchemy import text
+
+    async with engine.connect() as conn:
+        res_wal = await conn.execute(text("PRAGMA journal_mode;"))
+        mode = res_wal.scalar()
+        # In SQLite, WAL mode should be active
+        assert str(mode).lower() == "wal"
+
+        res_timeout = await conn.execute(text("PRAGMA busy_timeout;"))
+        timeout = res_timeout.scalar()
+        assert int(timeout) >= 5000

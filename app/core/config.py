@@ -16,8 +16,14 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///agency.db")
-    SYNC_DATABASE_URL: str = os.getenv("SYNC_DATABASE_URL", "sqlite:///agency.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite+aiosqlite:////app/data/agency.db" if os.path.exists("/app/data") else "sqlite+aiosqlite:///agency.db"
+    )
+    SYNC_DATABASE_URL: str = os.getenv(
+        "SYNC_DATABASE_URL",
+        "sqlite:////app/data/agency.db" if os.path.exists("/app/data") else "sqlite:///agency.db"
+    )
 
     # Production Cloud & Security Settings
     AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() in ("true", "1", "yes")

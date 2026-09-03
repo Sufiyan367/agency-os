@@ -37,9 +37,9 @@ class ComplianceGuard:
         if not clauses:
             return False
 
-        q = select(SuppressionList).where(or_(*clauses))
+        q = select(SuppressionList.id).where(or_(*clauses)).limit(1)
         result = await session.execute(q)
-        return result.scalar_one_or_none() is not None
+        return result.first() is not None
 
     async def add_to_suppression(
         self,

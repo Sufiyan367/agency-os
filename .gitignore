@@ -29,6 +29,8 @@ ENV/
 *.sqlite
 *.sqlite3
 agency.db
+*.db-shm
+*.db-wal
 *.pre_restore
 backups/
 

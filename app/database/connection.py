@@ -6,12 +6,23 @@ from app.core.config import settings
 class Base(DeclarativeBase):
     pass
 
+from sqlalchemy import event, text
+
 # Async engine for async queries (FastAPI, background tasks)
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     future=True
 )
+
+@event.listens_for(engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if "sqlite" in settings.DATABASE_URL:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -33,13 +44,15 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 async def init_db():
-    """Initializes the database schema and creates all tables."""
+    """Initializes the database schema, enables WAL mode, and creates all tables."""
     import app.database.models  # noqa
     import app.models.entities  # noqa
     async with engine.begin() as conn:
+        if "sqlite" in settings.DATABASE_URL:
+            await conn.execute(text("PRAGMA journal_mode=WAL;"))
+            await conn.execute(text("PRAGMA busy_timeout=5000;"))
         await conn.run_sync(Base.metadata.create_all)
         # Safe migration for new discovery columns if tables already existed
-        from sqlalchemy import text
         for col, col_type in [
             ("address", "TEXT"),
             ("rating", "REAL"),

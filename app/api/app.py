@@ -29,8 +29,13 @@ async def lifespan(app: FastAPI):
     if settings.WORKER_ENABLED:
         await agency_worker.start()
 
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    if getattr(settings, "AUTONOMOUS_AGENT_ENABLED", False):
+        revenue_agent_orchestrator.start()
+
     yield
 
+    revenue_agent_orchestrator.stop()
     if settings.WORKER_ENABLED:
         await agency_worker.stop()
     logger.info("Application shutdown.")
