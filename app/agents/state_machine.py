@@ -26,6 +26,7 @@ class ProspectState(str, Enum):
     WON = "WON"
     LOST = "LOST"
     SKIPPED = "SKIPPED"
+    REJECTED = "REJECTED"
     HUMAN_TAKEOVER = "HUMAN_TAKEOVER"
 
 
@@ -45,13 +46,13 @@ class AgentStateMachine:
     """Manages explicit state progression for a single prospect."""
 
     VALID_TRANSITIONS: Dict[ProspectState, List[ProspectState]] = {
-        ProspectState.DISCOVER: [ProspectState.AUDIT, ProspectState.SKIPPED],
-        ProspectState.AUDIT: [ProspectState.SCORE, ProspectState.SKIPPED],
-        ProspectState.SCORE: [ProspectState.CONTACT_DISCOVERY, ProspectState.SKIPPED],
-        ProspectState.CONTACT_DISCOVERY: [ProspectState.OUTREACH_PREP, ProspectState.SKIPPED],
-        ProspectState.OUTREACH_PREP: [ProspectState.OUTREACH_PENDING, ProspectState.CONTACTED, ProspectState.SKIPPED],
-        ProspectState.OUTREACH_PENDING: [ProspectState.CONTACTED, ProspectState.SKIPPED, ProspectState.HUMAN_TAKEOVER],
-        ProspectState.CONTACTED: [ProspectState.WAITING_RESPONSE, ProspectState.SKIPPED],
+        ProspectState.DISCOVER: [ProspectState.AUDIT, ProspectState.SKIPPED, ProspectState.REJECTED],
+        ProspectState.AUDIT: [ProspectState.SCORE, ProspectState.SKIPPED, ProspectState.REJECTED],
+        ProspectState.SCORE: [ProspectState.CONTACT_DISCOVERY, ProspectState.SKIPPED, ProspectState.REJECTED],
+        ProspectState.CONTACT_DISCOVERY: [ProspectState.OUTREACH_PREP, ProspectState.SKIPPED, ProspectState.REJECTED],
+        ProspectState.OUTREACH_PREP: [ProspectState.OUTREACH_PENDING, ProspectState.CONTACTED, ProspectState.SKIPPED, ProspectState.REJECTED],
+        ProspectState.OUTREACH_PENDING: [ProspectState.CONTACTED, ProspectState.SKIPPED, ProspectState.REJECTED, ProspectState.HUMAN_TAKEOVER],
+        ProspectState.CONTACTED: [ProspectState.WAITING_RESPONSE, ProspectState.SKIPPED, ProspectState.REJECTED],
         ProspectState.WAITING_RESPONSE: [ProspectState.RESPONSE_RECEIVED, ProspectState.LOST, ProspectState.HUMAN_TAKEOVER],
         ProspectState.RESPONSE_RECEIVED: [ProspectState.CONVERSATION, ProspectState.HUMAN_TAKEOVER, ProspectState.LOST],
         ProspectState.CONVERSATION: [ProspectState.QUALIFIED, ProspectState.HUMAN_TAKEOVER, ProspectState.LOST],
@@ -62,6 +63,7 @@ class AgentStateMachine:
         ProspectState.WON: [],
         ProspectState.LOST: [],
         ProspectState.SKIPPED: [],
+        ProspectState.REJECTED: [],
         ProspectState.HUMAN_TAKEOVER: [ProspectState.CONVERSATION, ProspectState.QUALIFIED, ProspectState.WON, ProspectState.LOST]
     }
 

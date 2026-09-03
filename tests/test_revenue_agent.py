@@ -604,3 +604,144 @@ async def test_continuous_worker_fetches_and_processes_from_db_without_crash():
     assert orch.is_running is False
 
 
+@pytest.mark.asyncio
+async def test_persist_stage_rejected_disqualified_regression():
+    """
+    Regression Test: Reproduces and verifies the fix for:
+    [RevenueAgent] Could not persist pipeline stage REJECTED: DISQUALIFIED
+    Verifies that calling _persist_stage(candidate_data, PipelineStage.REJECTED.value)
+    completes cleanly without raising AttributeError, persists 'REJECTED' to Business,
+    and persists 'DISQUALIFIED' to LocalLead.
+    """
+    import uuid
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import Business, PipelineStage
+    from app.models.entities import LocalBusiness, LocalLead, LeadStatus
+    from sqlalchemy import select
+
+    orch = RevenueAgentOrchestrator()
+    uid = uuid.uuid4().hex[:8]
+    dom = f"reject-test-{uid}.com"
+
+    async with AsyncSessionLocal() as session:
+        # 1. Create Business and LocalBusiness with LocalLead
+        biz = Business(
+            name=f"Reject Test {uid}",
+            domain=dom,
+            website_url=f"https://{dom}",
+            country="US",
+            city="Austin",
+            niche="roofing",
+            public_email=f"info@{dom}",
+            pipeline_stage=PipelineStage.DISCOVERED.value
+        )
+        session.add(biz)
+        await session.flush()
+
+        local_biz = LocalBusiness(
+            name=f"Reject Local {uid}",
+            domain=dom,
+            website_url=f"https://{dom}",
+            niche="roofing",
+            city="Austin",
+            country="US",
+            email=f"info@{dom}"
+        )
+        session.add(local_biz)
+        await session.flush()
+
+        lead = LocalLead(
+            business_id=local_biz.id,
+            contact_name="Owner",
+            contact_email=f"info@{dom}",
+            status=LeadStatus.NEW.value
+        )
+        session.add(lead)
+        await session.commit()
+
+        biz_id = biz.id
+        local_biz_id = local_biz.id
+
+        # 2. Call _persist_stage with PipelineStage.REJECTED.value
+        cand_data = {"id": biz_id, "domain": dom}
+        try:
+            await orch._persist_stage(cand_data, PipelineStage.REJECTED.value)
+        except Exception as e:
+            pytest.fail(f"Regression! _persist_stage raised error: {e}")
+
+    # 3. Verify in database with a clean verification session
+    async with AsyncSessionLocal() as verify_session:
+        res_biz = await verify_session.execute(select(Business).where(Business.id == biz_id))
+        fresh_biz = res_biz.scalar_one()
+        assert fresh_biz.pipeline_stage == PipelineStage.REJECTED.value
+        assert fresh_biz.verification_status == "REJECTED"
+
+        res_lead = await verify_session.execute(select(LocalLead).where(LocalLead.business_id == local_biz_id))
+        fresh_lead = res_lead.scalar_one()
+        assert fresh_lead.status == LeadStatus.DISQUALIFIED.value
+
+
+@pytest.mark.asyncio
+async def test_permanently_disqualified_prospect_not_selected_again_by_continuous_worker():
+    """
+    Verifies that a disqualified/rejected prospect is never selected again
+    by get_next_uncontacted_prospect(), preventing endless retry loops.
+    """
+    import uuid
+    from app.agents.prospect_agent import SingleProspectAgent
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import Business, PipelineStage
+    from app.models.entities import LocalBusiness, LocalLead, LeadStatus
+    from sqlalchemy import select
+
+    orch = RevenueAgentOrchestrator()
+    worker = SingleProspectAgent(provider_type="mock")
+    uid = uuid.uuid4().hex[:8]
+    dom = f"disqualified-{uid}.com"
+
+    async with AsyncSessionLocal() as session:
+        # 1. Insert an uncontacted business
+        biz = Business(
+            name=f"Disqualified Biz {uid}",
+            domain=dom,
+            website_url=f"https://{dom}",
+            country="US",
+            city="Austin",
+            niche="plumbing",
+            public_email=f"contact@{dom}",
+            pipeline_stage=PipelineStage.DISCOVERED.value
+        )
+        session.add(biz)
+        await session.commit()
+        biz_id = biz.id
+
+        # 2. Worker finds it when uncontacted
+        cand_found = await worker.get_next_uncontacted_prospect(session)
+        assert cand_found is not None
+
+        # 3. Step prospect with value below $500 (triggers rejection/disqualification)
+        cand_data = {
+            "id": biz_id,
+            "name": "Disqualified Biz",
+            "domain": dom,
+            "email": f"contact@{dom}",
+            "estimated_value": 350.0,  # Below $500 floor
+            "buyer_score": 40.0,
+            "opportunity_score": 45.0
+        }
+        res_step = await orch.step_single_prospect(cand_data, commercial_floor=500.0)
+        assert res_step["status"] == "SKIPPED"
+
+    # 4. Verify stage was persisted to REJECTED in a clean session
+    async with AsyncSessionLocal() as verify_session:
+        res_check = await verify_session.execute(select(Business).where(Business.id == biz_id))
+        fresh_biz = res_check.scalar_one()
+        assert fresh_biz.pipeline_stage == PipelineStage.REJECTED.value
+
+        # 5. Worker MUST NOT return this rejected prospect again
+        next_cand = await worker.get_next_uncontacted_prospect(verify_session)
+        if next_cand:
+            assert next_cand.domain != dom
+
+
+

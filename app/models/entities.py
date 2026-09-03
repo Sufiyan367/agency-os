@@ -31,6 +31,8 @@ class LeadStatus(str, enum.Enum):
     HUMAN_TAKEOVER = "HUMAN_TAKEOVER"
     OPT_OUT = "OPT_OUT"
     LOST = "LOST"
+    DISQUALIFIED = "DISQUALIFIED"
+    REJECTED = "REJECTED"
 
 class MessageStatus(str, enum.Enum):
     DRAFTED = "DRAFTED"

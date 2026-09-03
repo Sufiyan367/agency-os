@@ -245,7 +245,7 @@ class RevenueAgentOrchestrator:
         if dec_score.target_state == ProspectState.SKIPPED:
             self.current_state = ProspectState.SKIPPED
             self.stats["prospects_skipped"] += 1
-            await self._persist_stage(candidate_data, "REJECTED")
+            await self._persist_stage(candidate_data, PipelineStage.REJECTED.value)
             return {"status": "SKIPPED", "reason": dec_score.reason}
 
         # 4. State: CONTACT_DISCOVERY -> Route channel
@@ -260,7 +260,7 @@ class RevenueAgentOrchestrator:
             self.current_state = ProspectState.SKIPPED
             self._record_transition(b_name, ProspectState.CONTACT_DISCOVERY, ProspectState.SKIPPED, route.reason, 0.99)
             self.stats["prospects_skipped"] += 1
-            await self._persist_stage(candidate_data, "REJECTED")
+            await self._persist_stage(candidate_data, PipelineStage.REJECTED.value)
             return {"status": "SKIPPED", "reason": route.reason}
 
         # 5. TCPA Calling-Hours Check if routed to Voice
@@ -277,7 +277,7 @@ class RevenueAgentOrchestrator:
                 else:
                     self.current_state = ProspectState.OUTREACH_PENDING
                     self._record_transition(b_name, ProspectState.CONTACT_DISCOVERY, ProspectState.OUTREACH_PENDING, f"Calling window closed ({ch_res.reason}). Held until window opens.", 1.0)
-                    await self._persist_stage(candidate_data, "APPROVAL")
+                    await self._persist_stage(candidate_data, PipelineStage.APPROVAL.value)
                     return {"status": "HELD_CALLING_HOURS", "reason": ch_res.reason}
 
         # 6. State: OUTREACH_PREP -> Enforce Daily Limits & Safety Gates
@@ -289,7 +289,7 @@ class RevenueAgentOrchestrator:
             if not can_send:
                 self.current_state = ProspectState.OUTREACH_PENDING
                 self._record_transition(b_name, ProspectState.OUTREACH_PREP, ProspectState.OUTREACH_PENDING, "Daily outreach limit reached (MAX_OUTREACH_PER_DAY). Held.", 1.0)
-                await self._persist_stage(candidate_data, "APPROVAL")
+                await self._persist_stage(candidate_data, PipelineStage.APPROVAL.value)
                 return {"status": "LIMIT_REACHED", "reason": "DAILY_LIMIT_EXCEEDED"}
 
         # Safety Gate Check: Emergency Kill Switch & Human Takeover
@@ -302,7 +302,7 @@ class RevenueAgentOrchestrator:
                 "Emergency Kill Switch Active: Autonomous outreach halted.",
                 1.0
             )
-            await self._persist_stage(candidate_data, "APPROVAL")
+            await self._persist_stage(candidate_data, PipelineStage.APPROVAL.value)
             return {"status": "KILLED", "channel": route.channel.value, "prospect": b_name}
 
         if candidate_data.get("human_takeover", False):
@@ -314,7 +314,7 @@ class RevenueAgentOrchestrator:
                 "Human Takeover Active: Operator intervention requested.",
                 1.0
             )
-            await self._persist_stage(candidate_data, "APPROVAL")
+            await self._persist_stage(candidate_data, PipelineStage.APPROVAL.value)
             return {"status": "HUMAN_TAKEOVER", "channel": route.channel.value, "prospect": b_name}
 
         # Eligible prospects ($500+) proceed autonomously to outreach without human approval queue!
@@ -344,17 +344,17 @@ class RevenueAgentOrchestrator:
         if not success:
             logger.warning(f"[RevenueAgent] Transient failure for {b_name}, held for retry: {res}")
             self.current_state = ProspectState.OUTREACH_PENDING
-            await self._persist_stage(candidate_data, "APPROVAL")
+            await self._persist_stage(candidate_data, PipelineStage.APPROVAL.value)
             return {"status": "OUTREACH_FAILED_HELD", "error": str(res)}
 
         self.current_state = ProspectState.CONTACTED
         self._record_transition(b_name, ProspectState.OUTREACH_PREP, ProspectState.CONTACTED, f"Contact attempt placed via {route.channel.value} (DRY RUN).", 0.95)
-        await self._persist_stage(candidate_data, "CONTACTED")
+        await self._persist_stage(candidate_data, PipelineStage.CONTACTED.value)
         self.stats["contacts_attempted"] += 1
         self.stats["prospects_processed"] += 1
 
         self.current_state = ProspectState.WAITING_RESPONSE
-        await self._persist_stage(candidate_data, "REPLIED")
+        await self._persist_stage(candidate_data, PipelineStage.REPLIED.value)
         return {"status": "CONTACTED", "channel": route.channel.value, "next": "WAITING_RESPONSE"}
 
     async def _persist_stage(self, candidate_data: Dict[str, Any], stage_name: str):
@@ -365,29 +365,39 @@ class RevenueAgentOrchestrator:
             return
         try:
             async with AsyncSessionLocal() as session:
+                # 1. Update canonical Business table
+                biz = None
                 if biz_id:
-                    q = select(Business).where(Business.id == biz_id)
-                else:
-                    q = select(Business).where(Business.domain == domain)
-                res = await session.execute(q)
-                biz = res.scalar_one_or_none()
+                    biz = await session.get(Business, biz_id)
+                if not biz and domain:
+                    res = await session.execute(select(Business).where(Business.domain == domain))
+                    biz = res.scalar_one_or_none()
                 if biz:
                     biz.pipeline_stage = stage_name
+                    if stage_name == PipelineStage.REJECTED.value:
+                        biz.verification_status = "REJECTED"
 
-                # Also update LocalBusiness/LocalLead if domain exists in local_businesses
+                # 2. Update LocalBusiness / LocalLead if present
                 from app.models.entities import LocalBusiness, LocalLead, LeadStatus
-                q_lead = select(LocalLead).join(LocalBusiness).where(LocalBusiness.domain == domain)
-                res_lead = await session.execute(q_lead)
-                lead = res_lead.scalar_one_or_none()
+                lead = None
+                if domain:
+                    q_lead = select(LocalLead).join(LocalBusiness).where(LocalBusiness.domain == domain)
+                    res_lead = await session.execute(q_lead)
+                    lead = res_lead.scalar_one_or_none()
+                if not lead and biz_id:
+                    q_lead = select(LocalLead).where(LocalLead.business_id == biz_id)
+                    res_lead = await session.execute(q_lead)
+                    lead = res_lead.scalar_one_or_none()
                 if lead:
-                    if stage_name == "CONTACTED":
+                    if stage_name == PipelineStage.CONTACTED.value:
                         lead.status = LeadStatus.CONTACTED.value
-                    elif stage_name == "REJECTED":
+                    elif stage_name == PipelineStage.REJECTED.value:
                         lead.status = LeadStatus.DISQUALIFIED.value
 
                 await session.commit()
         except Exception as e:
             logger.warning(f"[RevenueAgent] Could not persist pipeline stage {stage_name}: {e}")
+            raise
 
     def _record_transition(self, business: str, prev: ProspectState, next_state: ProspectState, reason: str, conf: float):
         rec = StateTransitionRecord(

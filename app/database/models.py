@@ -28,6 +28,7 @@ class PipelineStage(str, enum.Enum):
     BALANCE_PAID = "BALANCE_PAID"
     WON = "WON"
     LOST = "LOST"
+    REJECTED = "REJECTED"
 
 class LeadPriority(str, enum.Enum):
     A = "A"        # 90-100
