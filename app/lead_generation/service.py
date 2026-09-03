@@ -97,7 +97,7 @@ class ProspectQualityFilter:
 class LeadDiscoveryService:
     """
     Coordinates local business discovery, multi-vector deduplication,
-    junk/directory rejection, high-value buyer scoring, $1,000+ commercial qualification,
+    junk/directory rejection, high-value buyer scoring, $500+ commercial qualification,
     and database persistence.
     """
 
@@ -210,7 +210,7 @@ class LeadDiscoveryService:
         high_buyer_count = 0
         high_opp_count = 0
         priority_count = 0
-        thousand_plus_count = 0
+        five_hundred_plus_count = 0
         total_buyer_score = 0.0
         total_opp_score = 0.0
         rejection_reasons: Dict[str, int] = {}
@@ -236,7 +236,7 @@ class LeadDiscoveryService:
                     "prospects_discovered": total_discovered,
                     "duplicates_rejected": duplicates_removed,
                     "junk_rejected": invalid_rejected,
-                    "prospects_passing_500": thousand_plus_count,
+                    "prospects_passing_500": five_hundred_plus_count,
                     "prospects_saved": len(valid_prospects),
                     "message": f"Rejected non-commercial / aggregator: {norm_dom or candidate.business_name}"
                 })
@@ -263,7 +263,7 @@ class LeadDiscoveryService:
                     "prospects_discovered": total_discovered,
                     "duplicates_rejected": duplicates_removed,
                     "junk_rejected": invalid_rejected,
-                    "prospects_passing_500": thousand_plus_count,
+                    "prospects_passing_500": five_hundred_plus_count,
                     "prospects_saved": len(valid_prospects),
                     "message": f"Rejected duplicate: {candidate.business_name}"
                 })
@@ -288,7 +288,7 @@ class LeadDiscoveryService:
                 rejection_reasons[RejectionReason.LOW_REVIEW_COUNT.value] = rejection_reasons.get(RejectionReason.LOW_REVIEW_COUNT.value, 0) + 1
                 continue
 
-            # 4. Evaluate High-Value Buyer, Opportunity Scores & $1,000+ Valuation
+            # 4. Evaluate High-Value Buyer, Opportunity Scores & $500+ Commercial Valuation
             scored: ScoredProspect = scorer.evaluate_prospect(candidate)
 
             if scored.classification == ProspectClassification.DISCARD:
@@ -302,7 +302,9 @@ class LeadDiscoveryService:
             if scored.opportunity_score >= targeting.commercial.opportunity_score_threshold:
                 high_opp_count += 1
             if scored.estimated_service_value.min_value >= targeting.commercial.minimum_target_service_value_usd:
-                thousand_plus_count += 1
+                five_hundred_plus_count += 1
+            else:
+                rejection_reasons[RejectionReason.BELOW_COMMERCIAL_THRESHOLD.value] = rejection_reasons.get(RejectionReason.BELOW_COMMERCIAL_THRESHOLD.value, 0) + 1
             if scored.classification == ProspectClassification.PRIORITY_PROSPECT:
                 priority_count += 1
 
@@ -472,7 +474,7 @@ class LeadDiscoveryService:
                 "prospects_discovered": total_discovered,
                 "duplicates_rejected": duplicates_removed,
                 "junk_rejected": invalid_rejected,
-                "prospects_passing_500": thousand_plus_count,
+                "prospects_passing_500": five_hundred_plus_count,
                 "prospects_saved": len(valid_prospects),
                 "message": f"Qualified & saved: {candidate.business_name} (${scored.estimated_service_value.min_value:,}+ est.)"
             })
@@ -496,8 +498,8 @@ class LeadDiscoveryService:
             high_value_buyer_candidates=high_buyer_count,
             high_opportunity_candidates=high_opp_count,
             priority_prospects=priority_count,
-            five_hundred_plus_prospects=thousand_plus_count,
-            thousand_plus_prospects=thousand_plus_count,
+            five_hundred_plus_prospects=five_hundred_plus_count,
+            thousand_plus_prospects=five_hundred_plus_count,
             discarded_prospects=discarded_count,
             average_buyer_score=avg_buyer,
             average_opportunity_score=avg_opp,

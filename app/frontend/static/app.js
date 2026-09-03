@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPipeline();
     loadPayments();
     loadRuns();
+    loadAgentStatus();
 
     // Backdrop click closes lead modal
     const modal = document.getElementById('lead-modal');
@@ -1478,4 +1479,112 @@ async function handleProductionReset() {
         alert("Error resetting production environment: " + e);
     }
 }
+
+// ==============================================================================
+// Autonomous Revenue Agent Controller (Dashboard Canonical Surface)
+// ==============================================================================
+let agentPollInterval = null;
+
+async function handleAgentAction(action) {
+    try {
+        let endpoint = `/api/agent/${action}`;
+        let options = { method: 'POST' };
+
+        if (action === 'step') {
+            options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: "Salis Roofing",
+                    domain: "salisroofing.com",
+                    email: "contact@salisroofing.com",
+                    phone: "+1-469-677-0239",
+                    estimated_value: 750.0,
+                    buyer_score: 84.0,
+                    opportunity_score: 78.0
+                })
+            };
+        }
+
+        const res = await fetch(endpoint, options);
+        const data = await res.json();
+
+        if (action === 'kill') {
+            alert("🛑 EMERGENCY KILL SWITCH ACTIVATED\nAutonomous agent halted. All outbound dispatches locked.");
+        }
+
+        await loadAgentStatus();
+        if (action === 'start' || action === 'step') {
+            if (typeof loadDashboardData === 'function') loadDashboardData();
+            if (typeof loadLeads === 'function') loadLeads();
+        }
+    } catch (e) {
+        console.error(`Error executing agent action ${action}:`, e);
+    }
+}
+
+async function loadAgentStatus() {
+    try {
+        const res = await fetch('/api/agent/status');
+        const data = await res.json();
+
+        const statusBadge = document.getElementById('agent-status-badge');
+        const killBadge = document.getElementById('agent-kill-badge');
+        const currProspect = document.getElementById('agent-curr-prospect');
+        const currState = document.getElementById('agent-curr-state');
+        const decisionConf = document.getElementById('agent-decision-conf');
+        const decisionNext = document.getElementById('agent-decision-next');
+        const decisionReason = document.getElementById('agent-decision-reason');
+
+        if (statusBadge) {
+            statusBadge.textContent = data.status || 'IDLE';
+            statusBadge.className = 'badge';
+            if (data.status === 'RUNNING') statusBadge.classList.add('badge-cyan');
+            else if (data.status === 'PAUSED') statusBadge.classList.add('badge-amber');
+            else if (data.status === 'KILLED') statusBadge.classList.add('badge-crimson');
+            else statusBadge.classList.add('badge-cyan');
+        }
+
+        if (killBadge) {
+            killBadge.textContent = data.kill_switch_active ? 'KILL SWITCH ACTIVE' : 'OUTREACH ACTIVE';
+            killBadge.className = data.kill_switch_active ? 'badge badge-amber' : 'badge badge-emerald';
+        }
+
+        if (currProspect) {
+            currProspect.textContent = data.current_prospect ? data.current_prospect.name : 'None (Standby)';
+        }
+        if (currState) {
+            currState.textContent = data.current_state || 'DISCOVER';
+        }
+
+        if (data.decision) {
+            if (decisionConf) decisionConf.textContent = `${Math.round(data.decision.confidence * 100)}%`;
+            if (decisionNext) decisionNext.textContent = data.decision.next_action;
+            if (decisionReason) decisionReason.textContent = data.decision.reason;
+        }
+
+        // Update stats
+        const s = data.stats || {};
+        const elProc = document.getElementById('stat-agent-processed');
+        const elSkip = document.getElementById('stat-agent-skipped');
+        const elAtt = document.getElementById('stat-agent-attempted');
+        const elRep = document.getElementById('stat-agent-replies');
+        const elQual = document.getElementById('stat-agent-qualified');
+        const elMeet = document.getElementById('stat-agent-meetings');
+        const elWon = document.getElementById('stat-agent-won');
+        const elRev = document.getElementById('stat-agent-revenue');
+
+        if (elProc) elProc.textContent = s.prospects_processed || 0;
+        if (elSkip) elSkip.textContent = s.prospects_skipped || 0;
+        if (elAtt) elAtt.textContent = s.contacts_attempted || 0;
+        if (elRep) elRep.textContent = s.replies_received || 0;
+        if (elQual) elQual.textContent = s.qualified_conversations || 0;
+        if (elMeet) elMeet.textContent = s.meetings_ready || 0;
+        if (elWon) elWon.textContent = s.won_deals || 0;
+        if (elRev) elRev.textContent = `$${(s.pipeline_revenue_usd || 0).toLocaleString()}`;
+    } catch (e) {
+        console.debug('Error loading agent status:', e);
+    }
+}
+
 

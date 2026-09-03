@@ -140,7 +140,7 @@ def test_invalid_prospect_rejection_social_and_parked():
 # ------------------------------------------------------------------------------
 # 5. $500+ Minimum Commercial Filter
 # ------------------------------------------------------------------------------
-def test_thousand_dollar_minimum_filter_enforcement():
+def test_five_hundred_dollar_minimum_filter_enforcement():
     commercial_cfg = CommercialConfig(
         minimum_target_service_value_usd=500,
         high_value_buyer_threshold=75.0,
@@ -197,6 +197,9 @@ def test_thousand_dollar_minimum_filter_enforcement():
     assert scored_comm.classification == ProspectClassification.PRIORITY_PROSPECT
     assert scored_comm.pipeline_stage in (RealPipelineStage.HIGH_VALUE, RealPipelineStage.CONTACTABLE)
     assert "technical/automation engagement" in scored_comm.estimated_service_value.reasoning
+
+# Alias for backward compatibility
+test_thousand_dollar_minimum_filter_enforcement = test_five_hundred_dollar_minimum_filter_enforcement
 
 # ------------------------------------------------------------------------------
 # 6. Buyer-Score & Opportunity-Score Thresholds

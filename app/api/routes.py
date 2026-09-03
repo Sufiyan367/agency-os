@@ -441,6 +441,53 @@ async def get_prospecting_status(job_id: Optional[str] = None):
     from app.lead_generation.job_runner import prospecting_job_manager
     return prospecting_job_manager.get_current_status(job_id=job_id)
 
+# --- Autonomous Revenue Agent Endpoints ---
+
+class AgentStepRequest(BaseModel):
+    name: str = "Apex Mechanical"
+    domain: Optional[str] = "apexmechanical.com"
+    email: Optional[str] = "service@apexmechanical.com"
+    phone: Optional[str] = "+1-512-555-0188"
+    estimated_value: float = 750.0
+    buyer_score: float = 84.0
+    opportunity_score: float = 78.0
+
+@router.get("/api/agent/status")
+async def get_agent_status():
+    """Returns live status of the autonomous revenue agent."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return revenue_agent_orchestrator.get_status()
+
+@router.post("/api/agent/start")
+async def start_agent():
+    """Starts the autonomous revenue agent."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return revenue_agent_orchestrator.start()
+
+@router.post("/api/agent/pause")
+async def pause_agent():
+    """Pauses the autonomous revenue agent."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return revenue_agent_orchestrator.pause()
+
+@router.post("/api/agent/stop")
+async def stop_agent():
+    """Stops the autonomous revenue agent."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return revenue_agent_orchestrator.stop()
+
+@router.post("/api/agent/kill")
+async def kill_agent():
+    """Global emergency kill switch: immediately shuts down autonomous agent activities."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return revenue_agent_orchestrator.trigger_kill_switch()
+
+@router.post("/api/agent/step")
+async def step_agent(req: AgentStepRequest):
+    """Executes a single-prospect pass through the autonomous revenue loop."""
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+    return await revenue_agent_orchestrator.step_single_prospect(req.model_dump())
+
 # System Runs
 @router.get("/api/runs")
 async def get_system_runs(db: AsyncSession = Depends(get_db)):

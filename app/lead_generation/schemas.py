@@ -100,6 +100,15 @@ class ScoredProspect(BaseModel):
     has_contact_path: bool = Field(default=True)
     classification_rationale: str = Field(...)
 
+    @property
+    def is_commercially_eligible(self) -> bool:
+        """
+        Global Commercial Floor: Only prospects with estimated_service_value.min_value >= 500
+        are eligible for the commercial pipeline.
+        """
+        return self.estimated_service_value.min_value >= 500
+
+
 class DiscoveryStats(BaseModel):
     markets_searched: int = Field(default=0)
     businesses_discovered: int = Field(default=0)

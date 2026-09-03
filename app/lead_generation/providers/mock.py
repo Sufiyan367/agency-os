@@ -6,7 +6,7 @@ from app.lead_generation.schemas import NormalizedBusinessRecord
 class MockLeadDiscoveryProvider(BaseLeadDiscoveryProvider):
     """
     High-fidelity Mock Lead Discovery Provider enriched with observable signals
-    for evaluating commercial purchasing capacity ($1,000+ services) and digital opportunity.
+    for evaluating commercial purchasing capacity ($500+ services) and digital opportunity.
     """
 
     @property

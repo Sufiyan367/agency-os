@@ -273,6 +273,108 @@
                 </div>
             </div>
 
+            <!-- Autonomous Revenue Agent Control Surface -->
+            <div class="panel-card" style="margin-bottom: 24px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                <div class="panel-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+                    <div class="panel-title-wrap">
+                        <span style="font-size: 1.25rem;">🤖</span>
+                        <div>
+                            <h2 class="panel-title" style="margin-bottom: 2px;">Autonomous Revenue Agent</h2>
+                            <span class="panel-tag">One-Prospect-at-a-Time Autonomous Loop</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="badge badge-cyan" id="agent-status-badge">IDLE</span>
+                        <span id="agent-kill-badge" class="badge badge-amber">KILL SWITCH ARMED</span>
+                    </div>
+                </div>
+
+                <!-- Agent Control Actions -->
+                <div style="display:flex; flex-wrap:wrap; gap:10px; margin: 16px 0; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <button type="button" class="btn btn-primary" id="btn-agent-start" onclick="handleAgentAction('start')" style="height:36px; display:inline-flex; align-items:center; gap:6px;">
+                            <span>▶</span> <span>START AGENT</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btn-agent-pause" onclick="handleAgentAction('pause')" style="height:36px; display:inline-flex; align-items:center; gap:6px;">
+                            <span>⏸</span> <span>PAUSE AGENT</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btn-agent-stop" onclick="handleAgentAction('stop')" style="height:36px; display:inline-flex; align-items:center; gap:6px;">
+                            <span>⏹</span> <span>STOP AGENT</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btn-agent-step" onclick="handleAgentAction('step')" style="height:36px; display:inline-flex; align-items:center; gap:6px; border-color: rgba(56, 189, 248, 0.4);">
+                            <span>⚡</span> <span>STEP 1 PROSPECT</span>
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-danger" id="btn-agent-kill" onclick="handleAgentAction('kill')" style="height:36px; background:#e11d48; color:#fff; border:none; display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                            <span>🛑</span> <span>EMERGENCY KILL SWITCH</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Decision & Prospect Monitor -->
+                <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px; margin-bottom: 16px;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                        <div>
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block;">Current Prospect</span>
+                            <strong id="agent-curr-prospect" style="font-size:0.95rem; color:var(--text-white);">None (Standby)</strong>
+                        </div>
+                        <div>
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block;">Current State</span>
+                            <span id="agent-curr-state" class="badge badge-stage" style="margin-top:2px;">DISCOVER</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block;">Confidence</span>
+                            <span id="agent-decision-conf" style="font-size:0.95rem; font-weight:700; color:var(--hud-cyan-bright);">100%</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block;">Next Action</span>
+                            <span id="agent-decision-next" style="font-size:0.85rem; color:var(--text-secondary);">Awaiting cycle trigger.</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.78rem; display:flex; gap:8px;">
+                        <span style="color:var(--hud-cyan-bright); font-weight:700;">DECISION REASON:</span>
+                        <span id="agent-decision-reason" style="color:var(--text-secondary); font-family:var(--font-mono);">Agent initialized in safety dry-run mode. Ready for single-prospect step.</span>
+                    </div>
+                </div>
+
+                <!-- 8 Agent Lifecycle Metrics -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Processed</span>
+                        <div class="kpi-value" id="stat-agent-processed" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Skipped</span>
+                        <div class="kpi-value highlight-amber" id="stat-agent-skipped" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Attempted</span>
+                        <div class="kpi-value highlight-cyan" id="stat-agent-attempted" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Replies</span>
+                        <div class="kpi-value highlight-emerald" id="stat-agent-replies" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Qualified</span>
+                        <div class="kpi-value" id="stat-agent-qualified" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Meetings</span>
+                        <div class="kpi-value highlight-gold" id="stat-agent-meetings" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Won Deals</span>
+                        <div class="kpi-value highlight-emerald" id="stat-agent-won" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-card" style="padding: 8px 10px;">
+                        <span class="kpi-label" style="font-size: 0.65rem;">Revenue</span>
+                        <div class="kpi-value highlight-gold" id="stat-agent-revenue" style="font-size: 1.1rem;">$0</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- KPI Row (6 responsive cards, zero truncation, never collapsed) -->
             <div class="kpi-grid">
                 <div class="kpi-card">
@@ -1076,11 +1178,11 @@
                 <div style="background:rgba(15,23,42,0.6); padding:12px; border-radius:6px; border:1px solid var(--border-subtle); margin-bottom:16px;">
                     <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:6px;">
                         <span style="color:var(--text-secondary);">Advance Due Now:</span>
-                        <strong id="prop-calc-advance" style="color:var(--hud-emerald);">$1,000.00</strong>
+                        <strong id="prop-calc-advance" style="color:var(--hud-emerald);">$600.00</strong>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:0.82rem;">
                         <span style="color:var(--text-secondary);">Remaining Balance:</span>
-                        <strong id="prop-calc-remaining" style="color:var(--hud-amber);">$1,500.00</strong>
+                        <strong id="prop-calc-remaining" style="color:var(--hud-amber);">$900.00</strong>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:8px;">

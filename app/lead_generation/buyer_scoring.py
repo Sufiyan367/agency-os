@@ -97,7 +97,15 @@ class HighValueBuyerScorer:
             classification = ProspectClassification.DISCARD
             rationale = "Discarded: Missing legitimate contact path or severe brand reputation penalty (<3.0 rating)."
             p_stage = RealPipelineStage.DISCOVERED
-        elif is_high_buyer and is_high_opp and meets_commercial_val:
+        elif not meets_commercial_val:
+            classification = ProspectClassification.LOW_VALUE
+            rationale = (
+                f"Rejected from commercial pipeline: small solo operation unlikely to purchase a "
+                f"${self.config.minimum_target_service_value_usd}+ service "
+                f"(estimated service value ${est_val.min_value:,} is below the ${self.config.minimum_target_service_value_usd}+ commercial floor)."
+            )
+            p_stage = RealPipelineStage.AUDITED
+        elif is_high_buyer and is_high_opp:
             classification = ProspectClassification.PRIORITY_PROSPECT
             rationale = (
                 f"Strong evidence that this business is commercially suitable for a ${est_val.min_value:,}+ service "
@@ -110,9 +118,9 @@ class HighValueBuyerScorer:
         elif is_high_buyer and not is_high_opp:
             classification = ProspectClassification.NURTURE
             rationale = "High purchasing capacity, but low immediate digital bottleneck. Nurture for seasonal/enterprise offerings."
-            p_stage = RealPipelineStage.HIGH_VALUE if meets_commercial_val else RealPipelineStage.AUDITED
+            p_stage = RealPipelineStage.HIGH_VALUE
         elif not is_high_buyer and is_high_opp:
-            if buyer_score.score >= 50.0 and meets_commercial_val:
+            if buyer_score.score >= 50.0:
                 classification = ProspectClassification.NURTURE
                 rationale = "High technical opportunity, but moderate estimated purchasing capacity. Retain in nurture pool."
                 p_stage = RealPipelineStage.QUALIFIED

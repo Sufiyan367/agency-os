@@ -196,3 +196,159 @@ def test_safety_guards_and_human_control():
     assert perms["autonomous_contract_acceptance"] is False
     assert perms["autonomous_negotiation_allowed"] is False
     assert perms["commercial_threshold_usd"] == 500.0
+
+
+def test_sub_500_rejection_from_commercial_pipeline():
+    """
+    Verifies that any prospect with estimated_service_value.min_value < 500
+    is strictly rejected from the commercial pipeline.
+    """
+    commercial_cfg = CommercialConfig(
+        minimum_target_service_value_usd=500,
+        high_value_buyer_threshold=75.0,
+        opportunity_score_threshold=65.0
+    )
+    scorer = HighValueBuyerScorer(commercial_cfg)
+
+    # Solo cleaner with low buyer score -> estimated service value base_min = 250 (< 500)
+    sub_floor_biz = NormalizedBusinessRecord(
+        business_name="Sub-Floor Solo Clean",
+        category="Cleaning",
+        city="Austin",
+        region="Texas",
+        website="https://subfloorsolo.com",
+        phone="512-555-0199",
+        num_locations=1,
+        is_commercial_and_residential=False,
+        has_fleet_or_technicians=False,
+        years_in_business=1,
+        review_count=3,
+        rating=3.8,
+        page_speed_issue=True,
+        seo_issue=True
+    )
+
+    scored = scorer.evaluate_prospect(sub_floor_biz)
+
+    # Must be sub-$500 min_value
+    assert scored.estimated_service_value.min_value < 500
+    # Must NOT be commercially eligible
+    assert scored.is_commercially_eligible is False
+    # Must be rejected from commercial pipeline
+    assert scored.classification == ProspectClassification.LOW_VALUE
+    assert scored.pipeline_stage == RealPipelineStage.AUDITED
+    assert "Rejected from commercial pipeline" in scored.classification_rationale
+    assert "below the 500+ commercial floor" in scored.classification_rationale or "500+" in scored.classification_rationale
+
+
+def test_five_hundred_plus_commercial_pipeline_eligibility():
+    """
+    Verifies that any prospect with estimated_service_value.min_value >= 500
+    is commercially eligible to enter the pipeline.
+    """
+    commercial_cfg = CommercialConfig(
+        minimum_target_service_value_usd=500,
+        high_value_buyer_threshold=75.0,
+        opportunity_score_threshold=65.0
+    )
+    scorer = HighValueBuyerScorer(commercial_cfg)
+
+    # Established HVAC business with complete scale indicators -> estimated service value base_min >= 1200 (>= 500)
+    eligible_biz = NormalizedBusinessRecord(
+        business_name="Lone Star Climate Systems",
+        category="HVAC",
+        city="Austin",
+        region="Texas",
+        website="https://lonestarclimate.com",
+        email="contact@lonestarclimate.com",
+        phone="512-555-0100",
+        num_locations=3,
+        is_commercial_and_residential=True,
+        has_fleet_or_technicians=True,
+        offers_emergency_service=True,
+        authorized_dealer_or_financing=True,
+        hiring_active=True,
+        affluent_service_area=True,
+        years_in_business=15,
+        review_count=150,
+        rating=4.8,
+        page_speed_issue=True,
+        seo_issue=True,
+        mobile_ux_issue=True
+    )
+
+    scored = scorer.evaluate_prospect(eligible_biz)
+
+    # Must be >= 500 min_value
+    assert scored.estimated_service_value.min_value >= 500
+    # Must be commercially eligible
+    assert scored.is_commercially_eligible is True
+    # Must qualify into commercial pipeline
+    assert scored.classification == ProspectClassification.PRIORITY_PROSPECT
+    assert scored.pipeline_stage in (RealPipelineStage.HIGH_VALUE, RealPipelineStage.CONTACTABLE)
+
+
+def test_buyer_and_opportunity_scores_remain_independent_dimensions():
+    """
+    Verifies that Buyer Score and Opportunity Score are independent scoring dimensions:
+    - High purchasing capacity can exist with zero/low digital opportunity.
+    - High digital opportunity can exist with low purchasing capacity.
+    """
+    commercial_cfg = CommercialConfig(
+        minimum_target_service_value_usd=500,
+        high_value_buyer_threshold=75.0,
+        opportunity_score_threshold=65.0
+    )
+    scorer = HighValueBuyerScorer(commercial_cfg)
+
+    # 1. High Buyer, Low Opportunity (Pristine site, large operation)
+    high_buyer_low_opp = NormalizedBusinessRecord(
+        business_name="Pristine Enterprise Services",
+        category="Commercial Roof",
+        city="Houston",
+        region="Texas",
+        website="https://pristine-enterprise.com",
+        email="sales@pristine-enterprise.com",
+        phone="713-555-0900",
+        num_locations=4,
+        is_commercial_and_residential=True,
+        has_fleet_or_technicians=True,
+        offers_emergency_service=True,
+        authorized_dealer_or_financing=True,
+        hiring_active=True,
+        affluent_service_area=True,
+        years_in_business=20,
+        review_count=200,
+        rating=4.9,
+        page_speed_issue=False,
+        seo_issue=False,
+        mobile_ux_issue=False,
+        lacks_lead_capture=False
+    )
+    b_score_1, opp_score_1 = scorer.compute_scores(high_buyer_low_opp)
+    assert b_score_1.score >= 75.0  # High purchasing capacity
+    assert opp_score_1 == 0.0       # Zero technical opportunity
+
+    # 2. Low Buyer, High Opportunity (Broken site, solo operator)
+    low_buyer_high_opp = NormalizedBusinessRecord(
+        business_name="Broken Solo Handyman",
+        category="Cleaning",
+        city="Austin",
+        region="Texas",
+        website="https://broken-solo.com",
+        phone="512-555-0800",
+        num_locations=1,
+        is_commercial_and_residential=False,
+        has_fleet_or_technicians=False,
+        years_in_business=1,
+        review_count=2,
+        rating=3.5,
+        page_speed_issue=True,
+        seo_issue=True,
+        mobile_ux_issue=True,
+        lacks_lead_capture=True
+    )
+    b_score_2, opp_score_2 = scorer.compute_scores(low_buyer_high_opp)
+    assert b_score_2.score <= 30.0  # Low purchasing capacity
+    assert opp_score_2 == 100.0     # Maximum technical opportunity
+

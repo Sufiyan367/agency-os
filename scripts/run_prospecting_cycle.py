@@ -80,7 +80,7 @@ async def run_prospecting_cycle(
     top_prospects = []
     high_value_count = 0
     qualified_count = 0
-    thousand_plus_count = 0
+    five_hundred_plus_count = 0
 
     for biz in valid_businesses:
         scored: ScoredProspect = getattr(biz, "_scored", None)
@@ -92,7 +92,7 @@ async def run_prospecting_cycle(
         opp_score = scored.opportunity_score
 
         if est_val.min_value >= targeting.commercial.minimum_target_service_value_usd:
-            thousand_plus_count += 1
+            five_hundred_plus_count += 1
         if b_score >= targeting.commercial.high_value_buyer_threshold:
             high_value_count += 1
         if opp_score >= targeting.commercial.opportunity_score_threshold:
@@ -128,7 +128,7 @@ async def run_prospecting_cycle(
     print(f"{qualified_count}")
     print("")
     print("$500+ prospects:")
-    print(f"{thousand_plus_count}")
+    print(f"{five_hundred_plus_count}")
     print("")
     print("TOP PROSPECTS:")
     if top_prospects:

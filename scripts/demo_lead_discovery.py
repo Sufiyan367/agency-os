@@ -31,7 +31,7 @@ from app.models.entities import LocalBusiness
 async def run_discovery_demo():
     print("\n" + "#"*75)
     print("  LOCAL-FIRST REAL LEAD DISCOVERY ENGINE WITH HIGH-VALUE CLIENT FILTER")
-    print("  Commercial Target: US Local Businesses with $1,000+ Purchasing Capacity")
+    print("  Commercial Target: US Local Businesses with $500+ Purchasing Capacity")
     print("#"*75 + "\n")
 
     # Step 1: Load targeting configuration
@@ -82,7 +82,7 @@ async def run_discovery_demo():
         print(f"Cities covered:                {', '.join(stats.cities_covered)}")
         print("="*75)
 
-        print("\nSAMPLE PRIORITY PROSPECTS ($1,000+ COMMERCIAL TARGETS):")
+        print("\nSAMPLE PRIORITY PROSPECTS ($500+ COMMERCIAL TARGETS):")
         print("-" * 75)
         priority_list = [p for p in prospects if getattr(p, "_scored", None) and p._scored.classification.value == "PRIORITY_PROSPECT"]
         for i, p in enumerate(priority_list[:5]):

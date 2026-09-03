@@ -68,7 +68,7 @@ async def execute_cycle():
     total_rejected_count = 0
     total_duplicates_count = 0
     total_audited_count = 0
-    thousand_plus_count = 0
+    five_hundred_plus_count = 0
     high_value_count = 0
 
     all_prospect_summaries = []
@@ -99,7 +99,7 @@ async def execute_cycle():
                     total_rejected_count += stats.invalid_rejected + stats.discarded_prospects
                     total_duplicates_count += stats.duplicates_removed
                     total_audited_count += stats.websites_audited
-                    thousand_plus_count += stats.thousand_plus_prospects
+                    five_hundred_plus_count += stats.five_hundred_plus_prospects
                     high_value_count += stats.high_value_buyer_candidates
 
                     for biz in valid_prospects:
@@ -178,7 +178,7 @@ async def execute_cycle():
     print(f"Total rejected (junk/directory): {total_rejected_count}")
     print(f"Total duplicates removed:        {total_duplicates_count}")
     print(f"Total websites audited:          {total_audited_count}")
-    print(f"Total $500+ prospects:           {thousand_plus_count}")
+    print(f"Total $500+ prospects:           {five_hundred_plus_count}")
     print(f"Total high-value prospects:      {high_value_count}")
 
     print("\n" + "="*80)

@@ -42,7 +42,7 @@ class DealClosingService:
     ) -> Proposal:
         """
         Creates a commercial proposal in DRAFT state.
-        Enforces the configurable $1,000+ commercial minimum service threshold.
+        Enforces the configurable $500+ commercial minimum service threshold (settings.MINIMUM_SERVICE_VALUE_USD).
         """
         min_threshold = settings.MINIMUM_SERVICE_VALUE_USD
         if total_value < min_threshold:

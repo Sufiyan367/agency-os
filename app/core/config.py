@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # Email Providers & Outreach Delivery
     EMAIL_PROVIDER: str = "dry_run"  # 'dry_run', 'resend', 'sendgrid', 'smtp'
     EMAIL_DRY_RUN: bool = True
+    VOICE_DRY_RUN: bool = os.getenv("VOICE_DRY_RUN", "true").lower() in ("true", "1", "yes")
+    AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "false").lower() in ("true", "1", "yes")
+    AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "false").lower() in ("true", "1", "yes")
+    MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))
     RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
     SENDGRID_API_KEY: Optional[str] = os.getenv("SENDGRID_API_KEY")
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
