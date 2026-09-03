@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database.models import SuppressionList, OutreachMessage, OutreachStatus
@@ -12,26 +13,51 @@ class ComplianceGuard:
     - Enforces daily outreach limits (MAX_OUTREACH_PER_DAY)
     - Appends legally compliant B2B identification and opt-out footer
     """
-    async def is_suppressed(self, session: AsyncSession, email: str) -> bool:
-        if not email:
-            return True
-        email_clean = email.strip().lower()
-        domain = normalize_domain(email_clean.split("@")[-1])
+    async def is_suppressed(
+        self,
+        session: AsyncSession,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        domain: Optional[str] = None
+    ) -> bool:
+        from sqlalchemy import or_
+        from app.communications.voice_provider import format_e164_phone
+        clauses = []
+        if email:
+            email_clean = email.strip().lower()
+            dom = normalize_domain(email_clean.split("@")[-1])
+            clauses.extend([SuppressionList.email == email_clean, SuppressionList.domain == dom])
+        if domain:
+            clauses.append(SuppressionList.domain == normalize_domain(domain))
+        if phone:
+            norm_phone = format_e164_phone(phone)
+            if norm_phone:
+                clauses.append(SuppressionList.phone == norm_phone)
 
-        q = select(SuppressionList).where(
-            (SuppressionList.email == email_clean) | (SuppressionList.domain == domain)
-        )
+        if not clauses:
+            return False
+
+        q = select(SuppressionList).where(or_(*clauses))
         result = await session.execute(q)
         return result.scalar_one_or_none() is not None
 
-    async def add_to_suppression(self, session: AsyncSession, email: str, reason: str = "UNSUBSCRIBE"):
-        email_clean = email.strip().lower()
-        domain = normalize_domain(email_clean.split("@")[-1])
-        
-        q = select(SuppressionList).where(SuppressionList.email == email_clean)
-        existing = (await session.execute(q)).scalar_one_or_none()
-        if not existing:
-            item = SuppressionList(email=email_clean, domain=domain, reason=reason)
+    async def add_to_suppression(
+        self,
+        session: AsyncSession,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        domain: Optional[str] = None,
+        reason: str = "UNSUBSCRIBE"
+    ):
+        from app.communications.voice_provider import format_e164_phone
+        email_clean = email.strip().lower() if email else None
+        dom = domain or (normalize_domain(email_clean.split("@")[-1]) if email_clean else None)
+        norm_phone = format_e164_phone(phone) if phone else None
+
+        # Check existing
+        is_supp = await self.is_suppressed(session, email=email_clean, phone=norm_phone, domain=dom)
+        if not is_supp:
+            item = SuppressionList(email=email_clean, phone=norm_phone, domain=dom, reason=reason)
             session.add(item)
             await session.commit()
 

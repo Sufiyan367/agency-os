@@ -106,3 +106,9 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE outreach_messages ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Safe migration for suppression_list table
+        try:
+            await conn.execute(text("ALTER TABLE suppression_list ADD COLUMN phone VARCHAR(50)"))
+        except Exception:
+            pass

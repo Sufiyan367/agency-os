@@ -1160,6 +1160,7 @@ async function createCheckoutLink(businessId) {
    ========================================================================== */
 
 async function loadSettings() {
+    loadProductionHealth();
     try {
         const res = await fetch('/api/settings');
         if (!res.ok) return;
@@ -1694,5 +1695,112 @@ async function handleTriggerVoiceCall(event) {
     }
 }
 
+/* ==========================================================================
+   Production Readiness Health & Controlled E2E Test Functions
+   ========================================================================== */
 
+async function loadProductionHealth() {
+    const badge = document.getElementById('badge-prod-health');
+    const grid = document.getElementById('prod-health-grid');
+    if (!grid) return;
 
+    try {
+        const res = await fetch('/api/production/health');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (badge) {
+            badge.textContent = data.overall_status.replace('_', ' ');
+            badge.className = data.overall_status.includes('READY') ? 'panel-tag badge-emerald' : 'panel-tag badge-amber';
+        }
+
+        const components = [
+            { key: 'database', title: 'Database Connectivity', icon: '🗄️', comp: data.database },
+            { key: 'email', title: 'Email Infrastructure', icon: '📧', comp: data.email },
+            { key: 'voice', title: 'Voice Telephony', icon: '📞', comp: data.voice },
+            { key: 'payment', title: 'Payment Processing', icon: '💳', comp: data.payment },
+            { key: 'webhooks', title: 'Webhook Verification', icon: '🔐', comp: data.webhooks }
+        ];
+
+        grid.innerHTML = components.map(c => {
+            const statusColor = c.comp.status === 'READY' ? '#4ade80' : (c.comp.status === 'DRY_RUN' ? '#38bdf8' : '#fbbf24');
+            return `
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                        <span style="font-weight:600; font-size:0.85rem; color:var(--text-white); display:flex; align-items:center; gap:6px;">
+                            <span>${c.icon}</span> <span>${c.title}</span>
+                        </span>
+                        <span style="font-size:0.7rem; font-weight:700; color:${statusColor};">${c.comp.status}</span>
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin:0; line-height:1.4;">${c.comp.details}</p>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.debug('Error loading production health:', e);
+    }
+}
+
+async function handleRunControlledE2ETest() {
+    const btn = document.getElementById('btn-agent-e2e-test');
+    const panel = document.getElementById('e2e-test-results-panel');
+    const container = document.getElementById('e2e-test-steps-container');
+    const badge = document.getElementById('e2e-test-badge');
+
+    if (btn) btn.disabled = true;
+    if (panel) panel.style.display = 'block';
+    if (badge) {
+        badge.textContent = 'RUNNING...';
+        badge.className = 'badge badge-cyan';
+    }
+    if (container) {
+        container.innerHTML = '<div style="color:var(--text-muted); padding:8px 0;">⚡ Initializing controlled 10-step dry-run simulation across all revenue systems...</div>';
+    }
+
+    try {
+        const res = await fetch('/api/production/test/e2e', { method: 'POST' });
+        const report = await res.json();
+
+        if (res.ok && report.success) {
+            if (badge) {
+                badge.textContent = '10/10 PASSED (DEAL WON)';
+                badge.className = 'badge badge-emerald';
+            }
+            if (container) {
+                container.innerHTML = report.steps.map(s => `
+                    <div style="display:flex; align-items:flex-start; gap:8px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <span style="color:#4ade80; font-weight:700;">✓ [STEP ${s.step_number}]</span>
+                        <div style="flex:1;">
+                            <strong style="color:var(--text-white); font-size:0.8rem;">${s.step_name}:</strong>
+                            <span style="color:var(--text-muted); font-size:0.75rem; margin-left:6px;">${s.details}</span>
+                        </div>
+                    </div>
+                `).join('') + `
+                    <div style="margin-top:8px; padding-top:6px; color:#4ade80; font-weight:700; font-size:0.85rem;">
+                        🎉 Lifecycle Complete: Prospect "${report.prospect_name}" closed for $${report.deal_value} ($${report.advance_amount} advance verified via cryptographic webhook).
+                    </div>
+                `;
+            }
+            if (typeof loadAgentStatus === 'function') loadAgentStatus();
+            if (typeof loadOverviewData === 'function') loadOverviewData();
+        } else {
+            if (badge) {
+                badge.textContent = 'TEST FAILED';
+                badge.className = 'badge badge-amber';
+            }
+            if (container) {
+                container.innerHTML = `<div style="color:#f43f5e; padding:8px 0;">❌ Test failed: ${report.detail || JSON.stringify(report)}</div>`;
+            }
+        }
+    } catch (e) {
+        if (badge) {
+            badge.textContent = 'ERROR';
+            badge.className = 'badge badge-amber';
+        }
+        if (container) {
+            container.innerHTML = `<div style="color:#f43f5e; padding:8px 0;">❌ Execution error: ${e}</div>`;
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}

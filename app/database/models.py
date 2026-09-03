@@ -485,7 +485,8 @@ class SuppressionList(Base):
     __tablename__ = "suppression_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     reason: Mapped[str] = mapped_column(String(100), default="UNSUBSCRIBE")
     added_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -68,6 +68,14 @@ class Settings(BaseSettings):
     AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "false").lower() in ("true", "1", "yes")
     AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "false").lower() in ("true", "1", "yes")
     MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))
+    
+    # TCPA & Calling Hours Compliance
+    CALLING_HOURS_START: int = int(os.getenv("CALLING_HOURS_START", "8"))  # 8:00 AM local
+    CALLING_HOURS_END: int = int(os.getenv("CALLING_HOURS_END", "20"))     # 8:00 PM local
+    ENFORCE_CALLING_HOURS: bool = os.getenv("ENFORCE_CALLING_HOURS", "true").lower() in ("true", "1", "yes")
+    MAX_OUTREACH_RETRIES: int = int(os.getenv("MAX_OUTREACH_RETRIES", "3"))
+    CONTROLLED_TEST_MODE: bool = os.getenv("CONTROLLED_TEST_MODE", "true").lower() in ("true", "1", "yes")
+    
     RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
     SENDGRID_API_KEY: Optional[str] = os.getenv("SENDGRID_API_KEY")
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")

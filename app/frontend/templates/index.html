@@ -308,6 +308,9 @@
                         <button type="button" class="btn btn-secondary" id="btn-agent-step" onclick="handleAgentAction('step')" style="height:36px; display:inline-flex; align-items:center; gap:6px; border-color: rgba(56, 189, 248, 0.4);">
                             <span>⚡</span> <span>STEP 1 PROSPECT</span>
                         </button>
+                        <button type="button" class="btn btn-secondary" id="btn-agent-e2e-test" onclick="handleRunControlledE2ETest()" style="height:36px; display:inline-flex; align-items:center; gap:6px; border-color: rgba(34, 197, 94, 0.4); color: #4ade80;">
+                            <span>🧪</span> <span>CONTROLLED E2E TEST</span>
+                        </button>
                     </div>
                     <div>
                         <button type="button" class="btn btn-danger" id="btn-agent-kill" onclick="handleAgentAction('kill')" style="height:36px; background:#e11d48; color:#fff; border:none; display:inline-flex; align-items:center; gap:6px; font-weight:700;">
@@ -376,6 +379,19 @@
                         <span class="kpi-label" style="font-size: 0.65rem;">Revenue</span>
                         <div class="kpi-value highlight-gold" id="stat-agent-revenue" style="font-size: 1.1rem;">$0</div>
                     </div>
+                </div>
+
+                <!-- Controlled E2E Test Output Box (hidden by default) -->
+                <div id="e2e-test-results-panel" style="display:none; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 6px; padding: 14px; margin-top: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">🧪</span>
+                            <strong style="font-size:0.9rem; color:#4ade80;">Controlled 10-Step End-to-End Test Execution</strong>
+                            <span id="e2e-test-badge" class="badge badge-emerald">COMPLETED</span>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('e2e-test-results-panel').style.display='none'" style="height:24px; padding:0 8px; font-size:0.7rem;">Close</button>
+                    </div>
+                    <div id="e2e-test-steps-container" style="display:flex; flex-direction:column; gap:6px; font-family:monospace; font-size:0.8rem;"></div>
                 </div>
             </div>
 
@@ -1079,6 +1095,25 @@
         <!-- View 9: Settings & Production Integrations -->
         <section id="view-settings" class="view-container">
             <div class="settings-grid">
+                <!-- Card 0: Production Readiness & System Health -->
+                <div class="panel-card" style="grid-column: 1 / -1; border: 1px solid rgba(56, 189, 248, 0.3);">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                        <div class="panel-title-wrap">
+                            <span style="font-size: 1.2rem;">🛡️</span>
+                            <div>
+                                <h2 class="panel-title" style="margin-bottom: 2px;">Production Readiness & Provider Health</h2>
+                                <span class="panel-tag" id="badge-prod-health">DIAGNOSTIC STATUS: CHECKING...</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="loadProductionHealth()" style="height:32px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                            <span>🔄</span> <span>Refresh Health Check</span>
+                        </button>
+                    </div>
+                    <div id="prod-health-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-top:14px;">
+                        <!-- Dynamically populated via loadProductionHealth() -->
+                    </div>
+                </div>
+
                 <!-- Card 1: Email Delivery -->
                 <div class="panel-card">
                     <div class="panel-header">

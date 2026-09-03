@@ -553,6 +553,26 @@ async def list_scheduled_meetings(limit: int = 50):
     from app.services.voice_service import VoiceSalesService
     return await VoiceSalesService.get_meetings(limit=limit)
 
+# --- Production Readiness, Health, & Controlled E2E Test Endpoints ---
+
+@router.get("/api/production/health")
+async def get_production_health():
+    """Performs deep diagnostic health checks on database, email, voice, payments, and webhooks."""
+    from app.services.health_service import ProductionHealthService
+    return await ProductionHealthService.check_system_health()
+
+@router.post("/api/production/test/e2e")
+async def run_controlled_e2e_test():
+    """Executes a controlled, single-prospect end-to-end dry-run test across all 10 revenue stages."""
+    from app.services.controlled_test_service import ControlledTestService
+    return await ControlledTestService.run_controlled_e2e_test()
+
+@router.get("/api/compliance/calling-hours")
+async def check_calling_hours(country: str = "US", city: Optional[str] = None, phone: Optional[str] = None):
+    """Verifies whether a prospective business is currently within permissible calling hours."""
+    from app.compliance.calling_hours import calling_hours_compliance
+    return calling_hours_compliance.is_calling_window_open(country=country, city=city, phone=phone)
+
 # System Runs
 @router.get("/api/runs")
 async def get_system_runs(db: AsyncSession = Depends(get_db)):
