@@ -1,0 +1,25 @@
+# ==============================================================================
+# Local Lead Discovery Targeting Configuration
+# ==============================================================================
+
+country: "United States"
+country_code: "US"
+
+regions:
+  - "Texas"
+
+cities:
+  - "Austin"
+  - "Dallas"
+  - "Houston"
+
+niches:
+  - "HVAC"
+
+filters:
+  min_rating: 3.5
+  max_rating: 5.0
+  min_reviews: 5
+  require_website: true
+  require_phone: false
+  target_results_per_city: 20

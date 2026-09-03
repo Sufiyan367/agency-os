@@ -9,11 +9,16 @@ CREATE TABLE IF NOT EXISTS local_businesses (
     domain VARCHAR(255) NOT NULL UNIQUE,
     website_url VARCHAR(500) DEFAULT '',
     niche VARCHAR(100) NOT NULL,
+    address TEXT,
     city VARCHAR(100),
     state VARCHAR(50) DEFAULT 'TX',
     country VARCHAR(50) DEFAULT 'US',
     email VARCHAR(255),
     phone VARCHAR(50),
+    rating DOUBLE PRECISION,
+    review_count INTEGER,
+    source VARCHAR(100) DEFAULT 'discovery_engine',
+    source_url VARCHAR(500),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 

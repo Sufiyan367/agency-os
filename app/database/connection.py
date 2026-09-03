@@ -36,3 +36,16 @@ async def init_db():
     """Initializes the database schema and creates all tables."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe migration for new discovery columns if tables already existed
+        from sqlalchemy import text
+        for col, col_type in [
+            ("address", "TEXT"),
+            ("rating", "REAL"),
+            ("review_count", "INTEGER"),
+            ("source", "VARCHAR(100) DEFAULT 'discovery_engine'"),
+            ("source_url", "VARCHAR(500)")
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE local_businesses ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
