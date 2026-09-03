@@ -70,26 +70,41 @@ function initNavigation() {
 }
 
 function toggleMobileDrawer() {
+    const sidebar = document.getElementById('app-sidebar');
     const drawer = document.getElementById('mobile-drawer');
     const backdrop = document.getElementById('mobile-drawer-backdrop');
-    if (!drawer) return;
-    const isOpen = drawer.classList.contains('open');
+    const target = sidebar || drawer;
+    if (!target) return;
+    const isOpen = target.classList.contains('open');
     if (isOpen) {
-        drawer.classList.remove('open');
-        if (backdrop) backdrop.classList.remove('active');
+        target.classList.remove('open');
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            backdrop.style.display = 'none';
+        }
     } else {
-        drawer.classList.add('open');
-        if (backdrop) backdrop.classList.add('active');
+        target.classList.add('open');
+        if (backdrop) {
+            backdrop.classList.add('active');
+            backdrop.style.display = 'block';
+        }
     }
 }
 
 function navToView(viewName) {
     switchView(viewName);
+    const sidebar = document.getElementById('app-sidebar');
     const drawer = document.getElementById('mobile-drawer');
     const backdrop = document.getElementById('mobile-drawer-backdrop');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+    }
     if (drawer && drawer.classList.contains('open')) {
         drawer.classList.remove('open');
-        if (backdrop) backdrop.classList.remove('active');
+    }
+    if (backdrop) {
+        backdrop.classList.remove('active');
+        backdrop.style.display = 'none';
     }
 }
 

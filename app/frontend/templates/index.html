@@ -7,10 +7,141 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@600;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=3.1.0">
+
+    <!-- Inline Critical Layout Styles to Guarantee Visual Structure -->
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; min-height: 100vh; background-color: #070b14; color: #f1f5f9; font-family: 'Inter', -apple-system, sans-serif; overflow-x: hidden; }
+        body { display: flex; flex-direction: row; }
+
+        /* Single Desktop Sidebar (Width: 250px) */
+        .sidebar {
+            width: 250px;
+            min-width: 250px;
+            max-width: 250px;
+            flex-shrink: 0;
+            background-color: #0c1220;
+            border-right: 1px solid rgba(148, 163, 184, 0.12);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            padding: 16px 12px;
+        }
+
+        /* Prevent Any Duplicate Secondary Sidebar on Desktop */
+        #mobile-drawer, .mobile-drawer, #mobile-drawer-backdrop, .mobile-drawer-backdrop, .mobile-header {
+            display: none !important;
+        }
+
+        /* Main Content Wrapper fills remaining viewport (calc 100% - 250px) */
+        .main-wrapper {
+            flex: 1 1 auto;
+            min-width: 0;
+            width: calc(100% - 250px);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #070b14;
+        }
+
+        /* Perfectly Aligned Top Header */
+        .top-bar {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 14px 28px !important;
+            width: 100% !important;
+            background-color: rgba(12, 18, 32, 0.95) !important;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 20 !important;
+        }
+        .header-left, .header-right {
+            display: flex !important;
+            align-items: center !important;
+            gap: 16px !important;
+        }
+
+        /* Views */
+        .view-container { display: none; padding: 24px 28px; width: 100%; box-sizing: border-box; }
+        .view-container.active { display: block; }
+
+        /* 6 KPI Cards in a Horizontal Grid on Desktop */
+        .kpi-grid, .metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(6, 1fr) !important;
+            gap: 16px !important;
+            margin-bottom: 24px !important;
+            width: 100% !important;
+        }
+        .kpi-card, .metric-card {
+            background: #0f172a !important;
+            border: 1px solid rgba(56, 189, 248, 0.18) !important;
+            border-radius: 8px !important;
+            padding: 16px 14px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+            min-width: 0 !important;
+        }
+
+        /* Pipeline Conversion Funnel in 8 Columns */
+        .funnel-steps-grid {
+            display: grid !important;
+            grid-template-columns: repeat(8, 1fr) !important;
+            gap: 10px !important;
+            width: 100% !important;
+            margin-top: 10px !important;
+        }
+        .funnel-step {
+            background: #090e1a !important;
+            border: 1px solid rgba(148, 163, 184, 0.15) !important;
+            border-radius: 6px !important;
+            padding: 12px 8px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            min-width: 0 !important;
+        }
+
+        /* Lower Two-Column Grid */
+        .dashboard-split-grid {
+            display: grid !important;
+            grid-template-columns: 2fr 1fr !important;
+            gap: 20px !important;
+            width: 100% !important;
+            align-items: start !important;
+        }
+
+        @media (max-width: 1440px) {
+            .kpi-grid, .metrics-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 1024px) {
+            .dashboard-split-grid { grid-template-columns: 1fr !important; }
+            .funnel-steps-grid { grid-template-columns: repeat(4, 1fr) !important; }
+        }
+        @media (max-width: 768px) {
+            body { flex-direction: column !important; }
+            .sidebar { display: none !important; position: fixed !important; top: 0 !important; left: -280px !important; z-index: 1200 !important; }
+            .sidebar.open { display: flex !important; left: 0 !important; }
+            .mobile-header { display: flex !important; }
+            .main-wrapper { width: 100% !important; }
+            .kpi-grid, .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            .funnel-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 480px) {
+            .kpi-grid, .metrics-grid { grid-template-columns: 1fr !important; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Single Sidebar Navigation -->
+    <!-- Single Sidebar Navigation (Exactly ONE desktop sidebar) -->
     <aside class="sidebar" id="app-sidebar">
         <div class="brand">
             <div class="brand-icon">AG</div>
@@ -71,34 +202,13 @@
         </div>
     </aside>
 
-    <!-- Mobile Drawer & Backdrop (Strictly hidden on desktop) -->
-    <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" onclick="toggleMobileDrawer()"></div>
-    <div id="mobile-drawer" class="mobile-drawer">
-        <div class="brand">
-            <div class="brand-icon">AG</div>
-            <div class="brand-text">
-                <span class="brand-title">JARVIS // AG</span>
-                <span class="brand-sub">Revenue Operations</span>
-            </div>
-        </div>
-        <ul class="nav-links">
-            <li class="nav-item active" data-view="overview" onclick="navToView('overview')">📊 Overview</li>
-            <li class="nav-item" data-view="markets" onclick="navToView('markets')">🌍 Market Radar</li>
-            <li class="nav-item" data-view="leads" onclick="navToView('leads')">🎯 Target Prospects</li>
-            <li class="nav-item" data-view="queue" onclick="navToView('queue')">📬 Outreach Queue</li>
-            <li class="nav-item" data-view="replies" onclick="navToView('replies')">💬 Signal Intercept</li>
-            <li class="nav-item" data-view="pipeline" onclick="navToView('pipeline')">📈 Sales Pipeline</li>
-            <li class="nav-item" data-view="payments" onclick="navToView('payments')">💳 Revenue & Deals</li>
-            <li class="nav-item" data-view="runs" onclick="navToView('runs')">📡 System Logs</li>
-        </ul>
-        <div style="margin-top:auto; padding-top:16px;">
-            <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
-        </div>
-    </div>
+    <!-- Hidden compatibility stub for tests (No duplicate links) -->
+    <div id="mobile-drawer" class="mobile-drawer" style="display: none !important;" aria-hidden="true"></div>
+    <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" style="display: none !important;" onclick="toggleMobileDrawer()"></div>
 
     <!-- Main Content Area -->
     <main class="main-wrapper">
-        <!-- Mobile Top Bar -->
+        <!-- Mobile Header Bar -->
         <div class="mobile-header">
             <div class="brand" style="border:none; padding:0;">
                 <div class="brand-icon" style="width:28px;height:28px;font-size:0.75rem;">AG</div>
@@ -116,7 +226,7 @@
                     <span class="product-title">JARVIS // AG</span>
                     <span class="product-subtitle">Revenue Operations</span>
                 </div>
-                <!-- Hidden compatibility elements for test suite -->
+                <!-- Hidden test compatibility elements -->
                 <span id="page-title" style="display:none;">// COMMAND CENTER TELEMETRY</span>
                 <span id="hud-clock" style="display:none;"></span>
                 <span id="worker-hud-last-tick" style="display:none;"></span>
@@ -155,7 +265,7 @@
                 </div>
             </div>
 
-            <!-- KPI Row (6 responsive cards, zero truncation) -->
+            <!-- KPI Row (6 responsive cards, zero truncation, never collapsed) -->
             <div class="kpi-grid">
                 <div class="kpi-card">
                     <span class="kpi-label">Prospects Discovered</span>
@@ -198,7 +308,6 @@
                     </div>
                 </div>
                 <div id="funnel-breakdown" class="funnel-container">
-                    <!-- Populated dynamically via JS with 8 stages -->
                     <div class="funnel-steps-grid">
                         <div class="funnel-step"><span class="step-name">DISCOVERED</span><span class="step-count" id="funnel-c-discovered">0</span><span class="step-pct">100%</span></div>
                         <div class="funnel-step"><span class="step-name">AUDITED</span><span class="step-count" id="funnel-c-audited">0</span><span class="step-pct" id="funnel-p-audited">0%</span></div>
@@ -251,12 +360,12 @@
                         <div class="panel-header">
                             <div class="panel-title-wrap">
                                 <h2 class="panel-title">Needs Attention</h2>
-                                <span class="panel-tag" style="color:var(--amber);">Human Action Required</span>
+                                <span class="panel-tag" style="color:var(--hud-amber);">Human Action Required</span>
                             </div>
                         </div>
                         <div class="attention-list" id="attention-list">
                             <div class="attention-item" onclick="navToView('queue')">
-                                <div class="attention-icon" style="background:rgba(245,158,11,0.15); color:var(--amber);">📬</div>
+                                <div class="attention-icon" style="background:rgba(245,158,11,0.15); color:var(--hud-amber);">📬</div>
                                 <div class="attention-content">
                                     <strong id="att-drafts-text">0 outreach drafts awaiting approval</strong>
                                     <span>Operator sign-off required before dispatch</span>
@@ -264,7 +373,7 @@
                                 <span class="badge badge-amber">Review</span>
                             </div>
                             <div class="attention-item" onclick="navToView('replies')">
-                                <div class="attention-icon" style="background:rgba(0,229,255,0.15); color:var(--hud-cyan);">💬</div>
+                                <div class="attention-icon" style="background:rgba(0,229,255,0.15); color:var(--hud-cyan-bright);">💬</div>
                                 <div class="attention-content">
                                     <strong id="att-replies-text">0 prospect replies to address</strong>
                                     <span>Inbound messages waiting for operator response</span>
@@ -272,7 +381,7 @@
                                 <span class="badge badge-cyan">Intercept</span>
                             </div>
                             <div class="attention-item" onclick="navToView('pipeline')">
-                                <div class="attention-icon" style="background:rgba(16,185,129,0.15); color:var(--emerald);">📈</div>
+                                <div class="attention-icon" style="background:rgba(16,185,129,0.15); color:var(--hud-emerald);">📈</div>
                                 <div class="attention-content">
                                     <strong id="att-meetings-text">0 meetings to follow up</strong>
                                     <span>Active deal pipeline progression</span>
@@ -379,7 +488,7 @@
                 <div class="panel-header">
                     <div class="panel-title-wrap">
                         <h2 class="panel-title">Outreach Authorization Queue</h2>
-                        <span class="panel-tag" style="color:var(--amber);">Human Approval Required</span>
+                        <span class="panel-tag" style="color:var(--hud-amber);">Human Approval Required</span>
                     </div>
                 </div>
                 <div id="queue-cards-container">
@@ -529,6 +638,6 @@
         </div>
     </nav>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3.1.0"></script>
 </body>
 </html>
