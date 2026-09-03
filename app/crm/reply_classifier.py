@@ -62,7 +62,7 @@ class ReplyClassifier:
                 "classification": ReplyClassification.PRICE_REQUEST.value,
                 "confidence": 0.92,
                 "reasoning": "Prospect inquired about commercial fee or pricing structure.",
-                "suggested_response": "Our turnkey remediation packages range from $450 to $1,200 depending on scope. Would you like me to send the itemized breakdown?"
+                "suggested_response": "Our turnkey remediation packages range from $500 to $1,200 depending on scope. Would you like me to send the itemized breakdown?"
             }
 
         if any(w in lower for w in ["interested", "sounds good", "send more", "send video", "send audit", "sure", "love to see", "yes please"]):

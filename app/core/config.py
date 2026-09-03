@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     OPT_OUT_STOP_RULE: bool = True
 
     # Pricing Defaults ($ USD)
-    DEFAULT_SERVICE_PRICE_MIN: float = 450.0
+    DEFAULT_SERVICE_PRICE_MIN: float = 500.0
     DEFAULT_SERVICE_PRICE_MAX: float = 1200.0
 
     # LLM Settings
@@ -71,8 +71,8 @@ class Settings(BaseSettings):
     TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
     TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
     BLAND_API_KEY: Optional[str] = os.getenv("BLAND_API_KEY")
-    AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "false").lower() in ("true", "1", "yes")
-    AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "false").lower() in ("true", "1", "yes")
+    AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "true").lower() in ("true", "1", "yes")
+    AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "true").lower() in ("true", "1", "yes")
     MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))
     
     # TCPA & Calling Hours Compliance

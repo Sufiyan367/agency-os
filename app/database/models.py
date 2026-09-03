@@ -263,7 +263,7 @@ class Offer(Base):
     title: Mapped[str] = mapped_column(String(255))
     scope_description: Mapped[str] = mapped_column(Text, default="")
     deliverables: Mapped[List[str]] = mapped_column(JSON, default=list)
-    suggested_price_min: Mapped[float] = mapped_column(Float, default=450.0)
+    suggested_price_min: Mapped[float] = mapped_column(Float, default=500.0)
     suggested_price_max: Mapped[float] = mapped_column(Float, default=950.0)
     recommended_price: Mapped[float] = mapped_column(Float, default=650.0)
     estimated_delivery_days: Mapped[int] = mapped_column(Integer, default=7)

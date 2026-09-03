@@ -166,6 +166,9 @@ def test_kill_switch_and_dry_run_safety():
     assert res["status"] == "KILLED"
     assert res["kill_switch_active"] is True
     assert orch.is_running is False
+    # Restore settings for subsequent tests
+    settings.AUTONOMOUS_AGENT_ENABLED = True
+    settings.AUTONOMOUS_OUTREACH = True
 
 
 @pytest.mark.asyncio
@@ -195,11 +198,14 @@ async def test_agent_api_endpoints():
         res_kill = await ac.post("/api/agent/kill")
         assert res_kill.status_code == 200
         assert res_kill.json()["status"] == "KILLED"
+        # Restore settings for subsequent tests
+        settings.AUTONOMOUS_AGENT_ENABLED = True
+        settings.AUTONOMOUS_OUTREACH = True
 
 
 @pytest.mark.asyncio
 async def test_single_prospect_step_execution():
-    """Verifies that step_single_prospect evaluates one prospect and respects safety gates."""
+    """Verifies that step_single_prospect evaluates one prospect and proceeds autonomously to outreach."""
     orch = RevenueAgentOrchestrator()
     prospect_data = {
         "name": "TrueWorks Roofing",
@@ -210,11 +216,12 @@ async def test_single_prospect_step_execution():
         "buyer_score": 88.0,
         "opportunity_score": 82.0
     }
-    # When AUTONOMOUS_OUTREACH is False, it holds in OUTREACH_PENDING for operator review
+    # Eligible $750 prospect proceeds autonomously without being blocked by an approval queue
     res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
-    assert res["status"] == "HELD_FOR_APPROVAL"
+    assert res["status"] == "CONTACTED"
     assert res["channel"] == "EMAIL"
-    assert orch.current_state == ProspectState.OUTREACH_PENDING
+    assert orch.current_state == ProspectState.WAITING_RESPONSE
+    assert orch.stats["contacts_attempted"] == 1
     assert orch.stats["prospects_processed"] == 1
 
 
@@ -262,6 +269,9 @@ async def test_continuous_worker_lifecycle_startup_pause_stop_kill():
     assert orch._task.done() is True
     assert settings.AUTONOMOUS_AGENT_ENABLED is False
     assert settings.AUTONOMOUS_OUTREACH is False
+    # Restore settings for subsequent tests
+    settings.AUTONOMOUS_AGENT_ENABLED = True
+    settings.AUTONOMOUS_OUTREACH = True
 
 
 @pytest.mark.asyncio
@@ -333,3 +343,163 @@ async def test_sqlite_wal_mode_and_busy_timeout():
         res_timeout = await conn.execute(text("PRAGMA busy_timeout;"))
         timeout = res_timeout.scalar()
         assert int(timeout) >= 5000
+
+
+@pytest.mark.asyncio
+async def test_commercial_qualification_499_skipped():
+    """Requirement (a): Proves that a prospect estimated at $499 is strictly skipped."""
+    orch = RevenueAgentOrchestrator()
+    prospect_data = {
+        "name": "Discount HVAC",
+        "domain": "discounthvac.test",
+        "email": "info@discounthvac.test",
+        "phone": "+1-512-555-0199",
+        "estimated_value": 499.0,
+        "buyer_score": 75.0,
+        "opportunity_score": 70.0
+    }
+    res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+    assert res["status"] == "SKIPPED"
+    assert "below commercial floor" in res["reason"].lower() or "500" in res["reason"]
+    assert orch.current_state == ProspectState.SKIPPED
+    assert orch.stats["prospects_skipped"] == 1
+
+
+@pytest.mark.asyncio
+async def test_commercial_qualification_500_proceeds():
+    """Requirement (b): Proves that a prospect estimated at exactly $500 can proceed."""
+    orch = RevenueAgentOrchestrator()
+    prospect_data = {
+        "name": "Benchmark Plumbing",
+        "domain": "benchmarkplumbing.test",
+        "email": "service@benchmarkplumbing.test",
+        "phone": "+1-512-555-0500",
+        "estimated_value": 500.0,
+        "buyer_score": 80.0,
+        "opportunity_score": 75.0
+    }
+    res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+    assert res["status"] == "CONTACTED"
+    assert res["channel"] == "EMAIL"
+    assert orch.current_state == ProspectState.WAITING_RESPONSE
+    assert orch.stats["contacts_attempted"] == 1
+
+
+@pytest.mark.asyncio
+async def test_commercial_qualification_750_proceeds_autonomously_without_approval():
+    """Requirement (c): Proves that a $750 prospect proceeds autonomously without approval."""
+    orch = RevenueAgentOrchestrator()
+    prospect_data = {
+        "name": "Apex Commercial Roofing",
+        "domain": "apexroofing.test",
+        "email": "quotes@apexroofing.test",
+        "phone": "+1-512-555-0750",
+        "estimated_value": 750.0,
+        "buyer_score": 90.0,
+        "opportunity_score": 85.0
+    }
+    res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+    assert res["status"] == "CONTACTED"
+    assert orch.current_state == ProspectState.WAITING_RESPONSE
+    assert res["channel"] in ("EMAIL", "VOICE")
+
+
+@pytest.mark.asyncio
+async def test_no_approval_queue_state_blocks_eligible_outreach():
+    """Requirement (d): Proves that no approval_queue state blocks eligible outreach."""
+    orch = RevenueAgentOrchestrator()
+    prospect_data = {
+        "name": "Capital Dental Care",
+        "domain": "capitaldental.test",
+        "email": "office@capitaldental.test",
+        "phone": "+1-512-555-0800",
+        "estimated_value": 850.0,
+        "buyer_score": 85.0,
+        "opportunity_score": 80.0
+    }
+    res = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+    # Status must NOT be HELD_FOR_APPROVAL or PENDING_APPROVAL
+    assert res["status"] != "HELD_FOR_APPROVAL"
+    assert res["status"] == "CONTACTED"
+    assert orch.current_state != ProspectState.OUTREACH_PENDING
+    assert orch.current_state == ProspectState.WAITING_RESPONSE
+
+
+@pytest.mark.asyncio
+async def test_generated_commercial_offers_never_below_500():
+    """Requirement (e): Proves that all packages and generated offers never fall below $500."""
+    from app.offers.generator import SERVICE_PACKAGES, offer_engine
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import Business, AuditRun
+
+    # 1. Verify all static packages have base_min >= 500.0
+    for pkg_name, pkg in SERVICE_PACKAGES.items():
+        assert pkg["base_min"] >= 500.0, f"Package {pkg_name} has base_min {pkg['base_min']} < $500"
+        assert pkg["recommended"] >= 500.0, f"Package {pkg_name} has recommended {pkg['recommended']} < $500"
+
+    # 2. Verify dynamically generated offer respects $500 floor
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    async with AsyncSessionLocal() as session:
+        biz = Business(
+            name="Floor Test Business",
+            domain=f"floortest-{uid}.test",
+            website_url=f"https://floortest-{uid}.test",
+            country="US",
+            niche="contractors",
+            public_email=f"test@{uid}.test"
+        )
+        session.add(biz)
+        await session.commit()
+        await session.refresh(biz)
+
+        audit = AuditRun(
+            business_id=biz.id,
+            url_audited="https://floortest.test",
+            overall_health_score=45.0,
+            performance_score=40.0,
+            seo_score=50.0,
+            a11y_score=45.0,
+            ux_conversion_score=40.0
+        )
+        session.add(audit)
+        await session.commit()
+
+        offer = await offer_engine.generate_offer_for_business(session, biz)
+        assert offer.suggested_price_min >= 500.0
+        assert offer.recommended_price >= 500.0
+
+
+@pytest.mark.asyncio
+async def test_safety_gates_kill_switch_and_human_takeover():
+    """Requirement (f): Proves existing safety gates (kill switch and human takeover) still work."""
+    from app.core.config import settings
+
+    orch = RevenueAgentOrchestrator()
+    prospect_data = {
+        "name": "Safety Test Business",
+        "domain": "safetytest.test",
+        "email": "test@safetytest.test",
+        "phone": "+1-512-555-0999",
+        "estimated_value": 750.0,
+        "buyer_score": 85.0,
+        "opportunity_score": 80.0
+    }
+
+    # 1. Kill Switch
+    original_enabled = settings.AUTONOMOUS_AGENT_ENABLED
+    try:
+        settings.AUTONOMOUS_AGENT_ENABLED = False
+        res_killed = await orch.step_single_prospect(prospect_data, commercial_floor=500.0)
+        assert res_killed["status"] == "KILLED"
+        assert orch.current_state == ProspectState.OUTREACH_PENDING
+    finally:
+        settings.AUTONOMOUS_AGENT_ENABLED = original_enabled
+
+    # 2. Human Takeover
+    prospect_with_takeover = dict(prospect_data)
+    prospect_with_takeover["human_takeover"] = True
+    res_takeover = await orch.step_single_prospect(prospect_with_takeover, commercial_floor=500.0)
+    assert res_takeover["status"] == "HUMAN_TAKEOVER"
+    assert orch.current_state == ProspectState.OUTREACH_PENDING
+

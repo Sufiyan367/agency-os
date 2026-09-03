@@ -9,7 +9,7 @@ SERVICE_PACKAGES = {
     "CONVERSION_REMEDIATION": {
         "title": "Mobile Conversion & Inquiry Engine Turnaround",
         "service_type": "Conversion Rate Optimization",
-        "base_min": 450.0,
+        "base_min": 500.0,
         "base_max": 850.0,
         "recommended": 650.0,
         "days": 5,
@@ -39,9 +39,9 @@ SERVICE_PACKAGES = {
     "PERFORMANCE_SPEED": {
         "title": "Core Web Vitals & Load Speed Acceleration",
         "service_type": "Performance Optimization",
-        "base_min": 400.0,
-        "base_max": 750.0,
-        "recommended": 550.0,
+        "base_min": 500.0,
+        "base_max": 850.0,
+        "recommended": 650.0,
         "days": 4,
         "deliverables": [
             "Script deferral and render-blocking JavaScript/CSS optimization",
@@ -54,9 +54,9 @@ SERVICE_PACKAGES = {
     "ACCESSIBILITY_COMPLIANCE": {
         "title": "ADA & WCAG 2.1 AA Accessibility Remediation",
         "service_type": "Accessibility Remediation",
-        "base_min": 450.0,
+        "base_min": 500.0,
         "base_max": 900.0,
-        "recommended": 680.0,
+        "recommended": 700.0,
         "days": 5,
         "deliverables": [
             "Full alt text remediation across all informational and gallery images",
@@ -132,6 +132,11 @@ class OfferEngine:
             f"{', '.join(pkg['deliverables'][:2])}."
         )
 
+        price_floor = max(getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0), 500.0)
+        p_min = max(pkg["base_min"], price_floor)
+        p_max = max(pkg["base_max"], p_min)
+        p_rec = max(pkg["recommended"], p_min)
+
         if not offer:
             offer = Offer(
                 business_id=business.id,
@@ -139,9 +144,9 @@ class OfferEngine:
                 title=pkg["title"],
                 scope_description=scope_desc,
                 deliverables=pkg["deliverables"],
-                suggested_price_min=pkg["base_min"],
-                suggested_price_max=pkg["base_max"],
-                recommended_price=pkg["recommended"],
+                suggested_price_min=p_min,
+                suggested_price_max=p_max,
+                recommended_price=p_rec,
                 estimated_delivery_days=pkg["days"],
                 value_proposition=pkg["value_prop"]
             )
@@ -151,9 +156,9 @@ class OfferEngine:
             offer.title = pkg["title"]
             offer.scope_description = scope_desc
             offer.deliverables = pkg["deliverables"]
-            offer.suggested_price_min = pkg["base_min"]
-            offer.suggested_price_max = pkg["base_max"]
-            offer.recommended_price = pkg["recommended"]
+            offer.suggested_price_min = p_min
+            offer.suggested_price_max = p_max
+            offer.recommended_price = p_rec
             offer.estimated_delivery_days = pkg["days"]
             offer.value_proposition = pkg["value_prop"]
 

@@ -120,8 +120,8 @@ class AutonomousCycleOrchestrator:
 
             cycle_summary["leads_scored"] = scored_count
 
-            # 5. Service Recommendation & Commercial Offer Generation
-            logger.info("Step 5: Synthesizing customized commercial packages & offers ($450-$1,500+)...")
+            # 5. Service Recommendation & Commercial Offer Generation ($500+ Minimum)
+            logger.info("Step 5: Synthesizing customized commercial packages & offers ($500-$1,500+)...")
             qualified_q = select(Business).where(
                 Business.pipeline_stage == PipelineStage.QUALIFIED.value
             )
@@ -138,10 +138,10 @@ class AutonomousCycleOrchestrator:
 
             cycle_summary["offers_generated"] = offers_count
 
-            # 6. Personalized Outreach Drafting -> Approval Queue
-            logger.info("Step 6: Generating evidence-grounded outreach messages for approval queue...")
+            # 6. Autonomous Personalized Outreach Drafting (Auto-Approved for $500+ Eligible Prospects)
+            logger.info("Step 6: Generating evidence-grounded autonomous outreach messages ($500+)...")
             ready_outreach_q = select(Business).where(
-                Business.pipeline_stage == PipelineStage.QUALIFIED.value,
+                Business.pipeline_stage.in_([PipelineStage.QUALIFIED.value, PipelineStage.OUTREACH_READY.value]),
                 Business.public_email != None
             )
             candidates = list((await session.execute(ready_outreach_q)).scalars().all())
@@ -149,15 +149,15 @@ class AutonomousCycleOrchestrator:
 
             for biz in candidates:
                 try:
-                    await outreach_personalizer.prepare_outreach_for_business(session, biz)
+                    await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=True)
                     drafted_count += 1
                 except Exception as e:
                     logger.warning(f"Outreach prep note for {biz.domain}: {e}")
 
-            cycle_summary["outreach_queued_for_approval"] = drafted_count
+            cycle_summary["outreach_prepared"] = drafted_count
 
-            # 7. Process Any Previously Approved Outreach
-            logger.info("Step 7: Processing human-approved outreach messages...")
+            # 7. Autonomous Outreach Execution (Direct Dispatch Without Approval Gating)
+            logger.info("Step 7: Dispatching autonomous outreach messages ($500+)...")
             approved_q = select(OutreachMessage).where(
                 OutreachMessage.status == OutreachStatus.APPROVED.value
             )
@@ -172,7 +172,7 @@ class AutonomousCycleOrchestrator:
                     logger.error(f"Send failed for message {a_msg.id}: {e}")
                     failed_count += 1
 
-            cycle_summary["approved_outreach_sent"] = sent_count
+            cycle_summary["autonomous_outreach_sent"] = sent_count
 
             # 8. Follow-up Cadence Check
             logger.info("Step 8: Checking scheduled follow-up cadences...")

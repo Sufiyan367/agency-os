@@ -243,6 +243,7 @@ class RevenueAgentOrchestrator:
         self._record_transition(b_name, ProspectState.AUDIT, dec_score.target_state, dec_score.reason, dec_score.confidence)
 
         if dec_score.target_state == ProspectState.SKIPPED:
+            self.current_state = ProspectState.SKIPPED
             self.stats["prospects_skipped"] += 1
             await self._persist_stage(candidate_data, "REJECTED")
             return {"status": "SKIPPED", "reason": dec_score.reason}
@@ -291,23 +292,32 @@ class RevenueAgentOrchestrator:
                 await self._persist_stage(candidate_data, "APPROVAL")
                 return {"status": "LIMIT_REACHED", "reason": "DAILY_LIMIT_EXCEEDED"}
 
-        # Safety Gate Check: Autonomous outreach disabled by default
-        auto_outreach = getattr(settings, "AUTONOMOUS_OUTREACH", False)
-        agent_enabled = getattr(settings, "AUTONOMOUS_AGENT_ENABLED", False)
-
-        if not auto_outreach or not agent_enabled:
+        # Safety Gate Check: Emergency Kill Switch & Human Takeover
+        if getattr(settings, "AUTONOMOUS_AGENT_ENABLED", True) is False:
             self.current_state = ProspectState.OUTREACH_PENDING
             self._record_transition(
                 b_name,
                 ProspectState.OUTREACH_PREP,
                 ProspectState.OUTREACH_PENDING,
-                "Safety Gate: Held in OUTREACH_PENDING awaiting operator approval.",
+                "Emergency Kill Switch Active: Autonomous outreach halted.",
                 1.0
             )
             await self._persist_stage(candidate_data, "APPROVAL")
-            self.stats["prospects_processed"] += 1
-            return {"status": "HELD_FOR_APPROVAL", "channel": route.channel.value, "prospect": b_name}
+            return {"status": "KILLED", "channel": route.channel.value, "prospect": b_name}
 
+        if candidate_data.get("human_takeover", False):
+            self.current_state = ProspectState.OUTREACH_PENDING
+            self._record_transition(
+                b_name,
+                ProspectState.OUTREACH_PREP,
+                ProspectState.OUTREACH_PENDING,
+                "Human Takeover Active: Operator intervention requested.",
+                1.0
+            )
+            await self._persist_stage(candidate_data, "APPROVAL")
+            return {"status": "HUMAN_TAKEOVER", "channel": route.channel.value, "prospect": b_name}
+
+        # Eligible prospects ($500+) proceed autonomously to outreach without human approval queue!
         # 7. Execute Outreach with Retry Policy (DRY RUN SAFE)
         async def _dispatch():
             if route.channel == ChannelType.EMAIL:

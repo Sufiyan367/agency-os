@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.database.models import Business, AuditRun, AuditFinding, Offer, OutreachMessage, OutreachStatus, LeadScore
+from app.database.models import Business, AuditRun, AuditFinding, Offer, OutreachMessage, OutreachStatus, LeadScore, PipelineStage
 from app.core.config import settings
 from app.core.llm import llm_client
 from app.outreach.compliance import compliance_guard
@@ -73,7 +73,11 @@ class OutreachPersonalizer:
         ]
 
     async def prepare_outreach_for_business(
-        self, session: AsyncSession, business: Business, selected_variant: int = 0
+        self,
+        session: AsyncSession,
+        business: Business,
+        selected_variant: int = 0,
+        auto_approve: bool = False
     ) -> OutreachMessage:
         if not business.public_email:
             raise ValueError(f"Cannot generate outreach: {business.name} has no public contact email.")
@@ -95,16 +99,22 @@ class OutreachPersonalizer:
         if not offer:
             raise ValueError(f"Business {business.id} has no generated offer.")
 
+        offer_price = getattr(offer, "recommended_price", 500.0) or 500.0
+        if offer_price < 500.0:
+            raise ValueError(f"Cannot prepare outreach: Offer value (${offer_price:.0f}) is below the $500 commercial floor.")
+
         variants = self.generate_message_variants(business, audit, findings, offer)
         chosen = variants[min(selected_variant, len(variants) - 1)]
 
         # Append compliance footer
         full_body = chosen["body"] + compliance_guard.format_compliance_footer(business.name, business.public_email)
 
+        target_status = OutreachStatus.APPROVED.value if auto_approve else OutreachStatus.PENDING_APPROVAL.value
+
         # Check if outreach already prepared
         existing_q = select(OutreachMessage).where(
             OutreachMessage.business_id == business.id,
-            OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value
+            OutreachMessage.status.in_([OutreachStatus.PENDING_APPROVAL.value, OutreachStatus.APPROVED.value])
         )
         msg = (await session.execute(existing_q)).scalars().first()
 
@@ -116,7 +126,7 @@ class OutreachPersonalizer:
                 subject=chosen["subject"],
                 body=full_body,
                 variant_name=chosen["variant"],
-                status=OutreachStatus.PENDING_APPROVAL.value,
+                status=target_status,
                 confidence=0.92
             )
             session.add(msg)
@@ -124,7 +134,9 @@ class OutreachPersonalizer:
             msg.subject = chosen["subject"]
             msg.body = full_body
             msg.variant_name = chosen["variant"]
+            msg.status = target_status
 
+        business.pipeline_stage = PipelineStage.OUTREACH_READY.value if auto_approve else PipelineStage.APPROVAL.value
         await session.commit()
         return msg
 
