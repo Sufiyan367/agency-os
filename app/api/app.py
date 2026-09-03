@@ -61,6 +61,8 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR) if os.path.exists(TEMPLATES
 
 # Include API endpoints
 app.include_router(router)
+from app.api.local_lead_routes import router as local_lead_router
+app.include_router(local_lead_router)
 
 @app.get("/login", response_class=HTMLResponse)
 async def serve_login(request: Request):
