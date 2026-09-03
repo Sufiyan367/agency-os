@@ -123,7 +123,7 @@ class MockProspectProvider(BaseProspectProvider, BaseLeadDiscoveryProvider):
 
         for i, t in enumerate(mock_templates[:limit], 1):
             b_name = f"{city} {t['prefix']} {niche.upper()} {t['suffix']}"
-            dom = f"{city.lower()}{t['prefix'].lower()}{niche.lower()}.example.com"
+            dom = f"{city.lower()}{t['prefix'].lower()}{niche.lower()}.com"
             is_large = t["scale"] == "large"
             is_tiny = t["scale"] == "tiny"
 

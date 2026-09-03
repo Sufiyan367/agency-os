@@ -430,8 +430,139 @@
             </div>
         </section>
 
-        <!-- View 2: Markets Radar -->
+        <!-- View 2: Markets Radar & Autonomous Prospecting Surface -->
         <section id="view-markets" class="view-container">
+            <!-- Prospecting Control Surface Card -->
+            <div class="panel-card" style="margin-bottom: 20px;">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <h2 class="panel-title">Autonomous Prospecting Engine</h2>
+                        <span class="panel-tag">Canonical Control Surface</span>
+                    </div>
+                    <div id="prospecting-status-pill">
+                        <span class="badge badge-cyan" id="job-status-badge">IDLE</span>
+                    </div>
+                </div>
+
+                <!-- Configurable Targeting Form -->
+                <form id="prospecting-form" onsubmit="handleRunProspectingCycle(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:16px;">
+                        <!-- Countries -->
+                        <div>
+                            <label style="display:block; font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px;">
+                                Target Countries (Global)
+                            </label>
+                            <div id="target-countries-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="US" checked> <span>US</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="UK" checked> <span>UK</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="CA" checked> <span>Canada</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="AU" checked> <span>Australia</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="AE" checked> <span>UAE</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="country" value="SA" checked> <span>Saudi Arabia</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Niches -->
+                        <div>
+                            <label style="display:block; font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px;">
+                                Target Niches
+                            </label>
+                            <div id="target-niches-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Roofing" checked> <span>Roofing</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="HVAC" checked> <span>HVAC</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Plumbing" checked> <span>Plumbing</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Commercial Cleaning" checked> <span>Cleaning</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Solar" checked> <span>Solar</span></label>
+                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Dental" checked> <span>Dental</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:12px; align-items:flex-end;">
+                        <div>
+                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
+                                Cities / Metropolitan Areas
+                            </label>
+                            <input type="text" id="target-cities-input" class="form-control" value="Houston, Dallas, London, Toronto, Sydney, Riyadh" placeholder="e.g. Austin, London, Dubai" required>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
+                                Min Deal Value ($)
+                            </label>
+                            <input type="number" id="target-min-value-input" class="form-control" min="500" step="50" value="500" required>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
+                                Max Results / City
+                            </label>
+                            <input type="number" id="target-max-prospects-input" class="form-control" min="1" max="100" value="10" required>
+                        </div>
+                        <div>
+                            <button type="submit" id="btn-run-prospecting" class="btn btn-primary" style="height:38px; padding:0 20px; white-space:nowrap; display:flex; align-items:center; gap:8px;">
+                                <span id="run-btn-icon">⚡</span>
+                                <span id="run-btn-text">Run Prospecting Cycle</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Live Progress Display (Revealed during/after cycle) -->
+                <div id="prospecting-progress-panel" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-subtle); display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="font-size:0.85rem; font-weight:700; color:var(--text-white); display:flex; align-items:center; gap:8px;">
+                            <span>Live Progress Monitor</span>
+                            <span id="job-active-indicator" class="pulse-dot" style="display:none;"></span>
+                        </div>
+                        <div id="job-time-elapsed" style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">Status: Monitoring</div>
+                    </div>
+
+                    <!-- 7 Live Metrics Cards -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:14px;">
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Markets Searched</span>
+                            <div class="kpi-value" id="prog-markets-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" id="prog-current-market" style="font-size:0.65rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">-</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">In Progress</span>
+                            <div class="kpi-value" id="prog-current-niche" style="font-size:0.95rem; color:var(--hud-cyan-bright); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">Ready</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">Active Sector</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Discovered</span>
+                            <div class="kpi-value" id="prog-discovered-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">Raw Candidates</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Duplicates Rejected</span>
+                            <div class="kpi-value highlight-amber" id="prog-duplicates-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">Deduplicated</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Junk Rejected</span>
+                            <div class="kpi-value highlight-crimson" id="prog-junk-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">Directories / Parked</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Passed $500+</span>
+                            <div class="kpi-value highlight-emerald" id="prog-passing-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">Commercial Floor</span>
+                        </div>
+                        <div class="kpi-card" style="padding:10px;">
+                            <span class="kpi-label" style="font-size:0.68rem;">Prospects Saved</span>
+                            <div class="kpi-value highlight-cyan" id="prog-saved-count" style="font-size:1.15rem;">0</div>
+                            <span class="kpi-sub" style="font-size:0.65rem;">In Database</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Message Log -->
+                    <div style="background:rgba(15,23,42,0.7); border:1px solid var(--border-subtle); border-radius:6px; padding:8px 12px; font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+                        <span style="color:var(--hud-cyan-bright); font-weight:700;">LIVE LOG:</span>
+                        <span id="prog-message-ticker" style="font-family:var(--font-mono); color:var(--text-white);">Waiting for cycle initiation...</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="panel-card">
                 <div class="panel-header">
                     <div class="panel-title-wrap">

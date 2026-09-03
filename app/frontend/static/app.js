@@ -331,8 +331,206 @@ async function loadMarkets() {
             `;
             tbody.appendChild(tr);
         });
+
+        // Also check if a prospecting cycle is currently running or completed
+        pollProspectingStatus(false);
     } catch (e) {
         console.error('Error loading markets:', e);
+    }
+}
+
+// ==============================================================================
+// Autonomous Prospecting Engine Controller (Dashboard Canonical Surface)
+// ==============================================================================
+let prospectingPollInterval = null;
+
+async function handleRunProspectingCycle(event) {
+    if (event) event.preventDefault();
+
+    // 1. Gather selected countries
+    const countryCheckboxes = document.querySelectorAll('input[name="country"]:checked');
+    const selectedCountries = Array.from(countryCheckboxes).map(cb => cb.value);
+    if (selectedCountries.length === 0) {
+        alert('Please select at least one target country.');
+        return;
+    }
+
+    // 2. Gather selected niches
+    const nicheCheckboxes = document.querySelectorAll('input[name="niche"]:checked');
+    const selectedNiches = Array.from(nicheCheckboxes).map(cb => cb.value);
+    if (selectedNiches.length === 0) {
+        alert('Please select at least one target niche.');
+        return;
+    }
+
+    // 3. Gather cities, min value, and max results
+    const citiesInput = document.getElementById('target-cities-input').value.trim();
+    const cities = citiesInput ? citiesInput.split(',').map(c => c.trim()).filter(Boolean) : [];
+    if (cities.length === 0) {
+        alert('Please enter at least one city or metropolitan area.');
+        return;
+    }
+
+    const minVal = parseFloat(document.getElementById('target-min-value-input').value) || 500.0;
+    if (minVal < 500) {
+        alert('Commercial Minimum Floor: Total estimated value must be at least $500+.');
+        return;
+    }
+
+    const maxResults = parseInt(document.getElementById('target-max-prospects-input').value) || 10;
+
+    const btn = document.getElementById('btn-run-prospecting');
+    const btnIcon = document.getElementById('run-btn-icon');
+    const btnText = document.getElementById('run-btn-text');
+
+    if (btn) btn.disabled = true;
+    if (btnIcon) btnIcon.textContent = '⏳';
+    if (btnText) btnText.textContent = 'Queueing Cycle...';
+
+    try {
+        const res = await fetch('/api/prospecting/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                countries: selectedCountries,
+                cities: cities,
+                niches: selectedNiches,
+                min_service_value: minVal,
+                max_prospects: maxResults,
+                provider: 'real'
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Could not start prospecting cycle: ${data.detail || 'Server error'}`);
+            if (btn) btn.disabled = false;
+            if (btnIcon) btnIcon.textContent = '⚡';
+            if (btnText) btnText.textContent = 'Run Prospecting Cycle';
+            return;
+        }
+
+        // Reveal Progress Panel and begin polling
+        const panel = document.getElementById('prospecting-progress-panel');
+        if (panel) panel.style.display = 'block';
+
+        pollProspectingStatus(true);
+    } catch (e) {
+        console.error('Error starting prospecting cycle:', e);
+        alert('Failed to connect to backend prospecting engine: ' + e.message);
+        if (btn) btn.disabled = false;
+        if (btnIcon) btnIcon.textContent = '⚡';
+        if (btnText) btnText.textContent = 'Run Prospecting Cycle';
+    }
+}
+
+async function pollProspectingStatus(userTriggered = false) {
+    if (prospectingPollInterval) {
+        clearInterval(prospectingPollInterval);
+        prospectingPollInterval = null;
+    }
+
+    async function checkStatus() {
+        try {
+            const res = await fetch('/api/prospecting/status');
+            const data = await res.json();
+            updateProspectingUI(data);
+
+            if (data.status === 'COMPLETED' || data.status === 'FAILED' || data.status === 'IDLE') {
+                if (prospectingPollInterval) {
+                    clearInterval(prospectingPollInterval);
+                    prospectingPollInterval = null;
+                }
+
+                // When complete, automatically refresh Target Prospects and Overview metrics!
+                if (data.status === 'COMPLETED') {
+                    if (typeof loadDashboardData === 'function') loadDashboardData();
+                    if (typeof loadLeads === 'function') loadLeads();
+                }
+            }
+        } catch (e) {
+            console.debug('Error polling prospecting status:', e);
+        }
+    }
+
+    // Run immediate check
+    await checkStatus();
+
+    // Start interval if status warrants monitoring
+    prospectingPollInterval = setInterval(checkStatus, 1500);
+}
+
+function updateProspectingUI(data) {
+    const status = data.status || 'IDLE';
+    const statusBadge = document.getElementById('job-status-badge');
+    const activeIndicator = document.getElementById('job-active-indicator');
+    const panel = document.getElementById('prospecting-progress-panel');
+    const btn = document.getElementById('btn-run-prospecting');
+    const btnIcon = document.getElementById('run-btn-icon');
+    const btnText = document.getElementById('run-btn-text');
+    const elapsedLabel = document.getElementById('job-time-elapsed');
+
+    if (statusBadge) {
+        statusBadge.textContent = status;
+        statusBadge.className = 'badge';
+        if (status === 'RUNNING') statusBadge.classList.add('badge-cyan');
+        else if (status === 'QUEUED') statusBadge.classList.add('badge-amber');
+        else if (status === 'COMPLETED') statusBadge.classList.add('badge-emerald');
+        else if (status === 'FAILED') statusBadge.classList.add('badge-crimson');
+        else statusBadge.classList.add('badge-cyan');
+    }
+
+    if (status === 'RUNNING' || status === 'QUEUED') {
+        if (panel) panel.style.display = 'block';
+        if (activeIndicator) activeIndicator.style.display = 'inline-block';
+        if (btn) btn.disabled = true;
+        if (btnIcon) btnIcon.textContent = '🔄';
+        if (btnText) btnText.textContent = status === 'QUEUED' ? 'Queued...' : 'Prospecting Active...';
+        if (elapsedLabel && data.started_at) {
+            const secs = Math.round((new Date() - new Date(data.started_at)) / 1000);
+            elapsedLabel.textContent = `Running: ${secs}s`;
+        }
+    } else {
+        if (activeIndicator) activeIndicator.style.display = 'none';
+        if (btn) btn.disabled = false;
+        if (btnIcon) btnIcon.textContent = '⚡';
+        if (btnText) btnText.textContent = 'Run Prospecting Cycle';
+        if (status === 'COMPLETED' && data.summary) {
+            if (elapsedLabel) elapsedLabel.textContent = `Finished in ${data.summary.duration_seconds}s`;
+        } else if (status === 'FAILED') {
+            if (elapsedLabel) elapsedLabel.textContent = 'Failed';
+        }
+    }
+
+    // Update Progress Counters
+    const prog = data.progress || {};
+    const marketsCount = document.getElementById('prog-markets-count');
+    const currentMarket = document.getElementById('prog-current-market');
+    const currentNiche = document.getElementById('prog-current-niche');
+    const discoveredCount = document.getElementById('prog-discovered-count');
+    const duplicatesCount = document.getElementById('prog-duplicates-count');
+    const junkCount = document.getElementById('prog-junk-count');
+    const passingCount = document.getElementById('prog-passing-count');
+    const savedCount = document.getElementById('prog-saved-count');
+    const messageTicker = document.getElementById('prog-message-ticker');
+
+    if (marketsCount) marketsCount.textContent = (prog.markets_being_searched && prog.markets_being_searched.length) || 0;
+    if (currentMarket) currentMarket.textContent = (prog.markets_being_searched && prog.markets_being_searched[0]) || '-';
+    if (currentNiche) currentNiche.textContent = prog.current_city_niche || (status === 'COMPLETED' ? 'Done' : 'Standby');
+    if (discoveredCount) discoveredCount.textContent = prog.prospects_discovered || 0;
+    if (duplicatesCount) duplicatesCount.textContent = prog.duplicates_rejected || 0;
+    if (junkCount) junkCount.textContent = prog.junk_rejected || 0;
+    if (passingCount) passingCount.textContent = prog.prospects_passing_500 || 0;
+    if (savedCount) savedCount.textContent = prog.prospects_saved || 0;
+    if (messageTicker) {
+        messageTicker.textContent = data.error_message || prog.message || 'Waiting for cycle initiation...';
+        if (status === 'FAILED') {
+            messageTicker.style.color = '#fb7185';
+        } else if (status === 'COMPLETED') {
+            messageTicker.style.color = '#34d399';
+        } else {
+            messageTicker.style.color = 'var(--text-white)';
+        }
     }
 }
 

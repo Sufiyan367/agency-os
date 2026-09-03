@@ -7,7 +7,7 @@ Operates safely in local DRY-RUN mode (NO automated emails dispatched).
 Executes:
   Discovery -> Normalization -> Deduplication -> Quality Filtering ->
   Website Auditing -> Buyer Scoring -> Opportunity Scoring ->
-  $1,000+ Commercial Qualification -> Database Persistence -> Output Report
+  $500+ Commercial Qualification -> Database Persistence -> Output Report
 ==============================================================================
 """
 
@@ -127,7 +127,7 @@ async def run_prospecting_cycle(
     print("QUALIFIED:")
     print(f"{qualified_count}")
     print("")
-    print("$1,000+ prospects:")
+    print("$500+ prospects:")
     print(f"{thousand_plus_count}")
     print("")
     print("TOP PROSPECTS:")

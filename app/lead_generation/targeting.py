@@ -41,6 +41,7 @@ class TargetingConfig(BaseModel):
     filters: TargetingFilters = Field(default_factory=TargetingFilters)
     commercial: CommercialConfig = Field(default_factory=CommercialConfig)
     # Global multi-market support
+    target_countries: List[str] = Field(default_factory=list)
     available_countries: List[CountryConfig] = Field(default_factory=list)
     available_niches: List[NicheConfig] = Field(default_factory=list)
 

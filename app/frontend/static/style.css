@@ -1157,3 +1157,46 @@ body {
   height: 18px;
   accent-color: var(--hud-cyan-bright);
 }
+
+/* Checkbox Tag Buttons & Live Pulse Indicator */
+.checkbox-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+.checkbox-tag:hover {
+  border-color: var(--hud-cyan-bright);
+  background: rgba(56, 189, 248, 0.1);
+}
+.checkbox-tag input[type="checkbox"] {
+  accent-color: var(--hud-cyan-bright);
+  cursor: pointer;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #38bdf8;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+.highlight-amber {
+  color: #fbbf24 !important;
+}
+.highlight-crimson {
+  color: #fb7185 !important;
+}

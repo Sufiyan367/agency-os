@@ -1,6 +1,7 @@
 import re
 import logging
-from typing import List, Tuple, Set, Optional, Dict, Any
+import inspect
+from typing import List, Tuple, Set, Optional, Dict, Any, Callable, Awaitable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -130,33 +131,59 @@ class LeadDiscoveryService:
         clean = re.sub(r"[^a-zA-Z0-9\s]", "", name.lower())
         return " ".join(clean.split())
 
+    @staticmethod
+    async def _notify(callback: Optional[Callable[[Dict[str, Any]], Any]], data: Dict[str, Any]):
+        if not callback:
+            return
+        try:
+            res = callback(data)
+            if inspect.isawaitable(res):
+                await res
+        except Exception as e:
+            logger.debug(f"Progress notification error: {e}")
+
     async def discover_and_process(
         self,
         targeting: TargetingConfig,
         db: AsyncSession,
-        check_existing_db: bool = True
+        check_existing_db: bool = True,
+        progress_callback: Optional[Callable[[Dict[str, Any]], Any]] = None
     ) -> Tuple[List[LocalBusiness], DiscoveryStats]:
         """
         Executes discovery from provider, deduplicates across domain/phone/name,
-        filters junk/directories, evaluates High-Value Buyer Score & $1,000+ valuation, and persists.
+        filters junk/directories, evaluates High-Value Buyer Score & $500+ valuation, and persists.
         """
+        target_countries = getattr(targeting, "target_countries", None) or [targeting.country_code]
         if hasattr(self.provider, "discover_businesses"):
             raw_candidates = await self.provider.discover_businesses(targeting)
         elif hasattr(self.provider, "discover_prospects"):
             raw_candidates = []
-            for city in targeting.cities:
-                for niche in targeting.niches:
-                    res = await self.provider.discover_prospects(
-                        country=targeting.country_code,
-                        city=city,
-                        niche=niche,
-                        limit=targeting.filters.target_results_per_city
-                    )
-                    raw_candidates.extend(res)
+            for c_code in target_countries:
+                for city in targeting.cities:
+                    for niche in targeting.niches:
+                        await self._notify(progress_callback, {
+                            "stage": "SEARCHING",
+                            "market": f"{c_code} - {city}",
+                            "niche": niche,
+                            "markets_being_searched": [f"{c} - {ct}" for c in target_countries for ct in targeting.cities],
+                            "message": f"Querying verified registries for {niche} in {city}, {c_code}..."
+                        })
+                        res = await self.provider.discover_prospects(
+                            country=c_code,
+                            city=city,
+                            niche=niche,
+                            limit=targeting.filters.target_results_per_city
+                        )
+                        raw_candidates.extend(res)
         else:
             raw_candidates = []
 
         total_discovered = len(raw_candidates)
+        await self._notify(progress_callback, {
+            "stage": "DISCOVERED",
+            "prospects_discovered": total_discovered,
+            "message": f"Discovered {total_discovered} raw commercial candidate records."
+        })
         scorer = HighValueBuyerScorer(targeting.commercial)
 
         seen_domains: Set[str] = set()
@@ -204,6 +231,15 @@ class LeadDiscoveryService:
                 invalid_rejected += 1
                 r_key = reject_reason.value
                 rejection_reasons[r_key] = rejection_reasons.get(r_key, 0) + 1
+                await self._notify(progress_callback, {
+                    "stage": "FILTERING",
+                    "prospects_discovered": total_discovered,
+                    "duplicates_rejected": duplicates_removed,
+                    "junk_rejected": invalid_rejected,
+                    "prospects_passing_500": thousand_plus_count,
+                    "prospects_saved": len(valid_prospects),
+                    "message": f"Rejected non-commercial / aggregator: {norm_dom or candidate.business_name}"
+                })
                 continue
 
             # 2. Multi-Vector Deduplication
@@ -222,6 +258,15 @@ class LeadDiscoveryService:
             if is_duplicate:
                 duplicates_removed += 1
                 rejection_reasons[dup_reason] = rejection_reasons.get(dup_reason, 0) + 1
+                await self._notify(progress_callback, {
+                    "stage": "FILTERING",
+                    "prospects_discovered": total_discovered,
+                    "duplicates_rejected": duplicates_removed,
+                    "junk_rejected": invalid_rejected,
+                    "prospects_passing_500": thousand_plus_count,
+                    "prospects_saved": len(valid_prospects),
+                    "message": f"Rejected duplicate: {candidate.business_name}"
+                })
                 continue
 
             # 3. Basic Targeting Filter Checks
@@ -421,6 +466,16 @@ class LeadDiscoveryService:
                     ))
 
             valid_prospects.append(biz)
+            await self._notify(progress_callback, {
+                "stage": "PROSPECT_SAVED",
+                "current_candidate": candidate.business_name,
+                "prospects_discovered": total_discovered,
+                "duplicates_rejected": duplicates_removed,
+                "junk_rejected": invalid_rejected,
+                "prospects_passing_500": thousand_plus_count,
+                "prospects_saved": len(valid_prospects),
+                "message": f"Qualified & saved: {candidate.business_name} (${scored.estimated_service_value.min_value:,}+ est.)"
+            })
 
         await db.commit()
 
@@ -455,4 +510,16 @@ class LeadDiscoveryService:
             f"{stats.invalid_rejected} invalid junk, {stats.five_hundred_plus_prospects} $500+ prospects, "
             f"{stats.priority_prospects} PRIORITY PROSPECTS)"
         )
+
+        await self._notify(progress_callback, {
+            "stage": "COMPLETED",
+            "prospects_discovered": stats.businesses_discovered,
+            "duplicates_rejected": stats.duplicates_removed,
+            "junk_rejected": stats.invalid_rejected,
+            "prospects_passing_500": stats.five_hundred_plus_prospects,
+            "prospects_saved": stats.valid_businesses,
+            "priority_prospects": stats.priority_prospects,
+            "message": f"Prospecting cycle completed. {stats.valid_businesses} validated prospects in pipeline."
+        })
+
         return valid_prospects, stats

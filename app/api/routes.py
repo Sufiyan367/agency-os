@@ -370,6 +370,77 @@ async def trigger_cycle():
     summary = await orchestrator.run_full_autonomous_cycle(target_leads_per_market=4, max_opportunities_to_mine=2)
     return summary
 
+# --- Canonical Autonomous Prospecting Endpoints ---
+
+class ProspectingRunRequest(BaseModel):
+    countries: Optional[List[str]] = None
+    cities: Optional[List[str]] = None
+    niches: Optional[List[str]] = None
+    min_service_value: float = 500.0
+    max_prospects: int = 20
+    provider: str = "real"
+
+@router.get("/api/prospecting/config")
+async def get_prospecting_config():
+    """Returns available countries, cities, niches and default commercial floor from configuration."""
+    from app.lead_generation.targeting import load_targeting_config
+    cfg = load_targeting_config()
+    return {
+        "available_countries": [
+            {
+                "code": c.code,
+                "name": c.name,
+                "regions": c.regions,
+                "cities": c.cities
+            } for c in cfg.available_countries
+        ],
+        "available_niches": [
+            {
+                "name": n.name,
+                "slug": n.slug,
+                "category": n.category,
+                "min_estimated_service_value": n.min_estimated_service_value
+            } for n in cfg.available_niches
+        ],
+        "defaults": {
+            "min_service_value": 500.0,
+            "max_prospects": 20,
+            "countries": [c.code for c in cfg.available_countries] if cfg.available_countries else ["US"],
+            "cities": cfg.cities,
+            "niches": cfg.niches
+        }
+    }
+
+@router.post("/api/prospecting/run")
+async def trigger_prospecting_cycle(req: ProspectingRunRequest):
+    """
+    Triggers an autonomous prospecting cycle from the Dashboard.
+    Enforces $500 minimum commercial floor and delegates to the canonical LeadDiscoveryService.
+    """
+    if req.min_service_value < 500.0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Minimum commercial value (${req.min_service_value:.2f}) cannot be less than the $500.00 floor."
+        )
+
+    from app.lead_generation.job_runner import prospecting_job_manager
+    try:
+        res = await prospecting_job_manager.start_prospecting_job(
+            targeting_params=req.model_dump(),
+            provider_type=req.provider
+        )
+        return res
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start prospecting cycle: {str(e)}")
+
+@router.get("/api/prospecting/status")
+async def get_prospecting_status(job_id: Optional[str] = None):
+    """Returns the live status and progress counters of the prospecting cycle."""
+    from app.lead_generation.job_runner import prospecting_job_manager
+    return prospecting_job_manager.get_current_status(job_id=job_id)
+
 # System Runs
 @router.get("/api/runs")
 async def get_system_runs(db: AsyncSession = Depends(get_db)):
