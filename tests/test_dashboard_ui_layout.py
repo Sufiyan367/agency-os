@@ -121,3 +121,26 @@ async def test_login_template_rendering():
             assert 'id="login-error"' in html
     finally:
         settings.AUTH_ENABLED = orig_auth
+
+@pytest.mark.asyncio
+async def test_settings_and_onboarding_ui_rendering():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/")
+        assert res.status_code == 200
+        html = res.text
+
+        # Verify Settings view and badges exist
+        assert 'id="view-settings"' in html
+        assert 'id="badge-email-status"' in html
+        assert 'id="badge-payment-status"' in html
+        assert 'id="email-settings-form"' in html
+        assert 'id="payment-settings-form"' in html
+        assert 'id="setting-live-email-toggle"' in html
+
+        # Verify Commercial Proposal modal exists
+        assert 'id="proposal-modal"' in html
+        assert 'id="prop-total-value"' in html
+        assert 'id="prop-advance-pct"' in html
+        assert 'id="prop-calc-advance"' in html
+        assert 'id="prop-calc-remaining"' in html

@@ -148,6 +148,7 @@ function switchView(viewName) {
     if (viewName === 'pipeline') loadPipeline();
     if (viewName === 'payments') loadPayments();
     if (viewName === 'runs') loadRuns();
+    if (viewName === 'settings') loadSettings();
 }
 
 async function loadDashboardMetrics() {
@@ -952,3 +953,313 @@ async function createCheckoutLink(businessId) {
         alert('Error creating checkout: ' + e);
     }
 }
+
+/* ==========================================================================
+   SETTINGS & PRODUCTION INTEGRATIONS
+   ========================================================================== */
+
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. Email Settings
+        const email = data.email || {};
+        const selProvider = document.getElementById('setting-email-provider');
+        const inpFrom = document.getElementById('setting-email-from');
+        const inpFromName = document.getElementById('setting-email-from-name');
+        const inpReplyTo = document.getElementById('setting-email-reply-to');
+        const badgeEmail = document.getElementById('badge-email-status');
+        const toggleLiveEmail = document.getElementById('setting-live-email-toggle');
+
+        if (selProvider) selProvider.value = email.provider || 'dry_run';
+        if (inpFrom) inpFrom.value = email.from_email || '';
+        if (inpFromName) inpFromName.value = email.from_name || '';
+        if (inpReplyTo) inpReplyTo.value = email.reply_to || '';
+
+        // Provider status badge
+        if (badgeEmail) {
+            const status = email.status || 'DRY RUN';
+            badgeEmail.textContent = status;
+            badgeEmail.className = 'panel-tag ' + (status === 'LIVE' ? 'badge-emerald' : status === 'CONFIGURED' ? 'badge-cyan' : 'badge-amber');
+        }
+
+        if (toggleLiveEmail) {
+            toggleLiveEmail.checked = !email.dry_run;
+        }
+
+        // Credentials masked placeholders
+        const inpResend = document.getElementById('setting-resend-key');
+        if (inpResend && email.resend_configured) inpResend.placeholder = email.resend_key_masked || 're_••••••••';
+
+        const inpSendGrid = document.getElementById('setting-sendgrid-key');
+        if (inpSendGrid && email.sendgrid_configured) inpSendGrid.placeholder = email.sendgrid_key_masked || 'SG.••••••••';
+
+        const inpSmtpHost = document.getElementById('setting-smtp-host');
+        if (inpSmtpHost) inpSmtpHost.value = email.smtp_host || '';
+
+        const inpSmtpPort = document.getElementById('setting-smtp-port');
+        if (inpSmtpPort) inpSmtpPort.value = email.smtp_port || 587;
+
+        const inpSmtpUser = document.getElementById('setting-smtp-user');
+        if (inpSmtpUser) inpSmtpUser.value = email.smtp_username || '';
+
+        const inpSmtpPass = document.getElementById('setting-smtp-pass');
+        if (inpSmtpPass && email.smtp_password_configured) inpSmtpPass.placeholder = '••••••••';
+
+        handleEmailProviderChange();
+
+        // 2. Payment Settings
+        const pay = data.payments || {};
+        const selPayMode = document.getElementById('setting-payment-mode');
+        const inpKeyId = document.getElementById('setting-razorpay-key-id');
+        const inpKeySec = document.getElementById('setting-razorpay-key-secret');
+        const selCurr = document.getElementById('setting-payment-currency');
+        const inpAdvance = document.getElementById('setting-default-advance');
+        const badgePayment = document.getElementById('badge-payment-status');
+
+        if (selPayMode) selPayMode.value = pay.mode || 'test';
+        if (inpKeyId) inpKeyId.value = pay.key_id || '';
+        if (inpKeySec && pay.key_secret_configured) inpKeySec.placeholder = pay.key_secret_masked || '••••••••';
+        if (selCurr) selCurr.value = pay.currency || 'USD';
+        if (inpAdvance) inpAdvance.value = pay.default_advance_percentage || 40;
+
+        if (badgePayment) {
+            const pStatus = pay.status || 'TEST MODE';
+            badgePayment.textContent = pStatus;
+            badgePayment.className = 'panel-tag ' + (pStatus === 'LIVE' ? 'badge-emerald' : pStatus === 'TEST MODE' ? 'badge-cyan' : 'badge-crimson');
+        }
+    } catch (e) {
+        console.error('Error loading settings:', e);
+    }
+}
+
+function handleEmailProviderChange() {
+    const sel = document.getElementById('setting-email-provider');
+    if (!sel) return;
+    const prov = sel.value;
+
+    const rowResend = document.getElementById('email-fields-resend');
+    const rowSendGrid = document.getElementById('email-fields-sendgrid');
+    const rowSmtp = document.getElementById('email-fields-smtp');
+
+    if (rowResend) rowResend.style.display = prov === 'resend' ? 'block' : 'none';
+    if (rowSendGrid) rowSendGrid.style.display = prov === 'sendgrid' ? 'block' : 'none';
+    if (rowSmtp) rowSmtp.style.display = prov === 'smtp' ? 'block' : 'none';
+}
+
+async function handleSaveEmailSettings(event) {
+    event.preventDefault();
+    try {
+        const payload = {
+            provider: document.getElementById('setting-email-provider').value,
+            from_email: document.getElementById('setting-email-from').value,
+            from_name: document.getElementById('setting-email-from-name').value,
+            reply_to: document.getElementById('setting-email-reply-to').value,
+            resend_api_key: document.getElementById('setting-resend-key')?.value || null,
+            sendgrid_api_key: document.getElementById('setting-sendgrid-key')?.value || null,
+            smtp_host: document.getElementById('setting-smtp-host')?.value || null,
+            smtp_port: parseInt(document.getElementById('setting-smtp-port')?.value || '587'),
+            smtp_username: document.getElementById('setting-smtp-user')?.value || null,
+            smtp_password: document.getElementById('setting-smtp-pass')?.value || null
+        };
+
+        const res = await fetch('/api/settings/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert('✓ Email delivery configuration saved successfully!');
+            loadSettings();
+        } else {
+            alert('Error saving email settings: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Failed to save email settings: ' + e);
+    }
+}
+
+async function handleSendTestEmail() {
+    const inp = document.getElementById('test-email-recipient');
+    const resBox = document.getElementById('test-email-result');
+    if (!inp || !inp.value) {
+        alert('Please enter a test recipient email address.');
+        return;
+    }
+    if (resBox) resBox.innerHTML = '<span style="color:var(--hud-cyan-bright);">Transmitting diagnostic verification email...</span>';
+
+    try {
+        const res = await fetch('/api/settings/email/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipient_email: inp.value.trim() })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            if (resBox) resBox.innerHTML = `<span style="color:var(--hud-emerald);">✓ Test email sent successfully via ${data.provider}! Message ID: ${data.message_id}</span>`;
+            loadSettings();
+        } else {
+            if (resBox) resBox.innerHTML = `<span style="color:var(--hud-rose);">✗ Test email failed: ${data.detail || JSON.stringify(data)}</span>`;
+        }
+    } catch (e) {
+        if (resBox) resBox.innerHTML = `<span style="color:var(--hud-rose);">✗ Error: ${e}</span>`;
+    }
+}
+
+async function handleToggleLiveEmail(enabled) {
+    if (enabled) {
+        const ok = confirm("⚠️ ENABLE LIVE EMAIL SENDING?\n\nReal outbound messages will be delivered through your configured provider upon operator approval.\n\nMandatory human approval gate remains strictly enforced.");
+        if (!ok) {
+            document.getElementById('setting-live-email-toggle').checked = false;
+            return;
+        }
+    }
+
+    try {
+        const res = await fetch('/api/settings/email/toggle-live', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: enabled })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(enabled ? "⚠️ Live email delivery ENABLED." : "✓ Returned to DRY RUN mode.");
+            loadSettings();
+        } else {
+            alert("Action Blocked by Safety Guard: " + (data.detail || JSON.stringify(data)));
+            document.getElementById('setting-live-email-toggle').checked = !enabled;
+        }
+    } catch (e) {
+        alert("Error toggling live email: " + e);
+        document.getElementById('setting-live-email-toggle').checked = !enabled;
+    }
+}
+
+async function handleSavePaymentSettings(event) {
+    event.preventDefault();
+    try {
+        const payload = {
+            mode: document.getElementById('setting-payment-mode').value,
+            key_id: document.getElementById('setting-razorpay-key-id').value,
+            key_secret: document.getElementById('setting-razorpay-key-secret').value || null,
+            currency: document.getElementById('setting-payment-currency').value,
+            default_advance_percentage: parseFloat(document.getElementById('setting-default-advance').value || '40')
+        };
+
+        const res = await fetch('/api/settings/payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert('✓ Payment gateway settings updated successfully!');
+            loadSettings();
+        } else {
+            alert('Error updating payment settings: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Failed to save payment settings: ' + e);
+    }
+}
+
+/* ==========================================================================
+   PROPOSAL CREATION & COMMERCIAL SPLIT
+   ========================================================================== */
+
+async function openCreateProposalModal() {
+    const modal = document.getElementById('proposal-modal');
+    const sel = document.getElementById('prop-business-id');
+    if (!modal || !sel) return;
+
+    sel.innerHTML = '<option value="">Loading qualified clients...</option>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch('/api/leads');
+        if (res.ok) {
+            const leads = await res.json();
+            sel.innerHTML = '';
+            if (leads.length === 0) {
+                sel.innerHTML = '<option value="1">Austin Precision HVAC Systems (Lead #1)</option>';
+            } else {
+                leads.forEach(l => {
+                    const opt = document.createElement('option');
+                    opt.value = l.business_id;
+                    opt.textContent = `${l.business_name} (${l.city || 'US'} - Score: ${l.score || '85'})`;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+    } catch (e) {
+        sel.innerHTML = '<option value="1">Austin Precision HVAC Systems</option>';
+    }
+
+    calculateProposalSplit();
+}
+
+function closeProposalModal() {
+    const modal = document.getElementById('proposal-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function calculateProposalSplit() {
+    const inpVal = document.getElementById('prop-total-value');
+    const inpPct = document.getElementById('prop-advance-pct');
+    const elAdv = document.getElementById('prop-calc-advance');
+    const elRem = document.getElementById('prop-calc-remaining');
+
+    const total = parseFloat(inpVal?.value || '2500');
+    const pct = parseFloat(inpPct?.value || '40');
+
+    const advance = Math.round(total * (pct / 100.0));
+    const remaining = total - advance;
+
+    if (elAdv) elAdv.textContent = `$${advance.toLocaleString()}.00`;
+    if (elRem) elRem.textContent = `$${remaining.toLocaleString()}.00`;
+}
+
+async function handleCreateProposal(event) {
+    event.preventDefault();
+    const bizId = parseInt(document.getElementById('prop-business-id').value);
+    const title = document.getElementById('prop-title').value.trim();
+    const serviceType = document.getElementById('prop-service-type').value.trim();
+    const totalVal = parseFloat(document.getElementById('prop-total-value').value);
+    const advancePct = parseFloat(document.getElementById('prop-advance-pct').value);
+
+    if (totalVal < 1000) {
+        alert('Commercial Floor: Total project value must be at least $1,000+ to ensure agency profitability.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/proposals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                business_id: bizId,
+                title: title,
+                service_type: serviceType,
+                total_value: totalVal,
+                advance_percentage: advancePct
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Proposal created (#${data.id})!\nTotal Value: $${data.total_value}\nAdvance Due: $${data.advance_required}\nRemaining: $${data.remaining_balance}`);
+            closeProposalModal();
+            loadPayments();
+        } else {
+            alert('Proposal creation failed: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Error creating proposal: ' + e);
+    }
+}
+

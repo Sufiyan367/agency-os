@@ -546,7 +546,8 @@ class CreateProposalRequest(BaseModel):
     business_id: int
     title: str
     total_value: float
-    advance_required: float
+    advance_required: Optional[float] = None
+    advance_percentage: Optional[float] = None
     service_type: Optional[str] = "Website Turnaround & Automation"
     lead_id: Optional[int] = None
     is_mock: Optional[bool] = None
@@ -557,12 +558,17 @@ class RequestPaymentOrderRequest(BaseModel):
 @router.post("/api/proposals")
 async def create_proposal_endpoint(req: CreateProposalRequest, db: AsyncSession = Depends(get_db)):
     try:
+        adv_req = req.advance_required
+        if adv_req is None:
+            pct = req.advance_percentage if req.advance_percentage is not None else getattr(settings, "DEFAULT_ADVANCE_PERCENTAGE", 40.0)
+            adv_req = round(req.total_value * (pct / 100.0), 2)
+
         prop = await deal_closing_service.create_proposal(
             session=db,
             business_id=req.business_id,
             title=req.title,
             total_value=req.total_value,
-            advance_required=req.advance_required,
+            advance_required=adv_req,
             service_type=req.service_type or "Website Turnaround & Automation",
             lead_id=req.lead_id,
             is_mock=req.is_mock
@@ -813,3 +819,84 @@ async def get_worker_status():
 async def trigger_worker_tick():
     summary = await agency_worker.execute_tick()
     return summary
+
+# --- Production Onboarding & Settings Endpoints ---
+
+class UpdateEmailSettingsRequest(BaseModel):
+    provider: Optional[str] = None
+    from_email: Optional[str] = None
+    from_name: Optional[str] = None
+    reply_to: Optional[str] = None
+    resend_api_key: Optional[str] = None
+    sendgrid_api_key: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+
+class TestEmailRequest(BaseModel):
+    recipient_email: str
+
+class ToggleLiveEmailRequest(BaseModel):
+    enabled: bool
+
+class UpdatePaymentSettingsRequest(BaseModel):
+    key_id: Optional[str] = None
+    key_secret: Optional[str] = None
+    mode: Optional[str] = None
+    currency: Optional[str] = None
+    default_advance_percentage: Optional[float] = None
+
+@router.get("/api/settings")
+async def get_settings_endpoint():
+    from app.core.settings_manager import settings_manager
+    return settings_manager.get_masked_settings()
+
+@router.post("/api/settings/email")
+async def update_email_settings_endpoint(req: UpdateEmailSettingsRequest):
+    from app.core.settings_manager import settings_manager
+    try:
+        return await settings_manager.update_email_settings(
+            provider=req.provider,
+            from_email=req.from_email,
+            from_name=req.from_name,
+            reply_to=req.reply_to,
+            resend_api_key=req.resend_api_key,
+            sendgrid_api_key=req.sendgrid_api_key,
+            smtp_host=req.smtp_host,
+            smtp_port=req.smtp_port,
+            smtp_username=req.smtp_username,
+            smtp_password=req.smtp_password
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+@router.post("/api/settings/email/test")
+async def send_test_email_endpoint(req: TestEmailRequest):
+    from app.core.settings_manager import settings_manager
+    try:
+        return await settings_manager.send_test_email(req.recipient_email)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/api/settings/email/toggle-live")
+async def toggle_live_email_endpoint(req: ToggleLiveEmailRequest):
+    from app.core.settings_manager import settings_manager
+    try:
+        return await settings_manager.toggle_live_email(req.enabled)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/api/settings/payments")
+async def update_payment_settings_endpoint(req: UpdatePaymentSettingsRequest):
+    from app.core.settings_manager import settings_manager
+    try:
+        return await settings_manager.update_payment_settings(
+            key_id=req.key_id,
+            key_secret=req.key_secret,
+            mode=req.mode,
+            currency=req.currency,
+            default_advance_percentage=req.default_advance_percentage
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))

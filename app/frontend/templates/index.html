@@ -186,6 +186,10 @@
                     <span class="nav-item-icon">📡</span>
                     <span>System Logs</span>
                 </li>
+                <li class="nav-item" data-view="settings" onclick="navToView('settings')">
+                    <span class="nav-item-icon">⚙️</span>
+                    <span>Settings</span>
+                </li>
             </ul>
         </nav>
 
@@ -635,6 +639,7 @@
                         <h2 class="panel-title">Commercial Proposals & Deals</h2>
                         <span class="panel-tag">$1,000+ Engagements</span>
                     </div>
+                    <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openCreateProposalModal()">+ Create Proposal</button>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -715,6 +720,172 @@
                 </div>
             </div>
         </section>
+
+        <!-- View 9: Settings & Production Integrations -->
+        <section id="view-settings" class="view-container">
+            <div class="settings-grid">
+                <!-- Card 1: Email Delivery -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">Email Delivery</h2>
+                            <span class="panel-tag" id="badge-email-status">DRY RUN</span>
+                        </div>
+                    </div>
+                    <form id="email-settings-form" onsubmit="handleSaveEmailSettings(event)">
+                        <div class="form-group">
+                            <label class="form-label">Email Provider</label>
+                            <select id="setting-email-provider" class="form-control" onchange="handleEmailProviderChange()">
+                                <option value="dry_run">Mock / Dry Run (Simulated)</option>
+                                <option value="resend">Resend (API)</option>
+                                <option value="sendgrid">SendGrid (API)</option>
+                                <option value="smtp">Custom SMTP</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">From Email</label>
+                                <input type="email" id="setting-email-from" class="form-control" placeholder="prospects@youragency.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">From Name</label>
+                                <input type="text" id="setting-email-from-name" class="form-control" placeholder="Elena Vance | Director" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reply-To Address</label>
+                            <input type="email" id="setting-email-reply-to" class="form-control" placeholder="replies@youragency.com" required>
+                        </div>
+
+                        <!-- Provider-specific credential fields -->
+                        <div id="email-fields-resend" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label">Resend API Key</label>
+                                <input type="password" id="setting-resend-key" class="form-control" placeholder="re_••••••••">
+                            </div>
+                        </div>
+                        <div id="email-fields-sendgrid" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label">SendGrid API Key</label>
+                                <input type="password" id="setting-sendgrid-key" class="form-control" placeholder="SG.••••••••">
+                            </div>
+                        </div>
+                        <div id="email-fields-smtp" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">SMTP Host</label>
+                                    <input type="text" id="setting-smtp-host" class="form-control" placeholder="smtp.mailgun.org">
+                                </div>
+                                <div class="form-group" style="max-width:110px;">
+                                    <label class="form-label">Port</label>
+                                    <input type="number" id="setting-smtp-port" class="form-control" placeholder="587">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">SMTP Username</label>
+                                    <input type="text" id="setting-smtp-user" class="form-control" placeholder="postmaster@domain">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">SMTP Password</label>
+                                    <input type="password" id="setting-smtp-pass" class="form-control" placeholder="••••••••">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+                            <button type="submit" class="btn btn-primary" style="padding:6px 14px; font-size:0.8rem;">Save Email Settings</button>
+                        </div>
+                    </form>
+
+                    <hr style="border:0; border-top:1px solid var(--border-subtle); margin:18px 0;">
+
+                    <!-- Diagnostic Test Section -->
+                    <div style="margin-bottom:14px;">
+                        <label class="form-label">Diagnostic Test Recipient</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="email" id="test-email-recipient" class="form-control" placeholder="test@youragency.com">
+                            <button class="btn btn-secondary" style="white-space:nowrap; padding:6px 14px; font-size:0.8rem;" onclick="handleSendTestEmail()">Send Test Email</button>
+                        </div>
+                        <div id="test-email-result" style="font-size:0.75rem; margin-top:6px;"></div>
+                    </div>
+
+                    <!-- Live Email Toggle Switch -->
+                    <div class="switch-container">
+                        <div>
+                            <div class="switch-label">Enable Live Email</div>
+                            <div class="switch-subtext" id="live-email-subtext">Requires credentials + verified test delivery. Keeps human approval gate active.</div>
+                        </div>
+                        <input type="checkbox" id="setting-live-email-toggle" class="switch-input" onchange="handleToggleLiveEmail(this.checked)">
+                    </div>
+                </div>
+
+                <!-- Card 2: Payment Gateway (Razorpay) -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">Payment Gateway</h2>
+                            <span class="panel-tag" id="badge-payment-status">TEST MODE</span>
+                        </div>
+                    </div>
+                    <form id="payment-settings-form" onsubmit="handleSavePaymentSettings(event)">
+                        <div class="form-group">
+                            <label class="form-label">Gateway Mode</label>
+                            <select id="setting-payment-mode" class="form-control">
+                                <option value="test">Razorpay Test Mode</option>
+                                <option value="live">Razorpay Live Mode</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Razorpay Key ID</label>
+                            <input type="text" id="setting-razorpay-key-id" class="form-control" placeholder="rzp_test_...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Razorpay Key Secret</label>
+                            <input type="password" id="setting-razorpay-key-secret" class="form-control" placeholder="••••••••">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Currency</label>
+                                <select id="setting-payment-currency" class="form-control">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="INR">INR (₹)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Default Advance %</label>
+                                <input type="number" id="setting-default-advance" class="form-control" min="1" max="100" placeholder="40">
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+                            <button type="submit" class="btn btn-primary" style="padding:6px 14px; font-size:0.8rem;">Save Payment Settings</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Card 3: System Configuration & Guardrails -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">System Configuration</h2>
+                            <span class="panel-tag">Security & Guardrails</span>
+                        </div>
+                    </div>
+                    <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.7;">
+                        <div style="margin-bottom:8px;"><strong>Commercial Minimum:</strong> <span style="color:var(--hud-emerald); font-weight:700;">$1,000+ per deal</span></div>
+                        <div style="margin-bottom:8px;"><strong>Human Approval Gate:</strong> <span class="badge badge-cyan">MANDATORY (100%)</span></div>
+                        <div style="margin-bottom:8px;"><strong>Human Takeover Lock:</strong> <span class="badge badge-emerald">ACTIVE</span></div>
+                        <div style="margin-bottom:8px;"><strong>Non-Fabrication Policy:</strong> <span class="badge badge-cyan">VERIFIED ONLY</span></div>
+                        <div style="margin-bottom:8px;"><strong>Secrets Protection:</strong> <span class="badge badge-emerald">ZERO CLIENT EXPOSURE</span></div>
+                        <p style="margin-top:14px; font-size:0.75rem; color:var(--text-muted);">
+                            All secrets are stored exclusively in local environment configuration and never sent to the browser. Real outbound messaging and real payment collection remain securely blocked until explicit operator setup.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Lead Detail Modal -->
@@ -724,6 +895,55 @@
             <div id="modal-body-content">
                 <!-- Populated dynamically via JS -->
             </div>
+        </div>
+    </div>
+
+    <!-- Create Proposal Modal -->
+    <div id="proposal-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:540px;">
+            <span class="close-modal" onclick="closeProposalModal()">&times;</span>
+            <h3 style="font-size:1.15rem; font-weight:700; color:var(--text-white); margin-bottom:14px;">Create Commercial Proposal</h3>
+            <form id="create-proposal-form" onsubmit="handleCreateProposal(event)">
+                <div class="form-group">
+                    <label class="form-label">Client / Target Business</label>
+                    <select id="prop-business-id" class="form-control" required>
+                        <!-- Populated dynamically with qualified businesses -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Proposal Title</label>
+                    <input type="text" id="prop-title" class="form-control" placeholder="e.g. Website Turnaround & Autonomous AI Booking System" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Service Scope</label>
+                    <input type="text" id="prop-service-type" class="form-control" value="Website Turnaround & Automation" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Total Project Value ($)</label>
+                        <input type="number" id="prop-total-value" class="form-control" min="1000" step="100" value="2500" required oninput="calculateProposalSplit()">
+                        <div style="font-size:0.7rem; color:var(--hud-cyan-bright); margin-top:3px;">Min $1,000 required</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Advance Deposit (%)</label>
+                        <input type="number" id="prop-advance-pct" class="form-control" min="1" max="100" step="5" value="40" required oninput="calculateProposalSplit()">
+                    </div>
+                </div>
+                <div style="background:rgba(15,23,42,0.6); padding:12px; border-radius:6px; border:1px solid var(--border-subtle); margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:6px;">
+                        <span style="color:var(--text-secondary);">Advance Due Now:</span>
+                        <strong id="prop-calc-advance" style="color:var(--hud-emerald);">$1,000.00</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.82rem;">
+                        <span style="color:var(--text-secondary);">Remaining Balance:</span>
+                        <strong id="prop-calc-remaining" style="color:var(--hud-amber);">$1,500.00</strong>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeProposalModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Proposal</button>
+                </div>
+            </form>
         </div>
     </div>
 

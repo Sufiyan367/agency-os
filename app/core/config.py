@@ -61,17 +61,21 @@ class Settings(BaseSettings):
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
+    SMTP_USERNAME: Optional[str] = os.getenv("SMTP_USERNAME", os.getenv("SMTP_USER"))
     SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
     OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co"))
     EMAIL_REPLY_TO: str = os.getenv("EMAIL_REPLY_TO", "replies@agencygrowth.co")
     OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
+    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director"))
 
     # Payment Gateway (Razorpay Primary, Stripe Optional, Dry Run)
     PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "razorpay")  # 'razorpay' (primary), 'stripe', 'dry_run'
     PAYMENTS_ENABLED: bool = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
     PAYMENT_DRY_RUN: bool = os.getenv("PAYMENT_DRY_RUN", "true").lower() in ("true", "1", "yes")
     MINIMUM_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_SERVICE_VALUE_USD", "1000.0"))
+    RAZORPAY_MODE: str = os.getenv("RAZORPAY_MODE", "test")
+    DEFAULT_ADVANCE_PERCENTAGE: float = float(os.getenv("DEFAULT_ADVANCE_PERCENTAGE", "40.0"))
     
     # Razorpay (Primary)
     RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
