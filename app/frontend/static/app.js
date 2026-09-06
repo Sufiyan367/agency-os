@@ -178,6 +178,26 @@ function navToView(viewName) {
     }
 }
 
+function toggleAccountMenu(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('account-dropdown-menu');
+    if (!menu) return;
+    const isHidden = menu.style.display === 'none' || getComputedStyle(menu).display === 'none';
+    menu.style.display = isHidden ? 'flex' : 'none';
+}
+
+function closeAccountMenu() {
+    const menu = document.getElementById('account-dropdown-menu');
+    if (menu) menu.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+    const ctrl = document.getElementById('sidebar-account-ctrl');
+    if (ctrl && !ctrl.contains(e.target)) {
+        closeAccountMenu();
+    }
+});
+
 async function handleLogout() {
     try {
         await fetch('/api/auth/logout', { method: 'POST' });

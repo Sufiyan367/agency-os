@@ -399,7 +399,7 @@
                 });
                 const data = await res.json();
                 if (res.ok && data.status === "SUCCESS") {
-                    window.location.href = "/";
+                    window.location.href = "/app";
                 } else {
                     errDiv.textContent = data.detail || "Invalid username or password. Please try again.";
                     errDiv.style.display = "block";
