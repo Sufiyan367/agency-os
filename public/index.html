@@ -811,17 +811,22 @@
               body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
+            let result = {};
+            try {
+              result = await response.json();
+            } catch (_) {
+              result = {};
+            }
 
             if (response.ok && result.success) {
               showAlert('success', 'Thank you for reaching out. We have received your inquiry and our team will get back to you within 24 business hours.');
               contactForm.reset();
             } else {
-              const errMsg = result.detail || result.error || 'Unable to submit your message right now. Please try again or email replies@agencygrowth.co directly.';
+              const errMsg = result.detail || result.error || 'Online inquiry submissions are currently in direct-email mode during infrastructure activation. Please email our team directly at replies@agencygrowth.co.';
               showAlert('error', errMsg);
             }
           } catch (err) {
-            showAlert('error', 'Network error. Please check your connection or contact replies@agencygrowth.co directly.');
+            showAlert('error', 'Online inquiry submissions are currently in direct-email mode during infrastructure activation. Please email our team directly at replies@agencygrowth.co.');
           } finally {
             btnSubmit.disabled = false;
             btnText.textContent = originalText;
