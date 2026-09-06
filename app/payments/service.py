@@ -49,6 +49,9 @@ class PaymentService:
         if not biz:
             raise ValueError(f"Business ID {business_id} not found.")
 
+        if amount_usd < 500.0:
+            raise ValueError(f"Payment amount ${amount_usd:.2f} USD is below the minimum commercial floor of $500.00 USD.")
+
         # 2. Lookup offer deliverables & package details
         q_offer = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
         offer = (await session.execute(q_offer)).scalars().first()

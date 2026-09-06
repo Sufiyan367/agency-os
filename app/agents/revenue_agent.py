@@ -53,27 +53,52 @@ class RevenueAgentOrchestrator:
         self.email_provider = DryRunEmailProvider()
         self.voice_provider = DryRunVoiceProvider()
         self.prospect_worker = SingleProspectAgent(provider_type="mock")
+        self.started_at: Optional[datetime] = None
+        self.current_domain: Optional[str] = None
+        self.current_business_name: Optional[str] = None
+        self.current_operation: str = "Standby"
+        self.current_pipeline_stage: str = "DISCOVER"
+        self.kill_switch_active: bool = False
 
     def get_status(self) -> Dict[str, Any]:
         """Returns live status of the autonomous agent for the dashboard control surface."""
+        runtime_sec = (datetime.utcnow() - self.started_at).total_seconds() if (self.started_at and self.is_running and not self.is_paused) else 0.0
         return {
-            "status": "RUNNING" if self.is_running and not self.is_paused else ("PAUSED" if self.is_paused else "IDLE"),
+            "status": "RUNNING" if self.is_running and not self.is_paused else ("PAUSED" if self.is_paused else ("KILLED" if self.kill_switch_active else "IDLE")),
             "is_running": self.is_running,
             "is_paused": self.is_paused,
             "worker_active": self._task is not None and not self._task.done(),
-            "kill_switch_active": not getattr(settings, "AUTONOMOUS_AGENT_ENABLED", False),
+            "kill_switch_active": self.kill_switch_active,
             "autonomous_outreach_active": getattr(settings, "AUTONOMOUS_OUTREACH", False),
             "commercial_floor_usd": getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0),
             "current_state": self.current_state.value,
+            "current_stage": self.current_pipeline_stage,
+            "current_domain": self.current_domain,
+            "current_business_name": self.current_business_name,
+            "current_operation": self.current_operation,
+            "runtime_seconds": round(runtime_sec, 1),
             "current_prospect": self.current_prospect,
             "decision": self.last_decision.model_dump() if self.last_decision else None,
-            "stats": self.stats
+            "stats": self.stats,
+            "safety_guardrails": {
+                "autonomous_agent_enabled": bool(getattr(settings, "AUTONOMOUS_AGENT_ENABLED", False)),
+                "email_dry_run": bool(getattr(settings, "EMAIL_DRY_RUN", True)),
+                "voice_dry_run": bool(getattr(settings, "VOICE_DRY_RUN", True)),
+                "payment_dry_run": bool(getattr(settings, "PAYMENT_DRY_RUN", True)),
+                "commercial_floor_usd": float(getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0)),
+                "one_at_a_time_prospecting": True,
+                "kill_switch_active": self.kill_switch_active,
+                "human_takeover_available": True
+            }
         }
 
     def start(self) -> Dict[str, Any]:
         """Starts autonomous agent operation and continuous background worker."""
         self.is_running = True
         self.is_paused = False
+        self.kill_switch_active = False
+        self.started_at = datetime.utcnow()
+        self.current_operation = "Initiating single-prospect autonomous cycle"
         if not self._task or self._task.done():
             self._task = asyncio.create_task(self._continuous_loop())
         logger.info("[RevenueAgentOrchestrator] Continuous background worker started.")
@@ -86,6 +111,7 @@ class RevenueAgentOrchestrator:
     def pause(self) -> Dict[str, Any]:
         """Pauses autonomous agent operation."""
         self.is_paused = True
+        self.current_operation = "Paused"
         logger.info("[RevenueAgentOrchestrator] Worker paused.")
         return {
             "status": "PAUSED",
@@ -97,6 +123,7 @@ class RevenueAgentOrchestrator:
         """Stops autonomous agent operation and cancels background worker."""
         self.is_running = False
         self.is_paused = False
+        self.current_operation = "Stopped"
         if self._task and not self._task.done():
             self._task.cancel()
         logger.info("[RevenueAgentOrchestrator] Worker stopped.")
@@ -110,11 +137,33 @@ class RevenueAgentOrchestrator:
         """Emergency kill switch: disables autonomous agent immediately."""
         self.is_running = False
         self.is_paused = False
+        self.kill_switch_active = True
+        self.current_operation = f"KILLED: {reason}" if reason else "KILLED: Emergency Kill Switch Activated"
         if self._task and not self._task.done():
             self._task.cancel()
         settings.AUTONOMOUS_AGENT_ENABLED = False
         settings.AUTONOMOUS_OUTREACH = False
         logger.warning(f"[RevenueAgentOrchestrator] EMERGENCY KILL SWITCH ACTIVATED. {reason}".strip())
+
+        from app.agents.activity_broadcaster import activity_broadcaster, AgentEventType
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(activity_broadcaster._broadcast({
+                    "id": 0,
+                    "run_id": "GLOBAL",
+                    "business_id": None,
+                    "domain": None,
+                    "event_type": AgentEventType.KILL_SWITCH_ACTIVATED.value,
+                    "message": f"EMERGENCY KILL SWITCH ACTIVATED. {reason}".strip(),
+                    "status": "WARNING",
+                    "metadata_json": {"reason": reason},
+                    "sequence_number": 0,
+                    "created_at": datetime.utcnow().isoformat()
+                }))
+        except Exception:
+            pass
+
         return {
             "status": "KILLED",
             "kill_switch_active": True,
@@ -486,15 +535,24 @@ class RevenueAgentOrchestrator:
         event_type: str,
         payload: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """
-        Event-Driven Entrypoint:
-        Restores context for the prospect from persistent memory,
-        processes the event via agent logic, updates pipeline state,
-        and saves new memory WITHOUT interrupting or blocking the prospecting loop.
-        """
+        """Event-Driven Entrypoint for asynchronous inbound events."""
         from app.crm.memory_service import memory_service
         async with AsyncSessionLocal() as session:
             return await memory_service.handle_inbound_event(session, event_type, payload)
+
+    async def run_full_autonomous_cycle(
+        self,
+        target_leads: int = 1,
+        target_leads_per_market: Optional[int] = None,
+        max_opportunities_to_mine: int = 1
+    ) -> Dict[str, Any]:
+        """Strict one-prospect-at-a-time autonomous cycle."""
+        from app.orchestrator.loop import orchestrator
+        return await orchestrator.run_full_autonomous_cycle(
+            target_leads=target_leads,
+            target_leads_per_market=target_leads_per_market,
+            max_opportunities_to_mine=max_opportunities_to_mine
+        )
 
 
 revenue_agent_orchestrator = RevenueAgentOrchestrator()

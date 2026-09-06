@@ -6,7 +6,7 @@ from app.api.app import app
 async def test_dashboard_template_rendering_and_elements():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.get("/")
+        res = await client.get("/dashboard")
         assert res.status_code == 200
         html = res.text
 
@@ -126,7 +126,7 @@ async def test_login_template_rendering():
 async def test_settings_and_onboarding_ui_rendering():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.get("/")
+        res = await client.get("/dashboard")
         assert res.status_code == 200
         html = res.text
 

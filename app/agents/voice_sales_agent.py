@@ -1,19 +1,24 @@
 """
-Voice Sales Agent & Conversational Intelligence Engine.
+Voice Sales Agent & Conversational Intelligence Engine — Phase 17.
 Handles:
 - Script generation grounded strictly in technical audit diagnostics
 - Multilingual voice synthesis (EN, AR, ES, FR)
-- Live objection handling (cost, existing agency, timing, send email)
-- Non-binding pricing guardrails ($500 floor to $2,500 maximum)
-- Appointment booking & meeting scheduling
-- Escalation to human operator upon low confidence or hostility
+- Factual service explanations without fabricated claims, guarantees, or synthetic case studies
+- Transparent AI identity disclosure (never pretends to be human)
+- Routine objection handling and price discussion
+- Safe commercial negotiation adhering to the $500 floor and $1,000+ auto-approval policy
+- Immediate human escalation on sensitive triggers via VoiceEscalationEngine
+- Secret and sensitive credential redaction from speech transcripts
 """
+
 import re
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.crm.negotiator import CommercialNegotiator, NegotiationResult
+from app.communications.voice_escalation import voice_escalation_engine, VoiceEscalationReason
 
 
 class VoiceConversationTurn(BaseModel):
@@ -25,13 +30,16 @@ class VoiceConversationTurn(BaseModel):
 
 class VoiceQualificationResult(BaseModel):
     qualified: bool
-    intent: str  # 'BOOK_MEETING', 'SEND_INFO', 'OBJECTION_HANDLED', 'NOT_INTERESTED', 'HUMAN_ESCALATION'
+    intent: str
     recommended_action: str
     proposed_meeting_time: Optional[datetime] = None
     suggested_reply: str
     confidence: float
     escalate_to_human: bool = False
     opt_out: bool = False
+    offered_price: Optional[float] = None
+    agreed_price: Optional[float] = None
+    escalation_reason: Optional[str] = None
 
 
 class VoiceSalesAgent:
@@ -39,6 +47,20 @@ class VoiceSalesAgent:
 
     PRICING_FLOOR_USD = 500.0
     PRICING_CEILING_USD = 2500.0
+    negotiator = CommercialNegotiator()
+
+    @classmethod
+    def redact_sensitive_content(cls, text: str) -> str:
+        """Removes potential secrets, credentials, API keys, and payment tokens from transcripts."""
+        if not text:
+            return ""
+        # Redact API keys (re_, rzp_, SG., sk_)
+        redacted = re.sub(r"\b(re_[a-zA-Z0-9_]{16,}|rzp_(?:test|live)_[a-zA-Z0-9]{10,}|SG\.[a-zA-Z0-9_-]{20,}|sk_[a-zA-Z0-9_]{16,})\b", "[REDACTED_API_KEY]", text)
+        # Redact credit card numbers (13-19 digits)
+        redacted = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[REDACTED_CARD_NUMBER]", redacted)
+        # Redact passwords in text
+        redacted = re.sub(r"(?i)(password|secret|key)[:=]\s*([^\s,]+)", r"\1=[REDACTED]", redacted)
+        return redacted
 
     @classmethod
     def generate_call_script(
@@ -97,14 +119,18 @@ class VoiceSalesAgent:
         cls,
         prospect_utterance: str,
         audit_evidence: Dict[str, Any],
-        language: str = "en"
+        language: str = "en",
+        current_state: str = "DISCOVERY"
     ) -> VoiceQualificationResult:
         """Evaluates prospect verbal response, handles objections, and determines next step."""
-        text = prospect_utterance.lower().strip()
+        clean_text = cls.redact_sensitive_content(prospect_utterance)
+        text = clean_text.lower().strip()
         perf = audit_evidence.get("performance_score", 50.0)
 
-        # 1. Hostility or explicit opt-out
-        if cls._contains_phrase(text, ["stop calling", "remove me", "sue", "fuck", "don't call again", "harassment", "baja", "arret"]):
+        # ==============================================================
+        # 1. EXPLICIT OPT-OUT (MANDATORY COMPLIANCE GATING)
+        # ==============================================================
+        if cls._contains_phrase(text, ["stop calling", "remove me", "don't call again", "take me off your list", "unsubscribe", "not interested", "no thanks"]):
             return VoiceQualificationResult(
                 qualified=False,
                 intent="NOT_INTERESTED",
@@ -114,7 +140,125 @@ class VoiceSalesAgent:
                 opt_out=True
             )
 
-        # 2. Objection: "Already have a web guy / agency" (prioritize before generic affirmative words)
+        # ==============================================================
+        # 2. IMMEDIATE HUMAN ESCALATION CHECK
+        # ==============================================================
+        esc = voice_escalation_engine.evaluate(text)
+        if esc.should_escalate:
+            if esc.reason == VoiceEscalationReason.HOSTILITY_HARASSMENT:
+                return VoiceQualificationResult(
+                    qualified=False,
+                    intent="NOT_INTERESTED",
+                    recommended_action="APOLOGIZE_AND_OPTOUT",
+                    suggested_reply=esc.suggested_operator_handover_message or "I apologize for the intrusion. We will immediately update our records to ensure you are not contacted again.",
+                    confidence=0.99,
+                    opt_out=True,
+                    escalate_to_human=False
+                )
+
+            return VoiceQualificationResult(
+                qualified=False,
+                intent="HUMAN_ESCALATION",
+                recommended_action="TRANSFER_OR_ESCALATE_TO_SENIOR",
+                suggested_reply=esc.suggested_operator_handover_message or "I want to make sure you receive proper assistance. Let me transfer this directly to our senior director.",
+                confidence=0.95,
+                escalate_to_human=True,
+                escalation_reason=esc.reason.value if esc.reason else "UNKNOWN"
+            )
+
+        # ==============================================================
+        # 3. AI IDENTITY & TRANSPARENCY DISCLOSURE
+        # ==============================================================
+        if cls._contains_phrase(text, ["are you an ai", "are you ai", "are you human", "are you a bot", "are you a robot", "is this an ai", "is this automated", "am i talking to a robot"]):
+            return VoiceQualificationResult(
+                qualified=True,
+                intent="AI_IDENTITY_DISCLOSED",
+                recommended_action="CLARIFY_AI_ROLE_AND_OFFER_CONSULTATION",
+                suggested_reply=(
+                    "I am the automated technical assistant calling from Agency Growth. "
+                    "I review public mobile diagnostic speeds for local businesses before our senior human engineers evaluate them. "
+                    "Would you like me to book a quick 15-minute consultation with our lead human engineer to review the findings?"
+                ),
+                confidence=0.98
+            )
+
+        # ==============================================================
+        # 4. PROPOSAL & PAYMENT READY (AGREEMENT TO MOVE FORWARD)
+        # ==============================================================
+        if cls._contains_phrase(text, [
+            "send the contract", "send the invoice", "send over the invoice", "send payment link",
+            "payment link", "ready to pay", "let's do it", "send me the link", "i agree to the price",
+            "send invoice", "ready to proceed", "let's start"
+        ]):
+            return VoiceQualificationResult(
+                qualified=True,
+                intent="PAYMENT_REQUESTED",
+                recommended_action="ISSUE_PAYMENT_REQUEST",
+                suggested_reply=(
+                    "Fantastic. I am preparing your turnkey scope agreement and digital invoice now. "
+                    "You will receive a secure checkout link by email within the next two minutes. "
+                    "Once confirmed, our engineering team immediately begins setup."
+                ),
+                confidence=0.96,
+                agreed_price=1000.0
+            )
+
+        # ==============================================================
+        # 5. COMMERCIAL NEGOTIATION & COUNTER-OFFER EVALUATION
+        # ==============================================================
+        # Match dollar mentions like "$400", "500 dollars", "$800", "$1500"
+        price_match = re.search(r"\$?(\d{3,5})\s*(?:dollars|usd)?\b", text)
+        if price_match and any(w in text for w in ["how about", "can you do", "can we do", "could we do", "could you do", "offer", "pay", "budget", "discount", "package for", "for $", "at $"]):
+            try:
+                offered_val = float(price_match.group(1))
+                neg_res = cls.negotiator.evaluate_counter_offer(offered_val, catalog_target=1000.0)
+
+                if neg_res.decision == "REJECTED":
+                    return VoiceQualificationResult(
+                        qualified=True,
+                        intent="NEGOTIATION",
+                        recommended_action="COUNTER_OFFER_REJECTED",
+                        suggested_reply=(
+                            f"I appreciate the offer, but our strict engineering minimum is ${cls.PRICING_FLOOR_USD:,.0f} "
+                            f"to ensure full Core Web Vitals optimization. The lowest turnkey package we can deploy is ${cls.PRICING_FLOOR_USD:,.0f}."
+                        ),
+                        confidence=0.94,
+                        offered_price=offered_val
+                    )
+                elif neg_res.decision == "HUMAN_REVIEW":
+                    return VoiceQualificationResult(
+                        qualified=True,
+                        intent="NEGOTIATION",
+                        recommended_action="REQUIRE_HUMAN_SIGN_OFF",
+                        suggested_reply=(
+                            f"We could potentially adjust the deployment scope for ${offered_val:,.0f}, "
+                            f"but because that is below our standard $1,000 package, I need our managing partner to sign off. "
+                            f"Shall I confirm this with them and send the approval to your email?"
+                        ),
+                        confidence=0.91,
+                        offered_price=offered_val,
+                        escalate_to_human=True,
+                        escalation_reason="PRICING_BELOW_TARGET_REQUIRES_REVIEW"
+                    )
+                else:  # ACCEPTED
+                    return VoiceQualificationResult(
+                        qualified=True,
+                        intent="PROPOSAL_READY",
+                        recommended_action="ACCEPT_COUNTER_OFFER_AND_PREPARE_PROPOSAL",
+                        suggested_reply=(
+                            f"Yes, we can accept ${offered_val:,.0f} for the full diagnostic and code turnaround. "
+                            f"I will prepare your agreement and invoice for ${offered_val:,.0f} immediately."
+                        ),
+                        confidence=0.95,
+                        offered_price=offered_val,
+                        agreed_price=offered_val
+                    )
+            except Exception:
+                pass
+
+        # ==============================================================
+        # 6. OBJECTION: "Already have a web guy / agency"
+        # ==============================================================
         if cls._contains_phrase(text, ["have a guy", "webmaster", "agency", "in-house", "developer", "ya tengo"]):
             return VoiceQualificationResult(
                 qualified=True,
@@ -128,22 +272,10 @@ class VoiceSalesAgent:
                 confidence=0.91
             )
 
-        # 3. AI Identity & Transparency Disclosure (never claims to be human or impersonates operator)
-        if cls._contains_phrase(text, ["are you an ai", "are you ai", "are you human", "are you a bot", "are you a robot", "is this an ai", "is this automated"]):
-            return VoiceQualificationResult(
-                qualified=True,
-                intent="AI_IDENTITY_DISCLOSED",
-                recommended_action="CLARIFY_AI_ROLE_AND_OFFER_CONSULTATION",
-                suggested_reply=(
-                    "I am the automated technical assistant calling from Agency Growth. "
-                    "I review public mobile diagnostic speeds for local businesses before our senior human engineers evaluate them. "
-                    "Would you like me to book a quick 15-minute consultation with our lead human engineer to review the findings?"
-                ),
-                confidence=0.98
-            )
-
-        # 4. Service Explanation
-        if cls._contains_phrase(text, ["what do you do", "what service", "how does this work", "why are you calling"]):
+        # ==============================================================
+        # 7. SERVICE EXPLANATION
+        # ==============================================================
+        if cls._contains_phrase(text, ["what do you do", "what service", "what services", "services do you", "services you provide", "what do you offer", "tell me about your service", "how does this work", "why are you calling", "what is this about"]):
             return VoiceQualificationResult(
                 qualified=True,
                 intent="SERVICE_EXPLANATION",
@@ -151,12 +283,31 @@ class VoiceSalesAgent:
                 suggested_reply=(
                     f"We specialize in Core Web Vitals and mobile performance turnaround. "
                     f"Our scanner found your site loads in over 4 seconds on mobile devices with a performance score of {perf:.0f}/100. "
-                    f"We optimize code, caching, and images so you stop losing mobile customers. Would you be open to a 10-minute walkthrough?"
+                    f"We optimize code, caching, and images so you stop losing mobile visitors. Would you be open to a 10-minute walkthrough?"
                 ),
                 confidence=0.93
             )
 
-        # 3. Meeting confirmation / positive interest
+        # ==============================================================
+        # 8. PRICING INQUIRY / COST DISCUSSION
+        # ==============================================================
+        if any(w in text for w in ["cost", "how much", "price", "expensive", "budget", "cuanto", "combien", "كم"]):
+            return VoiceQualificationResult(
+                qualified=True,
+                intent="OBJECTION_HANDLED",
+                recommended_action="ANCHOR_PRICING_RANGE",
+                suggested_reply=(
+                    f"Our standard mobile turnaround packages range strictly between ${cls.PRICING_FLOOR_USD:,.0f} "
+                    f"and ${cls.PRICING_CEILING_USD:,.0f} based on verified scope. "
+                    f"Every project requires a formal commercial contract with clear deliverables before any work begins. "
+                    f"Can we do a 10-minute screenshare to confirm your exact scope?"
+                ),
+                confidence=0.92
+            )
+
+        # ==============================================================
+        # 9. MEETING CONFIRMATION / POSITIVE INTEREST
+        # ==============================================================
         if cls._contains_phrase(text, ["sure", "yes", "interested", "let's talk", "schedule", "thursday", "tomorrow", "sounds good", "si", "sí", "d'accord", "نعم"]):
             meeting_time = datetime.utcnow() + timedelta(days=2, hours=4)
             return VoiceQualificationResult(
@@ -168,37 +319,27 @@ class VoiceSalesAgent:
                 confidence=0.95
             )
 
-        # 4. Objection: "Too expensive / How much does it cost?"
-        if any(w in text for w in ["cost", "how much", "price", "expensive", "budget", "cuanto", "combien", "كم"]):
-            return VoiceQualificationResult(
-                qualified=True,
-                intent="OBJECTION_HANDLED",
-                recommended_action="ANCHOR_PRICING_RANGE",
-                suggested_reply=(
-                    f"Our full mobile speed turnaround packages start at a baseline of ${cls.PRICING_FLOOR_USD:,.0f} "
-                    f"up to ${cls.PRICING_CEILING_USD:,.0f} for complete custom core-web-vitals overhauls. "
-                    f"Most businesses recover that in the very first commercial contract they win. "
-                    f"Can we do a 10-minute screenshare to confirm your exact scope?"
-                ),
-                confidence=0.92
-            )
-
-        # 5. Request for email / written information
+        # ==============================================================
+        # 10. REQUEST FOR EMAIL / WRITTEN INFORMATION
+        # ==============================================================
         if any(w in text for w in ["send an email", "email me", "send details", "in writing", "correo"]):
             return VoiceQualificationResult(
                 qualified=True,
                 intent="SEND_INFO",
                 recommended_action="CONFIRM_EMAIL_AND_SEND",
-                suggested_reply="I'd be glad to. I will compile the audit diagnostic and email it over within 10 minutes with our case studies. Thank you for your time.",
+                suggested_reply="I'd be glad to. I will compile the audit diagnostic and email it over within 10 minutes with the technical findings. Thank you for your time.",
                 confidence=0.94
             )
 
-        # 6. Unclear / Complex inquiry -> Human Escalation
+        # ==============================================================
+        # 11. GENERAL QUESTIONS / UNCLEAR -> HUMAN ESCALATION
+        # ==============================================================
         return VoiceQualificationResult(
             qualified=False,
             intent="HUMAN_ESCALATION",
             recommended_action="TRANSFER_OR_ESCALATE_TO_SENIOR",
             suggested_reply="I want to make sure you get the exact technical specifications for that. Let me connect you directly with our senior strategy director.",
             confidence=0.60,
-            escalate_to_human=True
+            escalate_to_human=True,
+            escalation_reason="UNCERTAIN_OR_COMPLEX_QUERY"
         )

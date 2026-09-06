@@ -54,6 +54,27 @@ class ConversationAgent:
         if session:
             session.add_message(sender="PROSPECT", content=incoming_message)
 
+        # 1.5 Prompt Injection & Safety Guardrail Check
+        from app.core.security import PromptInjectionGuard
+        is_safe, threat_reason = PromptInjectionGuard.scan_text(incoming_message)
+        if not is_safe:
+            reply = (
+                "Your inquiry contains unsupported or restricted control sequences. "
+                "I have forwarded your communication to our security and human engineering staff for manual review."
+            )
+            resp = ConversationResponse(
+                reply_text=reply,
+                detected_language=lang,
+                intent_detected="PROMPT_INJECTION_DETECTED",
+                propose_meeting=False,
+                handoff_to_human=True,
+                confidence=1.0
+            )
+            if session:
+                session.add_message(sender="AGENT", content=resp.reply_text, intent=resp.intent_detected)
+                session.handed_off_to_human = True
+            return resp
+
         # 2. Unsubscribe check
         if any(w in lower for w in ["stop", "unsubscribe", "remove", "cancel", "arret", "baja"]):
             resp = ConversationResponse(

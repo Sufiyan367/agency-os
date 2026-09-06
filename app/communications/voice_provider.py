@@ -65,10 +65,41 @@ class BaseVoiceProvider(ABC):
         """Places an outbound telephone call to a qualified prospect."""
         pass
 
+    async def create_call(
+        self,
+        phone: str,
+        script_context: str,
+        language: str = "en",
+        caller_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> CallResult:
+        """Alias / abstraction method to initiate a call."""
+        return await self.place_call(phone=phone, script_context=script_context, language=language, caller_id=caller_id)
+
     @abstractmethod
     async def get_call_status(self, call_id: str) -> Dict[str, Any]:
         """Queries status of an active or completed call."""
         pass
+
+    async def retrieve_call_metadata(self, call_id: str) -> Dict[str, Any]:
+        """Retrieves comprehensive metadata for a call."""
+        return await self.get_call_status(call_id)
+
+    async def terminate_call(self, call_id: str) -> Dict[str, Any]:
+        """Terminates an in-progress or queued call."""
+        return {"call_id": call_id, "status": "TERMINATED", "terminated": True}
+
+    async def receive_call_event(self, event_payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Processes an incoming provider webhook or status event."""
+        return {"processed": True, "event": event_payload.get("event", "status_update")}
+
+    async def receive_transcript(self, call_id: str, transcript_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Processes partial or complete transcript stream."""
+        return {"call_id": call_id, "processed": True, "text": transcript_data.get("text", "")}
+
+    async def receive_call_completion(self, call_id: str, completion_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handles final call completion callback."""
+        return {"call_id": call_id, "status": "COMPLETED", "details": completion_data}
 
 
 class DryRunVoiceProvider(BaseVoiceProvider):
@@ -307,3 +338,6 @@ def get_active_voice_provider() -> BaseVoiceProvider:
 
     # Safe fallback if credentials missing or dry-run requested
     return DryRunVoiceProvider()
+
+MockVoiceProvider = DryRunVoiceProvider
+

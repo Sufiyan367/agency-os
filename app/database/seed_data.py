@@ -168,4 +168,8 @@ async def seed_initial_data(session: AsyncSession):
             session.add(niche)
             
     await session.commit()
+
+    from app.acquisition.config import country_config_manager
+    await country_config_manager.ensure_defaults(session)
+
     logger.info("Seed data check completed.")

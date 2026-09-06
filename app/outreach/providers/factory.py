@@ -12,7 +12,9 @@ def get_email_provider() -> BaseEmailProvider:
     Respects EMAIL_DRY_RUN / DRY_RUN safety invariant:
     If EMAIL_DRY_RUN or DRY_RUN is True, always returns DryRunEmailProvider.
     """
-    if settings.EMAIL_DRY_RUN or settings.DRY_RUN or settings.EMAIL_PROVIDER == "dry_run":
+    # Decoupled safety invariant: Only check EMAIL_DRY_RUN and provider mode.
+    # Global DRY_RUN does not block email when EMAIL_DRY_RUN is explicitly False.
+    if settings.EMAIL_DRY_RUN or settings.EMAIL_PROVIDER == "dry_run":
         return DryRunEmailProvider()
 
     provider_name = settings.EMAIL_PROVIDER.lower().strip()

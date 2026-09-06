@@ -45,23 +45,28 @@ class ProductionHealthService:
         recommendations = []
 
         # 1. Database Check
+        from app.database.connection import check_database_connectivity
+        conn_info = await check_database_connectivity()
+        if conn_info["connected"]:
+            db_status = "READY"
+            details = (
+                f"Dialect: {conn_info['dialect']} | "
+                f"Latency: {conn_info['latency_ms']}ms | "
+                f"Target: {conn_info['database_name']} | "
+                f"Pool: {conn_info.get('pool_status', 'ready')}"
+            )
+        else:
+            db_status = "DEGRADED"
+            details = f"Connection error: {conn_info.get('error', 'Unknown')}"
+            recommendations.append("Ensure database connection string is valid and database is accessible.")
+
         db_health = ComponentHealth(
             name="Database (SQLite/PostgreSQL)",
-            status="READY",
-            details="Connected",
+            status=db_status,
+            details=details,
             is_safe=True,
             credentials_present=True
         )
-        try:
-            async with AsyncSessionLocal() as session:
-                res = await session.execute(text("SELECT 1"))
-                if res.scalar() != 1:
-                    db_health.status = "DEGRADED"
-                    db_health.details = "Database query returned unexpected result."
-        except Exception as e:
-            db_health.status = "DEGRADED"
-            db_health.details = f"Connection error: {str(e)}"
-            recommendations.append("Ensure database connection string is valid and database is accessible.")
 
         # 2. Email Delivery Check
         email_prov = getattr(settings, "EMAIL_PROVIDER", "dry_run")

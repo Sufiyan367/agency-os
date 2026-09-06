@@ -28,15 +28,29 @@ ENV/
 # Database
 *.sqlite
 *.sqlite3
+*.db
 agency.db
 *.db-shm
 *.db-wal
 *.pre_restore
 backups/
+data/
 
-# Logs & Environment
+# Logs & Scratch
 *.log
+*.log*
+logs/
+scratch/
+
+# Environment & Credentials
+.env
+.env.*
 .env.local
+!.env.example
+credentials*
+secrets*
+*.pem
+*.key
 
 # IDE
 .idea/
@@ -48,5 +62,3 @@ backups/
 .pytest_cache/
 .coverage
 htmlcov/
-
-.env

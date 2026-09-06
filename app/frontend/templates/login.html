@@ -6,7 +6,7 @@
     <title>JARVIS // Operator Authorization — {{ app_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
     <style>
         body {
@@ -14,186 +14,372 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #02050b;
+            background-color: #070b14;
             background-image: 
-                radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.12) 0%, transparent 60%),
-                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-            background-size: 100% 100%, 24px 24px, 24px 24px;
-            padding: 16px;
-            font-family: var(--font-body);
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 70%),
+                radial-gradient(circle at 50% 100%, rgba(15, 23, 42, 0.8), transparent);
+            padding: 24px 16px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #f1f5f9;
         }
-        .login-card {
+
+        .auth-container {
             width: 100%;
-            max-width: 420px;
-            background: rgba(4, 11, 22, 0.85);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 40px 32px;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 240, 255, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 22px;
-            position: relative;
-            backdrop-filter: blur(14px);
-        }
-        /* HUD Corner Accents */
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            width: 16px;
-            height: 16px;
-            border-top: 2px solid var(--cyan);
-            border-left: 2px solid var(--cyan);
-        }
-        .login-card::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            right: -1px;
-            width: 16px;
-            height: 16px;
-            border-bottom: 2px solid var(--cyan);
-            border-right: 2px solid var(--cyan);
+            max-width: 440px;
+            margin: 0 auto;
         }
 
-        .login-header {
-            text-align: center;
+        .auth-brand {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 12px;
+            margin-bottom: 28px;
+            text-align: center;
         }
 
-        .login-title {
-            font-family: var(--font-hud);
+        .auth-logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 10px;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: -0.5px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+        }
+
+        .auth-brand-text {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .auth-brand-title {
             font-size: 1.25rem;
             font-weight: 700;
-            letter-spacing: 1.5px;
-            color: #fff;
-            text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+            letter-spacing: 0.5px;
+            color: #ffffff;
         }
-        .login-sub {
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            color: var(--cyan);
-            letter-spacing: 1px;
+
+        .auth-brand-sub {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
         }
-        .form-group {
+
+        .auth-card {
+            background: #0f172a;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 14px;
+            padding: 36px 32px;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .auth-header {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        .form-label {
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
+
+        .auth-heading {
+            font-size: 1.4rem;
             font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+            margin: 0;
         }
+
+        .auth-description {
+            font-size: 0.88rem;
+            color: #94a3b8;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            letter-spacing: 0.2px;
+        }
+
+        .form-link {
+            font-size: 0.8rem;
+            color: #38bdf8;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .form-link:hover {
+            color: #7dd3fc;
+            text-decoration: underline;
+        }
+
         .form-input {
             width: 100%;
-            background: rgba(0, 240, 255, 0.03);
-            border: 1px solid var(--card-border);
-            border-radius: 4px;
-            padding: 13px 16px;
-            color: var(--cyan);
-            font-family: var(--font-mono);
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.2s;
-        }
-        .form-input:focus {
-            border-color: var(--cyan);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
-            background: rgba(0, 240, 255, 0.06);
-        }
-        .btn-login {
-            width: 100%;
-            padding: 14px;
-            font-family: var(--font-hud);
+            background: #090e1a;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #f8fafc;
             font-size: 0.92rem;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            border-radius: 4px;
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 112, 243, 0.35) 100%);
-            color: var(--cyan);
-            border: 1px solid var(--cyan);
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .form-input::placeholder {
+            color: #475569;
+        }
+
+        .form-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+            background: #0c1322;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            border-radius: 8px;
+            background: #0284c7;
+            color: #ffffff;
+            border: 1px solid #38bdf8;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 8px;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
-            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+            transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 4px;
         }
-        .btn-login:hover {
-            background: var(--cyan);
-            color: #02050b;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
-            text-shadow: none;
-            transform: translateY(-1px);
+
+        .btn-primary:hover {
+            background: #0369a1;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
         }
-        .btn-login:active {
-            transform: scale(0.98);
+
+        .btn-primary:active {
+            transform: scale(0.99);
         }
-        .error-banner {
-            background: rgba(255, 0, 85, 0.12);
-            border: 1px solid var(--crimson);
-            color: #ff6688;
-            padding: 10px 14px;
-            border-radius: 4px;
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
+
+        .btn-primary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 11px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 8px;
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+
+        .btn-secondary:hover {
+            color: #f1f5f9;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .alert-box {
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.4;
             display: none;
-            text-align: center;
         }
-        .login-footer {
-            text-align: center;
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-            color: var(--text-muted);
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #6ee7b7;
+        }
+
+        .reset-link-card {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             margin-top: 8px;
-            letter-spacing: 0.5px;
+        }
+
+        .reset-link-text {
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .auth-footer {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-top: 20px;
+        }
+
+        .view-hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="login-header">
-            <div class="arc-reactor-wrap" style="width:54px; height:54px;">
-                <div class="arc-ring-outer" style="width:54px; height:54px;"></div>
-                <div class="arc-ring-inner" style="width:38px; height:38px;"></div>
-                <div class="arc-core" style="width:22px; height:22px;"></div>
+    <div class="auth-container">
+        <!-- Brand Header -->
+        <div class="auth-brand">
+            <div class="auth-logo-badge">AG</div>
+            <div class="auth-brand-text">
+                <span class="auth-brand-title">JARVIS // AG</span>
+                <span class="auth-brand-sub">Revenue Operations</span>
             </div>
-            <div class="login-title">JARVIS // COMMAND</div>
-            <div class="login-sub">RESTRICTED OPERATOR AUTHORIZATION</div>
         </div>
 
-        <div id="login-error" class="error-banner"></div>
+        <!-- Main Card -->
+        <div class="auth-card">
+            <!-- LOGIN VIEW -->
+            <div id="view-login">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h1 class="auth-heading">Welcome back</h1>
+                    <p class="auth-description">Sign in to your revenue operations console.</p>
+                </div>
 
-        <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label class="form-label">OPERATOR IDENTIFIER</label>
-                <input id="username" type="text" class="form-input" required autocomplete="username" placeholder="admin" autofocus>
+                <div id="login-error" class="alert-box alert-error" style="margin-bottom: 16px;"></div>
+
+                <form id="login-form" onsubmit="handleLogin(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username or Email</label>
+                        <input id="username" type="text" class="form-input" required autocomplete="username" placeholder="name@company.com or username" autofocus>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-label-row">
+                            <label class="form-label" for="password">Password</label>
+                            <a href="javascript:void(0)" onclick="toggleView('forgot')" class="form-link" id="forgot-password-link">Forgot password?</a>
+                        </div>
+                        <input id="password" type="password" class="form-input" required autocomplete="current-password" placeholder="Enter your password">
+                    </div>
+
+                    <button type="submit" id="btn-submit" class="btn-primary">
+                        <span>Login</span>
+                    </button>
+                </form>
             </div>
 
-            <div class="form-group" style="margin-top:14px;">
-                <label class="form-label">CRYPTO-SIGNATURE KEY</label>
-                <input id="password" type="password" class="form-input" required autocomplete="current-password" placeholder="••••••••••••">
+            <!-- FORGOT PASSWORD VIEW -->
+            <div id="view-forgot" class="view-hidden">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h1 class="auth-heading">Reset your password</h1>
+                    <p class="auth-description">Enter your username or email address and we'll generate a secure reset link.</p>
+                </div>
+
+                <div id="forgot-error" class="alert-box alert-error" style="margin-bottom: 16px;"></div>
+                <div id="forgot-success" class="alert-box alert-success" style="margin-bottom: 16px;"></div>
+
+                <form id="forgot-form" onsubmit="handleForgotPassword(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="reset-username">Username or Email</label>
+                        <input id="reset-username" type="text" class="form-input" required placeholder="Enter your registered username or email">
+                    </div>
+
+                    <button type="submit" id="btn-send-reset" class="btn-primary">
+                        <span>Send Reset Link</span>
+                    </button>
+
+                    <div id="reset-action-area" style="display: none;"></div>
+
+                    <button type="button" onclick="toggleView('login')" class="btn-secondary" style="margin-top: 4px;">
+                        ← Back to login
+                    </button>
+                </form>
             </div>
+        </div>
 
-            <button type="submit" id="btn-submit" class="btn-login">AUTHORIZE ACCESS</button>
-        </form>
-
-        <div class="login-footer">
-            24/7 AUTONOMOUS CLOUD ENGINE // TLS 1.3 ENCRYPTED
+        <div class="auth-footer">
+            Enterprise authentication with rate limiting & PBKDF2 hashing
         </div>
     </div>
 
     <script>
+        // Check if initial setup is required on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/auth/status');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.setup_required === true) {
+                    window.location.href = '/setup';
+                }
+            } catch (e) {
+                // Ignore network errors on init
+            }
+        });
+
+        function toggleView(view) {
+            const loginView = document.getElementById("view-login");
+            const forgotView = document.getElementById("view-forgot");
+            const errDiv = document.getElementById("login-error");
+            const forgotErr = document.getElementById("forgot-error");
+            const forgotSucc = document.getElementById("forgot-success");
+            const resetArea = document.getElementById("reset-action-area");
+
+            errDiv.style.display = "none";
+            forgotErr.style.display = "none";
+            forgotSucc.style.display = "none";
+            resetArea.style.display = "none";
+
+            if (view === "forgot") {
+                loginView.classList.add("view-hidden");
+                forgotView.classList.remove("view-hidden");
+                document.getElementById("reset-username").focus();
+            } else {
+                forgotView.classList.add("view-hidden");
+                loginView.classList.remove("view-hidden");
+                document.getElementById("username").focus();
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById("btn-submit");
@@ -202,7 +388,7 @@
             const password = document.getElementById("password").value;
 
             btn.disabled = true;
-            btn.textContent = "VERIFYING CREDENTIALS...";
+            btn.innerHTML = "<span>Signing in...</span>";
             errDiv.style.display = "none";
 
             try {
@@ -215,16 +401,68 @@
                 if (res.ok && data.status === "SUCCESS") {
                     window.location.href = "/";
                 } else {
-                    errDiv.textContent = data.detail || "Access Denied: Invalid operator credentials.";
+                    errDiv.textContent = data.detail || "Invalid username or password. Please try again.";
                     errDiv.style.display = "block";
                     btn.disabled = false;
-                    btn.textContent = "AUTHORIZE ACCESS";
+                    btn.innerHTML = "<span>Login</span>";
                 }
             } catch (err) {
-                errDiv.textContent = "Telemetry error: Unable to reach host.";
+                errDiv.textContent = "Unable to connect to the server. Please check your connection.";
                 errDiv.style.display = "block";
                 btn.disabled = false;
-                btn.textContent = "AUTHORIZE ACCESS";
+                btn.innerHTML = "<span>Login</span>";
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const btn = document.getElementById("btn-send-reset");
+            const errDiv = document.getElementById("forgot-error");
+            const succDiv = document.getElementById("forgot-success");
+            const resetArea = document.getElementById("reset-action-area");
+            const username = document.getElementById("reset-username").value.trim();
+
+            btn.disabled = true;
+            btn.innerHTML = "<span>Generating link...</span>";
+            errDiv.style.display = "none";
+            succDiv.style.display = "none";
+            resetArea.style.display = "none";
+
+            try {
+                const res = await fetch("/api/auth/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === "SUCCESS") {
+                    succDiv.textContent = data.message;
+                    succDiv.style.display = "block";
+
+                    if (data.reset_url) {
+                        resetArea.innerHTML = `
+                            <div class="reset-link-card">
+                                <div class="reset-link-text">Secure reset token generated (valid for 15 minutes).</div>
+                                <a href="${data.reset_url}" class="btn-primary" style="text-decoration:none; margin-top:4px;">
+                                    <span>Reset Password Now &rarr;</span>
+                                </a>
+                            </div>
+                        `;
+                        resetArea.style.display = "block";
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = "<span>Send Reset Link</span>";
+                } else {
+                    errDiv.textContent = data.detail || "Failed to process password reset request.";
+                    errDiv.style.display = "block";
+                    btn.disabled = false;
+                    btn.innerHTML = "<span>Send Reset Link</span>";
+                }
+            } catch (err) {
+                errDiv.textContent = "Unable to connect to the server. Please check your connection.";
+                errDiv.style.display = "block";
+                btn.disabled = false;
+                btn.innerHTML = "<span>Send Reset Link</span>";
             }
         }
     </script>

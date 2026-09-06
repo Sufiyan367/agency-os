@@ -106,14 +106,12 @@ def demo_e2e():
             discovered = await lead_discovery_coordinator.run_discovery_and_verification(
                 session, country_code=top.country_code, niche_slug=top.niche_slug, target_count=3
             )
-            if discovered:
-                target_biz = discovered[0]
+            if discovered and any(d.public_email for d in discovered):
+                target_biz = next(d for d in discovered if d.public_email)
             else:
-                target_biz = (await session.execute(select(Business))).scalars().first()
-
-            if not target_biz:
-                # Discovered backup seed if empty
-                target_biz = (await lead_discovery_coordinator.run_discovery_and_verification(session, country_code="US", niche_slug="roofing-contractors", target_count=1))[0]
+                target_biz = (await session.execute(
+                    select(Business).where(Business.public_email.isnot(None)).order_by(Business.id.desc())
+                )).scalars().first()
 
             console.print(f"Target Lead: [cyan]{target_biz.name}[/cyan] ({target_biz.domain}) - Status: [green]{target_biz.verification_status}[/green]")
 
@@ -181,6 +179,7 @@ def demo_e2e():
             console.print(f"Reply Rate: [bold magenta]{metrics['sales']['reply_rate_pct']}%[/bold magenta]")
 
         console.print("\n[bold green]✓ ALL 11 STEPS IN THE END-TO-END ACCEPTANCE TEST COMPLETED FLAWLESSLY![/bold green]")
+    asyncio.run(_demo())
 
 @cli_app.command("queue")
 def list_queue():
@@ -215,15 +214,19 @@ def list_queue():
     asyncio.run(_queue())
 
 @cli_app.command("approve")
-def approve_outreach(message_id: int):
-    """Approves a queued outreach message and triggers sending via the configured adapter."""
+def approve_outreach(
+    message_id: int,
+    live: bool = typer.Option(False, "--live", help="Dispatch live email via configured provider (Resend/SMTP)")
+):
+    """Approves a queued outreach message and triggers sending (simulated by default, or live with --live)."""
     async def _approve():
         await init_db()
         async with AsyncSessionLocal() as session:
             try:
                 approved = await outreach_approval_queue.approve_message(session, message_id)
-                console.print(f"[bold green]✓ Message {approved.id} APPROVED by human operator.[/bold green]")
-                send_result = await outreach_sender_adapter.send_approved_message(session, message_id)
+                mode_label = "[bold red]LIVE DISPATCH[/bold red]" if live else "[yellow]SIMULATED (Dry-Run)[/yellow]"
+                console.print(f"[bold green]✓ Message {approved.id} APPROVED by human operator for {mode_label}.[/bold green]")
+                send_result = await outreach_sender_adapter.send_approved_message(session, message_id, force_live=live)
                 console.print(f"[bold cyan]Outreach Transmission Status: {send_result['status']} ({send_result['event']})[/bold cyan]")
             except Exception as e:
                 console.print(f"[bold red]Approval error: {e}[/bold red]")
@@ -480,5 +483,132 @@ def uninstall_service():
     res = windows_service_manager.uninstall()
     console.print(f"[bold green]{res.get('message', 'Service uninstalled.')}[/bold green]")
 
+@cli_app.command("generate-auth-secrets")
+def generate_auth_secrets():
+    """Generates strong cryptographic secrets and hashed credentials for .env configuration."""
+    import secrets
+    from app.core.security import hash_password
+    
+    admin_pass = secrets.token_urlsafe(18)
+    admin_hash = hash_password(admin_pass)
+    viewer_pass = secrets.token_urlsafe(18)
+    viewer_hash = hash_password(viewer_pass)
+    api_key = secrets.token_hex(32)
+    session_secret = secrets.token_hex(32)
+    
+    console.print("\n[bold cyan]=== Production / Local Dev Authentication Generator ===[/bold cyan]\n")
+    console.print("[yellow]Generated Credentials (Store securely in password manager):[/yellow]")
+    console.print(f"  [bold]Admin Password:[/bold]  {admin_pass}")
+    console.print(f"  [bold]Viewer Password:[/bold] {viewer_pass}\n")
+    console.print("[green]Paste the following configuration into your private .env file:[/green]\n")
+    console.print("AUTH_ENABLED=true")
+    console.print("DASHBOARD_USERNAME=admin")
+    console.print(f"DASHBOARD_PASSWORD={admin_hash}")
+    console.print("VIEWER_USERNAME=viewer")
+    console.print(f"VIEWER_PASSWORD={viewer_hash}")
+    console.print(f"API_SECRET_KEY={api_key}")
+    console.print(f"SESSION_SECRET={session_secret}\n")
+
+@cli_app.command("reset-admin")
+def reset_admin_cmd(
+    force: bool = typer.Option(False, "--force", "-y", help="Bypass confirmation prompt")
+):
+    """Clears the administrator account credentials from the database to trigger setup on next launch."""
+    if getattr(settings, "APP_ENV", "development").lower() == "production":
+        console.print("[bold red]Refusing to reset admin in production environment.[/bold red]")
+        raise typer.Exit(code=1)
+
+    if not force:
+        confirmed = typer.confirm("This will clear administrator credentials and require setup on next launch. Continue?")
+        if not confirmed:
+            console.print("[yellow]Aborted. Admin credentials untouched.[/yellow]")
+            raise typer.Abort()
+
+    async def _reset():
+        from app.core.auth_service import auth_service
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            success = await auth_service.reset_admin_user(session)
+            if success:
+                console.print("[bold green]✓ Admin credentials reset successfully. First-launch setup will trigger on next launch.[/bold green]")
+            else:
+                console.print("[yellow]No admin credentials found to reset. Setup is already required.[/yellow]")
+
+    asyncio.run(_reset())
+
+@cli_app.command("setup-infrastructure")
+def setup_infrastructure_cmd():
+    """Interactive production email and payment infrastructure setup wizard."""
+    from app.infrastructure.setup_wizard import setup_wizard
+    try:
+        setup_wizard.run()
+    except Exception as e:
+        console.print(f"[bold red]Setup Error: {e}[/bold red]")
+        sys.exit(1)
+
+@cli_app.command("activate-production")
+def activate_production_cmd():
+    """Evaluates provider readiness and enables deliberate production activation."""
+    from rich.table import Table
+    from rich.prompt import Prompt, Confirm
+    from app.infrastructure.production_activation import production_activation_manager
+
+    async def _activate():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            panel = await production_activation_manager.get_readiness_panel(session)
+
+            console.print("\n[bold cyan]==================================================[/bold cyan]")
+            console.print("[bold white]PRODUCTION ACTIVATION & SAFETY READINESS PANEL[/bold white]")
+            console.print("[bold cyan]==================================================[/bold cyan]\n")
+
+            table = Table(title="Production Infrastructure Readiness")
+            table.add_column("Component", style="cyan", no_wrap=True)
+            table.add_column("State", style="bold")
+            table.add_column("Provider / Mode", style="dim")
+            table.add_column("Blockers / Status Details", style="yellow")
+
+            # Email
+            em_color = "green" if panel.email.state.value == "LIVE_ENABLED" else ("cyan" if panel.email.state.value == "READY" else "red")
+            em_blockers = " | ".join(panel.email.blockers) if panel.email.blockers else "All pre-activation gates verified."
+            table.add_row("EMAIL", f"[{em_color}]{panel.email.state.value}[/{em_color}]", panel.email.details.get("configured_provider", "none"), em_blockers)
+
+            # Payment
+            pay_color = "green" if panel.payments.state.value == "LIVE_ENABLED" else ("cyan" if panel.payments.state.value == "READY" else "red")
+            pay_blockers = " | ".join(panel.payments.blockers) if panel.payments.blockers else "All pre-activation gates verified."
+            table.add_row("PAYMENTS", f"[{pay_color}]{panel.payments.state.value}[/{pay_color}]", f"{panel.payments.details.get('configured_provider', 'none')} ({panel.payments.details.get('mode', 'test')})", pay_blockers)
+
+            # Voice
+            vc_color = "green" if panel.voice.state.value == "LIVE_ENABLED" else ("cyan" if panel.voice.state.value == "READY" else "red")
+            vc_blockers = " | ".join(panel.voice.blockers) if panel.voice.blockers else "All pre-activation gates verified."
+            table.add_row("VOICE", f"[{vc_color}]{panel.voice.state.value}[/{vc_color}]", panel.voice.details.get("configured_provider", "dry_run"), vc_blockers)
+
+            # Global Invariants
+            table.add_row("RESEARCH", "[green]ACTIVE[/green]", "Global Market Scanning", "Autonomous discovery and research active")
+            table.add_row("OUTREACH LOCK", "[green]ACTIVE (1 MAX)[/green]", "Singular Slot #1", "Strict one-at-a-time prospect outreach enforced")
+            table.add_row("HUMAN TAKEOVER", "[green]AVAILABLE[/green]", "Escalation Engine", "Deterministic transfer on legal/privacy/dispute/low confidence")
+            table.add_row("REAL REVENUE", "[green]$0.00[/green]", "Verified Payments Only", f"${panel.real_revenue_usd:,.2f} verified in production database")
+
+            console.print(table)
+            console.print(f"\n[bold]Safety Gates Overall:[/bold] [{('green' if panel.safety_gates == 'PASS' else 'red')}]{panel.safety_gates}[/]\n")
+
+            choice = Prompt.ask("Choose provider to activate or 'exit' [email/payments/voice/exit]", default="exit").strip().lower()
+            if choice in ("email", "payments", "voice"):
+                phrase = Prompt.ask(f"To confirm, type exact phrase: [bold red]ENABLE LIVE {choice.upper()}[/bold red]").strip()
+                try:
+                    res = await production_activation_manager.request_activation(
+                        provider=choice,
+                        actor="cli_operator",
+                        confirmation_phrase=phrase,
+                        db_session=session
+                    )
+                    console.print(f"[bold green]✓ {res['message']}[/bold green]")
+                except ValueError as e:
+                    console.print(f"[bold red]❌ Activation Blocked: {e}[/bold red]")
+
+    asyncio.run(_activate())
+
 if __name__ == "__main__":
     cli_app()
+
+

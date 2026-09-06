@@ -57,7 +57,8 @@ class ComplianceGuard:
         # Check existing
         is_supp = await self.is_suppressed(session, email=email_clean, phone=norm_phone, domain=dom)
         if not is_supp:
-            item = SuppressionList(email=email_clean, phone=norm_phone, domain=dom, reason=reason)
+            safe_email = email_clean or (f"phone_suppressed_{norm_phone.replace('+', '')}@suppressed.local" if norm_phone else "suppressed@suppressed.local")
+            item = SuppressionList(email=safe_email, phone=norm_phone, domain=dom, reason=reason)
             session.add(item)
             await session.commit()
 

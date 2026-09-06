@@ -331,6 +331,11 @@ async def test_worker_recovery_from_transient_error():
 
     # Clean stop
     orch.stop()
+    if orch._task:
+        try:
+            await asyncio.wait_for(orch._task, timeout=1.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
     assert orch.is_running is False
 
 
@@ -601,6 +606,11 @@ async def test_continuous_worker_fetches_and_processes_from_db_without_crash():
 
     # Stop worker cleanly
     orch.stop()
+    if orch._task:
+        try:
+            await asyncio.wait_for(orch._task, timeout=1.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
     assert orch.is_running is False
 
 
@@ -809,6 +819,22 @@ async def test_get_next_uncontacted_prospect_fallback_to_local_lead_regression()
             lead_score=85.0
         )
         session.add(lead_eligible)
+        await session.commit()
+
+        # Ensure Business table has no uncontacted records so the fallback to LocalBusiness is exercised
+        from app.database.models import Business
+        from sqlalchemy import update
+        await session.execute(
+            update(Business)
+            .where(Business.pipeline_stage.in_([
+                PipelineStage.DISCOVERED.value,
+                PipelineStage.VERIFIED.value,
+                PipelineStage.AUDITED.value,
+                PipelineStage.QUALIFIED.value,
+                PipelineStage.OUTREACH_READY.value
+            ]))
+            .values(pipeline_stage=PipelineStage.CONTACTED.value)
+        )
         await session.commit()
 
         # Execute fallback query

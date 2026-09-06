@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Portal — {{ app_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    :root {
+      --cp-bg: #09090b;
+      --cp-card: #121215;
+      --cp-card-border: #222228;
+      --cp-text-primary: #f4f4f6;
+      --cp-text-muted: #9494a0;
+      --cp-accent: #3b82f6;
+      --cp-success: #10b981;
+      --cp-warning: #f59e0b;
+      --cp-danger: #ef4444;
+    }
+    body {
+      background-color: var(--cp-bg);
+      color: var(--cp-text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .portal-nav {
+      height: 64px;
+      border-bottom: 1px solid var(--cp-card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: rgba(18, 18, 21, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .portal-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .portal-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .portal-user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .portal-btn-logout {
+      background: transparent;
+      border: 1px solid var(--cp-card-border);
+      color: var(--cp-text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .portal-btn-logout:hover {
+      color: var(--cp-text-primary);
+      border-color: #3f3f46;
+    }
+    .portal-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 36px 24px 72px;
+    }
+    .portal-header {
+      margin-bottom: 32px;
+    }
+    .portal-header h1 {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .portal-header p {
+      color: var(--cp-text-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+    .portal-grid-kpi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--cp-card);
+      border: 1px solid var(--cp-card-border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .kpi-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--cp-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .kpi-val {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--cp-text-muted);
+      margin-top: 6px;
+    }
+    .portal-main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .portal-main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .card {
+      background: var(--cp-card);
+      border: 1px solid var(--cp-card-border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+    .status-pill.success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .status-pill.progress {
+      background: rgba(59, 130, 246, 0.12);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .status-pill.pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .task-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .task-row:last-child {
+      border-bottom: none;
+    }
+    .deliverable-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--cp-card-border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .billing-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .billing-row:last-child {
+      border-bottom: none;
+    }
+    .support-box {
+      background: rgba(59, 130, 246, 0.04);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <nav class="portal-nav">
+    <div class="portal-logo">
+      <span style="font-weight: 700; color: #fff;">{{ app_name }}</span>
+      <span class="portal-badge">Client Portal</span>
+    </div>
+    <div class="portal-user">
+      <span id="nav-company-name" style="font-size: 13px; color: var(--cp-text-muted);">Loading client account...</span>
+      <button class="portal-btn-logout" id="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="portal-container">
+    <header class="portal-header">
+      <h1 id="welcome-client-name">Client Project Workspace</h1>
+      <p id="welcome-sub">Secure overview of your active service, deliverables, milestones, and billing status.</p>
+    </header>
+
+    <!-- Top KPI Cards -->
+    <div class="portal-grid-kpi">
+      <div class="kpi-card">
+        <div class="kpi-title">Active Service</div>
+        <div class="kpi-val" id="kpi-service-name" style="font-size: 18px; line-height: 1.3;">Loading...</div>
+        <div class="kpi-sub" id="kpi-service-sub">Dedicated Digital Turnaround</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Project Status</div>
+        <div class="kpi-val" id="kpi-project-status" style="font-size: 20px;">—</div>
+        <div class="kpi-sub" id="kpi-status-sub">Milestone tracking</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Deliverables Delivered</div>
+        <div class="kpi-val" id="kpi-deliverables-count">0</div>
+        <div class="kpi-sub">Verified assets &amp; reports</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Payment Status</div>
+        <div class="kpi-val" id="kpi-payment-status" style="font-size: 20px;">—</div>
+        <div class="kpi-sub" id="kpi-payment-amount">Contract Total: $0.00</div>
+      </div>
+    </div>
+
+    <!-- Main 2-Column Grid -->
+    <div class="portal-main-grid">
+      <!-- Left Column: Deliverables & Milestones -->
+      <div>
+        <!-- Deliverables Card -->
+        <div class="card">
+          <div class="card-title">
+            <span>Project Deliverables</span>
+            <span class="portal-badge" id="deliverables-badge">0 Assets</span>
+          </div>
+          <div id="deliverables-list">
+            <p style="color: var(--cp-text-muted); font-size: 13px;">No completed deliverables released yet. Assets will appear here as engineering milestones are completed.</p>
+          </div>
+        </div>
+
+        <!-- Milestones & Execution Tasks -->
+        <div class="card">
+          <div class="card-title">
+            <span>Milestones &amp; Project Tasks</span>
+            <span class="portal-badge" id="tasks-badge">0 Tasks</span>
+          </div>
+          <div id="tasks-list">
+            <p style="color: var(--cp-text-muted); font-size: 13px;">No milestones assigned yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Billing & Support -->
+      <div>
+        <!-- Billing & Payments -->
+        <div class="card">
+          <div class="card-title">
+            <span>Billing &amp; Invoices</span>
+            <span class="portal-badge" id="billing-badge">Verified</span>
+          </div>
+          <div id="billing-history">
+            <p style="color: var(--cp-text-muted); font-size: 13px;">No payment records found.</p>
+          </div>
+        </div>
+
+        <!-- Agency Support & Contact -->
+        <div class="card">
+          <div class="card-title">
+            <span>Dedicated Support</span>
+          </div>
+          <div class="support-box">
+            <div style="font-weight: 600; margin-bottom: 6px; color: #fff;">Need assistance with your project?</div>
+            <p style="margin: 0 0 12px; color: var(--cp-text-muted);">
+              Your dedicated agency team is available for technical questions, milestone updates, or custom requests.
+            </p>
+            <div style="font-size: 12px; color: var(--cp-text-muted); margin-bottom: 4px;">Direct Support Email:</div>
+            <a id="support-email-link" href="mailto:support@agency.internal" style="color: #60a5fa; font-weight: 500; text-decoration: none; word-break: break-all;">support@agency.internal</a>
+            <div style="font-size: 11px; color: #71717a; margin-top: 8px;">Guaranteed response within 4 business hours.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/client_portal.js"></script>
+</body>
+</html>

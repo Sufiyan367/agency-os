@@ -27,14 +27,21 @@ def test_session_token_lifecycle():
     assert verify_session_token("") is None
 
 def test_credential_verification():
-    valid = verify_login_credentials(settings.DASHBOARD_USERNAME, settings.DASHBOARD_PASSWORD)
-    assert valid is True
+    from app.core.security import hash_password
+    orig_pass = settings.DASHBOARD_PASSWORD
+    try:
+        plain_pw = "ValidTestPassword123!"
+        settings.DASHBOARD_PASSWORD = hash_password(plain_pw)
+        valid = verify_login_credentials(settings.DASHBOARD_USERNAME, plain_pw)
+        assert valid is True
 
-    invalid_user = verify_login_credentials("wrong_user", settings.DASHBOARD_PASSWORD)
-    assert invalid_user is False
+        invalid_user = verify_login_credentials("wrong_user", plain_pw)
+        assert invalid_user is False
 
-    invalid_pass = verify_login_credentials(settings.DASHBOARD_USERNAME, "wrong_password")
-    assert invalid_pass is False
+        invalid_pass = verify_login_credentials(settings.DASHBOARD_USERNAME, "wrong_password")
+        assert invalid_pass is False
+    finally:
+        settings.DASHBOARD_PASSWORD = orig_pass
 
 def test_api_key_verification():
     assert verify_api_key(settings.API_SECRET_KEY) is True
@@ -43,30 +50,37 @@ def test_api_key_verification():
 
 @pytest.mark.asyncio
 async def test_auth_login_and_logout_endpoints():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # 1. Invalid login attempt
-        bad_res = await ac.post("/api/auth/login", json={"username": "bad", "password": "bad"})
-        assert bad_res.status_code == 401
+    from app.core.security import hash_password
+    orig_pass = settings.DASHBOARD_PASSWORD
+    try:
+        plain_pw = "ValidTestPassword123!"
+        settings.DASHBOARD_PASSWORD = hash_password(plain_pw)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            # 1. Invalid login attempt
+            bad_res = await ac.post("/api/auth/login", json={"username": "bad", "password": "bad"})
+            assert bad_res.status_code == 401
 
-        # 2. Valid login attempt
-        good_res = await ac.post("/api/auth/login", json={
-            "username": settings.DASHBOARD_USERNAME,
-            "password": settings.DASHBOARD_PASSWORD
-        })
-        assert good_res.status_code == 200
-        data = good_res.json()
-        assert data["status"] == "SUCCESS"
-        assert "agency_session" in good_res.cookies
+            # 2. Valid login attempt
+            good_res = await ac.post("/api/auth/login", json={
+                "username": settings.DASHBOARD_USERNAME,
+                "password": plain_pw
+            })
+            assert good_res.status_code == 200
+            data = good_res.json()
+            assert data["status"] == "SUCCESS"
+            assert "agency_session" in good_res.cookies
 
-        # 3. Check auth me with session cookie
-        me_res = await ac.get("/api/auth/me", cookies=good_res.cookies)
-        assert me_res.status_code == 200
-        assert me_res.json()["authenticated"] is True
+            # 3. Check auth me with session cookie
+            me_res = await ac.get("/api/auth/me", cookies=good_res.cookies)
+            assert me_res.status_code == 200
+            assert me_res.json()["authenticated"] is True
 
-        # 4. Logout
-        logout_res = await ac.post("/api/auth/logout")
-        assert logout_res.status_code == 200
+            # 4. Logout
+            logout_res = await ac.post("/api/auth/logout")
+            assert logout_res.status_code == 200
+    finally:
+        settings.DASHBOARD_PASSWORD = orig_pass
 
 @pytest.mark.asyncio
 async def test_public_health_endpoints_accessible():

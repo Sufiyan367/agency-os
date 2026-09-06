@@ -93,7 +93,9 @@ class PerformanceAuditor:
             "total_scripts": len(scripts),
             "total_stylesheets": len(styles),
             "total_images": len(images),
-            "has_viewport": bool(viewport)
+            "has_viewport": bool(viewport),
+            "lighthouse_cwv": "UNKNOWN (External PageSpeed provider not configured)",
+            "lcp_seconds": "UNKNOWN"
         }
         return score, findings, metrics
 

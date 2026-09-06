@@ -29,7 +29,7 @@ class RazorpayPaymentProvider:
         self.currency = (currency or settings.RAZORPAY_CURRENCY or "USD").upper()
         self.enabled = (
             settings.PAYMENTS_ENABLED
-            and not settings.DRY_RUN
+            and not getattr(settings, "PAYMENT_DRY_RUN", True)
             and settings.PAYMENT_PROVIDER == "razorpay"
         )
 

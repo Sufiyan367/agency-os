@@ -48,7 +48,7 @@ class OutreachPersonalizer:
             f"• Observation: {finding_text}\n"
             f"• Evidence: {evidence_text}\n"
             f"{f'• Secondary factor: {second_finding.finding}' if second_finding else ''}\n\n"
-            f"For businesses in {business.city or business.country}, addressing this typically recaptures 15-20% of high-intent mobile visitors who otherwise bounce to a competitor.\n\n"
+            f"For businesses in {business.city or business.country}, resolving high-friction mobile bottlenecks helps capture high-intent visitors who would otherwise navigate away.\n\n"
             f"We have packaged a turnkey fix ({offer.title}) that addresses this in {offer.estimated_delivery_days} days.\n\n"
             f"Would you like me to send over the full PDF audit report for your internal review? No obligation either way."
         )
@@ -62,7 +62,7 @@ class OutreachPersonalizer:
             f"\"{finding_text}\"\n\n"
             f"Details: {evidence_text}\n"
             f"Recommended solution: {fix_text}\n\n"
-            f"We help commercial businesses solve these specific bottlenecks on a fixed-fee basis (${offer.recommended_price:.0f}) with guaranteed delivery.\n\n"
+            f"We help commercial businesses solve these specific bottlenecks on a fixed-fee basis (${offer.recommended_price:.0f}) with transparent, fixed-scope delivery.\n\n"
             f"Are you the right person to review our technical audit summary for {business.name}?"
         )
 

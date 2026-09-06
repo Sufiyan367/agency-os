@@ -166,4 +166,7 @@ class OfferEngine:
         logger.info(f"Generated offer for {business.name}: {offer.title} (${offer.recommended_price:.0f})")
         return offer
 
+    # Backward compatibility alias for orchestrator loop crash recovery
+    generate_offers_for_business = generate_offer_for_business
+
 offer_engine = OfferEngine()

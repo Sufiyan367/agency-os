@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.database.models import Business, AuditRun, AuditFinding, PipelineStage, PipelineEvent
 from app.auditing.crawler import website_crawler
 from app.auditing.performance import performance_auditor
@@ -115,6 +116,10 @@ class WebsiteAuditEngine:
         )
         session.add(event)
         await session.commit()
+
+        # Eagerly reload audit_run and its findings so the returned model has attributes loaded and is safe for sync inspections
+        stmt = select(AuditRun).where(AuditRun.id == audit_run.id).options(selectinload(AuditRun.findings))
+        audit_run = (await session.execute(stmt)).scalar_one()
 
         logger.info(f"Audit completed for {business.name}. Health: {overall_health}/100, Findings: {len(all_findings)}")
         return audit_run

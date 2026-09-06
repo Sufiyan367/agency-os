@@ -27,17 +27,29 @@ class LeadDiscoveryCoordinator:
         session: AsyncSession,
         country_code: str = "US",
         niche_slug: str = "roofing-contractors",
-        target_count: int = 50
+        target_count: int = 1,
+        target: Optional[int] = None
     ) -> List[Business]:
-        logger.info(f"Starting REAL lead discovery for Country: {country_code}, Niche: {niche_slug}, Target: {target_count}")
-        discovered_records = []
+        eff_target = target if target is not None else target_count
+        logger.info(f"Starting REAL lead discovery for Country: {country_code}, Niche: {niche_slug}, Target: {eff_target}")
+        
+        # 1. Query existing domains from DB for deduplication at source
+        existing_domains_q = select(Business.domain)
+        existing_domains = set((await session.execute(existing_domains_q)).scalars().all())
 
-        # Run discovery through real public search adapters
+        discovered_records = []
+        # Run discovery through real public search adapters, skipping existing domains
         for adapter in self.adapters:
             try:
-                leads = await adapter.discover_leads(country_code, niche_slug, limit=target_count)
-                discovered_records.extend(leads)
-                if len(discovered_records) >= target_count:
+                leads = await adapter.discover_leads(
+                    country_code, niche_slug, limit=eff_target, exclude_domains=existing_domains
+                )
+                for l in leads:
+                    norm = normalize_domain(l.domain)
+                    if norm and norm not in existing_domains:
+                        discovered_records.append(l)
+                        existing_domains.add(norm)
+                if len(discovered_records) >= eff_target:
                     break
             except Exception as e:
                 logger.warning(f"Adapter {adapter.__class__.__name__} warning: {e}")
@@ -108,7 +120,7 @@ class LeadDiscoveryCoordinator:
             session.add(event)
             created_businesses.append(biz)
 
-            if len(created_businesses) >= target_count:
+            if len(created_businesses) >= eff_target:
                 break
 
         await session.commit()

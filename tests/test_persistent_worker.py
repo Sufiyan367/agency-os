@@ -6,14 +6,18 @@ from sqlalchemy import select
 
 @pytest.mark.asyncio
 async def test_persistent_worker_tick_execution():
+    from datetime import datetime
     worker = PersistentAgencyWorker(interval_seconds=1)
+    worker.last_cycle_at = datetime.utcnow()
     
     with patch("app.crm.inbox_poller.inbox_poller.poll_inbox", new_callable=AsyncMock) as mock_inbox, \
          patch("app.followups.engine.followup_engine.process_due_followups", new_callable=AsyncMock) as mock_fu, \
-         patch("app.payments.provider.stripe_payment_provider.fetch_completed_sessions", new_callable=AsyncMock) as mock_pmt:
+         patch("app.payments.provider.stripe_payment_provider.fetch_completed_sessions", new_callable=AsyncMock) as mock_pmt, \
+         patch("app.orchestrator.loop.orchestrator.run_full_autonomous_cycle", new_callable=AsyncMock) as mock_cycle:
         mock_inbox.return_value = []
         mock_fu.return_value = []
         mock_pmt.return_value = []
+        mock_cycle.return_value = {"prospects_contacted": 0}
 
         summary = await worker.execute_tick()
         assert summary["status"] == "SUCCESS"
@@ -24,7 +28,9 @@ async def test_persistent_worker_tick_execution():
 
 @pytest.mark.asyncio
 async def test_persistent_worker_automatic_payment_detection():
+    from datetime import datetime
     worker = PersistentAgencyWorker(interval_seconds=1)
+    worker.last_cycle_at = datetime.utcnow()
     
     fake_pmt = [{
         "business_id": 999,
@@ -37,7 +43,8 @@ async def test_persistent_worker_automatic_payment_detection():
     with patch("app.crm.inbox_poller.inbox_poller.poll_inbox", new_callable=AsyncMock) as mock_inbox, \
          patch("app.followups.engine.followup_engine.process_due_followups", new_callable=AsyncMock) as mock_fu, \
          patch("app.orchestrator.worker.get_active_payment_provider", return_value=mock_provider), \
-         patch("app.payments.service.payment_service.confirm_payment_and_onboard", new_callable=AsyncMock) as mock_onboard:
+         patch("app.payments.service.payment_service.confirm_payment_and_onboard", new_callable=AsyncMock) as mock_onboard, \
+         patch("app.orchestrator.loop.orchestrator.run_full_autonomous_cycle", new_callable=AsyncMock):
         mock_inbox.return_value = []
         mock_fu.return_value = []
         mock_onboard.return_value = {"status": "SUCCESS"}

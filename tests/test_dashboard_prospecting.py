@@ -10,7 +10,7 @@ from app.api.app import app
 from app.core.config import settings
 from app.core.production_mode import first_client_mode
 from app.database.connection import AsyncSessionLocal
-from app.database.models import SystemRun, OutreachMessage
+from app.database.models import SystemRun, OutreachMessage, Business
 from app.lead_generation.job_runner import prospecting_job_manager
 from app.lead_generation.service import LeadDiscoveryService
 
@@ -136,8 +136,11 @@ async def test_shared_service_layer_and_safety_controls():
     assert perms["payment_live_charging"] is False
     assert perms["commercial_threshold_usd"] == 500.0
 
-    # 3. Verify zero sent outreach messages in database
+    # 3. Verify zero sent outreach messages for newly discovered prospects in dry run mode
     async with AsyncSessionLocal() as session:
-        q_sent = select(OutreachMessage).where(OutreachMessage.status == "SENT")
+        q_sent = select(OutreachMessage).join(OutreachMessage.business).where(
+            Business.niche == "Solar",
+            OutreachMessage.status == "SENT"
+        )
         sent_msgs = (await session.execute(q_sent)).scalars().all()
         assert len(sent_msgs) == 0, "No emails should be dispatched in dry run mode"

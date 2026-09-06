@@ -21,7 +21,7 @@ class StripePaymentProvider:
     ):
         self.secret_key = secret_key or settings.STRIPE_SECRET_KEY
         self.webhook_secret = webhook_secret or settings.STRIPE_WEBHOOK_SECRET
-        self.enabled = settings.PAYMENTS_ENABLED and not settings.DRY_RUN and settings.PAYMENT_PROVIDER == "stripe"
+        self.enabled = settings.PAYMENTS_ENABLED and not getattr(settings, "PAYMENT_DRY_RUN", True) and settings.PAYMENT_PROVIDER == "stripe"
 
     async def create_checkout_session(
         self,

@@ -19,7 +19,7 @@ class LLMClient:
     async def generate_text(self, prompt: str, system_prompt: str = "", max_tokens: int = 1000) -> str:
         """Generates text completion using the best available provider."""
         # 1. Try NVIDIA API if configured
-        if (self.provider in ("nvidia", "auto")) and self.nvidia_key:
+        if (self.provider in ("nvidia", "auto")) and self.nvidia_key and not self.nvidia_key.startswith("REPLACE_"):
             try:
                 return await self._call_openai_compatible(
                     base_url="https://integrate.api.nvidia.com/v1",
@@ -29,11 +29,13 @@ class LLMClient:
                     system_prompt=system_prompt,
                     max_tokens=max_tokens
                 )
+            except httpx.HTTPStatusError as e:
+                logger.warning(f"[LLMClient] NVIDIA API returned HTTP {e.response.status_code}. Falling back to next provider...")
             except Exception as e:
-                logger.warning(f"NVIDIA API call failed: {e}. Falling back...")
+                logger.warning(f"[LLMClient] NVIDIA API call failed: {e}. Falling back to next provider...")
 
         # 2. Try OpenAI API if configured
-        if (self.provider in ("openai", "auto")) and self.openai_key:
+        if (self.provider in ("openai", "auto")) and self.openai_key and not self.openai_key.startswith("REPLACE_"):
             try:
                 return await self._call_openai_compatible(
                     base_url="https://api.openai.com/v1",
@@ -43,22 +45,37 @@ class LLMClient:
                     system_prompt=system_prompt,
                     max_tokens=max_tokens
                 )
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 401:
+                    logger.warning("[LLMClient] OpenAI API key unauthorized (HTTP 401). Falling back to next provider...")
+                else:
+                    logger.warning(f"[LLMClient] OpenAI API returned HTTP {e.response.status_code}. Falling back to next provider...")
             except Exception as e:
-                logger.warning(f"OpenAI API call failed: {e}. Falling back...")
+                logger.warning(f"[LLMClient] OpenAI API call failed: {e}. Falling back to next provider...")
 
         # 3. Try OpenRouter if configured
-        if (self.provider in ("openrouter", "auto")) and self.openrouter_key:
+        if (self.provider in ("openrouter", "auto")) and self.openrouter_key and not self.openrouter_key.startswith("REPLACE_"):
+            openrouter_model = getattr(settings, "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
             try:
                 return await self._call_openai_compatible(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=self.openrouter_key,
-                    model="meta-llama/llama-3.1-8b-instruct:free",
+                    model=openrouter_model,
                     prompt=prompt,
                     system_prompt=system_prompt,
-                    max_tokens=max_tokens
+                    max_tokens=max_tokens,
+                    extra_headers={
+                        "HTTP-Referer": "https://agencygrowth.co",
+                        "X-Title": "Autonomous B2B Agency"
+                    }
                 )
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    logger.warning(f"[LLMClient] OpenRouter model '{openrouter_model}' returned 404. Falling back to heuristic engine...")
+                else:
+                    logger.warning(f"[LLMClient] OpenRouter API returned HTTP {e.response.status_code}. Falling back to heuristic engine...")
             except Exception as e:
-                logger.warning(f"OpenRouter API call failed: {e}. Falling back...")
+                logger.warning(f"[LLMClient] OpenRouter API call failed: {e}. Falling back to heuristic engine...")
 
         # 4. Heuristic Fallback (deterministic reasoning)
         return self._heuristic_text_fallback(prompt, system_prompt)
@@ -85,12 +102,21 @@ class LLMClient:
             return self._heuristic_json_fallback(prompt)
 
     async def _call_openai_compatible(
-        self, base_url: str, api_key: str, model: str, prompt: str, system_prompt: str, max_tokens: int
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        prompt: str,
+        system_prompt: str,
+        max_tokens: int,
+        extra_headers: Optional[Dict[str, str]] = None
     ) -> str:
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        if extra_headers:
+            headers.update(extra_headers)
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})

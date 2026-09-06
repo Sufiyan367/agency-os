@@ -21,7 +21,10 @@ class OutreachSenderAdapter:
     Schedules automated follow-up cadences upon successful transmission.
     """
 
-    async def send_approved_message(self, session: AsyncSession, message_id: int) -> Dict[str, Any]:
+    async def send_approved_message(self, session: AsyncSession, message_id: int, force_live: bool = False) -> Dict[str, Any]:
+        if getattr(settings, "RESEARCH_ONLY", False):
+            raise ValueError("Outreach blocked: System is operating in RESEARCH_ONLY mode.")
+
         msg = await session.get(OutreachMessage, message_id)
         if not msg:
             raise ValueError(f"Message {message_id} not found.")
@@ -45,7 +48,27 @@ class OutreachSenderAdapter:
         biz = await session.get(Business, msg.business_id)
 
         # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP)
-        provider = get_email_provider()
+        if force_live:
+            provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
+            if provider_name == "resend" or (provider_name == "dry_run" and settings.RESEND_API_KEY):
+                if not settings.RESEND_API_KEY:
+                    raise ValueError("Cannot send live: RESEND_API_KEY is not configured in .env")
+                from app.outreach.providers.resend_provider import ResendEmailProvider
+                provider = ResendEmailProvider()
+            elif provider_name == "smtp" or (provider_name == "dry_run" and settings.SMTP_HOST):
+                if not settings.SMTP_HOST or not settings.SMTP_USER:
+                    raise ValueError("Cannot send live: SMTP_HOST and SMTP_USER are not configured in .env")
+                from app.outreach.providers.smtp_provider import SMTPEmailProvider
+                provider = SMTPEmailProvider()
+            elif provider_name == "sendgrid":
+                if not settings.SENDGRID_API_KEY:
+                    raise ValueError("Cannot send live: SENDGRID_API_KEY is not configured in .env")
+                from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
+                provider = SendGridEmailProvider()
+            else:
+                raise ValueError("Cannot send live: No live email credentials configured in .env (configure RESEND_API_KEY or SMTP_HOST/SMTP_USER).")
+        else:
+            provider = get_email_provider()
         try:
             delivery_res = await provider.send_email(
                 to_email=msg.recipient_email,

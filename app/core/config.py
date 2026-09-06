@@ -24,14 +24,24 @@ class Settings(BaseSettings):
         "SYNC_DATABASE_URL",
         "sqlite:////app/data/agency.db" if os.path.exists("/app/data") else "sqlite:///agency.db"
     )
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "20"))
+    DB_POOL_TIMEOUT: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "1800"))
 
     # Production Cloud & Security Settings
     AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
     DASHBOARD_USERNAME: str = os.getenv("DASHBOARD_USERNAME", "admin")
-    DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "agency_admin_2026")
-    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "agency_master_secret_prod_key_2026")
-    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "agency_session_hmac_secret_2026")
+    DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "")
+    VIEWER_USERNAME: str = os.getenv("VIEWER_USERNAME", "viewer")
+    VIEWER_PASSWORD: str = os.getenv("VIEWER_PASSWORD", "")
+    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "")
+    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "")
     SESSION_MAX_AGE_DAYS: int = 14
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("true", "1", "yes")
+    WEBHOOK_REPLAY_WINDOW_SECONDS: int = int(os.getenv("WEBHOOK_REPLAY_WINDOW_SECONDS", "300"))
+    WEBHOOK_SHARED_SECRET: Optional[str] = os.getenv("WEBHOOK_SHARED_SECRET")
 
     # Cloud VPS & Domain Configuration
     DOMAIN: str = os.getenv("DOMAIN", "localhost")
@@ -41,6 +51,7 @@ class Settings(BaseSettings):
 
     # Pipeline Safeguards & Compliance
     DRY_RUN: bool = True
+    RESEARCH_ONLY: bool = os.getenv("RESEARCH_ONLY", "true").lower() in ("true", "1", "yes")
     MAX_OUTREACH_PER_DAY: int = 50
     MAX_FOLLOWUPS: int = 3
     REPLY_STOP_RULE: bool = True
@@ -73,7 +84,12 @@ class Settings(BaseSettings):
     BLAND_API_KEY: Optional[str] = os.getenv("BLAND_API_KEY")
     AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "true").lower() in ("true", "1", "yes")
     AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "true").lower() in ("true", "1", "yes")
+    AUTONOMOUS_FIRST_CLIENT: bool = os.getenv("AUTONOMOUS_FIRST_CLIENT", "false").lower() in ("true", "1", "yes")
+    MAX_ACTIVE_OUTREACH_PROSPECTS: int = int(os.getenv("MAX_ACTIVE_OUTREACH_PROSPECTS", "1"))
+    EMERGENCY_STOP: bool = os.getenv("EMERGENCY_STOP", "false").lower() in ("true", "1", "yes")
     MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))
+    COMMERCIAL_FLOOR_USD: float = float(os.getenv("COMMERCIAL_FLOOR_USD", "500.0"))
+    ONE_AT_A_TIME_PROSPECTING: bool = True
     
     # TCPA & Calling Hours Compliance
     CALLING_HOURS_START: int = int(os.getenv("CALLING_HOURS_START", "8"))  # 8:00 AM local
@@ -100,6 +116,7 @@ class Settings(BaseSettings):
     PAYMENTS_ENABLED: bool = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
     PAYMENT_DRY_RUN: bool = os.getenv("PAYMENT_DRY_RUN", "true").lower() in ("true", "1", "yes")
     MINIMUM_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_SERVICE_VALUE_USD", "500.0"))
+    TARGET_OFFER_MINIMUM_USD: float = float(os.getenv("TARGET_OFFER_MINIMUM_USD", "1000.0"))
     RAZORPAY_MODE: str = os.getenv("RAZORPAY_MODE", "test")
     DEFAULT_ADVANCE_PERCENTAGE: float = float(os.getenv("DEFAULT_ADVANCE_PERCENTAGE", "40.0"))
     

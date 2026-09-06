@@ -49,6 +49,9 @@ class AnalyticsEngine:
 
         # 3. Replies & Sales Metrics
         replies_total = (await session.execute(select(func.count(Reply.id)))).scalar() or 0
+        replies_pending = (await session.execute(
+            select(func.count(Reply.id)).where(Reply.is_handled == False)
+        )).scalar() or 0
         replies_positive = (await session.execute(
             select(func.count(Reply.id)).where(Reply.classification.in_([
                 ReplyClassification.INTERESTED.value,
@@ -73,6 +76,23 @@ class AnalyticsEngine:
         # 4. Financial & Revenue Metrics
         won_revenue = (await session.execute(select(func.sum(Customer.contract_amount)))).scalar() or 0.0
         avg_deal_size = (won_revenue / deals_won) if deals_won > 0 else 0.0
+
+        # Verified Real Revenue (strictly $0.00 unless live payments are active and verified)
+        from app.core.config import settings
+        payments_live = (
+            getattr(settings, "PAYMENTS_ENABLED", False) is True
+            and getattr(settings, "PAYMENT_DRY_RUN", True) is False
+            and getattr(settings, "RAZORPAY_MODE", "test").lower() == "live"
+        )
+        if payments_live:
+            from app.database.models import Payment
+            real_pay_q = select(func.sum(Payment.amount)).where(
+                Payment.status.in_(["PAID", "COMPLETED"]),
+                Payment.is_mock == False
+            )
+            verified_real_revenue = (await session.execute(real_pay_q)).scalar() or 0.0
+        else:
+            verified_real_revenue = 0.0
 
         # Active pipeline potential value (sum of offers for leads in progress)
         pipeline_val_q = select(func.sum(Offer.recommended_price)).join(Business).where(
@@ -120,6 +140,7 @@ class AnalyticsEngine:
             },
             "sales": {
                 "replies_total": replies_total,
+                "replies_pending": replies_pending,
                 "replies_positive": replies_positive,
                 "calls_scheduled": calls_scheduled,
                 "proposals_sent": proposals_sent,
@@ -131,6 +152,8 @@ class AnalyticsEngine:
             },
             "revenue": {
                 "won_revenue_usd": won_revenue,
+                "verified_real_revenue_usd": verified_real_revenue,
+                "is_real_revenue_active": payments_live,
                 "pipeline_value_usd": pipeline_value,
                 "average_deal_size_usd": round(avg_deal_size, 2),
                 "revenue_by_country": rev_by_country,

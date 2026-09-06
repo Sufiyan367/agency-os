@@ -1,5 +1,5 @@
 import httpx
-from typing import List
+from typing import List, Optional, Any, Set
 from bs4 import BeautifulSoup
 from app.lead_generation.adapters.base import BaseLeadDiscoveryAdapter, DiscoveredLeadRaw
 from app.core.security import normalize_domain, is_safe_url
@@ -11,13 +11,14 @@ class WebSearchDiscoveryAdapter(BaseLeadDiscoveryAdapter):
     and extracting candidate websites and business names.
     """
     async def discover_leads(
-        self, country_code: str, niche_slug: str, limit: int = 10
+        self, country_code: str, niche_slug: str, limit: int = 10, exclude_domains: Optional[Any] = None
     ) -> List[DiscoveredLeadRaw]:
         query = f"{niche_slug.replace('-', ' ')} in {country_code} official website contact"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         leads: List[DiscoveredLeadRaw] = []
+        excluded = {d.lower().strip() for d in (exclude_domains or set())}
         
         # We attempt real search via DuckDuckGo HTML endpoint with graceful degradation
         try:
@@ -36,6 +37,8 @@ class WebSearchDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                             raw_href = "https://" + raw_href
 
                         domain = normalize_domain(raw_href)
+                        if domain in excluded:
+                            continue
                         # Filter out global directory giants (yelp, yellowpages, tripadvisor, facebook, wikipedia)
                         if any(x in domain for x in ["duckduckgo", "yelp", "yellowpages", "facebook", "linkedin", "wikipedia", "tripadvisor"]):
                             continue

@@ -449,11 +449,11 @@ class LeadDiscoveryService:
                 db.add(CoreAuditRun(
                     business_id=core_biz.id,
                     url_audited=core_biz.website_url or f"https://{clean_domain}",
-                    performance_score=45.0 if candidate.page_speed_issue else 78.0,
-                    seo_score=50.0 if candidate.seo_issue else 82.0,
-                    ux_conversion_score=48.0 if candidate.mobile_ux_issue else 80.0,
+                    performance_score=75.0,
+                    seo_score=75.0,
+                    ux_conversion_score=75.0,
                     security_score=85.0,
-                    summary=f"Technical audit for {clean_domain}: Speed bottleneck and conversion optimization opportunities identified."
+                    summary=f"Technical audit for {clean_domain}: Baseline evaluation based on observed website structure."
                 ))
 
                 if is_priority and scored.estimated_service_value.min_value >= targeting.commercial.minimum_target_service_value_usd:

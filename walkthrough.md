@@ -96,26 +96,49 @@ tests/test_outreach_and_approval_queue.py::test_compliance_suppression_prevents_
 tests/test_payments_and_onboarding.py::test_stripe_checkout_session_dry_run PASSED [ 56%]
 tests/test_payments_and_onboarding.py::test_stripe_hmac_signature_verification PASSED [ 58%]
 tests/test_payments_and_onboarding.py::test_payment_confirmation_and_automatic_onboarding PASSED [ 60%]
-tests/test_persistent_worker.py::test_persistent_worker_tick_execution PASSED [ 62%]
-tests/test_persistent_worker.py::test_persistent_worker_automatic_payment_detection PASSED [ 64%]
-tests/test_persistent_worker.py::test_persistent_worker_error_recovery PASSED [ 66%]
-tests/test_persistent_worker.py::test_persistent_worker_status PASSED    [ 68%]
-tests/test_razorpay_provider.py::test_razorpay_payment_link_generation_dry_run PASSED [ 70%]
-tests/test_razorpay_provider.py::test_razorpay_webhook_signature_verification PASSED [ 72%]
-tests/test_razorpay_provider.py::test_razorpay_webhook_payment_link_paid_advances_to_won_and_onboards PASSED [ 74%]
-tests/test_razorpay_provider.py::test_razorpay_webhook_idempotency_avoids_duplicate_onboarding PASSED [ 76%]
-tests/test_razorpay_provider.py::test_get_active_payment_provider_default_and_toggle PASSED [ 78%]
-tests/test_reply_intelligence_and_crm.py::test_reply_classification_and_pipeline_advancement PASSED [ 80%]
-tests/test_reply_intelligence_and_crm.py::test_unsubscribe_reply_adds_to_suppression PASSED [ 82%]
-tests/test_scoring_and_offers.py::test_scoring_and_offer_generation PASSED [ 84%]
-tests/test_security_ssrf.py::test_ssrf_disallows_loopback_and_internal_ips PASSED [ 86%]
-tests/test_security_ssrf.py::test_ssrf_allows_public_domains PASSED      [ 88%]
-tests/test_domain_normalization.py::test_domain_normalization PASSED      [ 90%]
-tests/test_security_ssrf.py::test_email_validation PASSED                [ 92%]
-tests/test_windows_service.py::test_windows_service_status_installed_and_running PASSED [ 94%]
-tests/test_windows_service.py::test_windows_service_status_not_installed PASSED [ 96%]
-tests/test_windows_service.py::test_windows_service_install_mocked PASSED [ 98%]
-tests/test_windows_service.py::test_windows_service_uninstall_mocked PASSED [100%]
+tests/test_persistent_worker.py::### Test Results
+- `tests/test_phase17_voice_operations.py`: 18/18 passed
+- `tests/test_voice_sales_layer.py`: 10/10 passed
 
-======================= 51 passed, 1 warning in 32.87s ========================
-```
+---
+
+# Phase 18 — Step 2: Provider Connectivity Preflight & Safety Verification
+
+## Overview
+Phase 18 Step 2 performs a non-destructive, strictly read-only preflight of the Email, Payment, and Voice provider infrastructure. It rigorously verifies provider configuration, public DNS health, credential validation, cryptographic HMAC webhook authentication, failure injection safety nets, and executes an isolated end-to-end simulation where all records are marked `SIMULATION/TEST` with zero live side-effects and zero revenue.
+
+## Verifications & Safety Guarantees
+
+### 1. Provider Connectivity & Preflight Status
+- **Email (Resend)**:
+  - Provider: Resend (`re_...` key format verified, non-empty, non-logged).
+  - Sender Domain: `agencygrowth.co` (`contact@agencygrowth.co`, Reply-To: `support@agencygrowth.co`).
+  - Public DNS: SPF (`v=spf1 include:resend.com ~all`) and DMARC (`v=DMARC1; p=none...`) present. DKIM CNAME records pending DNS registrar addition before live outbound sending can be unblocked.
+  - Live Sending Status: `BLOCKED` until DKIM verified; `EMAIL_DRY_RUN=True` actively enforced.
+- **Payment (Razorpay)**:
+  - Provider: Razorpay Test Mode (`rzp_test_...` key ID, secret, and webhook secret verified).
+  - Webhook Security: Cryptographic HMAC-SHA256 signature verification validated against live forged signatures (HTTP 400 rejection).
+  - Commercial Safeguards: Strict \$500.00 commercial floor enforced; sub-\$500 payments rejected with `ValueError`; duplicate webhook replays safely detected and ignored with `DUPLICATE_IGNORED`.
+  - Live Payment Status: `DISABLED` (`PAYMENTS_ENABLED=False`, `PAYMENT_DRY_RUN=True`).
+- **Voice (Twilio / Bland AI / Dry-Run)**:
+  - Active Mode: `VOICE_DRY_RUN=True` with `DryRunVoiceProvider`.
+  - 15-State Conversation Machine: Validated transitions from initial pitch to negotiation, proposal, payment handoff, or opt-out.
+  - Compliance: Immediate suppression on opt-out; automatic human escalation on legal, GDPR/privacy, hostility, and payment disputes.
+  - Live Voice Status: `DISABLED`.
+
+### 2. Mocked Internal End-to-End Flow (`SIMULATION/TEST`)
+- Executed full 11-step autonomous cycle in complete test isolation:
+  `Prospect -> Evidence -> Factual Audit -> Service Match -> $1,000+ Offer -> Auto-Approval -> Dry-Run Outreach -> Mock Inbound Reply -> Voice Call -> Price Negotiation -> Proposal -> Webhook Payment Event -> Verification -> Customer/Project Onboarding`.
+- Verified Invariant: Deal progressed to `PROPOSAL` upon verbal agreement; deal was **never** marked `WON` prematurely until verified HMAC webhook payment confirmation.
+
+### 3. Failure Injection Test Suite (`tests/test_phase18_provider_preflight.py`)
+- **Email Failures**: Suppressed recipient blocked (`ValueError`), duplicate send prohibited (`ValueError`), live send without credentials rejected (`ValueError`).
+- **Payment Failures**: Forged signature rejected (HTTP 400), underpayment below \$500 floor rejected (`ValueError`), duplicate webhook replay idempotent.
+- **Voice Failures**: Legal/privacy/dispute triggers human escalation, low confidence triggers operator escalation, verbal opt-out triggers immediate number suppression and cancels future attempts.
+- **Safety Invariants**: Asserted `RESEARCH_ONLY=True`, `EMAIL_DRY_RUN=True`, `PAYMENTS_ENABLED=False`, `PAYMENT_DRY_RUN=True`, `VOICE_DRY_RUN=True`.
+
+## Test Results
+- `tests/test_phase18_provider_preflight.py`: 11/11 passed
+- `tests/test_phase16_setup_wizard.py`: 14/14 passed
+- `tests/test_phase17_voice_operations.py`: 18/18 passed
+- **Full Project Regression Suite**: 512/512 passed (0 failures, 0 regressions)

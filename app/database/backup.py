@@ -28,12 +28,46 @@ def get_sqlite_db_path() -> Optional[str]:
         raw_path = os.path.join(BASE_DIR, raw_path)
     return raw_path
 
+RPO_TARGET_MINUTES = 60  # Maximum acceptable data loss window: 1 hour
+RTO_TARGET_MINUTES = 15  # Maximum acceptable downtime during recovery: 15 minutes
+
+
 class DatabaseBackupManager:
     """
     Automated database backup and recovery manager.
     Produces compressed, integrity-verified snapshots for SQLite and PostgreSQL.
     Automates point-in-time retention and disaster recovery.
     """
+    RPO_TARGET_MINUTES = RPO_TARGET_MINUTES
+    RTO_TARGET_MINUTES = RTO_TARGET_MINUTES
+
+    def get_recovery_procedures(self) -> Dict[str, Any]:
+        """
+        Returns structured disaster recovery procedures, RPO/RTO SLA targets,
+        and restoration commands for both SQLite and PostgreSQL.
+        """
+        return {
+            "rpo_target_minutes": self.RPO_TARGET_MINUTES,
+            "rto_target_minutes": self.RTO_TARGET_MINUTES,
+            "sqlite_restore_procedure": (
+                "1. Stop the application service.\n"
+                "2. Call DatabaseBackupManager.restore_backup(backup_filepath) or run:\n"
+                "   gzip -dc <backup_file>.db.gz > agency.db\n"
+                "3. Verify integrity: sqlite3 agency.db 'PRAGMA integrity_check;'\n"
+                "4. Restart the application service."
+            ),
+            "postgres_restore_procedure": (
+                "1. Stop application instances to prevent active connection conflicts.\n"
+                "2. Restore from pg_dump custom archive:\n"
+                "   pg_restore --clean --if-exists --no-owner -h <HOST> -U <USER> -d <DB> <backup_file>.dump\n"
+                "3. Alternatively for plain SQL dumps:\n"
+                "   psql -h <HOST> -U <USER> -d <DB> -f <backup_file>.sql\n"
+                "4. Run Alembic migrations check: alembic upgrade head\n"
+                "5. Restart application service."
+            ),
+            "backup_retention_days": settings.BACKUP_RETENTION_DAYS,
+            "backup_directory": get_backup_directory()
+        }
 
     def create_backup(self) -> Dict[str, Any]:
         """Creates a timestamped, gzip-compressed, integrity-verified backup."""

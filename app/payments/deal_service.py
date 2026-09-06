@@ -96,6 +96,84 @@ class DealClosingService:
         logger.info(f"[DealClosingService] Created proposal #{proposal.id} for business #{business_id} (${total_value:,.2f})")
         return proposal
 
+    async def create_memory_aware_proposal(
+        self,
+        session: AsyncSession,
+        business_id: int,
+        lead_id: Optional[int] = None
+    ) -> Proposal:
+        """
+        Creates an evidence-grounded, memory-aware commercial proposal using:
+        - Original website audit findings
+        - Prospect's stated pain points and objection history
+        - Contextual scope and desired turnaround outcomes
+        - Strict pricing discipline defending $1,000 target and $500 hard floor
+        """
+        biz = await session.get(Business, business_id)
+        if not biz:
+            raise ValueError(f"Business #{business_id} not found.")
+
+        from app.database.models import ProspectMemory, AuditRun, Offer
+        q_mem = select(ProspectMemory).where(ProspectMemory.business_id == business_id)
+        memory = (await session.execute(q_mem)).scalars().first()
+
+        q_audit = select(AuditRun).where(AuditRun.business_id == business_id).order_by(AuditRun.audited_at.desc())
+        audit = (await session.execute(q_audit)).scalars().first()
+
+        q_off = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
+        offer = (await session.execute(q_off)).scalars().first()
+
+        # Pricing discipline: target $1,000, enforce minimum $500 floor
+        target_price = getattr(settings, "TARGET_OFFER_MINIMUM_USD", 1000.0)
+        base_price = offer.recommended_price if offer else target_price
+        total_value = max(base_price, target_price)
+        total_value = max(total_value, settings.MINIMUM_SERVICE_VALUE_USD)
+
+        adv_pct = getattr(settings, "DEFAULT_ADVANCE_PERCENTAGE", 40.0)
+        advance_required = round(total_value * (adv_pct / 100.0), 2)
+
+        # Ground deliverables in actual audit findings
+        deliverables = []
+        if audit and audit.findings:
+            for f in audit.findings[:3]:
+                if hasattr(f, "finding"):
+                    deliverables.append(f"Remediation: {f.finding}")
+                elif isinstance(f, dict) and "title" in f:
+                    deliverables.append(f"Remediation: {f['title']}")
+                elif isinstance(f, dict) and "finding" in f:
+                    deliverables.append(f"Remediation: {f['finding']}")
+                elif isinstance(f, str):
+                    deliverables.append(f"Remediation: {f}")
+        if not deliverables:
+            deliverables = [
+                "Core Web Vitals LCP & Server Response Optimization",
+                "Mobile Viewport & Above-the-Fold Friction Reduction",
+                "Conversion CTA & Click-to-Call Remediation"
+            ]
+
+        title = f"Turnaround & Performance Remediation Agreement — {biz.domain}"
+        service_type = offer.service_type if offer else "Core Web Vitals Turnaround"
+
+        metadata = {
+            "source": "memory_aware_engine",
+            "domain": biz.domain,
+            "deliverables": deliverables,
+            "audit_health_score": audit.performance_score if audit else (memory.audit_results.get("performance_score") if memory else 70.0),
+            "objections_addressed": [o.get("primary") for o in (memory.objection_history if memory else []) if isinstance(o, dict)],
+            "target_floor_enforced": True
+        }
+
+        return await self.create_proposal(
+            session=session,
+            business_id=business_id,
+            title=title,
+            total_value=total_value,
+            advance_required=advance_required,
+            service_type=service_type,
+            lead_id=lead_id,
+            metadata=metadata
+        )
+
     async def approve_proposal(
         self,
         session: AsyncSession,

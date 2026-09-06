@@ -47,6 +47,7 @@ class SingleProspectAgent:
                 ])
             )
             .order_by(
+                Business.public_email.isnot(None).desc(),
                 LeadScore.total_score.desc().nullslast(),
                 Business.id.asc()
             )
@@ -108,8 +109,8 @@ class SingleProspectAgent:
         city: str,
         niche: str
     ) -> Optional[Dict[str, Any]]:
-        """Queries the provider for candidates and returns exactly the first valid un-audited business."""
-        candidates = await self.provider.discover_prospects(country=country, city=city, niche=niche, limit=5)
+        """Queries the provider for candidates and returns exactly ONE valid un-audited business."""
+        candidates = await self.provider.discover_prospects(country=country, city=city, niche=niche, limit=1)
         for cand in candidates:
             norm_dom = self.service.normalize_domain(cand.website or cand.domain)
             is_valid, _ = ProspectQualityFilter.check_validity(norm_dom, cand.website)

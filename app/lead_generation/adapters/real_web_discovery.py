@@ -77,7 +77,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
     """
 
     async def discover_leads(
-        self, country_code: str, niche_slug: str, limit: int = 50
+        self, country_code: str, niche_slug: str, limit: int = 50, exclude_domains: Optional[Set[str]] = None
     ) -> List[DiscoveredLeadRaw]:
         country_norm = country_code.upper()
         cities = EXPANDED_CITIES.get(country_norm, ["Metropolitan Area", "Commercial Center"])
@@ -86,14 +86,15 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         discovered_leads: List[DiscoveredLeadRaw] = []
         seen_domains: Set[str] = set()
         candidates: List[Dict[str, Any]] = []
+        excluded = {d.lower().strip() for d in (exclude_domains or set())}
 
-        logger.info(f"Starting REAL web prospect discovery for '{search_term}' in {country_norm} (Target: {limit})...")
+        logger.info(f"Starting REAL web prospect discovery for '{search_term}' in {country_norm} (Target: {limit}, Excluded: {len(excluded)})...")
 
         # Source 1: Verified Commercial Registry of authentic registered companies
         registry_matches = REAL_COMMERCIAL_BUSINESSES.get((country_norm, niche_slug), [])
         for item in registry_matches:
             norm_dom = normalize_domain(item["domain"])
-            if norm_dom and norm_dom not in seen_domains:
+            if norm_dom and norm_dom not in seen_domains and norm_dom not in excluded:
                 seen_domains.add(norm_dom)
                 candidates.append({
                     "domain": norm_dom,
@@ -103,17 +104,17 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     "phone": item.get("phone"),
                     "source": "commercial_trade_registry"
                 })
-                if len(candidates) >= limit * 1.5:
+                if len(candidates) >= limit * 3:
                     break
 
-        logger.info(f"Loaded {len(candidates)} verified commercial businesses from trade registry.")
+        logger.info(f"Loaded {len(candidates)} uncontacted commercial businesses from trade registry.")
 
         # Source 2: If more candidates needed, query OpenStreetMap Public Business Index
         if len(candidates) < limit:
             osm_headers = {"User-Agent": "AgencyB2BResearch/2.0 (contact@agencygrowth.co)"}
             async with httpx.AsyncClient(timeout=4.0, follow_redirects=True, verify=False) as client:
                 for city in cities:
-                    if len(candidates) >= limit * 1.5:
+                    if len(candidates) >= limit * 3:
                         break
                     query = f"{city} {search_term}"
                     url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&format=json&extratags=1&limit=10"
@@ -126,7 +127,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                                 if not web or not web.startswith("http"):
                                     continue
                                 norm_dom = normalize_domain(web)
-                                if not norm_dom or norm_dom in seen_domains:
+                                if not norm_dom or norm_dom in seen_domains or norm_dom in excluded:
                                     continue
                                 if any(b in norm_dom for b in BLOCKED_DOMAINS):
                                     continue
@@ -142,7 +143,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                                     "phone": phone,
                                     "source": "openstreetmap_registry"
                                 })
-                                if len(candidates) >= limit * 1.5:
+                                if len(candidates) >= limit * 3:
                                     break
                     except Exception as e:
                         logger.debug(f"OSM query note for {city}: {e}")
