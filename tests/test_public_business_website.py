@@ -55,7 +55,6 @@ async def test_public_website_content_structure_and_authenticity():
         assert 'href="#process"' in html
         assert 'href="#about"' in html
         assert 'href="#contact"' in html
-        assert 'href="/app"' in html  # Client Portal link
 
         # 2. Hero Section
         assert "AI Automation for Modern Businesses" in html
@@ -107,8 +106,9 @@ async def test_public_website_content_structure_and_authenticity():
         assert "Security &amp; Data Privacy" in html or "Security & Data Privacy" in html
         assert "Measurable Impact" in html
 
-        # 8. Contact Section & Direct Details
-        assert "replies@agencygrowth.co" in html
+        # 8. Contact Section & Direct Details (Zero Fabrication)
+        assert "replies@agencygrowth.co" not in html
+        assert "Project Consultation Channel" in html
         assert "Monday – Friday" in html or "Monday" in html
         assert "contactForm" in html
         assert 'name="name"' in html
