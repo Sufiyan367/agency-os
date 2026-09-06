@@ -71,7 +71,7 @@ function initTopDate() {
 }
 
 function initGlobalSearch() {
-    const searchInput = document.querySelector('.agency-search-pill input');
+    const searchInput = document.getElementById('global-search-input') || document.querySelector('.agency-search-pill input');
     if (searchInput) {
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
@@ -85,10 +85,11 @@ function initGlobalSearch() {
                 const query = searchInput.value.trim();
                 if (query) {
                     navToView('leads');
-                    const leadSearch = document.getElementById('lead-search-input');
+                    const leadSearch = document.getElementById('leads-filter-search') || document.getElementById('lead-search-input');
                     if (leadSearch) {
                         leadSearch.value = query;
-                        if (typeof loadLeads === 'function') loadLeads();
+                        if (typeof filterLeadsTable === 'function') filterLeadsTable();
+                        else if (typeof loadLeads === 'function') loadLeads();
                     }
                 }
             }
@@ -184,47 +185,62 @@ async function handleLogout() {
     window.location.href = '/login';
 }
 
+const VIEW_ALIASES = {
+    'dashboard': 'overview',
+    'prospects': 'leads',
+    'research': 'markets',
+    'outreach': 'queue',
+    'sales': 'pipeline',
+    'deals': 'pipeline',
+    'clients': 'payments',
+    'customers': 'payments',
+    'analytics': 'decision-analytics',
+    'inbox': 'replies',
+    'signals': 'replies',
+    'logs': 'runs',
+    'system-logs': 'runs',
+    'infrastructure': 'infra'
+};
+
 function switchView(viewName) {
-    currentView = viewName;
-    document.querySelectorAll('.agency-nav-item, .nav-item').forEach(n => {
-        if (n.getAttribute('data-view') === viewName) {
+    const canonicalView = VIEW_ALIASES[viewName] || viewName;
+    currentView = canonicalView;
+
+    document.querySelectorAll('.agency-nav-item, .nav-item, .bottom-nav-item').forEach(n => {
+        const dv = n.getAttribute('data-view');
+        if (dv === canonicalView || dv === viewName || (VIEW_ALIASES[dv] && VIEW_ALIASES[dv] === canonicalView)) {
             n.classList.add('active');
         } else {
             n.classList.remove('active');
         }
     });
 
-    document.querySelectorAll('.bottom-nav-item').forEach(b => {
-        if (b.getAttribute('data-view') === viewName) {
-            b.classList.add('active');
-        } else {
-            b.classList.remove('active');
-        }
-    });
-
     document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
-    document.getElementById(`view-${viewName}`)?.classList.add('active');
+    const targetElem = document.getElementById(`view-${canonicalView}`);
+    if (targetElem) {
+        targetElem.classList.add('active');
+    }
 
     // Refresh view data
-    if (viewName === 'overview') {
+    if (canonicalView === 'overview') {
         loadDashboardMetrics();
         loadPriorityProspects();
     }
-    if (viewName === 'markets') loadMarkets();
-    if (viewName === 'leads') loadLeads();
-    if (viewName === 'queue') loadQueue();
-    if (viewName === 'replies') loadReplies();
-    if (viewName === 'pipeline') loadPipeline();
-    if (viewName === 'payments') loadPayments();
-    if (viewName === 'runs') loadRuns();
-    if (viewName === 'voice') loadVoiceOperations();
-    if (viewName === 'client-intelligence') loadClientIntelligenceView();
-    if (viewName === 'global-acquisition') loadGlobalAcquisitionView();
-    if (viewName === 'market-intelligence') loadMarketIntelligenceView();
-    if (viewName === 'real-prospects') loadRealProspectsView();
-    if (viewName === 'decision-analytics') loadDecisionAnalytics();
-    if (viewName === 'infra') loadInfrastructureView();
-    if (viewName === 'settings') loadSettings();
+    if (canonicalView === 'markets') loadMarkets();
+    if (canonicalView === 'leads') loadLeads();
+    if (canonicalView === 'queue') loadQueue();
+    if (canonicalView === 'replies') loadReplies();
+    if (canonicalView === 'pipeline') loadPipeline();
+    if (canonicalView === 'payments') loadPayments();
+    if (canonicalView === 'runs') loadRuns();
+    if (canonicalView === 'voice') loadVoiceOperations();
+    if (canonicalView === 'client-intelligence') loadClientIntelligenceView();
+    if (canonicalView === 'global-acquisition') loadGlobalAcquisitionView();
+    if (canonicalView === 'market-intelligence') loadMarketIntelligenceView();
+    if (canonicalView === 'real-prospects') loadRealProspectsView();
+    if (canonicalView === 'decision-analytics') loadDecisionAnalytics();
+    if (canonicalView === 'infra') loadInfrastructureView();
+    if (canonicalView === 'settings') loadSettings();
 }
 
 async function loadDashboardMetrics() {
@@ -302,7 +318,7 @@ async function loadDashboardMetrics() {
             const actRes = await fetch('/api/agent/status');
             if (actRes.ok) {
                 const actData = await actRes.json();
-                updateCeoSalesState(actData);
+                await updateCeoSalesState(actData);
                 if (elActiveProspect) {
                     elActiveProspect.textContent = actData.current_business_name || (actData.current_prospect ? actData.current_prospect.name : 'None (Standby)');
                 }
@@ -427,7 +443,10 @@ async function loadRecentAiActivity() {
     if (!list) return;
     try {
         const res = await fetch('/api/agent/activity?limit=6');
-        if (!res.ok) return;
+        if (!res.ok) {
+            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+            return;
+        }
         const data = await res.json();
         const events = data.events || (Array.isArray(data) ? data : []);
         if (events.length === 0) {
@@ -453,6 +472,7 @@ async function loadRecentAiActivity() {
         }).join('');
     } catch (e) {
         console.error('Failed to load AI activity feed:', e);
+        list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
     }
 }
 
@@ -461,7 +481,10 @@ async function loadRecentInboundReplies() {
     if (!list) return;
     try {
         const res = await fetch('/api/replies?limit=4');
-        if (!res.ok) return;
+        if (!res.ok) {
+            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">No inbound prospect replies recorded yet.</div>`;
+            return;
+        }
         const replies = await res.json();
         if (!Array.isArray(replies) || replies.length === 0) {
             list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">No inbound prospect replies recorded yet.</div>`;
@@ -483,6 +506,7 @@ async function loadRecentInboundReplies() {
         }).join('');
     } catch (e) {
         console.error('Failed to load recent replies:', e);
+        list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">No inbound prospect replies recorded yet.</div>`;
     }
 }
 
@@ -568,7 +592,17 @@ async function loadInfrastructureView() {
     }
 }
 
-function updateCeoSalesState(data) {
+let currentActiveProspectLeadId = null;
+
+function viewCurrentActiveProspect() {
+    if (currentActiveProspectLeadId) {
+        viewLeadDetail(currentActiveProspectLeadId);
+    } else {
+        navToView('leads');
+    }
+}
+
+async function updateCeoSalesState(data) {
     if (!data) return;
     const nameElem = document.getElementById('ceo-active-prospect-name');
     const domainElem = document.getElementById('ceo-active-prospect-domain');
@@ -576,9 +610,14 @@ function updateCeoSalesState(data) {
     const outreachElem = document.getElementById('ceo-active-outreach-status');
     const nextElem = document.getElementById('ceo-active-prospect-next');
 
-    const prospectName = data.current_business_name || (data.current_prospect ? data.current_prospect.name : null);
-    const prospectDomain = data.current_domain || (data.current_prospect ? data.current_prospect.domain : null);
-    const stage = data.current_stage || data.current_state || (prospectName ? 'ACTIVE' : 'DISCOVER');
+    let prospectName = data.current_business_name || (data.current_prospect ? data.current_prospect.name : null);
+    let prospectDomain = data.current_domain || (data.current_prospect ? data.current_prospect.domain : null);
+    let prospectLeadId = data.current_business_id || (data.current_prospect ? data.current_prospect.id : null);
+    if (prospectLeadId) {
+        currentActiveProspectLeadId = prospectLeadId;
+    }
+
+    let stage = data.current_stage || data.current_state || (prospectName ? 'ACTIVE' : 'STANDBY');
 
     let outreachStatus = 'IDLE';
     if (data.status === 'RUNNING' || data.is_running) {
@@ -592,14 +631,39 @@ function updateCeoSalesState(data) {
     }
 
     let nextAction = data.current_operation || (data.decision ? data.decision.reasoning : null);
+
+    // If no active in-flight prospect in runtime telemetry, check DB for latest lead
+    if (!prospectName) {
+        try {
+            const leadRes = await fetch('/api/leads?limit=1');
+            if (leadRes.ok) {
+                const leads = await leadRes.json();
+                const list = Array.isArray(leads) ? leads : (leads.leads || []);
+                if (list.length > 0) {
+                    const latest = list[0];
+                    prospectName = latest.name;
+                    prospectDomain = `${latest.city ? latest.city + ', ' : ''}${latest.country || latest.domain || ''}`.trim() || latest.domain;
+                    stage = latest.pipeline_stage || 'DISCOVERED';
+                    currentActiveProspectLeadId = latest.id;
+                    if (!nextAction || nextAction === 'Standby') {
+                        nextAction = 'Review prospect audit & intelligence';
+                    }
+                    if (latest.pipeline_stage === 'CONTACTED') {
+                        outreachStatus = 'ACTIVE';
+                    }
+                }
+            }
+        } catch (_) {}
+    }
+
     if (!nextAction || nextAction === 'Standby') {
         nextAction = prospectName 
             ? `Evaluating next milestone for ${prospectName}.` 
             : 'Awaiting prospecting cycle trigger.';
     }
 
-    if (nameElem && prospectName) nameElem.textContent = prospectName;
-    if (domainElem && prospectDomain) domainElem.textContent = prospectDomain;
+    if (nameElem) nameElem.textContent = prospectName || 'Standby';
+    if (domainElem) domainElem.textContent = prospectDomain || '—';
     if (stageElem) stageElem.textContent = stage;
     if (outreachElem) {
         outreachElem.textContent = `● ${outreachStatus.charAt(0) + outreachStatus.slice(1).toLowerCase()}`;
@@ -1702,6 +1766,8 @@ async function runAutonomousCycle() {
             btn.innerHTML = '<span>⚡</span><span>Run Prospecting Cycle</span>';
         }
     }
+}
+
 function updateRecentMessages(replies) {
     const list = document.getElementById('recent-messages-list');
     if (!list) return;
@@ -2707,6 +2773,28 @@ function updateGuardrailsUI(g) {
     if (elTakeover) {
         elTakeover.textContent = g.human_takeover_available ? 'HUMAN TAKEOVER: AVAILABLE' : 'HUMAN TAKEOVER: DISABLED';
     }
+
+    // Update Overview Operational Safeguards card
+    const ownerOutreach = document.getElementById('owner-outreach-chip-status');
+    const ownerPay = document.getElementById('owner-payment-chip-status');
+    const ownerLoop = document.getElementById('owner-loop-chip-status');
+    const ownerFloor = document.getElementById('owner-floor-chip-status');
+
+    if (ownerOutreach) {
+        ownerOutreach.textContent = g.email_dry_run ? '● Dry-Run Safe' : '● Live Outreach';
+        ownerOutreach.style.color = g.email_dry_run ? '#10b981' : '#f59e0b';
+    }
+    if (ownerPay) {
+        ownerPay.textContent = g.payment_dry_run ? '● Test Sandbox' : '● Live Payments';
+        ownerPay.style.color = g.payment_dry_run ? '#38bdf8' : '#10b981';
+    }
+    if (ownerLoop) {
+        ownerLoop.textContent = g.autonomous_agent_enabled ? '● Ready' : '● Disabled';
+        ownerLoop.style.color = g.autonomous_agent_enabled ? '#a78bfa' : '#ef4444';
+    }
+    if (ownerFloor) {
+        ownerFloor.textContent = `$${g.commercial_floor_usd || 500} Min`;
+    }
 }
 
 async function loadAgentStatus() {
@@ -2715,7 +2803,7 @@ async function loadAgentStatus() {
         const data = await res.json();
 
         // Update CEO sales state
-        updateCeoSalesState(data);
+        await updateCeoSalesState(data);
 
         // 1. Safety Guardrails
         if (data.safety_guardrails) {

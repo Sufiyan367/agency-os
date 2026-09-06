@@ -688,7 +688,7 @@
             <header class="agency-topbar">
                 <div class="agency-search-pill">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" placeholder="Search prospects, clients, or anything..." aria-label="Global search">
+                    <input type="text" id="global-search-input" placeholder="Search prospects, clients, or anything..." aria-label="Global search">
                     <span class="agency-search-badge">Ctrl + K</span>
                 </div>
 
@@ -971,12 +971,12 @@
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
                                         <span class="agency-sys-chip-title">Outreach Dispatch</span>
-                                        <span class="agency-sys-chip-state" style="color:#10b981;">● Dry-Run Safe</span>
+                                        <span class="agency-sys-chip-state" id="owner-outreach-chip-status" style="color:#10b981;">● Dry-Run Safe</span>
                                     </div>
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(56,189,248,0.1); color:#38bdf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
                                         <span class="agency-sys-chip-title">Payment Gateway</span>
-                                        <span class="agency-sys-chip-state" style="color:#38bdf8;">● Test Sandbox</span>
+                                        <span class="agency-sys-chip-state" id="owner-payment-chip-status" style="color:#38bdf8;">● Test Sandbox</span>
                                     </div>
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(139,92,246,0.1); color:#a78bfa;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
@@ -986,7 +986,7 @@
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(245,158,11,0.1); color:#fbbf24;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
                                         <span class="agency-sys-chip-title">Commercial Floor</span>
-                                        <span class="agency-sys-chip-state" style="color:#fbbf24;">$500.00 Min</span>
+                                        <span class="agency-sys-chip-state" id="owner-floor-chip-status" style="color:#fbbf24;">$500.00 Min</span>
                                     </div>
                                 </div>
                                 <!-- Hidden compatibility elements -->
@@ -1069,29 +1069,29 @@
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
                                 </div>
                                 <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                    <span class="agency-prospect-name" id="ceo-active-prospect-name">Sunrise Dental Care</span>
-                                    <span class="agency-prospect-location" id="ceo-active-prospect-domain">🇺🇸 Phoenix, USA</span>
+                                    <span class="agency-prospect-name" id="ceo-active-prospect-name">Standby</span>
+                                    <span class="agency-prospect-location" id="ceo-active-prospect-domain">—</span>
                                 </div>
                             </div>
                             <div class="agency-prospect-meta">
                                 <div class="agency-prospect-row">
                                     <span class="agency-prospect-label">Stage</span>
-                                    <span class="agency-stage-tag" id="ceo-active-prospect-stage">OUTREACH</span>
+                                    <span class="agency-stage-tag" id="ceo-active-prospect-stage">STANDBY</span>
                                 </div>
                                 <div class="agency-prospect-row">
                                     <span class="agency-prospect-label">Next Action</span>
-                                    <span style="font-weight:600; color:#cbd5e1;" id="ceo-active-prospect-next">Handle reply</span>
+                                    <span style="font-weight:600; color:#cbd5e1;" id="ceo-active-prospect-next">Awaiting prospecting cycle trigger</span>
                                 </div>
                                 <div class="agency-prospect-row">
                                     <span class="agency-prospect-label">Outreach</span>
-                                    <span style="color:#10b981; font-weight:600;" id="ceo-active-outreach-status">● Active</span>
+                                    <span style="color:#64748b; font-weight:600;" id="ceo-active-outreach-status">● Idle</span>
                                 </div>
                                 <div class="agency-prospect-row">
                                     <span class="agency-prospect-label">Active Prospect</span>
-                                    <span style="font-weight:700; color:#38bdf8;">1 / 1</span>
+                                    <span style="font-weight:700; color:#38bdf8;" id="ceo-active-prospect-slot">1 / 1</span>
                                 </div>
                             </div>
-                            <button class="agency-btn-primary-card" onclick="navToView('leads')">
+                            <button class="agency-btn-primary-card" id="btn-view-active-prospect" onclick="viewCurrentActiveProspect()">
                                 <span>View Prospect</span>
                                 <span>→</span>
                             </button>
