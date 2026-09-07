@@ -549,6 +549,30 @@ async function retryCeoConnection() {
     }
 }
 
+function formatActionBadgeLabel(type) {
+    const t = (type || '').toUpperCase();
+    if (t.includes('INTERESTED')) return 'INTERESTED';
+    if (t.includes('OUTREACH') || t.includes('APPROVAL')) return 'APPROVAL REQUIRED';
+    if (t.includes('DEMO')) return 'DEMO READY';
+    if (t.includes('PROPOSAL')) return 'PROPOSAL';
+    if (t.includes('PAYMENT')) return 'PAYMENT';
+    return t.replace(/_/g, ' ') || 'ACTION REQUIRED';
+}
+
+function getActionBadgeStyle(type) {
+    const t = (type || '').toUpperCase();
+    if (t.includes('INTERESTED')) {
+        return 'background:rgba(52,211,153,0.12); color:#34d399; border:1px solid rgba(52,211,153,0.25);';
+    }
+    if (t.includes('OUTREACH') || t.includes('APPROVAL')) {
+        return 'background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25);';
+    }
+    if (t.includes('DEMO')) {
+        return 'background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25);';
+    }
+    return 'background:rgba(255,255,255,0.08); color:#f4f4f5; border:1px solid rgba(255,255,255,0.15);';
+}
+
 function renderCeoActionsRequired(actions) {
     const container = document.getElementById('ceo-action-required-list');
     const badge = document.getElementById('attention-status-badge');
@@ -574,67 +598,56 @@ function renderCeoActionsRequired(actions) {
 
     let html = '';
     for (const item of actions) {
-        const title = escapeHtml(item.title || 'Action Pending');
         const company = escapeHtml(item.company || item.lead_name || 'Prospect');
         const desc = escapeHtml(item.description || '');
         const timeAgo = formatTimeAgo(item.created_at || item.timestamp);
-        const itemType = escapeHtml(item.type || '');
+        const badgeLabel = formatActionBadgeLabel(item.type);
+        const badgeStyle = getActionBadgeStyle(item.type);
 
         let actionBtns = '';
         if (item.type === 'OUTREACH_APPROVAL') {
             const msgId = item.entity_id || item.item_id || item.id || item.message_id;
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Approve Outreach</button>
-                    <button class="btn btn-xs btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:transparent; color:#71717a; border:none; padding:4px 6px; cursor:pointer; font-size:0.7rem;">Dismiss</button>
+                <div style="display:flex; align-items:center; gap:8px; width:100%;">
+                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="flex:1; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">Approve Outreach</button>
+                    <button class="btn btn-xs btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:transparent; color:#71717a; border:1px solid rgba(255,255,255,0.1); padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.72rem;">Dismiss</button>
                 </div>
             `;
         } else if (item.type === 'INTERESTED_REPLY') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Review Reply</button>
-                </div>
+                <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="width:100%; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">Review Reply →</button>
             `;
         } else if (item.type === 'DEMO_REVIEW') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="btn btn-xs btn-primary" onclick="openDemoPreview(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Preview Turnkey Demo</button>
-                </div>
+                <button class="btn btn-xs btn-primary" onclick="openDemoPreview(${leadId})" style="width:100%; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">Preview Turnkey Demo →</button>
             `;
         } else if (item.type === 'PROPOSAL_AUTHORIZATION') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">View Proposal</button>
-                </div>
+                <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="width:100%; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">View Proposal →</button>
             `;
         } else if (item.type === 'PAYMENT_AUTHORIZATION') {
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span class="badge badge-amber" style="font-size:0.68rem; font-weight:600; padding:3px 8px; border-radius:4px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">SIMULATION MODE</span>
-                </div>
+                <span class="badge badge-amber" style="font-size:0.68rem; font-weight:600; padding:4px 10px; border-radius:4px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">SIMULATION MODE [DRY RUN]</span>
             `;
         } else {
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="btn btn-xs btn-primary" onclick="navToView('leads')" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Review</button>
-                </div>
+                <button class="btn btn-xs btn-primary" onclick="navToView('leads')" style="width:100%; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">Review Action →</button>
             `;
         }
 
         html += `
-            <div class="ceo-action-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:12px 14px; margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                    <span style="font-weight:600; color:#f4f4f5; font-size:0.8rem;">${title}</span>
-                    <span class="badge-tag estimated" style="font-size:0.58rem;">${itemType}</span>
+            <div class="ceo-action-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:12px 14px; margin-bottom:10px; display:flex; flex-direction:column; gap:6px; min-width:0; width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%;">
+                    <span style="${badgeStyle} font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:4px; letter-spacing:0.03em; white-space:nowrap; flex-shrink:0;">${badgeLabel}</span>
+                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono); white-space:nowrap; flex-shrink:0;">${timeAgo}</span>
                 </div>
-                <div style="font-size:0.75rem; color:#ffffff; font-weight:600; margin-bottom:2px;">${company}</div>
-                <div style="font-size:0.72rem; color:#a1a1aa; line-height:1.4; margin-bottom:10px;">${desc}</div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:0.85rem; color:#f4f4f5; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; width:100%; letter-spacing:0.01em;" title="${company}">${company}</div>
+                <div style="font-size:0.74rem; color:#a1a1aa; line-height:1.45; overflow-wrap:anywhere; word-break:normal; min-width:0; width:100%;">${desc}</div>
+                <div style="margin-top:4px; width:100%; display:flex; align-items:center; gap:8px;">
                     ${actionBtns}
-                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
                 </div>
             </div>
         `;
@@ -1058,15 +1071,15 @@ function formatOperationalEvent(ev) {
     const eventType = (ev.event_type || '').toUpperCase();
 
     if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
-        statusBadge = '<span class="badge-status-running"><span class="pulse-dot" style="background:#38bdf8; width:6px; height:6px;"></span>RUNNING</span>';
+        statusBadge = '<span class="badge-status-running" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;"><span class="pulse-dot" style="background:#38bdf8; width:5px; height:5px;"></span>RUNNING</span>';
     } else if (statusUpper.includes('WAIT') || eventType.includes('APPROVAL') || eventType.includes('PENDING_APPROVAL')) {
-        statusBadge = '<span class="badge-status-waiting">WAITING FOR CEO</span>';
+        statusBadge = '<span class="badge-status-waiting" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;">APPROVAL REQUIRED</span>';
     } else if (statusUpper.includes('BLOCK') || eventType.includes('SUPPRESSED') || eventType.includes('RATE_LIMIT')) {
-        statusBadge = '<span class="badge-status-blocked">BLOCKED</span>';
+        statusBadge = '<span class="badge-status-blocked" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;">BLOCKED</span>';
     } else if (statusUpper.includes('FAIL') || statusUpper.includes('ERROR') || eventType.includes('FAILED')) {
-        statusBadge = '<span class="badge-status-failed">FAILED</span>';
+        statusBadge = '<span class="badge-status-failed" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;">FAILED</span>';
     } else {
-        statusBadge = '<span class="badge-status-completed">COMPLETED</span>';
+        statusBadge = '<span class="badge-status-completed" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;">COMPLETED</span>';
     }
 
     let msg = ev.message || ev.event_type || 'Agent operation executed';
@@ -1084,14 +1097,12 @@ function formatOperationalEvent(ev) {
     }
 
     return `
-        <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:8px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; margin-bottom:4px;">
-            <div style="min-width:0; flex:1;">
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                    ${statusBadge}
-                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
-                </div>
-                <div style="font-size:0.75rem; color:#f4f4f5; font-weight:500; word-break:break-word; overflow-wrap:break-word; line-height:1.35;">${escapeHtml(msg)}</div>
+        <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:5px; margin-bottom:4px; min-width:0;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                ${statusBadge}
+                <span style="font-size:0.75rem; color:#e4e4e7; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1;" title="${escapeHtml(msg)}">${escapeHtml(msg)}</span>
             </div>
+            <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono); white-space:nowrap; flex-shrink:0;">${timeAgo}</span>
         </div>
     `;
 }

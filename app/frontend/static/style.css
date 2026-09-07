@@ -1965,11 +1965,13 @@ body {
   gap: 18px;
 }
 .agency-dashboard-rail {
-  width: 340px;
-  min-width: 340px;
+  width: 420px;
+  min-width: 380px;
+  max-width: 460px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  flex-shrink: 0;
 }
 
 /* Hero Section */
@@ -2211,14 +2213,16 @@ body {
 /* Action Required / Needs Attention */
 .ceo-action-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 14px;
   background: var(--agency-bg-card-inner);
   border: 1px solid var(--agency-border-subtle);
   border-radius: 6px;
   transition: border-color 0.12s ease;
+  min-width: 0;
+  width: 100%;
 }
 .ceo-action-card:hover {
   border-color: var(--agency-border-hover);
@@ -2632,8 +2636,9 @@ body {
 
 .live-ops-item {
   transition: border-color 0.12s ease;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .live-ops-item:hover {
@@ -2641,6 +2646,7 @@ body {
 }
 
 .ceo-action-card, .agency-panel-card, .kpi-card {
-  word-break: break-word;
-  overflow-wrap: break-word;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
