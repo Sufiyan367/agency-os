@@ -22,8 +22,11 @@ class PersistentAgencyWorker:
     enforces rate limits, and logs operational heartbeats.
     """
 
-    def __init__(self, interval_seconds: int = 60):
-        self.interval_seconds = interval_seconds
+    def __init__(self, interval_seconds: Optional[int] = None):
+        if interval_seconds is not None:
+            self.interval_seconds = interval_seconds
+        else:
+            self.interval_seconds = getattr(settings, "WORKER_TICK_INTERVAL_SECONDS", None) or getattr(settings, "INBOX_POLL_INTERVAL_SECONDS", 60)
         self.is_running = False
         self._task: Optional[asyncio.Task] = None
         self.last_tick_at: Optional[datetime] = None
@@ -90,6 +93,25 @@ class PersistentAgencyWorker:
                 # Job 1: Inbound Reply Polling (CONTINUOUS) & CRM (AUTOMATIC)
                 replies = await inbox_poller.poll_inbox(session)
                 summary["inbox_replies_processed"] = len(replies)
+
+                # Route newly received INTERESTED replies to AutonomousController pipeline
+                for reply in replies:
+                    if reply and getattr(reply, "classification", "") == "INTERESTED":
+                        try:
+                            from app.acquisition.autonomous_controller import autonomous_acquisition_controller
+                            await autonomous_acquisition_controller._step_process_reply(
+                                session=session,
+                                business_id=reply.business_id,
+                                reply_category=reply.classification,
+                                reply_body=reply.raw_body
+                            )
+                            logger.info(
+                                f"[PersistentWorker] Advanced AutonomousController for INTERESTED reply from biz {reply.business_id}"
+                            )
+                        except Exception as ac_err:
+                            logger.error(
+                                f"[PersistentWorker] Failed to advance AutonomousController for reply #{getattr(reply, 'id', None)}: {ac_err}"
+                            )
 
                 # Job 2: Process Due Follow-up Cadences (AUTOMATIC)
                 followups = await followup_engine.process_due_followups(session)
@@ -166,4 +188,4 @@ class PersistentAgencyWorker:
             "payments_enabled": settings.PAYMENTS_ENABLED
         }
 
-agency_worker = PersistentAgencyWorker(interval_seconds=60)
+agency_worker = PersistentAgencyWorker()
