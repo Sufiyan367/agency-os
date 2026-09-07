@@ -12,17 +12,17 @@
     <!-- Inline Critical Layout Styles to Guarantee Visual Structure -->
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 100%; min-height: 100vh; background-color: #070b14; color: #f1f5f9; font-family: 'Inter', -apple-system, sans-serif; overflow-x: hidden; }
+        html, body { width: 100%; min-height: 100vh; background-color: #000000; color: #f4f4f5; font-family: 'Inter', -apple-system, sans-serif; overflow-x: hidden; }
         body { display: flex; flex-direction: row; }
 
-        /* Single Desktop Sidebar (Width: 250px) */
+        /* Single Desktop Sidebar (Width: 240px) */
         .sidebar {
-            width: 250px;
-            min-width: 250px;
-            max-width: 250px;
+            width: 240px;
+            min-width: 240px;
+            max-width: 240px;
             flex-shrink: 0;
-            background-color: #0c1220;
-            border-right: 1px solid rgba(148, 163, 184, 0.12);
+            background-color: #09090b;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -37,15 +37,15 @@
             display: none !important;
         }
 
-        /* Main Content Wrapper fills remaining viewport (calc 100% - 250px) */
+        /* Main Content Wrapper fills remaining viewport */
         .main-wrapper {
             flex: 1 1 auto;
             min-width: 0;
-            width: calc(100% - 250px);
+            width: calc(100% - 240px);
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background-color: #070b14;
+            background-color: #000000;
         }
 
         /* Perfectly Aligned Top Header */
@@ -53,10 +53,11 @@
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            padding: 14px 28px !important;
+            padding: 12px 24px !important;
             width: 100% !important;
-            background-color: rgba(12, 18, 32, 0.95) !important;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+            background-color: rgba(0, 0, 0, 0.85) !important;
+            backdrop-filter: blur(12px) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
             position: sticky !important;
             top: 0 !important;
             z-index: 20 !important;
@@ -79,42 +80,50 @@
             margin-bottom: 20px !important;
             width: 100% !important;
         }
+        /* 6 KPI Cards in a Horizontal Grid on Desktop */
+        .kpi-grid, .metrics-grid, .ceo-kpi-grid {
+            display: grid !important;
+            grid-template-columns: repeat(6, 1fr) !important;
+            gap: 12px !important;
+            margin-bottom: 16px !important;
+            width: 100% !important;
+        }
         .kpi-card, .metric-card, .ceo-kpi-card {
-            background: #0d1322 !important;
-            border: 1px solid rgba(148, 163, 184, 0.12) !important;
+            background: #121214 !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
             border-radius: 8px !important;
-            padding: 14px 14px !important;
+            padding: 12px 14px !important;
             display: flex !important;
             flex-direction: column !important;
             box-sizing: border-box !important;
             min-width: 0 !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+            box-shadow: none !important;
             transition: border-color 0.15s ease !important;
         }
         .ceo-kpi-card:hover {
-            border-color: rgba(148, 163, 184, 0.25) !important;
+            border-color: rgba(255, 255, 255, 0.16) !important;
         }
         .ceo-kpi-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .ceo-kpi-label {
-            font-size: 0.72rem;
-            color: #94a3b8;
+            font-size: 0.68rem;
+            color: #71717a;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.04em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .ceo-kpi-value {
             font-size: 1.45rem;
-            font-weight: 700;
-            color: #f8fafc;
-            line-height: 1.2;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.1;
             letter-spacing: -0.02em;
             margin-bottom: 4px;
         }
@@ -123,19 +132,19 @@
         }
         .ceo-kpi-sub {
             font-size: 0.68rem;
-            color: #64748b;
+            color: #71717a;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* Badge Tags: ACTUAL / ESTIMATED / MODEL */
+        /* Badge Tags */
         .badge-tag {
             font-size: 0.6rem;
-            font-weight: 700;
+            font-weight: 600;
             padding: 2px 6px;
             border-radius: 4px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             display: inline-flex;
             align-items: center;
@@ -147,9 +156,9 @@
             border: 1px solid rgba(16, 185, 129, 0.25);
         }
         .badge-tag.estimated {
-            background: rgba(99, 102, 241, 0.1);
-            color: #818cf8;
-            border: 1px solid rgba(99, 102, 241, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f4f4f5;
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
         .badge-tag.model {
             background: rgba(245, 158, 11, 0.1);
@@ -157,33 +166,33 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
         .badge-tag.stage {
-            background: rgba(56, 189, 248, 0.1);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(255, 255, 255, 0.06);
+            color: #d4d4d8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .badge-tag.outreach.active {
-            background: rgba(16, 185, 129, 0.15);
+            background: rgba(16, 185, 129, 0.1);
             color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(16, 185, 129, 0.25);
         }
         .badge-tag.outreach.waiting {
-            background: rgba(245, 158, 11, 0.15);
+            background: rgba(245, 158, 11, 0.1);
             color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.25);
         }
         .badge-tag.outreach.idle {
-            background: rgba(100, 116, 139, 0.15);
-            color: #94a3b8;
-            border: 1px solid rgba(100, 116, 139, 0.25);
+            background: rgba(255, 255, 255, 0.05);
+            color: #71717a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         /* Generic Restrained CEO Card */
         .ceo-card {
-            background: #0d1322;
-            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: #121214;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 8px;
             padding: 16px 18px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: none;
         }
         .ceo-card-header {
             display: flex;
@@ -191,29 +200,29 @@
             align-items: center;
             margin-bottom: 12px;
             padding-bottom: 8px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
         .ceo-card-title {
             font-size: 0.8rem;
-            font-weight: 700;
-            color: #f1f5f9;
+            font-weight: 600;
+            color: #f4f4f5;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.04em;
         }
 
         /* Pipeline Conversion Funnel */
         .funnel-steps-grid {
             display: grid !important;
             grid-template-columns: repeat(8, 1fr) !important;
-            gap: 10px !important;
+            gap: 8px !important;
             width: 100% !important;
-            margin-top: 10px !important;
+            margin-top: 8px !important;
         }
         .funnel-step {
-            background: #090e1a !important;
-            border: 1px solid rgba(148, 163, 184, 0.15) !important;
+            background: #09090b !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
             border-radius: 6px !important;
-            padding: 12px 8px !important;
+            padding: 10px 8px !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
@@ -229,10 +238,10 @@
         }
         .ceo-funnel-step {
             flex: 1;
-            background: #080d18;
-            border: 1px solid rgba(148, 163, 184, 0.1);
+            background: #09090b;
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 6px;
-            padding: 10px 8px;
+            padding: 8px 6px;
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -241,32 +250,32 @@
             transition: border-color 0.15s ease;
         }
         .ceo-funnel-step:hover {
-            border-color: rgba(148, 163, 184, 0.22);
+            border-color: rgba(255, 255, 255, 0.16);
         }
         .ceo-funnel-step.won {
             border-color: rgba(16, 185, 129, 0.3);
             background: rgba(16, 185, 129, 0.04);
         }
         .ceo-funnel-label {
-            font-size: 0.68rem;
-            color: #94a3b8;
+            font-size: 0.65rem;
+            color: #71717a;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            letter-spacing: 0.04em;
+            margin-bottom: 2px;
             white-space: nowrap;
         }
         .ceo-funnel-count {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #f8fafc;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f4f4f5;
         }
         .ceo-funnel-step.won .ceo-funnel-count {
-            color: #34d399;
+            color: #10b981;
         }
         .ceo-funnel-arrow {
-            color: #475569;
-            font-size: 0.85rem;
+            color: #71717a;
+            font-size: 0.75rem;
             flex-shrink: 0;
             user-select: none;
         }
@@ -275,20 +284,20 @@
         .dashboard-split-grid, .ceo-split-grid {
             display: grid !important;
             grid-template-columns: 1.5fr 1fr !important;
-            gap: 20px !important;
+            gap: 16px !important;
             width: 100% !important;
             align-items: start !important;
         }
 
         /* Primary Graph & Empty State */
         .ceo-chart-body {
-            min-height: 240px;
+            min-height: 220px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #080d18;
+            background: #09090b;
             border-radius: 6px;
-            border: 1px solid rgba(148, 163, 184, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             padding: 16px;
         }
         .empty-chart-state {
@@ -299,20 +308,20 @@
             padding: 24px 16px;
         }
         .empty-chart-icon {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            opacity: 0.7;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            opacity: 0.6;
         }
         .empty-chart-title {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            color: #e2e8f0;
+            color: #f4f4f5;
             margin-bottom: 4px;
         }
         .empty-chart-sub {
-            font-size: 0.75rem;
-            color: #64748b;
-            max-width: 320px;
+            font-size: 0.72rem;
+            color: #71717a;
+            max-width: 300px;
             line-height: 1.4;
         }
 
@@ -717,22 +726,21 @@
 
                 <div class="agency-topbar-actions">
                     <!-- Backend Reachability Live Health Pill -->
-                    <div id="ceo-backend-health-pill" title="Backend Server Reachability" style="display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:12px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#10b981; margin-right:4px;">
+                    <div id="ceo-backend-health-pill" title="Backend Server Reachability" style="display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:6px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#10b981; margin-right:4px;">
                         <span id="ceo-backend-health-dot" style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981;"></span>
                         <span id="ceo-backend-health-text">CONNECTED</span>
                     </div>
 
-                    <button class="agency-action-icon-btn" title="Notifications">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                        <span class="agency-notify-dot"></span>
-                    </button>
-                    <button class="agency-action-icon-btn" title="Toggle Theme">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                    </button>
-                    <div class="agency-avatar" style="width:30px; height:30px; font-size:0.8rem; background:#1e293b;">A</div>
+                    <!-- Simulation Safeguard Indicator -->
+                    <div id="ceo-simulation-badge" title="Simulation Safe Mode Enforced" style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:600; padding:4px 9px; border-radius:6px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.22); color:#fbbf24; margin-right:8px;">
+                        <span style="width:6px; height:6px; border-radius:50%; background:#f59e0b; display:inline-block;"></span>
+                        <span>SIMULATION</span>
+                    </div>
+
+                    <div class="agency-avatar" style="width:28px; height:28px; font-size:0.75rem; font-weight:600; border-radius:5px; background:#18181b; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#f4f4f5;">A</div>
                     <div class="agency-topbar-user-status">
                         <span class="top-date" id="top-date-display">Mon, 1 Sep 2025</span>
-                        <span class="top-greeting">Good to see you back.</span>
+                        <span class="top-greeting" style="color:#71717a;">Owner Session</span>
                     </div>
 
                     <!-- Hidden test compatibility elements -->
@@ -1232,64 +1240,64 @@
 
                             <!-- Status Matrix Chips -->
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; font-size:0.7rem;">
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">Outreach:</span>
-                                    <strong id="ceo-active-outreach-status" style="color:#cbd5e1;">Idle</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">Outreach:</span>
+                                    <strong id="ceo-active-outreach-status" style="color:#f4f4f5;">Idle</strong>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">Reply:</span>
-                                    <strong id="ceo-active-reply-status" style="color:#cbd5e1;">None</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">Reply:</span>
+                                    <strong id="ceo-active-reply-status" style="color:#f4f4f5;">None</strong>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">Demo:</span>
-                                    <strong id="ceo-active-demo-status" style="color:#cbd5e1;">None</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">Demo:</span>
+                                    <strong id="ceo-active-demo-status" style="color:#f4f4f5;">None</strong>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">QA:</span>
-                                    <strong id="ceo-active-qa-status" style="color:#cbd5e1;">None</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">QA:</span>
+                                    <strong id="ceo-active-qa-status" style="color:#f4f4f5;">None</strong>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">Proposal:</span>
-                                    <strong id="ceo-active-proposal-status" style="color:#cbd5e1;">None</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">Proposal:</span>
+                                    <strong id="ceo-active-proposal-status" style="color:#f4f4f5;">None</strong>
                                 </div>
-                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                                    <span style="color:#64748b;">Payment:</span>
-                                    <strong id="ceo-active-payment-status" style="color:#cbd5e1;">Dry Run</strong>
+                                <div style="background:#09090b; padding:5px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between;">
+                                    <span style="color:#71717a;">Payment:</span>
+                                    <strong id="ceo-active-payment-status" style="color:#f4f4f5;">Dry Run</strong>
                                 </div>
                             </div>
 
                             <!-- Demo + Deterministic QA Panel -->
-                            <div style="margin-top:10px; background:rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;">
+                            <div style="margin-top:10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:#38bdf8; text-transform:uppercase;">Turnkey Demo & QA</span>
+                                    <span style="font-size:0.72rem; font-weight:600; color:#f4f4f5; text-transform:uppercase; letter-spacing:0.04em;">Turnkey Demo & QA</span>
                                     <span class="badge badge-emerald" id="ceo-demo-qa-badge" style="font-size:0.65rem;">QA: STANDBY</span>
                                 </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#94a3b8; margin-bottom:4px;">
+                                <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#71717a; margin-bottom:4px;">
                                     <span>Demo Package Exists:</span>
-                                    <strong id="ceo-demo-exists-label" style="color:#f1f5f9;">NO</strong>
+                                    <strong id="ceo-demo-exists-label" style="color:#f4f4f5;">NO</strong>
                                 </div>
                                 <!-- 8 QA Gates Checklist -->
                                 <div id="ceo-demo-qa-gates" style="margin-top:6px; font-size:0.68rem; display:flex; flex-direction:column; gap:3px;">
-                                    <div style="color:#64748b; font-style:italic;">8 QA gates evaluate upon receiving interest.</div>
+                                    <div style="color:#71717a; font-style:italic;">8 QA gates evaluate upon receiving interest.</div>
                                 </div>
-                                <button class="btn btn-sm btn-cyan" id="ceo-btn-preview-demo" onclick="previewActiveDemo()" style="display:none; width:100%; margin-top:8px; font-size:0.72rem;">
-                                    🔍 Preview Turnkey Demo
+                                <button class="btn btn-sm btn-cyan" id="ceo-btn-preview-demo" onclick="previewActiveDemo()" style="display:none; width:100%; margin-top:8px; font-size:0.74rem; background:#ffffff; color:#000000; font-weight:600; border:none; padding:6px 12px; border-radius:5px; cursor:pointer;">
+                                    Preview Turnkey Demo
                                 </button>
                             </div>
 
                             <!-- Commercial Proposal & Dry-Run Payment -->
-                            <div style="margin-top:8px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px;">
+                            <div style="margin-top:8px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem;">
-                                    <span style="font-weight:700; color:#34d399;">Commercial Proposal</span>
+                                    <span style="font-weight:600; color:#f4f4f5;">Commercial Proposal</span>
                                     <span class="badge badge-amber" id="ceo-pay-dryrun-badge" style="font-size:0.62rem;">PAYMENTS: DISABLED</span>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-top:4px;">
-                                    <span style="color:#94a3b8;">Total Value:</span>
-                                    <strong id="ceo-prop-val" style="color:#34d399;">N/A</strong>
+                                    <span style="color:#71717a;">Total Value:</span>
+                                    <strong id="ceo-prop-val" style="color:#10b981;">N/A</strong>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-top:2px;">
-                                    <span style="color:#94a3b8;">Advance Deposit:</span>
-                                    <strong id="ceo-prop-adv" style="color:#38bdf8;">N/A</strong>
+                                    <span style="color:#71717a;">Advance Deposit:</span>
+                                    <strong id="ceo-prop-adv" style="color:#f4f4f5;">N/A</strong>
                                 </div>
                             </div>
 

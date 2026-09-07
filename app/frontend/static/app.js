@@ -548,59 +548,57 @@ function renderCeoActionsRequired(actions) {
         if (item.type === 'OUTREACH_APPROVAL') {
             const msgId = item.entity_id || item.item_id || item.id || item.message_id;
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="padding:3px 8px; font-size:0.72rem;">Approve</button>
-                    <button class="btn btn-xs btn-secondary" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="padding:3px 8px; font-size:0.72rem;">Reject</button>
-                    <button class="btn btn-xs btn-ghost" onclick="navToView('queue')" style="padding:3px 8px; font-size:0.72rem;">Review</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Approve Outreach</button>
+                    <button class="btn btn-xs btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:transparent; color:#71717a; border:none; padding:4px 6px; cursor:pointer; font-size:0.7rem;">Dismiss</button>
                 </div>
             `;
         } else if (item.type === 'INTERESTED_REPLY') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="padding:3px 8px; font-size:0.72rem;">Review Lead</button>
-                    <button class="btn btn-xs btn-ghost" onclick="navToView('leads')" style="padding:3px 8px; font-size:0.72rem;">All Leads</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Review Reply</button>
                 </div>
             `;
         } else if (item.type === 'DEMO_REVIEW') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-cyan" onclick="openDemoPreview(${leadId})" style="padding:3px 8px; font-size:0.72rem;">Preview Demo</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-xs btn-primary" onclick="openDemoPreview(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Preview Turnkey Demo</button>
                 </div>
             `;
         } else if (item.type === 'PROPOSAL_AUTHORIZATION') {
             const leadId = item.lead_id || item.id;
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="padding:3px 8px; font-size:0.72rem;">View Proposal</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">View Proposal</button>
                 </div>
             `;
         } else if (item.type === 'PAYMENT_AUTHORIZATION') {
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
-                    <span class="badge badge-amber" style="font-size:0.65rem;">DRY RUN: SAFE</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="badge badge-amber" style="font-size:0.68rem; font-weight:600; padding:3px 8px; border-radius:4px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">SIMULATION MODE</span>
                 </div>
             `;
         } else {
             actionBtns = `
-                <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-secondary" onclick="navToView('leads')" style="padding:3px 8px; font-size:0.72rem;">View</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="btn btn-xs btn-primary" onclick="navToView('leads')" style="background:#ffffff; color:#000000; font-weight:600; padding:5px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.74rem;">Review</button>
                 </div>
             `;
         }
 
         html += `
-            <div class="ceo-action-card" style="background:#080d18; border:1px solid rgba(148,163,184,0.12); border-radius:6px; padding:10px 12px;">
+            <div class="ceo-action-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:12px 14px; margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                    <span style="font-weight:700; color:#f1f5f9; font-size:0.78rem;">${title}</span>
+                    <span style="font-weight:600; color:#f4f4f5; font-size:0.8rem;">${title}</span>
                     <span class="badge-tag estimated" style="font-size:0.58rem;">${itemType}</span>
                 </div>
-                <div style="font-size:0.72rem; color:#38bdf8; font-weight:600; margin-bottom:2px;">${company}</div>
-                <div style="font-size:0.7rem; color:#94a3b8; line-height:1.3;">${desc}</div>
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="font-size:0.75rem; color:#ffffff; font-weight:600; margin-bottom:2px;">${company}</div>
+                <div style="font-size:0.72rem; color:#a1a1aa; line-height:1.4; margin-bottom:10px;">${desc}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     ${actionBtns}
-                    <span style="font-size:0.64rem; color:#64748b; font-family:var(--font-mono);">${timeAgo}</span>
+                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
                 </div>
             </div>
         `;
