@@ -26,7 +26,7 @@ from app.database.connection import AsyncSessionLocal
 from app.database.models import (
     Business, AuditRun, Offer, ClientIntelligenceRecord,
     OutreachMessage, OutreachStatus, PipelineStage, PipelineEvent,
-    ActiveOutreachLock, AutonomousDecisionLog
+    ActiveOutreachLock, AutonomousDecisionLog, Reply, Proposal, FollowupStatus
 )
 from app.acquisition.approval_policy import auto_approval_policy, PolicyEvaluationResult
 from app.acquisition.controller import active_prospect_controller
@@ -36,6 +36,12 @@ from app.outreach.personalization import outreach_personalizer
 from app.outreach.sender import outreach_sender_adapter
 from app.crm.autonomous_reply_handler import autonomous_reply_handler
 from app.sales.payment_flow import payment_workflow_manager
+from app.delivery.requirements_engine import requirements_engine
+from app.delivery.demo_factory import demo_factory
+from app.delivery.demo_qa import demo_qa_engine
+from app.payments.deal_service import deal_closing_service
+from app.orchestrator.pipeline_router import PaymentHandoffObject
+from app.followups.engine import followup_engine
 from app.core.logging import logger
 
 
@@ -300,17 +306,215 @@ class AutonomousAcquisitionController:
 
             return {"status": "DISPATCHED", "send_result": send_res}
 
-        # STAGE: WAITING_FOR_REPLY / SENT -> Waiting
+        # STAGE: WAITING_FOR_REPLY / SENT -> Waiting or Process Reply
         if lock.current_stage in ("SENT", "WAITING_FOR_REPLY"):
+            reply_q = select(Reply).where(Reply.business_id == biz.id).order_by(Reply.id.desc())
+            latest_reply = (await session.execute(reply_q)).scalars().first()
+            if latest_reply and latest_reply.classification == "INTERESTED":
+                return await self._step_process_reply(
+                    session=session,
+                    business_id=biz.id,
+                    reply_category=latest_reply.classification,
+                    reply_body=latest_reply.raw_body
+                )
+
             self.current_action = f"Awaiting prospect reply from {biz.domain} (sequential slot locked)"
             return {"status": "WAITING_FOR_REPLY", "domain": biz.domain}
 
-        # STAGE: NEGOTIATING -> Awaiting proposal acceptance
-        if lock.current_stage in ("REPLIED", "NEGOTIATING"):
+        # STAGE: NEGOTIATING / PROPOSAL_READY -> Awaiting proposal acceptance
+        if lock.current_stage in ("REPLIED", "NEGOTIATING", "PROPOSAL_READY"):
             self.current_action = f"Active commercial dialogue with {biz.domain}"
             return {"status": "NEGOTIATING", "domain": biz.domain}
 
         return {"status": "HOLDING", "current_stage": lock.current_stage}
+
+    async def _step_process_reply(
+        self,
+        session: AsyncSession,
+        business_id: int,
+        reply_category: str = "INTERESTED",
+        reply_body: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Processes an inbound prospect reply in the autonomous acquisition lifecycle.
+        When reply_category is INTERESTED:
+        INTERESTED -> RequirementsEngine -> DemoFactory -> DemoQAEngine -> DealClosingService -> Payment Handoff
+        Enforces:
+        - Proposal created ONLY if DemoQA passes.
+        - Payments safely disabled (dry_run mode).
+        - Database PipelineStage updated appropriately.
+        """
+        biz = await session.get(Business, business_id)
+        if not biz:
+            raise ValueError(f"Business {business_id} not found.")
+
+        # Non-interested categories delegate to existing autonomous reply handler
+        if reply_category.upper() not in ("INTERESTED", "WANTS_PROPOSAL", "WANTS_MEETING", "QUALIFIED"):
+            if reply_body:
+                handler_res = await autonomous_reply_handler.handle_reply(
+                    session=session,
+                    business_id=biz.id,
+                    reply_text=reply_body
+                )
+                return {
+                    "status": "HANDLED_NON_INTERESTED",
+                    "business_id": biz.id,
+                    "category": reply_category,
+                    "handler_result": handler_res
+                }
+            return {"status": "SKIPPED_NON_INTERESTED", "business_id": biz.id, "category": reply_category}
+
+        # -------------------------------------------------------------
+        # 1. State Transition: QUALIFIED_REPLY & Follow-up Halting
+        # -------------------------------------------------------------
+        self.current_action = f"Processing INTERESTED reply for {biz.domain}"
+        await followup_engine.cancel_pending_followups(session, business_id=biz.id, reason_status=FollowupStatus.CANCELLED_REPLY)
+        biz.pipeline_stage = PipelineStage.QUALIFIED_REPLY.value
+        await session.commit()
+
+        # Query existing offer if any for pricing and context
+        offer_q = select(Offer).where(Offer.business_id == biz.id).order_by(Offer.id.desc())
+        offer = (await session.execute(offer_q)).scalars().first()
+
+        # Alert event
+        ceo_event = PipelineEvent(
+            business_id=biz.id,
+            from_stage=PipelineStage.CONTACTED.value,
+            to_stage=biz.pipeline_stage,
+            deal_value=float(offer.recommended_price) if offer and offer.recommended_price else 1000.0,
+            note=f"[CEO ALERT] Commercial inquiry received from {biz.name}. Advancing to requirements and demo generation."
+        )
+        session.add(ceo_event)
+        await session.commit()
+
+        # -------------------------------------------------------------
+        # 2. Requirements Synthesis via RequirementsEngine
+        # -------------------------------------------------------------
+        self.current_action = f"Synthesizing requirements packet for {biz.domain}"
+        packet = await requirements_engine.build_requirements_packet(session, biz.id)
+
+        # -------------------------------------------------------------
+        # 3. Turnkey Demo Generation via DemoFactory
+        # -------------------------------------------------------------
+        self.current_action = f"Generating turnkey demo package for {biz.domain}"
+        demo_result = await demo_factory.generate_demo_package(session, biz.id, packet)
+
+        # -------------------------------------------------------------
+        # 4. Automated Deterministic Quality Assurance via DemoQAEngine
+        # -------------------------------------------------------------
+        self.current_action = f"Running automated QA on demo for {biz.domain}"
+        qa_result = demo_qa_engine.validate_demo(demo_result, packet)
+
+        # Gate: A failed QA strictly prevents proposal creation
+        if not qa_result.overall_passed:
+            logger.warning(
+                f"[AutonomousController] Demo QA failed for {biz.domain}: {qa_result.error_summary}. Proposal creation blocked."
+            )
+            await self.log_decision(
+                session=session,
+                action="DEMO_QA_EVALUATION",
+                decision="QA_FAILED",
+                business_id=biz.id,
+                reasons=[qa_result.error_summary or "Quality gates failed"],
+                previous_stage=PipelineStage.QUALIFIED_REPLY.value,
+                next_stage=biz.pipeline_stage,
+                metadata_json={"demo_id": demo_result.demo_id, "failed_checks": qa_result.failed_checks}
+            )
+            return {
+                "status": "QA_FAILED",
+                "business_id": biz.id,
+                "domain": biz.domain,
+                "requirements_generated": True,
+                "requirements_packet": packet,
+                "demo_generated": True,
+                "demo_result": demo_result,
+                "qa_passed": False,
+                "qa_result": qa_result,
+                "error_summary": qa_result.error_summary,
+                "proposal_created": False,
+                "proposal_id": None,
+                "payment_handoff": None
+            }
+
+        # -------------------------------------------------------------
+        # 5. Commercial Proposal Creation (Only after QA passes!)
+        # -------------------------------------------------------------
+        self.current_action = f"Preparing commercial proposal for {biz.domain}"
+        biz.pipeline_stage = PipelineStage.PROPOSAL.value
+        await session.commit()
+
+        proposal_title = offer.title if offer else packet.service_title
+        catalog_price = float(offer.recommended_price) if offer and offer.recommended_price else packet.catalog_price_usd
+
+        prop_q = select(Proposal).where(Proposal.business_id == biz.id).order_by(Proposal.created_at.desc())
+        proposal = (await session.execute(prop_q)).scalars().first()
+        if not proposal:
+            proposal = await deal_closing_service.create_proposal(
+                session=session,
+                business_id=biz.id,
+                title=proposal_title,
+                total_value=catalog_price,
+                advance_required=packet.advance_amount_usd,
+                service_type=getattr(offer, "service_type", "Speed Optimization") if offer else "Speed Optimization",
+                is_mock=True
+            )
+
+        # -------------------------------------------------------------
+        # 6. Payment Handoff (Safe, payments disabled, dry_run mode)
+        # -------------------------------------------------------------
+        handoff = PaymentHandoffObject(
+            business_id=biz.id,
+            business_name=biz.name or biz.domain,
+            domain=biz.domain,
+            service_title=proposal_title,
+            catalog_price_usd=catalog_price,
+            advance_required_usd=packet.advance_amount_usd,
+            currency="USD",
+            proposal_id=proposal.id,
+            proposal_status=proposal.status,
+            payment_status="PENDING_AUTHORIZATION",
+            payments_enabled=settings.PAYMENTS_ENABLED,
+            payment_provider="dry_run",
+            approval_requirements="HUMAN_APPROVAL_REQUIRED"
+        )
+
+        lock = await active_prospect_controller.get_or_create_lock(session)
+        if lock.business_id == biz.id:
+            lock.current_stage = "PROPOSAL_READY"
+            if not lock.metadata_json:
+                lock.metadata_json = {}
+            lock.metadata_json["proposal_id"] = proposal.id
+            lock.metadata_json["demo_id"] = demo_result.demo_id
+            lock.metadata_json["qa_signature"] = qa_result.qa_signature
+            await session.commit()
+
+        await self.log_decision(
+            session=session,
+            action="PROCESS_REPLY",
+            decision="PROPOSAL_AND_PAYMENT_READY",
+            business_id=biz.id,
+            price_usd=catalog_price,
+            reasons=[f"Processed {reply_category} reply; QA passed ({qa_result.passed_checks}/{qa_result.total_checks}); Proposal #{proposal.id} prepared."],
+            previous_stage=PipelineStage.QUALIFIED_REPLY.value,
+            next_stage=PipelineStage.PROPOSAL.value,
+            metadata_json={"proposal_id": proposal.id, "demo_id": demo_result.demo_id}
+        )
+
+        return {
+            "status": "SUCCESS",
+            "business_id": biz.id,
+            "domain": biz.domain,
+            "reply_category": reply_category,
+            "requirements_generated": True,
+            "requirements_packet": packet,
+            "demo_generated": True,
+            "demo_result": demo_result,
+            "qa_passed": True,
+            "qa_result": qa_result,
+            "proposal_created": True,
+            "proposal_id": proposal.id,
+            "payment_handoff": handoff
+        }
 
     def start(self):
         """Launches continuous autonomous background controller."""
