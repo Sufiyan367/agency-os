@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.database.connection import get_db
 from app.database.models import (
     Business, Contact, AuditRun, AuditFinding, LeadScore,
-    Offer, OutreachMessage, OutreachStatus, PipelineStage, SystemRun, MarketOpportunity, Customer,
+    Offer, OutreachMessage, OutreachStatus, OutreachEvent, PipelineStage, SystemRun, MarketOpportunity, Customer,
     Payment, Reply, Project, Proposal, Deal, DealAuditTrail,
     AgentActivityEvent, Artifact, ProspectMemory, Country, Niche, ModelPrediction,
     PaymentWebhookEvent, SecurityAuditLog, ProspectEvidence, ClientIntelligenceRecord, PipelineEvent,
@@ -945,6 +945,70 @@ async def get_outreach_queue(db: AsyncSession = Depends(get_db)):
 async def get_outreach_delivery_metrics(db: AsyncSession = Depends(get_db)):
     from app.outreach.delivery_service import outreach_delivery_service
     return await outreach_delivery_service.get_outreach_metrics(db)
+
+@router.get("/api/email/readiness")
+async def get_email_readiness_endpoint():
+    """Returns the CEO-friendly email readiness checklist satisfying Phase 3."""
+    from app.infrastructure.production_activation import production_activation_manager
+    return production_activation_manager.get_email_readiness_checklist()
+
+@router.get("/api/queue/{message_id}/preview")
+async def preview_outreach_for_ceo_review(message_id: int, db: AsyncSession = Depends(get_db)):
+    """Provides detailed email preview with compliance and sender verification for CEO authorization."""
+    msg = await db.get(OutreachMessage, message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail=f"Outreach message #{message_id} not found.")
+    
+    biz = await db.get(Business, msg.business_id) if msg.business_id else None
+    
+    from app.campaigns.sender_registry import sender_registry
+    resolved_sender = sender_registry.resolve_sender()
+    
+    from app.outreach.compliance import compliance_guard
+    is_supp = await compliance_guard.is_suppressed(db, email=msg.recipient_email)
+    
+    full_body = msg.body or ""
+    if not ("unsubscribe" in full_body.lower() or "opt out" in full_body.lower()):
+        full_body += compliance_guard.format_compliance_footer(
+            business_name=biz.name if biz else "Business",
+            recipient_email=msg.recipient_email
+        )
+    
+    from app.infrastructure.production_activation import production_activation_manager
+    readiness = production_activation_manager.get_email_readiness_checklist()
+    
+    footer = compliance_guard.format_compliance_footer(
+        business_name=biz.name if biz else "Business",
+        recipient_email=msg.recipient_email
+    )
+
+    return {
+        "message_id": msg.id,
+        "business_id": msg.business_id,
+        "business_name": biz.name or biz.domain if biz else f"Lead #{msg.business_id}",
+        "domain": biz.domain if biz else None,
+        "recipient": msg.recipient_email,
+        "recipient_email": msg.recipient_email,
+        "sender": resolved_sender["from_email"],
+        "from_email": resolved_sender["from_email"],
+        "reply_to": resolved_sender["reply_to"],
+        "subject": msg.subject,
+        "body": msg.body,
+        "compliance_footer": footer,
+        "full_content": full_body,
+        "full_body_with_compliance": full_body,
+        "status": "READY FOR CEO APPROVAL" if msg.status == OutreachStatus.PENDING_APPROVAL.value else msg.status,
+        "compliance": {
+            "suppressed": is_supp,
+            "postal_address_present": bool(resolved_sender.get("postal_address")),
+            "postal_address": resolved_sender.get("postal_address"),
+            "unsubscribe_mechanism_active": True,
+            "pre_send_eligible": not is_supp
+        },
+        "email_readiness": readiness,
+        "readiness_summary": readiness["overall_status"],
+        "dry_run": getattr(settings, "EMAIL_DRY_RUN", True)
+    }
 
 @router.post("/api/queue/{message_id}/approve")
 async def approve_outreach(message_id: int, auto_send: bool = True, force_live: bool = False, db: AsyncSession = Depends(get_db)):
@@ -2084,6 +2148,22 @@ async def get_ceo_control_center_overview(
             f"Findings: {', '.join(f.finding[:40] for f in findings)}" if findings else "Empirical audit complete."
         )
 
+        # Determine human-accurate outreach status distinguishing dry-run / simulated from real send
+        effective_outreach_status = "NOT_STARTED"
+        if outreach:
+            if outreach.status == OutreachStatus.SENT.value:
+                # Check if there is an actual real dispatch event
+                q_live_ev = select(func.count(OutreachEvent.id)).where(
+                    OutreachEvent.outreach_message_id == outreach.id,
+                    OutreachEvent.event_type == "email_dispatched"
+                )
+                live_ev_count = (await db.execute(q_live_ev)).scalar() or 0
+                effective_outreach_status = "SENT (REAL)" if live_ev_count > 0 else "SIMULATED"
+            elif outreach.status == OutreachStatus.PENDING_APPROVAL.value:
+                effective_outreach_status = "READY FOR CEO APPROVAL"
+            else:
+                effective_outreach_status = outreach.status
+
         active_prospect = {
             "id": active_b.id,
             "business_name": active_b.name or active_b.domain,
@@ -2103,7 +2183,7 @@ async def get_ceo_control_center_overview(
             "expected_value": f"${int(catalog_price * 0.72):,}",
             "current_stage": active_b.pipeline_stage,
             "stage": active_b.pipeline_stage,
-            "outreach_status": outreach.status if outreach else "NOT_STARTED",
+            "outreach_status": effective_outreach_status,
             "reply_status": reply.classification if reply else "NO_REPLY",
             "demo_status": "GENERATED" if demo_art else "NOT_GENERATED",
             "qa_status": qa_status_label,
@@ -2122,6 +2202,9 @@ async def get_ceo_control_center_overview(
     last_activity_str = last_event.created_at.isoformat() if last_event and last_event.created_at else datetime.utcnow().isoformat()
 
     is_dry_run = getattr(settings, "EMAIL_DRY_RUN", True)
+    from app.infrastructure.production_activation import production_activation_manager
+    email_readiness_checklist = production_activation_manager.get_email_readiness_checklist()
+
     system_status = {
         "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
         "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
@@ -2130,16 +2213,20 @@ async def get_ceo_control_center_overview(
         "environment": "SIMULATION" if is_dry_run else "LIVE",
         "worker_status": "Running" if getattr(agency_worker, "is_running", False) else "Idle",
         "last_activity": last_activity_str,
+        "email_readiness": email_readiness_checklist,
         "production_readiness": {
-            "sender_email": getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM,
-            "provider": settings.EMAIL_PROVIDER,
+            "sender_email": email_readiness_checklist["sender_identity"]["value"],
+            "provider": email_readiness_checklist["provider"],
             "dry_run": is_dry_run,
-            "postal_address_configured": bool(os.getenv("PHYSICAL_POSTAL_ADDRESS")),
-            "postal_address_notice": "CAN-SPAM compliance requires physical postal address configured before live email transmission." if not os.getenv("PHYSICAL_POSTAL_ADDRESS") else "Configured",
+            "postal_address_configured": email_readiness_checklist["postal_address"]["verified"],
+            "postal_address_notice": "Configured" if email_readiness_checklist["postal_address"]["verified"] else "CAN-SPAM compliance requires physical postal address configured before live email transmission.",
             "unsubscribe_active": True,
             "suppression_active": True,
-            "inbound_reply_monitoring": bool(getattr(inbox_poller, "is_running", False)),
-            "one_prospect_lock_active": True
+            "inbound_reply_monitoring": email_readiness_checklist["inbox_monitoring"]["verified"],
+            "one_prospect_lock_active": True,
+            "checklist": email_readiness_checklist,
+            "overall_status": email_readiness_checklist["overall_status"],
+            "overall_reason": email_readiness_checklist["overall_reason"]
         }
     }
 

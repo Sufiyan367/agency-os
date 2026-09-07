@@ -145,15 +145,24 @@ async def test_process_and_record_reply_interested_advances_stage():
         await session.commit()
         await session.refresh(biz)
 
-        mem = ProspectMemory(
-            business_id=biz.id,
-            domain=biz.domain,
-            pipeline_stage=PipelineStage.CONTACTED.value,
-            last_interaction="Initial outreach sent",
-            next_expected_action="AWAIT_REPLY",
-            conversation_history=[]
-        )
-        session.add(mem)
+        from sqlalchemy import select
+        q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+        mem = (await session.execute(q_mem)).scalar_one_or_none()
+        if not mem:
+            mem = ProspectMemory(
+                business_id=biz.id,
+                domain=biz.domain,
+                pipeline_stage=PipelineStage.CONTACTED.value,
+                last_interaction="Initial outreach sent",
+                next_expected_action="AWAIT_REPLY",
+                conversation_history=[]
+            )
+            session.add(mem)
+        else:
+            mem.pipeline_stage = PipelineStage.CONTACTED.value
+            mem.last_interaction = "Initial outreach sent"
+            mem.next_expected_action = "AWAIT_REPLY"
+            mem.conversation_history = []
         await session.commit()
 
         # Ingest positive interest reply

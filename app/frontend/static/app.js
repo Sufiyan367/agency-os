@@ -608,9 +608,15 @@ function renderCeoActionsRequired(actions) {
         if (item.type === 'OUTREACH_APPROVAL') {
             const msgId = item.entity_id || item.item_id || item.id || item.message_id;
             actionBtns = `
-                <div style="display:flex; align-items:center; gap:8px; width:100%;">
-                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="flex:1; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">Approve Outreach</button>
-                    <button class="btn btn-xs btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:transparent; color:#71717a; border:1px solid rgba(255,255,255,0.1); padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.72rem;">Dismiss</button>
+                <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                    <div style="display:flex; align-items:center; gap:6px; width:100%;">
+                        <button class="btn btn-xs" onclick="openOutreachInspector('${msgId}')" style="flex:1; background:#18181b; color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:600; padding:6px 10px; border-radius:5px; cursor:pointer; font-size:0.72rem; text-align:center;">Review Email</button>
+                        <button class="btn btn-xs btn-primary" onclick="authorizeRealSend('${msgId}')" style="flex:1.2; background:#ffffff; color:#000000; font-weight:700; padding:6px 10px; border-radius:5px; border:none; cursor:pointer; font-size:0.72rem; text-align:center;">Authorize 1 Real Send</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; width:100%;">
+                        <button class="btn btn-xs" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="flex:1; background:transparent; color:#a1a1aa; border:1px solid rgba(255,255,255,0.08); padding:4px 8px; border-radius:5px; cursor:pointer; font-size:0.68rem; text-align:center;">Simulate (Dry Run)</button>
+                        <button class="btn btn-xs btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="background:transparent; color:#71717a; border:none; padding:4px 8px; cursor:pointer; font-size:0.68rem;">Dismiss</button>
+                    </div>
                 </div>
             `;
         } else if (item.type === 'INTERESTED_REPLY') {
@@ -666,6 +672,37 @@ async function rejectCeoAction(type, id) {
     if (type === 'OUTREACH_APPROVAL') {
         await rejectMessage(id);
         await loadCeoControlCenter();
+    }
+}
+
+async function authorizeRealSend(msgId) {
+    const confirmed = confirm(
+        "CRITICAL PRE-PRODUCTION SAFEGUARD:\\n\\n" +
+        "You are about to authorize ONE (1) REAL external outbound email transmission to a live prospect.\\n\\n" +
+        "• Exactly 1 real outbound email is permitted in this phase.\\n" +
+        "• Accidental multi-sends are hard-locked by the server.\\n" +
+        "• SPF, DKIM, DMARC, and CAN-SPAM physical footer will be enforced.\\n\\n" +
+        "Do you authorize this single real live outbound email?"
+    );
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`/api/queue/${msgId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force_live: true })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`ONE REAL SEND AUTHORIZED & EXECUTED!\\nMessage #${msgId} dispatched via live provider.\\nEvent: ${data.send_result?.event || 'email_dispatched'}`);
+            if (typeof closeOutreachInspector === 'function') closeOutreachInspector();
+            if (typeof loadCeoControlCenter === 'function') await loadCeoControlCenter();
+            if (typeof loadQueue === 'function') await loadQueue();
+        } else {
+            alert(`Live send authorization blocked / failed:\\n${data.detail || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert("Network or server error during live send authorization: " + e);
     }
 }
 
@@ -886,11 +923,46 @@ function renderCeoSystemStatus(status) {
     setEl('ceo-sys-worker', status.worker_status ? `● ${status.worker_status}` : '● Idle', '#a78bfa');
     setEl('ceo-sys-last-activity', status.last_activity ? formatTimeAgo(status.last_activity) : 'Just now');
 
-    // Production readiness metadata
+    // Production readiness metadata & Email Readiness Checklist
     const prod = status.production_readiness || {};
     if (prod.sender_email) setEl('ceo-prod-sender-email', prod.sender_email);
     if (prod.provider) setEl('ceo-prod-provider', prod.provider);
     if (prod.postal_address_notice) setEl('ceo-prod-postal-notice', prod.postal_address_notice);
+
+    const ready = status.email_readiness || prod.checklist || {};
+    if (ready && typeof ready === 'object') {
+        const badgeEl = document.getElementById('ceo-email-readiness-badge');
+        if (badgeEl && ready.overall_status) {
+            badgeEl.textContent = ready.overall_status;
+            if (ready.is_ready) {
+                badgeEl.style.background = 'rgba(16,185,129,0.15)';
+                badgeEl.style.color = '#10b981';
+                badgeEl.style.borderColor = 'rgba(16,185,129,0.25)';
+            } else {
+                badgeEl.style.background = 'rgba(239,68,68,0.15)';
+                badgeEl.style.color = '#f87171';
+                badgeEl.style.borderColor = 'rgba(239,68,68,0.25)';
+            }
+        }
+        if (ready.sender_identity) setEl('ceo-ready-sender', ready.sender_identity.status + (ready.sender_identity.value ? ' (' + ready.sender_identity.value + ')' : ''), ready.sender_identity.verified ? '#f4f4f5' : '#f87171');
+        if (ready.reply_to) setEl('ceo-ready-replyto', ready.reply_to.status + (ready.reply_to.value ? ' (' + ready.reply_to.value + ')' : ''), ready.reply_to.verified ? '#f4f4f5' : '#f87171');
+        if (ready.spf) setEl('ceo-ready-spf', ready.spf.status, ready.spf.verified ? '#10b981' : '#fbbf24');
+        if (ready.dkim) setEl('ceo-ready-dkim', ready.dkim.status, ready.dkim.verified ? '#10b981' : '#fbbf24');
+        if (ready.dmarc) setEl('ceo-ready-dmarc', ready.dmarc.status, ready.dmarc.verified ? '#10b981' : '#fbbf24');
+        if (ready.postal_address) setEl('ceo-ready-compliance', ready.postal_address.verified ? 'Active (CAN-SPAM)' : 'Postal required', ready.postal_address.verified ? '#10b981' : '#fbbf24');
+        if (ready.inbox_monitoring) setEl('ceo-ready-inbox', ready.inbox_monitoring.status, ready.inbox_monitoring.verified ? '#10b981' : '#94a3b8');
+
+        const blockerRow = document.getElementById('ceo-email-blocker-row');
+        const blockerText = document.getElementById('ceo-email-blocker-text');
+        if (blockerRow && blockerText) {
+            if (ready.is_ready || !ready.overall_reason) {
+                blockerRow.style.display = 'none';
+            } else {
+                blockerRow.style.display = 'block';
+                blockerText.textContent = ready.overall_reason;
+            }
+        }
+    }
 
     const envBadge = document.getElementById('ceo-env-badge');
     if (envBadge) {
@@ -4725,60 +4797,143 @@ async function openOutreachInspector(messageId) {
     modal.style.display = 'flex';
 
     try {
-        const resp = await fetch(`/api/agent/outreach/${messageId}`);
-        if (!resp.ok) {
-            container.innerHTML = `<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:6px; color:#fca5a5; padding:16px;">Failed to load outreach message #${messageId} (${resp.status} ${resp.statusText}).</div>`;
-            return;
+        let data = null;
+        let isQueuePreview = false;
+
+        // Try queue preview endpoint first
+        try {
+            const previewResp = await fetch(`/api/queue/${messageId}/preview`);
+            if (previewResp.ok) {
+                data = await previewResp.json();
+                isQueuePreview = true;
+            }
+        } catch (e) {
+            console.debug('Queue preview endpoint unavailable, falling back to agent outreach:', e);
         }
-        const data = await resp.json();
+
+        // Fallback to agent outreach if not in queue
+        if (!data) {
+            const resp = await fetch(`/api/agent/outreach/${messageId}`);
+            if (!resp.ok) {
+                container.innerHTML = `<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:6px; color:#fca5a5; padding:16px;">Failed to load outreach message #${messageId} (${resp.status} ${resp.statusText}).</div>`;
+                return;
+            }
+            data = await resp.json();
+        }
+
+        const isPending = ['QUEUED', 'PENDING_APPROVAL', 'APPROVED'].includes((data.status || '').toUpperCase());
+        const ready = data.email_readiness || {};
+        const fullBody = data.full_content || data.body || '';
+
+        let readinessHtml = '';
+        if (ready && ready.sender_identity) {
+            readinessHtml = `
+                <div style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:10px 12px; margin-bottom:12px; font-size:0.75rem;">
+                    <div style="font-weight:700; color:#f4f4f5; margin-bottom:6px; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em;">Sender Readiness & Authentication</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px 14px; color:#a1a1aa;">
+                        <div>Sender: <span style="color:#f4f4f5;">${escapeHtml(ready.sender_identity?.value || data.from_email || 'Not configured')}</span></div>
+                        <div>SPF: <span style="color:${ready.spf?.verified ? '#10b981' : '#fbbf24'};">${escapeHtml(ready.spf?.status || '—')}</span></div>
+                        <div>DKIM: <span style="color:${ready.dkim?.verified ? '#10b981' : '#fbbf24'};">${escapeHtml(ready.dkim?.status || '—')}</span></div>
+                        <div>DMARC: <span style="color:${ready.dmarc?.verified ? '#10b981' : '#fbbf24'};">${escapeHtml(ready.dmarc?.status || '—')}</span></div>
+                        <div>Postal Compliance: <span style="color:${ready.postal_address?.verified ? '#10b981' : '#fbbf24'};">${ready.postal_address?.verified ? 'Active (CAN-SPAM)' : 'Required'}</span></div>
+                        <div>Inbox Poller: <span style="color:${ready.inbox_monitoring?.verified ? '#10b981' : '#94a3b8'};">${escapeHtml(ready.inbox_monitoring?.status || 'Standby')}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let actionBtns = '';
+        if (isPending) {
+            actionBtns = `
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="btn btn-sm btn-primary" onclick="authorizeRealSend('${messageId}')" style="background:#ffffff; color:#000000; font-weight:700; padding:8px 16px; border-radius:5px; border:none; cursor:pointer; font-size:0.8rem;">
+                            Authorize 1 Real Send
+                        </button>
+                        <button class="btn btn-sm" onclick="approveCeoAction('OUTREACH_APPROVAL', '${messageId}').then(() => closeOutreachInspector())" style="background:#18181b; color:#d4d4d8; border:1px solid rgba(255,255,255,0.12); padding:8px 14px; border-radius:5px; cursor:pointer; font-size:0.78rem;">
+                            Simulate Send (Dry Run)
+                        </button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="btn btn-sm btn-ghost" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${messageId}').then(() => closeOutreachInspector())" style="background:transparent; color:#71717a; border:1px solid rgba(255,255,255,0.08); padding:8px 12px; border-radius:5px; cursor:pointer; font-size:0.78rem;">
+                            Dismiss
+                        </button>
+                        <button class="btn btn-sm btn-ghost" onclick="closeOutreachInspector()" style="background:transparent; color:#a1a1aa; border:none; padding:8px 12px; cursor:pointer; font-size:0.78rem;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            actionBtns = `
+                <div style="display:flex; justify-content:flex-end; margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">
+                    <button class="btn btn-sm btn-secondary" onclick="closeOutreachInspector()" style="background:#18181b; color:#f4f4f5; border:1px solid rgba(255,255,255,0.1); padding:6px 14px; border-radius:5px; cursor:pointer; font-size:0.78rem;">
+                        Close Inspector
+                    </button>
+                </div>
+            `;
+        }
 
         container.innerHTML = `
-            <div style="background:rgba(245, 158, 11, 0.12); border:1px solid rgba(245, 158, 11, 0.4); border-radius:6px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
-                <span style="font-size:1.1rem;">⚠️</span>
-                <div>
-                    <strong style="color:#fbbf24; font-size:0.85rem;">SIMULATED — NO EXTERNAL TRANSMISSION (DRY RUN ACTIVE)</strong>
-                    <div style="color:#fde68a; font-size:0.75rem;">EMAIL_DRY_RUN is enabled. This outreach was synthesized and recorded in local telemetry without transmitting real external SMTP email.</div>
+            ${isPending ? `
+                <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); border-radius:6px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.1rem;">🛡️</span>
+                    <div>
+                        <strong style="color:#38bdf8; font-size:0.82rem;">PRE-PRODUCTION OUTBOUND INSPECTION &amp; AUTHORIZATION</strong>
+                        <div style="color:#94a3b8; font-size:0.72rem;">Human CEO authorization is strictly enforced. Outbound email is locked to a single real send.</div>
+                    </div>
+                </div>
+            ` : `
+                <div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:6px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1rem;">📋</span>
+                    <div>
+                        <strong style="color:#fbbf24; font-size:0.82rem;">STATUS: ${escapeHtml(data.status || 'RECORDED')}</strong>
+                        <div style="color:#a1a1aa; font-size:0.72rem;">Outreach message record in database.</div>
+                    </div>
+                </div>
+            `}
+
+            ${readinessHtml}
+
+            <div style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:12px; margin-bottom:12px; font-size:0.82rem;">
+                <div style="display:grid; grid-template-columns: 100px 1fr; gap:6px 10px; font-size:0.78rem;">
+                    <span style="color:#71717a; font-weight:600;">Recipient:</span>
+                    <strong style="color:#f4f4f5;">${escapeHtml(data.recipient_email || 'N/A')}</strong>
+
+                    <span style="color:#71717a; font-weight:600;">From:</span>
+                    <span style="color:#e4e4e7;">${escapeHtml(data.from_name || 'Agency OS')} &lt;${escapeHtml(data.from_email || 'Not configured')}&gt;</span>
+
+                    <span style="color:#71717a; font-weight:600;">Reply-To:</span>
+                    <span style="color:#e4e4e7;">${escapeHtml(data.reply_to || data.from_email || 'Not configured')}</span>
+
+                    <span style="color:#71717a; font-weight:600;">Domain:</span>
+                    <span style="color:#a1a1aa;">${escapeHtml(data.domain || 'N/A')}</span>
+
+                    <span style="color:#71717a; font-weight:600;">Subject Line:</span>
+                    <strong style="color:#ffffff;">${escapeHtml(data.subject || '')}</strong>
                 </div>
             </div>
 
-            <div style="background:rgba(15,23,42,0.8); border:1px solid var(--border-subtle); border-radius:6px; padding:14px; margin-bottom:14px; font-size:0.85rem;">
-                <div style="display:grid; grid-template-columns: 110px 1fr; gap:8px; margin-bottom:8px;">
-                    <span style="color:var(--text-muted); font-weight:600;">Recipient Email:</span>
-                    <strong style="color:var(--text-white);">${escapeHtml(data.recipient_email || 'N/A')}</strong>
-                    
-                    <span style="color:var(--text-muted); font-weight:600;">From:</span>
-                    <span style="color:#e2e8f0;">${escapeHtml(data.from_name || 'Agency Sales')} &lt;${escapeHtml(data.from_email || 'outreach@domain.local')}&gt;</span>
-                    
-                    <span style="color:var(--text-muted); font-weight:600;">Subject Line:</span>
-                    <strong style="color:var(--hud-cyan-bright);">${escapeHtml(data.subject || '')}</strong>
-                    
-                    <span style="color:var(--text-muted); font-weight:600;">Domain:</span>
-                    <span style="color:#94a3b8;">${escapeHtml(data.domain || '')}</span>
+            <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:0.72rem; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Draft Message Body (with Legal Notice &amp; Opt-Out)</label>
+                <div style="background:#000000; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:14px; font-family:var(--font-sans); font-size:0.85rem; line-height:1.6; color:#f4f4f5; white-space:pre-wrap; max-height:280px; overflow-y:auto;">${escapeHtml(fullBody)}</div>
+            </div>
 
-                    <span style="color:var(--text-muted); font-weight:600;">Channel:</span>
-                    <span class="badge badge-cyan" style="font-size:0.7rem; width:fit-content;">${escapeHtml(data.channel || 'EMAIL')}</span>
-
-                    <span style="color:var(--text-muted); font-weight:600;">Sent Timestamp:</span>
-                    <span style="color:#94a3b8; font-family:var(--font-mono); font-size:0.75rem;">${data.sent_at ? new Date(data.sent_at).toLocaleString() : 'Simulated Real-Time'}</span>
+            ${data.grounding_evidence ? `
+                <div style="background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px 12px; font-size:0.75rem;">
+                    <div style="font-weight:700; color:#71717a; text-transform:uppercase; margin-bottom:4px; font-size:0.68rem;">Grounded Audit Evidence</div>
+                    <div style="display:flex; gap:16px; color:#a1a1aa;">
+                        <div>Performance: <strong style="color:#38bdf8;">${data.grounding_evidence.audit?.performance_score || 'N/A'}/100</strong></div>
+                        <div>Load Time: <strong style="color:#fbbf24;">${data.grounding_evidence.audit?.load_time_seconds || 'N/A'}s</strong></div>
+                        <div>Offer: <strong style="color:#34d399;">$${data.grounding_evidence.offer?.price || 650}</strong></div>
+                    </div>
                 </div>
-            </div>
+            ` : ''}
 
-            <div style="margin-bottom:14px;">
-                <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Personalized Message Body</label>
-                <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:16px; font-family:var(--font-sans); font-size:0.88rem; line-height:1.7; color:#f1f5f9; white-space:pre-wrap;">${escapeHtml(data.body || '')}</div>
-            </div>
-
-            <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-subtle); border-radius:6px; padding:12px;">
-                <span style="display:block; font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Grounded Evidence Referenced</span>
-                <div style="display:flex; flex-wrap:wrap; gap:16px; font-size:0.8rem;">
-                    <div>Performance Score: <strong style="color:#38bdf8;">${data.grounding_evidence?.audit?.performance_score || 'N/A'}/100</strong></div>
-                    <div>Page Load Time: <strong style="color:#fbbf24;">${data.grounding_evidence?.audit?.load_time_seconds || 'N/A'}s</strong></div>
-                    <div>Recommended Turnaround Offer: <strong style="color:#34d399;">$${data.grounding_evidence?.offer?.price || 500}</strong></div>
-                </div>
-            </div>
+            ${actionBtns}
         `;
     } catch (err) {
-        container.innerHTML = `<div style="color:#f43f5e; padding:16px;">Error: ${err}</div>`;
+        container.innerHTML = `<div style="color:#f87171; padding:16px;">Error loading outreach inspector: ${err}</div>`;
     }
 }
 

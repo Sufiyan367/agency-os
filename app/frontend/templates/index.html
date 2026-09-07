@@ -1215,29 +1215,49 @@
                                 </div>
                             </div>
 
-                            <!-- Production Checklist -->
+                            <!-- Email Readiness Checklist (Phase 3 & 13) -->
                             <div style="margin-top:10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px; font-size:0.72rem; display:flex; flex-direction:column; gap:5px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#71717a;">Sender Account:</span>
-                                    <span id="ceo-prod-sender-email" style="color:#f4f4f5; font-family:var(--font-mono); font-size:0.68rem;">sufiyansurve333@gmail.com</span>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                                    <span style="font-weight:700; color:#f4f4f5; text-transform:uppercase; letter-spacing:0.04em; font-size:0.68rem;">Email Readiness</span>
+                                    <span id="ceo-email-readiness-badge" style="font-size:0.62rem; font-weight:700; padding:1px 6px; border-radius:4px; background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.25);">BLOCKED</span>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#71717a;">Email Provider:</span>
-                                    <span id="ceo-prod-provider" style="color:#34d399; font-weight:600;">GMAIL_API</span>
+                                    <span style="color:#71717a;">● Sender</span>
+                                    <span id="ceo-ready-sender" style="color:#f4f4f5; font-family:var(--font-mono); font-size:0.68rem;">Configured</span>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#71717a;">Postal Address (CAN-SPAM):</span>
-                                    <span id="ceo-prod-postal-notice" style="color:#fbbf24; font-size:0.65rem;">Configured / Required</span>
+                                    <span style="color:#71717a;">● Reply-To</span>
+                                    <span id="ceo-ready-replyto" style="color:#f4f4f5; font-family:var(--font-mono); font-size:0.68rem;">Configured</span>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#71717a;">Outbound Lock:</span>
-                                    <span style="color:#38bdf8; font-weight:600;">Max 1 Active Prospect</span>
+                                    <span style="color:#71717a;">● SPF</span>
+                                    <span id="ceo-ready-spf" style="color:#10b981; font-weight:600;">Verified</span>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#71717a;">Follow-Up Auto-Send:</span>
-                                    <span style="color:#f87171; font-weight:600;">Blocked In Live Mode</span>
+                                    <span style="color:#71717a;">● DKIM</span>
+                                    <span id="ceo-ready-dkim" style="color:#fbbf24; font-weight:600;">Verification required</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">● DMARC</span>
+                                    <span id="ceo-ready-dmarc" style="color:#10b981; font-weight:600;">Verified</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">● Compliance</span>
+                                    <span id="ceo-ready-compliance" style="color:#10b981; font-weight:600;">Active (CAN-SPAM)</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">● Inbox monitoring</span>
+                                    <span id="ceo-ready-inbox" style="color:#10b981; font-weight:600;">Ready</span>
+                                </div>
+                                <div id="ceo-email-blocker-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.06); font-size:0.65rem; color:#f87171; overflow-wrap:anywhere; word-break:normal;">
+                                    <span style="font-weight:700;">REASON: </span><span id="ceo-email-blocker-text">DKIM verification required</span>
                                 </div>
                             </div>
+
+                            <!-- Hidden legacy elements for script compatibility -->
+                            <span id="ceo-prod-sender-email" style="display:none;"></span>
+                            <span id="ceo-prod-provider" style="display:none;"></span>
+                            <span id="ceo-prod-postal-notice" style="display:none;"></span>
 
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.7rem; color:#71717a; padding-top:6px; border-top:1px solid rgba(255,255,255,0.05);">
                                 <span>Last Activity:</span>

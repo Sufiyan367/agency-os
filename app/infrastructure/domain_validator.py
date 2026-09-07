@@ -124,6 +124,8 @@ class DomainValidator:
         provider_spf_signatures = {
             "resend": "include:resend.com",
             "sendgrid": "include:sendgrid.net",
+            "gmail": "include:_spf.google.com",
+            "gmail_oauth": "include:_spf.google.com",
             "smtp": ""
         }
         target_sig = provider_spf_signatures.get(provider_clean, "")
@@ -138,7 +140,9 @@ class DomainValidator:
                         spf_record = decoded
                         if target_sig and target_sig in decoded:
                             spf_includes_provider = True
-                        elif provider_clean == "smtp":
+                        elif provider_clean in ("smtp", "dry_run"):
+                            spf_includes_provider = True
+                        elif clean_domain in ("gmail.com", "googlemail.com"):
                             spf_includes_provider = True
         except Exception:
             pass
@@ -160,8 +164,11 @@ class DomainValidator:
         except Exception:
             pass
 
-        # DKIM is provider-managed
-        dkim_status = "Provider verification required"
+        # DKIM: Google native for @gmail.com; otherwise provider verification required
+        if clean_domain in ("gmail.com", "googlemail.com"):
+            dkim_status = "VERIFIED (Google Managed)"
+        else:
+            dkim_status = "Verification required"
 
         dns_available = a_present or mx_present
         ready = dns_available

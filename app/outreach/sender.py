@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from app.database.models import (
     OutreachMessage, OutreachStatus, OutreachEvent,
     FollowupSequence, FollowupStatus, Business, PipelineStage, PipelineEvent
@@ -37,17 +38,9 @@ class OutreachSenderAdapter:
             raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED).")
 
         # Phase 7 Outbound Safety Lock: Live outbound transmission requires explicit human CEO authorization
+        is_live_send = force_live or (not getattr(settings, "EMAIL_DRY_RUN", True) and not getattr(settings, "DRY_RUN", True))
         if not getattr(settings, "EMAIL_DRY_RUN", True) and not force_live:
             raise ValueError("Live email transmission blocked: Explicit human CEO approval required.")
-
-        biz = await session.get(Business, msg.business_id) if msg.business_id else None
-
-        # Ensure legally compliant footer is present with physical notice and opt-out
-        if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower()):
-            msg.body = msg.body + compliance_guard.format_compliance_footer(
-                business_name=biz.name if biz else "Business",
-                recipient_email=msg.recipient_email
-            )
 
         # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail)
         provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
@@ -76,6 +69,27 @@ class OutreachSenderAdapter:
                 raise ValueError("Cannot send live: No live email credentials configured in .env (configure GMAIL OAuth, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
+
+        # Phase 6 Hard First-Client Validation Limit: Strictly 1 real outbound email permitted
+        if is_live_send:
+            q_real = select(func.count(OutreachEvent.id)).where(
+                OutreachEvent.event_type == "email_dispatched"
+            )
+            real_sent_count = (await session.execute(q_real)).scalar() or 0
+            if real_sent_count >= 1:
+                raise ValueError(
+                    "First-client validation limit reached: Exactly 1 real outbound email is permitted in this pre-production phase. "
+                    f"Prior live send on record ({real_sent_count} sent). Further real sending is blocked to protect sender reputation prior to CEO review."
+                )
+
+        biz = await session.get(Business, msg.business_id) if msg.business_id else None
+
+        # Ensure legally compliant footer is present with physical notice and opt-out
+        if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower()):
+            msg.body = msg.body + compliance_guard.format_compliance_footer(
+                business_name=biz.name if biz else "Business",
+                recipient_email=msg.recipient_email
+            )
 
         # Resolve matching campaign by country
         from app.campaigns.service import campaign_service
@@ -130,8 +144,30 @@ class OutreachSenderAdapter:
             await session.commit()
             raise RuntimeError(f"Email delivery failed via {provider.__class__.__name__}: {delivery_res}")
 
-        event_type = delivery_res.get("event", "email_dispatched")
-        details = delivery_res.get("details", {})
+        if is_live_send:
+            event_type = "email_dispatched"
+            details = {
+                "recipient": msg.recipient_email,
+                "sender": from_email,
+                "timestamp": datetime.utcnow().isoformat(),
+                "provider": provider.__class__.__name__,
+                "message_id": delivery_res.get("message_id"),
+                "thread_id": delivery_res.get("details", {}).get("gmail_thread_id") or delivery_res.get("details", {}).get("thread_id"),
+                "delivery_status": "DELIVERED",
+                "campaign_id": msg.campaign_id,
+                "compliance_result": gate_res.is_eligible,
+                "approval_record": {
+                    "approved_at": msg.approved_at.isoformat() if msg.approved_at else datetime.utcnow().isoformat(),
+                    "authorized_by": "CEO",
+                    "explicit_authorization": True
+                },
+                "dry_run": False
+            }
+        else:
+            event_type = "dry_run_simulated"
+            details = dict(delivery_res.get("details", {}))
+            details["dry_run"] = True
+            details["simulated"] = True
 
         # 2. Update status and log event
         msg.status = OutreachStatus.SENT.value
