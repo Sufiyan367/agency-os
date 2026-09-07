@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHudClock();
     initTopDate();
     initGlobalSearch();
+    checkBackendHealth();
     loadCeoControlCenter();
     loadDashboardMetrics();
     loadPriorityProspects();
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-refresh metrics every 30s
     setInterval(() => {
+        checkBackendHealth();
         if (currentView === 'overview') {
             loadCeoControlCenter();
             loadDashboardMetrics();
@@ -461,10 +463,12 @@ async function loadCeoControlCenter() {
 
         // 5. System Status Widget
         renderCeoSystemStatus(data.system_status || {});
+        setBackendHealthUI(true);
 
     } catch (err) {
         console.error('Error loading CEO control center:', err);
         showCeoError(err);
+        setBackendHealthUI(false);
     }
 }
 
@@ -719,6 +723,58 @@ function previewActiveDemo() {
     }
 }
 
+function setBackendHealthUI(isOnline) {
+    const pill = document.getElementById('ceo-backend-health-pill');
+    const dot = document.getElementById('ceo-backend-health-dot');
+    const text = document.getElementById('ceo-backend-health-text');
+    const sysBackend = document.getElementById('ceo-sys-backend');
+
+    if (isOnline) {
+        if (pill) {
+            pill.style.background = 'rgba(16,185,129,0.1)';
+            pill.style.borderColor = 'rgba(16,185,129,0.25)';
+            pill.style.color = '#10b981';
+        }
+        if (dot) {
+            dot.style.background = '#10b981';
+            dot.style.boxShadow = '0 0 6px #10b981';
+        }
+        if (text) text.textContent = 'BACKEND CONNECTED';
+        if (sysBackend) {
+            sysBackend.textContent = '● Online';
+            sysBackend.style.color = '#10b981';
+        }
+    } else {
+        if (pill) {
+            pill.style.background = 'rgba(239,68,68,0.1)';
+            pill.style.borderColor = 'rgba(239,68,68,0.25)';
+            pill.style.color = '#ef4444';
+        }
+        if (dot) {
+            dot.style.background = '#ef4444';
+            dot.style.boxShadow = '0 0 6px #ef4444';
+        }
+        if (text) text.textContent = 'DISCONNECTED';
+        if (sysBackend) {
+            sysBackend.textContent = '● Offline';
+            sysBackend.style.color = '#ef4444';
+        }
+    }
+}
+
+async function checkBackendHealth() {
+    try {
+        const res = await fetch('/health', { cache: 'no-cache' });
+        if (res.ok) {
+            setBackendHealthUI(true);
+        } else {
+            setBackendHealthUI(false);
+        }
+    } catch (err) {
+        setBackendHealthUI(false);
+    }
+}
+
 function renderCeoSystemStatus(status) {
     const setEl = (id, text, color) => {
         const el = document.getElementById(id);
@@ -728,6 +784,7 @@ function renderCeoSystemStatus(status) {
         }
     };
 
+    setEl('ceo-sys-backend', '● Online', '#10b981');
     setEl('ceo-sys-inbox', status.inbox_polling ? '● Active' : '● Inactive', status.inbox_polling ? '#10b981' : '#94a3b8');
     setEl('ceo-sys-email', status.email_mode ? `● ${status.email_mode}` : '● DRY RUN', '#fbbf24');
     setEl('ceo-sys-payment', status.payment_mode ? `● ${status.payment_mode}` : '● DISABLED', '#38bdf8');
