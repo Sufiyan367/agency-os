@@ -22,7 +22,7 @@ class OutreachSenderAdapter:
     Schedules automated follow-up cadences upon successful transmission.
     """
 
-    async def send_approved_message(self, session: AsyncSession, message_id: int, force_live: bool = False) -> Dict[str, Any]:
+    async def send_approved_message(self, session: AsyncSession, message_id: int, force_live: bool = False, enforce_window: Optional[bool] = None) -> Dict[str, Any]:
         if getattr(settings, "RESEARCH_ONLY", False):
             raise ValueError("Outreach blocked: System is operating in RESEARCH_ONLY mode.")
 
@@ -40,17 +40,14 @@ class OutreachSenderAdapter:
         if not getattr(settings, "EMAIL_DRY_RUN", True) and not force_live:
             raise ValueError("Live email transmission blocked: Explicit human CEO approval required.")
 
-        # Check suppression
-        if await compliance_guard.is_suppressed(session, msg.recipient_email):
-            msg.status = OutreachStatus.FAILED.value
-            await session.commit()
-            raise ValueError(f"Send cancelled: {msg.recipient_email} is on suppression list.")
+        biz = await session.get(Business, msg.business_id) if msg.business_id else None
 
-        # Check daily limits
-        if not await compliance_guard.can_send_today(session):
-            raise ValueError("Daily outreach limit (MAX_OUTREACH_PER_DAY) reached.")
-
-        biz = await session.get(Business, msg.business_id)
+        # Ensure legally compliant footer is present with physical notice and opt-out
+        if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower()):
+            msg.body = msg.body + compliance_guard.format_compliance_footer(
+                business_name=biz.name if biz else "Business",
+                recipient_email=msg.recipient_email
+            )
 
         # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail)
         provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
@@ -79,6 +76,28 @@ class OutreachSenderAdapter:
                 raise ValueError("Cannot send live: No live email credentials configured in .env (configure GMAIL OAuth, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
+
+        # Resolve matching campaign by country
+        from app.campaigns.service import campaign_service
+        from app.campaigns.compliance_gate import campaign_compliance_gate
+
+        country_identifier = (biz.country if biz and biz.country else "US").strip()
+        campaign = await campaign_service.get_campaign_by_country(session, country_identifier)
+        if campaign:
+            msg.campaign_id = campaign.id
+
+        # Strict 10-Point Deterministic Pre-Send Gate
+        gate_res = await campaign_compliance_gate.evaluate_pre_send(
+            session=session,
+            message=msg,
+            campaign=campaign,
+            force_live=force_live,
+            enforce_window=enforce_window
+        )
+        if not gate_res.is_eligible:
+            msg.status = OutreachStatus.FAILED.value
+            await session.commit()
+            raise ValueError(f"Send cancelled: {'; '.join(gate_res.failure_reasons)}")
 
         # Sender identity resolution: Never invent a persona for owner's real Gmail
         is_gmail = provider_name in ("gmail", "gmail_oauth") or isinstance(provider, getattr(sys.modules.get("app.outreach.providers.gmail_oauth_provider"), "GmailOAuthEmailProvider", ()))

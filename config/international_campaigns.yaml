@@ -1,0 +1,286 @@
+rollout:
+  current_level: 0
+  levels:
+    0:
+      name: Simulation (Dry Run)
+      daily_max_real_emails: 0
+      description: Complete pipeline verification with zero real external socket dispatch.
+    1:
+      name: Pilot Single-Outreach
+      daily_max_real_emails: 1
+      description: Strict single verified lead test with mandatory CEO sign-off.
+    2:
+      name: Controlled Low Volume
+      daily_max_real_emails: 5
+      description: Low-rate validation across verified leads.
+    3:
+      name: Target Base Tier
+      daily_max_real_emails: 10
+      description: Single-country full quota proof.
+    4:
+      name: 3 Countries Live
+      daily_max_real_emails: 30
+      description: Gradual expansion across 3 live countries.
+    5:
+      name: 6 Countries Live
+      daily_max_real_emails: 60
+      description: Regional expansion across 6 live countries.
+    6:
+      name: 12 Countries Live
+      daily_max_real_emails: 120
+      description: Broad rollout across 12 live countries.
+    7:
+      name: All 18 Countries Live
+      daily_max_real_emails: 180
+      description: 10 emails/day across all 18 configured international countries.
+countries:
+- code: US
+  name: United States
+  timezone: America/New_York
+  currency: USD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: CAN-SPAM
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: B2B functional message exemption with truthful headers and
+    valid postal address.
+- code: UK
+  name: United Kingdom
+  timezone: Europe/London
+  currency: GBP
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: UK-GDPR / PECR
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: PECR corporate subscriber exemption; GDPR Article 6(1)(f) legitimate
+    interest assessment.
+- code: CA
+  name: Canada
+  timezone: America/Toronto
+  currency: CAD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: CASL
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: CASL Section 10(9) B2B conspicuous publication without relevant-inquiry
+    disclaimer.
+- code: AU
+  name: Australia
+  timezone: Australia/Sydney
+  currency: AUD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: Spam Act 2003
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Designated commercial communications with functional unsubscribe
+    and verified sender.
+- code: AE
+  name: United Arab Emirates
+  timezone: Asia/Dubai
+  currency: AED
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: UAE Federal Data Protection
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Direct corporate inquiry regarding observable technical infrastructure.
+- code: SA
+  name: Saudi Arabia
+  timezone: Asia/Riyadh
+  currency: SAR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Saudi PDPL
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Commercial electronic messages adhering to CITC Anti-Spam Regulations.
+- code: DE
+  name: Germany
+  timezone: Europe/Berlin
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: EU-GDPR / UWG
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Strict professional interest standard; verified corporate contact
+    channel.
+- code: FR
+  name: France
+  timezone: Europe/Paris
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: EU-GDPR / CNIL
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: CNIL B2B exception for communications relevant to recipient
+    professional activity.
+- code: NL
+  name: Netherlands
+  timezone: Europe/Amsterdam
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: EU-GDPR / Telecommunicatiewet
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Dutch B2B electronic messaging framework for public corporate
+    addresses.
+- code: SE
+  name: Sweden
+  timezone: Europe/Stockholm
+  currency: SEK
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: EU-GDPR / Marketing Act
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: B2B commercial inquiries with clear sender identification and
+    immediate opt-out.
+- code: SG
+  name: Singapore
+  timezone: Asia/Singapore
+  currency: SGD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Spam Control Act / PDPA
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Commercial electronic messages to business contacts with valid
+    header and unsubscribe facility.
+- code: JP
+  name: Japan
+  timezone: Asia/Tokyo
+  currency: JPY
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Specified Electronic Mail Act
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Inquiries to publicly advertised business email addresses regarding
+    corporate offerings.
+- code: NZ
+  name: New Zealand
+  timezone: Pacific/Auckland
+  currency: NZD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: Unsolicited Electronic Messages Act 2007
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Conspicuously published electronic address with relevant commercial
+    nexus.
+- code: IE
+  name: Ireland
+  timezone: Europe/Dublin
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: EU-GDPR / ePrivacy SI 336
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Corporate body email communications with transparent sender
+    identification.
+- code: ES
+  name: Spain
+  timezone: Europe/Madrid
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: EU-GDPR / LSSI-CE
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Direct B2B communication on technical assessment of observable
+    public assets.
+- code: IT
+  name: Italy
+  timezone: Europe/Rome
+  currency: EUR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: EU-GDPR / Codice Privacy
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Corporate communications strictly limited to demonstrated technical
+    audit.
+- code: CH
+  name: Switzerland
+  timezone: Europe/Zurich
+  currency: CHF
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 17
+  compliance_framework: Swiss FADP / UWG Art 3
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Specific business inquiries with sender postal identification
+    and immediate exclusion.
+- code: QA
+  name: Qatar
+  timezone: Asia/Qatar
+  currency: QAR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Law No. 13 of 2016 PDP
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Direct B2B commercial electronic communications for corporate
+    entities.

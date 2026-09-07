@@ -316,6 +316,8 @@ from app.api.analytics_routes import router as analytics_router
 app.include_router(analytics_router)
 from app.api.autonomous_routes import router as autonomous_router
 app.include_router(autonomous_router)
+from app.api.campaign_routes import campaign_router
+app.include_router(campaign_router)
 
 
 @app.get("/setup", response_class=HTMLResponse)

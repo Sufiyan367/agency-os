@@ -14,7 +14,7 @@ function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     if (typeof str === 'object') {
         if (Array.isArray(str)) {
-            return str.map(item => escapeHtml(item)).join(', ');
+            return str.map(item => escapeHtml(item)).filter(Boolean).join(', ');
         }
         if (str.finding) return escapeHtml(str.finding);
         if (str.message) return escapeHtml(str.message);
@@ -23,12 +23,20 @@ function escapeHtml(str) {
         if (str.title) return escapeHtml(str.title);
         if (str.name) return escapeHtml(str.name);
         if (str.description) return escapeHtml(str.description);
+        if (str.label) return escapeHtml(str.label);
+        if (str.reason) return escapeHtml(str.reason);
+        if (str.action) return escapeHtml(str.action);
         if (str.value !== undefined) return escapeHtml(str.value);
-        try {
-            return escapeHtml(JSON.stringify(str));
-        } catch (e) {
-            return '';
+        const keys = Object.keys(str);
+        if (keys.length > 0) {
+            const cleanParts = keys
+                .filter(k => typeof str[k] !== 'object' && str[k] !== null && str[k] !== undefined)
+                .map(k => `${k.replace(/_/g, ' ')}: ${str[k]}`);
+            if (cleanParts.length > 0) {
+                return escapeHtml(cleanParts.join(' • '));
+            }
         }
+        return '';
     }
     return String(str)
         .replace(/&/g, '&amp;')
@@ -492,6 +500,9 @@ async function loadCeoControlCenter() {
 
         // 5. System Status Widget
         renderCeoSystemStatus(data.system_status || {});
+
+        // 6. International Campaigns & Rollout
+        renderCeoCampaigns(data.campaigns_summary || {});
         setBackendHealthUI(true);
 
     } catch (err) {
@@ -763,8 +774,8 @@ function renderCeoActiveProspect(prospect) {
     }
 
     // Commercial Proposal & Payment
-    setEl('ceo-prop-val', prospect.proposal?.amount ? `$${Number(prospect.proposal.amount).toLocaleString()}` : (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : 'N/A'));
-    setEl('ceo-prop-adv', prospect.proposal?.advance ? `$${Number(prospect.proposal.advance).toLocaleString()}` : 'N/A');
+    setEl('ceo-prop-val', prospect.proposal?.amount ? `$${Number(prospect.proposal.amount).toLocaleString()}` : (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '—'));
+    setEl('ceo-prop-adv', prospect.proposal?.advance ? `$${Number(prospect.proposal.advance).toLocaleString()}` : '—');
     const payBadge = document.getElementById('ceo-pay-dryrun-badge');
     if (payBadge) {
         payBadge.textContent = prospect.payment?.status ? `PAYMENT: ${prospect.payment.status} [DRY RUN]` : 'PAYMENTS: DISABLED';
@@ -880,6 +891,114 @@ function renderCeoSystemStatus(status) {
     }
 }
 
+const COUNTRY_FLAGS_MAP = {
+    US: '🇺🇸', UK: '🇬🇧', CA: '🇨🇦', AU: '🇦🇺', AE: '🇦🇪', SA: '🇸🇦',
+    DE: '🇩🇪', FR: '🇫🇷', NL: '🇳🇱', SE: '🇸🇪', SG: '🇸🇬', JP: '🇯🇵',
+    NZ: '🇳🇿', IE: '🇮🇪', ES: '🇪🇸', IT: '🇮🇹', CH: '🇨🇭', QA: '🇶🇦'
+};
+
+function renderCeoCampaigns(summary) {
+    if (!summary) return;
+
+    // Update Rollout Label
+    const rolloutLabel = document.getElementById('campaigns-rollout-label');
+    if (rolloutLabel) {
+        const simText = summary.is_simulation ? ' [Simulation Mode]' : '';
+        rolloutLabel.textContent = `Level ${summary.rollout_level ?? 0}: ${summary.rollout_level_name || 'Simulation'} (${summary.rollout_live_cap ?? 0} max real/day)${simText}`;
+    }
+
+    // Sync select dropdown
+    const rolloutSelect = document.getElementById('campaigns-rollout-select');
+    if (rolloutSelect && summary.rollout_level !== undefined) {
+        rolloutSelect.value = String(summary.rollout_level);
+    }
+
+    // Update capacity badge
+    const capacityBadge = document.getElementById('campaigns-capacity-badge');
+    if (capacityBadge) {
+        const sent = summary.total_today_sent ?? 0;
+        const cap = summary.total_daily_capacity || 180;
+        capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY`;
+    }
+
+    // Render Table Rows
+    const tbody = document.getElementById('ceo-campaigns-tbody');
+    if (!tbody) return;
+
+    const campaigns = summary.campaigns || [];
+    if (campaigns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:16px; color:#71717a;">No active campaign corridors configured.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = campaigns.map(c => {
+        const flag = COUNTRY_FLAGS_MAP[c.country_code] || '🌐';
+        const isActive = (c.status === 'ACTIVE' && c.enabled);
+        const statusBadge = isActive
+            ? '<span style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); padding:2px 6px; border-radius:4px; font-weight:600; font-size:0.65rem;">ACTIVE</span>'
+            : '<span style="background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); padding:2px 6px; border-radius:4px; font-weight:600; font-size:0.65rem;">PAUSED</span>';
+
+        const windowBadge = c.is_in_sending_window
+            ? `<span style="color:#10b981; font-weight:600;">● OPEN</span> <span style="color:#71717a; font-size:0.65rem;">${escapeHtml(c.local_time_formatted || '')}</span>`
+            : `<span style="color:#71717a;">○ CLOSED</span> <span style="color:#52525b; font-size:0.65rem;">${escapeHtml(c.local_time_formatted || '')}</span>`;
+
+        const bRate = Number(c.bounce_rate || 0.0);
+        const bRateColor = bRate > 2.0 ? '#ef4444' : '#71717a';
+
+        return `
+            <tr style="border-bottom:1px solid #141416; transition:background 0.12s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                <td style="padding:7px 8px; font-weight:600; color:#f4f4f5; display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:1.05rem;">${flag}</span>
+                    <span>${escapeHtml(c.country_code)}</span>
+                    <span style="color:#71717a; font-weight:400; font-size:0.68rem;">(${escapeHtml(c.name || '')})</span>
+                </td>
+                <td style="padding:7px 8px;">${statusBadge}</td>
+                <td style="padding:7px 8px; font-family:var(--font-mono); color:#cbd5e1;">
+                    ${c.today_sent ?? 0} / ${c.daily_quota ?? 10}
+                </td>
+                <td style="padding:7px 8px;">${windowBadge}</td>
+                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#cbd5e1;">${c.total_sent ?? 0}</td>
+                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#cbd5e1;">${c.replies_count ?? 0}</td>
+                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#34d399; font-weight:600;">${c.interested_count ?? 0}</td>
+                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#71717a;">${c.bounces_count ?? 0}</td>
+                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:${bRateColor}; font-weight:${bRate > 2 ? '700' : '400'};">${bRate.toFixed(1)}%</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function handleRolloutLevelChange(level) {
+    const levelInt = parseInt(level, 10);
+    const confirmed = window.confirm(
+        `[CEO AUTHORIZATION REQUIRED]\n\nDo you explicitly authorize adjusting the Outbound Campaign Rollout to Level ${levelInt}?\n\n` +
+        (levelInt > 0 ? `WARNING: Level ${levelInt} enables real outbound transmissions up to that stage limit when live mode is engaged.` : 'Level 0 enforces 100% Simulation Mode (0 real sends).')
+    );
+    if (!confirmed) {
+        // Revert select back by reloading
+        await loadCeoControlCenter();
+        return;
+    }
+    try {
+        const res = await fetch('/api/campaigns/rollout/level', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: levelInt, confirm: true })
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            alert(`Rollout transition rejected: ${errData.detail || res.statusText}`);
+        } else {
+            const data = await res.json();
+            alert(data.message || `Rollout stage adjusted to Level ${levelInt}.`);
+        }
+        await loadCeoControlCenter();
+    } catch (e) {
+        console.error('Error changing rollout level:', e);
+        alert(`Failed to update rollout level: ${e.message}`);
+        await loadCeoControlCenter();
+    }
+}
+
 async function loadOwnerAttention() {
     try {
         const res = await fetch('/api/owner/attention');
@@ -931,59 +1050,71 @@ async function loadOwnerAttention() {
     }
 }
 
+function formatOperationalEvent(ev) {
+    if (!ev) return '';
+    const timeAgo = formatTimeAgo(ev.created_at || ev.timestamp);
+    let statusBadge = '';
+    const statusUpper = (ev.status || '').toUpperCase();
+    const eventType = (ev.event_type || '').toUpperCase();
+
+    if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
+        statusBadge = '<span class="badge-status-running"><span class="pulse-dot" style="background:#38bdf8; width:6px; height:6px;"></span>RUNNING</span>';
+    } else if (statusUpper.includes('WAIT') || eventType.includes('APPROVAL') || eventType.includes('PENDING_APPROVAL')) {
+        statusBadge = '<span class="badge-status-waiting">WAITING FOR CEO</span>';
+    } else if (statusUpper.includes('BLOCK') || eventType.includes('SUPPRESSED') || eventType.includes('RATE_LIMIT')) {
+        statusBadge = '<span class="badge-status-blocked">BLOCKED</span>';
+    } else if (statusUpper.includes('FAIL') || statusUpper.includes('ERROR') || eventType.includes('FAILED')) {
+        statusBadge = '<span class="badge-status-failed">FAILED</span>';
+    } else {
+        statusBadge = '<span class="badge-status-completed">COMPLETED</span>';
+    }
+
+    let msg = ev.message || ev.event_type || 'Agent operation executed';
+    if (typeof msg === 'string') {
+        const trimmed = msg.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                msg = parsed;
+            } catch (_) {}
+        }
+    }
+    if (typeof msg === 'object' && msg !== null) {
+        msg = msg.summary || msg.message || msg.finding || msg.title || msg.description || msg.action || msg.reason || escapeHtml(msg);
+    }
+
+    return `
+        <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:8px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; margin-bottom:4px;">
+            <div style="min-width:0; flex:1;">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    ${statusBadge}
+                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
+                </div>
+                <div style="font-size:0.75rem; color:#f4f4f5; font-weight:500; word-break:break-word; overflow-wrap:break-word; line-height:1.35;">${escapeHtml(msg)}</div>
+            </div>
+        </div>
+    `;
+}
+
 async function loadRecentAiActivity() {
     const list = document.getElementById('ceo-recent-activity-list');
     if (!list) return;
     try {
         const res = await fetch('/api/agent/activity?limit=8');
         if (!res.ok) {
-            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
             return;
         }
         const data = await res.json();
         const events = data.events || (Array.isArray(data) ? data : []);
         if (events.length === 0) {
-            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Autonomous engine operational. Standby for next cycle.</div>`;
+            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Autonomous engine operational. Standby for next cycle.</div>`;
             return;
         }
-        list.innerHTML = events.map(ev => {
-            const timeAgo = formatTimeAgo(ev.created_at);
-            let statusBadge = '';
-            const statusUpper = (ev.status || '').toUpperCase();
-            const eventType = (ev.event_type || '').toUpperCase();
-
-            if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
-                statusBadge = '<span class="badge-status-running"><span class="pulse-dot" style="background:#38bdf8; width:6px; height:6px;"></span>RUNNING</span>';
-            } else if (statusUpper.includes('WAIT') || eventType.includes('APPROVAL') || eventType.includes('PENDING_APPROVAL')) {
-                statusBadge = '<span class="badge-status-waiting">WAITING FOR CEO</span>';
-            } else if (statusUpper.includes('BLOCK') || eventType.includes('SUPPRESSED') || eventType.includes('RATE_LIMIT')) {
-                statusBadge = '<span class="badge-status-blocked">BLOCKED</span>';
-            } else if (statusUpper.includes('FAIL') || statusUpper.includes('ERROR') || eventType.includes('FAILED')) {
-                statusBadge = '<span class="badge-status-failed">FAILED</span>';
-            } else {
-                statusBadge = '<span class="badge-status-completed">COMPLETED</span>';
-            }
-
-            let msg = ev.message || ev.event_type || 'Agent operation executed';
-            if (typeof msg === 'object') {
-                msg = msg.summary || msg.message || msg.finding || JSON.stringify(msg);
-            }
-
-            return `
-                <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:8px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px;">
-                    <div style="min-width:0; flex:1;">
-                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                            ${statusBadge}
-                            <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
-                        </div>
-                        <div style="font-size:0.75rem; color:#f4f4f5; font-weight:500; word-break:break-word; overflow-wrap:break-word; line-height:1.35;">${escapeHtml(msg)}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        list.innerHTML = events.map(ev => formatOperationalEvent(ev)).join('');
     } catch (e) {
         console.error('Failed to load AI activity feed:', e);
-        list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+        list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
     }
 }
 
@@ -1939,7 +2070,7 @@ async function viewLeadDetail(leadId) {
                     </div>
                     <div>
                         <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block;">ROI & Economic Value Hypothesis:</span>
-                        <strong style="color:var(--hud-amber); font-size:0.88rem;">${intel.roi_estimate && intel.roi_estimate.summary ? escapeHtml(intel.roi_estimate.summary) : (intel.roi_estimate ? escapeHtml(JSON.stringify(intel.roi_estimate)) : 'Expected to restore 15–30% lost commercial pipeline through technical remediation.')}</strong>
+                        <strong style="color:var(--hud-amber); font-size:0.88rem;">${(intel.roi_estimate && typeof intel.roi_estimate === 'object') ? escapeHtml(intel.roi_estimate.summary || intel.roi_estimate.value_hypothesis || 'Expected to restore 15–30% lost commercial pipeline through technical remediation.') : escapeHtml(intel.roi_estimate || 'Expected to restore 15–30% lost commercial pipeline through technical remediation.')}</strong>
                     </div>
                 </div>
             </div>
@@ -2152,7 +2283,7 @@ async function viewLeadDetail(leadId) {
                         ${decisionTrace.length > 0 ? decisionTrace.map(dt => `
                             <div class="trace-bullet">
                                 <span class="trace-bullet-icon">▸</span>
-                                <span>${escapeHtml(typeof dt === 'string' ? dt : JSON.stringify(dt))}</span>
+                                <span>${escapeHtml(dt)}</span>
                             </div>
                         `).join('') : `
                             <div class="trace-bullet">
@@ -4133,67 +4264,8 @@ function updateCeoActivityList(events) {
         return;
     }
 
-    const displayEvents = events.slice(0, 6);
-    let html = '';
-
-    displayEvents.forEach(evt => {
-        let badgeClass = 'blue';
-        let svgIcon = '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>';
-
-        const status = (evt.status || '').toUpperCase();
-        const type = (evt.event_type || '').toUpperCase();
-
-        if (status === 'SUCCESS' || type.includes('WON') || type.includes('PAYMENT')) {
-            badgeClass = 'green';
-            svgIcon = '<polyline points="20 6 9 17 4 12"/>';
-        } else if (type.includes('OUTREACH') || type.includes('SEND') || type.includes('EMAIL')) {
-            badgeClass = 'teal';
-            svgIcon = '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>';
-        } else if (type.includes('REPLY') || type.includes('MESSAGE')) {
-            badgeClass = 'amber';
-            svgIcon = '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
-        } else if (type.includes('PROPOSAL') || type.includes('OFFER') || type.includes('AUDIT')) {
-            badgeClass = 'blue';
-            svgIcon = '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>';
-        } else if (type.includes('RESEARCH') || type.includes('DISCOVER') || type.includes('LEAD')) {
-            badgeClass = 'purple';
-            svgIcon = '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>';
-        } else if (status === 'PENDING' || status === 'WAITING' || type.includes('WAIT')) {
-            badgeClass = 'amber';
-            svgIcon = '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
-        }
-
-        let desc = evt.message || type.replace(/_/g, ' ').toLowerCase();
-        if (desc.length > 38) {
-            desc = desc.substring(0, 36) + '...';
-        }
-
-        let timeStr = 'Just now';
-        if (evt.created_at) {
-            try {
-                const d = new Date(evt.created_at);
-                const diffMs = Date.now() - d.getTime();
-                const diffMin = Math.floor(diffMs / 60000);
-                if (diffMin < 1) timeStr = 'Just now';
-                else if (diffMin < 60) timeStr = `${diffMin}m ago`;
-                else timeStr = `${Math.floor(diffMin / 60)}h ago`;
-            } catch (_) {
-                timeStr = 'Recent';
-            }
-        }
-
-        html += `
-            <div class="agency-activity-row">
-                <div class="agency-activity-badge ${badgeClass}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${svgIcon}</svg>
-                </div>
-                <span class="agency-activity-title" title="${escapeHtml(evt.message || '')}">${escapeHtml(desc)}</span>
-                <span class="agency-activity-ago">${timeStr}</span>
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
+    const displayEvents = events.slice(0, 8);
+    container.innerHTML = displayEvents.map(ev => formatOperationalEvent(ev)).join('');
 }
 
 
@@ -5198,7 +5270,7 @@ async function inspectClientIntelligence(businessId) {
 
         const whyEl = document.getElementById('ci-inspect-why-list');
         if (whyEl) {
-            whyEl.innerHTML = whyList.map(item => `<li style="margin-bottom: 4px;">${item}</li>`).join('');
+            whyEl.innerHTML = whyList.map(item => `<li style="margin-bottom: 4px;">${escapeHtml(item)}</li>`).join('');
         }
 
         const healthEl = document.getElementById('ci-inspect-health');
@@ -5444,7 +5516,7 @@ async function loadActiveSlot() {
         const bulletsHtml = (data.why_this_prospect || []).map(b => `
             <li style="margin-bottom: 6px; display:flex; align-items:flex-start; gap:8px;">
                 <span style="color:var(--hud-cyan-bright);">•</span>
-                <span>${b}</span>
+                <span>${escapeHtml(b)}</span>
             </li>
         `).join('');
 

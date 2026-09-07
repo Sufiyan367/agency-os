@@ -71,10 +71,12 @@ class ComplianceGuard:
         count = (await session.execute(q)).scalar() or 0
         return count < settings.MAX_OUTREACH_PER_DAY
 
-    def format_compliance_footer(self, business_name: str, recipient_email: str) -> str:
+    def format_compliance_footer(self, business_name: str, recipient_email: str, postal_address: Optional[str] = None) -> str:
+        addr = postal_address or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or "100 Innovation Way, Suite 400, Wilmington, DE 19801, USA"
         return (
             f"\n\n---\n"
             f"Sent by {settings.OUTREACH_FROM_NAME} on behalf of digital engineering advisory.\n"
+            f"Postal Address: {addr}\n"
             f"We contacted this public address ({recipient_email}) regarding public web infrastructure for {business_name}.\n"
             f"If you prefer not to receive future technical suggestions, simply reply 'unsubscribe' or 'opt out' to be permanently excluded."
         )

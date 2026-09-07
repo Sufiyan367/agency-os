@@ -300,6 +300,7 @@ class OutreachMessage(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
     offer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("offers.id"), nullable=True)
+    campaign_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=True, index=True)
     recipient_email: Mapped[str] = mapped_column(String(255))
     subject: Mapped[str] = mapped_column(String(255))
     body: Mapped[str] = mapped_column(Text)
@@ -319,6 +320,7 @@ class OutreachMessage(Base):
 
     business: Mapped["Business"] = relationship("Business", back_populates="outreach_messages", lazy="selectin")
     offer: Mapped[Optional["Offer"]] = relationship("Offer", back_populates="outreach_messages", lazy="selectin")
+    campaign: Mapped[Optional["Campaign"]] = relationship("Campaign", back_populates="outreach_messages", lazy="selectin")
     events: Mapped[List["OutreachEvent"]] = relationship("OutreachEvent", back_populates="outreach_message", cascade="all, delete-orphan", lazy="selectin")
     followups: Mapped[List["FollowupSequence"]] = relationship("FollowupSequence", back_populates="initial_message", cascade="all, delete-orphan", lazy="selectin")
 
@@ -1124,6 +1126,45 @@ class AutonomousDecisionLog(Base):
     metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
 
     business: Mapped[Optional["Business"]] = relationship("Business", lazy="selectin")
+
+
+# 43. International Campaigns (Multi-Country Outbound Layer)
+class Campaign(Base):
+    __tablename__ = "campaigns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    country_code: Mapped[str] = mapped_column(String(10), index=True)
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE", index=True)  # ACTIVE, PAUSED, DRAFT, COMPLETED
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC")
+    daily_quota: Mapped[int] = mapped_column(Integer, default=10)
+    service_type: Mapped[str] = mapped_column(String(100), default="web_turnaround")
+    sender_identity: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sender_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reply_to: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    postal_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sending_window_start: Mapped[int] = mapped_column(Integer, default=9)
+    sending_window_end: Mapped[int] = mapped_column(Integer, default=17)
+    approval_policy: Mapped[str] = mapped_column(String(50), default="MANUAL_CEO_APPROVAL")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    outreach_messages: Mapped[List["OutreachMessage"]] = relationship("OutreachMessage", back_populates="campaign", lazy="selectin")
+    events: Mapped[List["CampaignEvent"]] = relationship("CampaignEvent", back_populates="campaign", cascade="all, delete-orphan", lazy="selectin")
+
+
+class CampaignEvent(Base):
+    __tablename__ = "campaign_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    campaign_id: Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
+    message: Mapped[str] = mapped_column(Text, default="")
+    details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="events", lazy="selectin")
 
 
 

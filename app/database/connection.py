@@ -305,6 +305,7 @@ async def init_db():
 
             # outreach_messages
             for col, col_type in [
+                ("campaign_id", "INTEGER REFERENCES campaigns(id)"),
                 ("provider", "VARCHAR(50)"),
                 ("provider_message_id", "VARCHAR(100)"),
                 ("reply_to", "VARCHAR(255)"),

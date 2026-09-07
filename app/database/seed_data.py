@@ -172,4 +172,7 @@ async def seed_initial_data(session: AsyncSession):
     from app.acquisition.config import country_config_manager
     await country_config_manager.ensure_defaults(session)
 
+    from app.campaigns.service import campaign_service
+    await campaign_service.ensure_campaigns_seeded(session)
+
     logger.info("Seed data check completed.")

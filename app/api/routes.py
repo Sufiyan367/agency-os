@@ -2155,6 +2155,23 @@ async def get_ceo_control_center_overview(
         "PAYMENT": payment_c
     }
 
+    # --- 6. International Campaigns & Rollout Summary ---
+    from app.campaigns.service import campaign_service
+    rollout_info = campaign_service.get_rollout_status()
+    campaigns_list = await campaign_service.list_campaigns(db, include_stats=True)
+    campaigns_summary = {
+        "rollout_level": rollout_info.current_level,
+        "rollout_level_name": rollout_info.current_level_name,
+        "rollout_live_cap": rollout_info.daily_max_real_emails,
+        "is_simulation": rollout_info.is_simulation,
+        "active_campaigns_count": sum(1 for c in campaigns_list if c.status == "ACTIVE" and c.enabled),
+        "total_campaigns_count": len(campaigns_list),
+        "total_daily_capacity": sum(c.daily_quota for c in campaigns_list),
+        "total_today_sent": sum(c.today_sent for c in campaigns_list),
+        "total_today_remaining": sum(c.today_remaining for c in campaigns_list),
+        "campaigns": [c.model_dump() for c in campaigns_list]
+    }
+
     return {
         "executive_metrics": metrics,
         "metrics": metrics,
@@ -2163,7 +2180,8 @@ async def get_ceo_control_center_overview(
         "pipeline_funnel": pipeline_funnel_dict,
         "pipeline": pipeline_stages,
         "active_prospect": active_prospect,
-        "system_status": system_status
+        "system_status": system_status,
+        "campaigns_summary": campaigns_summary
     }
 
 @router.get("/api/client/portal-data")
