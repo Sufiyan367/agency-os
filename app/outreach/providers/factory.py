@@ -3,6 +3,7 @@ from app.outreach.providers.dry_run import DryRunEmailProvider
 from app.outreach.providers.resend_provider import ResendEmailProvider
 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
 from app.outreach.providers.smtp_provider import SMTPEmailProvider
+from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -25,6 +26,8 @@ def get_email_provider() -> BaseEmailProvider:
         return SendGridEmailProvider()
     elif provider_name == "smtp":
         return SMTPEmailProvider()
+    elif provider_name in ("gmail", "gmail_oauth"):
+        return GmailOAuthEmailProvider()
     else:
         logger.warning(f"Unknown EMAIL_PROVIDER '{provider_name}'. Falling back to DryRunEmailProvider.")
         return DryRunEmailProvider()

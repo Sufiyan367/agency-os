@@ -49,6 +49,11 @@ scratch/
 !.env.example
 credentials*
 secrets*
+client_secrets*
+*secrets*.json
+*token*
+*.token
+*.pickle
 *.pem
 *.key
 

@@ -69,4 +69,4 @@ def test_persistent_worker_status():
     status = worker.get_status()
     assert status["is_running"] is False
     assert status["interval_seconds"] == 45
-    assert status["email_provider"] in ("dry_run", "resend", "sendgrid", "smtp")
+    assert status["email_provider"] in ("dry_run", "resend", "sendgrid", "smtp", "gmail", "gmail_oauth")

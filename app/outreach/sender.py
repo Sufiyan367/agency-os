@@ -1,3 +1,4 @@
+import sys
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
@@ -47,10 +48,15 @@ class OutreachSenderAdapter:
 
         biz = await session.get(Business, msg.business_id)
 
-        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP)
+        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail)
+        provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
         if force_live:
-            provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
-            if provider_name == "resend" or (provider_name == "dry_run" and settings.RESEND_API_KEY):
+            if provider_name in ("gmail", "gmail_oauth"):
+                if not getattr(settings, "GMAIL_CLIENT_ID", None) or not getattr(settings, "GMAIL_REFRESH_TOKEN", None) or not getattr(settings, "GMAIL_CLIENT_SECRET", None):
+                    raise ValueError("Cannot send live: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN is not configured in .env")
+                from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
+                provider = GmailOAuthEmailProvider()
+            elif provider_name == "resend" or (provider_name == "dry_run" and settings.RESEND_API_KEY):
                 if not settings.RESEND_API_KEY:
                     raise ValueError("Cannot send live: RESEND_API_KEY is not configured in .env")
                 from app.outreach.providers.resend_provider import ResendEmailProvider
@@ -66,17 +72,30 @@ class OutreachSenderAdapter:
                 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
                 provider = SendGridEmailProvider()
             else:
-                raise ValueError("Cannot send live: No live email credentials configured in .env (configure RESEND_API_KEY or SMTP_HOST/SMTP_USER).")
+                raise ValueError("Cannot send live: No live email credentials configured in .env (configure GMAIL OAuth, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
+
+        # Sender identity resolution: Never invent a persona for owner's real Gmail
+        is_gmail = provider_name in ("gmail", "gmail_oauth") or isinstance(provider, getattr(sys.modules.get("app.outreach.providers.gmail_oauth_provider"), "GmailOAuthEmailProvider", ()))
+        if is_gmail:
+            from_email = getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM
+            # Do not use placeholder Elena Vance for personal Gmail
+            from_name = None if "Elena Vance" in (settings.EMAIL_FROM_NAME or "") else settings.EMAIL_FROM_NAME
+            reply_to = from_email
+        else:
+            from_email = settings.EMAIL_FROM
+            from_name = settings.OUTREACH_FROM_NAME
+            reply_to = settings.EMAIL_REPLY_TO
+
         try:
             delivery_res = await provider.send_email(
                 to_email=msg.recipient_email,
                 subject=msg.subject,
                 body=msg.body,
-                from_email=settings.EMAIL_FROM,
-                from_name=settings.OUTREACH_FROM_NAME,
-                reply_to=settings.EMAIL_REPLY_TO
+                from_email=from_email,
+                from_name=from_name,
+                reply_to=reply_to
             )
         except Exception as e:
             msg.status = OutreachStatus.FAILED.value

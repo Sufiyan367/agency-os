@@ -3,6 +3,7 @@ from app.outreach.providers.dry_run import DryRunEmailProvider, MockEmailProvide
 from app.outreach.providers.resend_provider import ResendEmailProvider
 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
 from app.outreach.providers.smtp_provider import SMTPEmailProvider
+from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
 from app.outreach.providers.factory import get_email_provider
 
 __all__ = [
@@ -12,5 +13,6 @@ __all__ = [
     "ResendEmailProvider",
     "SendGridEmailProvider",
     "SMTPEmailProvider",
+    "GmailOAuthEmailProvider",
     "get_email_provider"
 ]
