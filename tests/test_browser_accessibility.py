@@ -145,3 +145,27 @@ def test_ceo_launcher_files_exist_and_configured():
         doc_content = f.read()
     assert "agency-os-n6yx" in doc_content
     assert "Vercel" in doc_content
+
+
+def test_typer_dependency_and_cli_importability():
+    """Verifies that typer is declared in requirements.txt and app.cli imports cleanly."""
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    req_path = os.path.join(base_dir, "requirements.txt")
+    assert os.path.isfile(req_path), "requirements.txt must exist at repo root"
+    with open(req_path, "r", encoding="utf-8") as f:
+        req_content = f.read()
+    assert "typer" in req_content, "typer must be declared as a dependency in requirements.txt"
+
+    # Verify typer and app.cli import cleanly without ModuleNotFoundError
+    import typer
+    assert typer is not None
+    import app.cli
+    assert hasattr(app.cli, "serve"), "app.cli must export serve command"
+    assert hasattr(app.cli, "cli_app"), "app.cli must export Typer app instance"
+
+    # Verify launcher script contains dependency verification
+    bat_path = os.path.join(base_dir, "Launch_Agency_OS.bat")
+    with open(bat_path, "r", encoding="utf-8", errors="ignore") as f:
+        bat_content = f.read()
+    assert "import fastapi, typer, uvicorn" in bat_content
+

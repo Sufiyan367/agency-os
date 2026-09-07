@@ -31,15 +31,33 @@ if %ERRORLEVEL% equ 0 (
     goto :done
 )
 
-:: Locate Python executable (.venv preferred)
+:: Locate Python executable (.venv preferred, with dependency check & PATH fallback)
 set "PY_EXE="
 if exist "%~dp0.venv\Scripts\python.exe" (
-    set "PY_EXE=%~dp0.venv\Scripts\python.exe"
-) else (
-    for %%P in (python.exe) do set "PY_EXE=%%~$PATH:P"
+    "%~dp0.venv\Scripts\python.exe" -c "import fastapi, typer, uvicorn" >nul 2>&1
+    if !ERRORLEVEL! equ 0 (
+        set "PY_EXE=%~dp0.venv\Scripts\python.exe"
+    )
 )
 
-if "%PY_EXE%"=="" (
+if "!PY_EXE!"=="" (
+    for %%P in (python.exe) do (
+        "%%~$PATH:P" -c "import fastapi, typer, uvicorn" >nul 2>&1
+        if !ERRORLEVEL! equ 0 (
+            set "PY_EXE=%%~$PATH:P"
+            goto :py_resolved
+        )
+    )
+    :: If neither has verified packages, fallback to existing executable
+    if exist "%~dp0.venv\Scripts\python.exe" (
+        set "PY_EXE=%~dp0.venv\Scripts\python.exe"
+    ) else (
+        for %%P in (python.exe) do set "PY_EXE=%%~$PATH:P"
+    )
+)
+:py_resolved
+
+if "!PY_EXE!"=="" (
     echo [!] ERROR: Python runtime not found.
     echo Please ensure Python or .venv is installed.
     pause
