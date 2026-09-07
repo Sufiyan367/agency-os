@@ -2541,4 +2541,135 @@ body {
   }
 }
 
+/* ==========================================================================
+   CEO CONTROL CENTER ENHANCEMENTS
+   ========================================================================== */
+.agency-eight-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1440px) {
+  .agency-eight-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 1100px) {
+  .agency-eight-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .agency-eight-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 9-Stage Visual Pipeline Funnel */
+.ceo-pipeline-funnel-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px 14px;
+  background: var(--agency-bg-card);
+  border: 1px solid var(--agency-border-subtle);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.ceo-funnel-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--agency-text-muted);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.ceo-funnel-step.active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+.ceo-funnel-step-count {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+}
+.ceo-funnel-step.active .ceo-funnel-step-count {
+  background: #38bdf8;
+  color: #030712;
+  font-weight: 700;
+}
+.ceo-funnel-arrow {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.7rem;
+}
+
+/* CEO Action Required Cards */
+.ceo-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--agency-border-subtle);
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+.ceo-action-card:hover {
+  border-color: var(--agency-border-hover);
+}
+.ceo-action-card.warning {
+  border-left: 3px solid #f59e0b;
+}
+.ceo-action-card.info {
+  border-left: 3px solid #38bdf8;
+}
+.ceo-action-card.critical {
+  border-left: 3px solid #ef4444;
+}
+.ceo-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* CEO Prospect Card Details */
+.ceo-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+.ceo-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(2, 6, 23, 0.5);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+.ceo-detail-label {
+  color: var(--agency-text-muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.ceo-detail-val {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+
 

@@ -1641,6 +1641,491 @@ async def get_owner_attention_endpoint(
         "message": "All systems operating nominally. Nothing needs your attention." if total_count == 0 else f"{total_count} operational item{'s' if total_count > 1 else ''} require owner intervention."
     }
 
+@router.get("/api/ceo/overview")
+async def get_ceo_control_center_overview(
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """
+    CEO Control Center Aggregation Endpoint:
+    Provides a consolidated, executive-level operational snapshot:
+    1. 8 Executive KPIs (Prospects, Qualified, Outreach, Interested, Demos, Proposals, Payments, Safe Revenue)
+    2. Action Required (Pending approvals, replies, demos, proposals, payments)
+    3. 9-Stage Visual Pipeline Funnel
+    4. Active Prospect Focus Card (Metadata, Demo + 8 QA gates, Proposal, Payment Dry-Run)
+    5. Live System Health & Safety Guardrails
+    """
+    from app.database.models import ReplyClassification
+    from app.core.config import settings
+
+    # --- 1. Executive KPIs ---
+    total_prospects = (await db.execute(select(func.count(Business.id)))).scalar() or 0
+    qualified_prospects = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.QUALIFIED.value,
+            PipelineStage.OUTREACH_READY.value,
+            PipelineStage.APPROVAL.value,
+            PipelineStage.CONTACTED.value,
+            PipelineStage.REPLIED.value,
+            PipelineStage.QUALIFIED_REPLY.value,
+            PipelineStage.CALL.value,
+            PipelineStage.PROPOSAL.value,
+            PipelineStage.WON.value
+        ]))
+    )).scalar() or 0
+
+    outreach_awaiting_approval = (await db.execute(
+        select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value)
+    )).scalar() or 0
+
+    interested_leads = (await db.execute(
+        select(func.count(Reply.id)).where(Reply.classification.in_([
+            ReplyClassification.INTERESTED.value,
+            ReplyClassification.MEETING_REQUEST.value,
+            ReplyClassification.PRICE_REQUEST.value
+        ]))
+    )).scalar() or 0
+
+    active_demos = (await db.execute(
+        select(func.count(Artifact.id)).where(Artifact.artifact_type == "DEMO_PACKAGE")
+    )).scalar() or 0
+
+    proposals_awaiting_action = (await db.execute(
+        select(func.count(Proposal.id)).where(Proposal.status.in_(["PENDING_AUTHORIZATION", "DRAFT", "PENDING"]))
+    )).scalar() or 0
+
+    payments_awaiting_authorization = (await db.execute(
+        select(func.count(Payment.id)).where(Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"]))
+    )).scalar() or 0
+
+    revenue_collected = 0.0
+    revenue_label = "$0.00 (Dry Run)"
+
+    metrics = {
+        "total_prospects": total_prospects,
+        "qualified_prospects": qualified_prospects,
+        "outreach_awaiting_approval": outreach_awaiting_approval,
+        "interested_leads": interested_leads,
+        "active_demos": active_demos,
+        "proposals_awaiting_action": proposals_awaiting_action,
+        "payments_awaiting_authorization": payments_awaiting_authorization,
+        "revenue_collected": revenue_collected,
+        "revenue_label": revenue_label
+    }
+
+    # --- 2. Action Required (Executive Action Feed) ---
+    actions_required = []
+
+    # A. Outreach awaiting approval
+    pending_msgs = (await db.execute(
+        select(OutreachMessage).where(
+            OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value
+        ).order_by(desc(OutreachMessage.created_at)).limit(5)
+    )).scalars().all()
+    for msg in pending_msgs:
+        b = await db.get(Business, msg.business_id) if msg.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{msg.business_id}"
+        actions_required.append({
+            "id": f"outreach_{msg.id}",
+            "type": "OUTREACH_APPROVAL",
+            "severity": "WARNING",
+            "title": f"Outreach pending approval: {b_name}",
+            "description": f"Subject: {msg.subject or 'Commercial Consultation'} — requires human sign-off before dispatch.",
+            "entity_id": msg.id,
+            "item_id": msg.id,
+            "business_id": msg.business_id,
+            "lead_id": msg.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "Approve", "action": "approve_outreach", "style": "primary"},
+                {"label": "Reject", "action": "reject_outreach", "style": "danger"},
+                {"label": "Review", "action": "view_lead", "style": "secondary"}
+            ]
+        })
+
+    # B. Interested leads needing review
+    pending_replies = (await db.execute(
+        select(Reply).where(
+            Reply.is_handled == False,
+            Reply.classification.in_([
+                ReplyClassification.INTERESTED.value,
+                ReplyClassification.MEETING_REQUEST.value,
+                ReplyClassification.PRICE_REQUEST.value
+            ])
+        ).order_by(desc(Reply.received_at)).limit(5)
+    )).scalars().all()
+    for rep in pending_replies:
+        b = await db.get(Business, rep.business_id) if rep.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{rep.business_id}"
+        actions_required.append({
+            "id": f"reply_{rep.id}",
+            "type": "INTERESTED_REPLY",
+            "severity": "WARNING",
+            "title": f"Interested Reply from {b_name}",
+            "description": f"{rep.classification}: {(rep.raw_body or getattr(rep, 'content', '') or '')[:90]}...",
+            "entity_id": rep.id,
+            "item_id": rep.id,
+            "business_id": rep.business_id,
+            "lead_id": rep.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "Review Lead", "action": "view_lead", "style": "primary"}
+            ]
+        })
+
+    # C. Turnkey Demos ready for review
+    latest_demos = (await db.execute(
+        select(Artifact).where(
+            Artifact.artifact_type == "DEMO_PACKAGE"
+        ).order_by(desc(Artifact.created_at)).limit(5)
+    )).scalars().all()
+    for art in latest_demos:
+        b = await db.get(Business, art.business_id) if art.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{art.business_id}"
+        meta = art.metadata_json or {}
+        qa_meta = meta.get("qa_result") or {}
+        qa_pass = qa_meta.get("overall_passed", False)
+        actions_required.append({
+            "id": f"demo_{art.id}",
+            "type": "DEMO_REVIEW",
+            "severity": "INFO",
+            "title": f"Turnkey Demo ready: {b_name}",
+            "description": f"QA Status: {'✓ ALL 8 GATES PASSED' if qa_pass else '✗ QA CHECKS PENDING'} (Safe Dry-Run)",
+            "entity_id": art.id,
+            "item_id": art.id,
+            "business_id": art.business_id,
+            "lead_id": art.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "Preview Demo", "action": "preview_demo", "style": "cyan"},
+                {"label": "Review", "action": "view_lead", "style": "secondary"}
+            ]
+        })
+
+    # D. Proposals awaiting authorization
+    pending_props = (await db.execute(
+        select(Proposal).where(
+            Proposal.status.in_(["PENDING_AUTHORIZATION", "DRAFT", "PENDING"])
+        ).order_by(desc(Proposal.created_at)).limit(5)
+    )).scalars().all()
+    for prop in pending_props:
+        b = await db.get(Business, prop.business_id) if prop.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{prop.business_id}"
+        actions_required.append({
+            "id": f"proposal_{prop.id}",
+            "type": "PROPOSAL_AUTHORIZATION",
+            "severity": "WARNING",
+            "title": f"Proposal #{prop.id} authorization: {b_name}",
+            "description": f"Value: ${float(prop.total_value or 0.0):,.2f} (Advance: ${float(prop.advance_required or 0.0):,.2f}) [DRY RUN]",
+            "entity_id": prop.id,
+            "item_id": prop.id,
+            "business_id": prop.business_id,
+            "lead_id": prop.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "View Proposal", "action": "view_lead", "style": "primary"}
+            ]
+        })
+
+    # E. Payment authorization
+    pending_payments = (await db.execute(
+        select(Payment).where(
+            Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"])
+        ).order_by(desc(Payment.created_at)).limit(5)
+    )).scalars().all()
+    for pay in pending_payments:
+        b = await db.get(Business, pay.business_id) if pay.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{pay.business_id}"
+        actions_required.append({
+            "id": f"payment_{pay.id}",
+            "type": "PAYMENT_AUTHORIZATION",
+            "severity": "INFO",
+            "title": f"Payment Authorization: {b_name} [DRY RUN]",
+            "description": f"Amount: ${float(pay.amount or 0.0):,.2f} — PAYMENTS: DISABLED (Dry-Run Safe)",
+            "entity_id": pay.id,
+            "item_id": pay.id,
+            "business_id": pay.business_id,
+            "lead_id": pay.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "Review Billing", "action": "view_lead", "style": "secondary"}
+            ]
+        })
+
+    # --- 3. 9-Stage Visual Pipeline Funnel ---
+    discovery_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.DISCOVERED.value,
+            PipelineStage.VERIFIED.value,
+            PipelineStage.AUDITED.value
+        ]))
+    )).scalar() or 0
+
+    qualified_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.QUALIFIED.value)
+    )).scalar() or 0
+
+    outreach_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.OUTREACH_READY.value,
+            PipelineStage.APPROVAL.value,
+            PipelineStage.CONTACTED.value
+        ]))
+    )).scalar() or 0
+
+    interested_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.REPLIED.value,
+            PipelineStage.QUALIFIED_REPLY.value
+        ]))
+    )).scalar() or 0
+
+    requirements_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.CALL.value,
+            PipelineStage.MEETING.value
+        ]))
+    )).scalar() or 0
+
+    demo_c = active_demos
+    qa_c = (await db.execute(
+        select(func.count(Artifact.id)).where(
+            Artifact.artifact_type == "DEMO_PACKAGE",
+            Artifact.status.in_(["VERIFIED", "QA_PASSED", "COMPLETED"])
+        )
+    )).scalar() or 0
+
+    proposal_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.PROPOSAL.value)
+    )).scalar() or (await db.execute(select(func.count(Proposal.id)))).scalar() or 0
+
+    payment_c = (await db.execute(
+        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
+            PipelineStage.PAYMENT_REQUESTED.value,
+            PipelineStage.ADVANCE_PAID.value,
+            PipelineStage.WON.value
+        ]))
+    )).scalar() or 0
+
+    pipeline_stages = [
+        {"stage": "DISCOVERY", "label": "Discovery", "count": discovery_c, "active": discovery_c > 0},
+        {"stage": "QUALIFIED", "label": "Qualified", "count": qualified_c, "active": qualified_c > 0},
+        {"stage": "OUTREACH", "label": "Outreach", "count": outreach_c, "active": outreach_c > 0},
+        {"stage": "INTERESTED", "label": "Interested", "count": interested_c, "active": interested_c > 0},
+        {"stage": "REQUIREMENTS", "label": "Requirements", "count": requirements_c, "active": requirements_c > 0},
+        {"stage": "DEMO", "label": "Demo", "count": demo_c, "active": demo_c > 0},
+        {"stage": "QA", "label": "QA", "count": qa_c, "active": qa_c > 0},
+        {"stage": "PROPOSAL", "label": "Proposal", "count": proposal_c, "active": proposal_c > 0},
+        {"stage": "PAYMENT", "label": "Payment", "count": payment_c, "active": payment_c > 0}
+    ]
+
+    # --- 4. Active Prospect Focus Card ---
+    active_b = (await db.execute(
+        select(Business).order_by(desc(Business.id)).limit(1)
+    )).scalars().first()
+
+    active_prospect = None
+    if active_b:
+        # Resolve audit
+        audit = (await db.execute(
+            select(AuditRun).where(AuditRun.business_id == active_b.id).order_by(desc(AuditRun.audited_at))
+        )).scalars().first()
+        findings = []
+        if audit:
+            findings = (await db.execute(
+                select(AuditFinding).where(AuditFinding.audit_id == audit.id).limit(3)
+            )).scalars().all()
+
+        # Resolve offer
+        offer = (await db.execute(
+            select(Offer).where(Offer.business_id == active_b.id)
+        )).scalars().first()
+
+        # Resolve outreach
+        outreach = (await db.execute(
+            select(OutreachMessage).where(OutreachMessage.business_id == active_b.id).order_by(desc(OutreachMessage.id))
+        )).scalars().first()
+
+        # Resolve reply
+        reply = (await db.execute(
+            select(Reply).where(Reply.business_id == active_b.id).order_by(desc(Reply.id))
+        )).scalars().first()
+
+        # Resolve demo & QA
+        demo_art = (await db.execute(
+            select(Artifact).where(
+                Artifact.business_id == active_b.id,
+                Artifact.artifact_type == "DEMO_PACKAGE"
+            ).order_by(desc(Artifact.created_at))
+        )).scalars().first()
+
+        demo_data = None
+        qa_status_label = "NOT_EVALUATED"
+        if demo_art:
+            demo_info, sanitized_qa = await _resolve_lead_demo_and_qa(db, active_b.id, active_b, demo_art)
+            demo_data = {
+                "exists": True,
+                "artifact_id": demo_art.id,
+                "demo_id": demo_info.get("demo_id", f"DEMO-{active_b.id}"),
+                "service_title": demo_info.get("service_title", "Speed & Conversion Turnaround"),
+                "price_usd": float(demo_info.get("price_usd", 1000.0)),
+                "turnaround_days": demo_info.get("turnaround_days", 3),
+                "preview_url": f"/api/leads/{active_b.id}/demo/preview",
+                "qa": sanitized_qa
+            }
+            if sanitized_qa:
+                qa_status_label = "PASSED (8/8)" if sanitized_qa.get("overall_passed") else f"FAILED ({sanitized_qa.get('passed_checks', 0)}/{sanitized_qa.get('total_checks', 8)})"
+        else:
+            demo_data = {
+                "exists": False,
+                "artifact_id": None,
+                "demo_id": None,
+                "service_title": None,
+                "price_usd": None,
+                "preview_url": None,
+                "qa": None
+            }
+
+        # Resolve proposal
+        prop = (await db.execute(
+            select(Proposal).where(Proposal.business_id == active_b.id).order_by(desc(Proposal.created_at))
+        )).scalars().first()
+
+        proposal_data = None
+        if prop:
+            proposal_data = {
+                "exists": True,
+                "id": prop.id,
+                "title": prop.title,
+                "total_value": float(prop.total_value or 0.0),
+                "amount": float(prop.total_value or 0.0),
+                "advance_required": float(prop.advance_required or 0.0),
+                "advance": float(prop.advance_required or 0.0),
+                "status": prop.status,
+                "is_dry_run": True
+            }
+        else:
+            proposal_data = {
+                "exists": False,
+                "id": None,
+                "title": None,
+                "total_value": 0.0,
+                "amount": 0.0,
+                "advance_required": 0.0,
+                "advance": 0.0,
+                "status": "NOT_GENERATED",
+                "is_dry_run": True
+            }
+
+        # Resolve payment
+        pay = (await db.execute(
+            select(Payment).where(Payment.business_id == active_b.id).order_by(desc(Payment.created_at))
+        )).scalars().first()
+
+        payment_data = {
+            "status": pay.status if pay else "STANDBY",
+            "amount": float(pay.amount or 0.0) if pay else 0.0,
+            "is_dry_run": True,
+            "payments_enabled": False,
+            "label": "DRY RUN / PAYMENTS: DISABLED"
+        }
+
+        service_name = None
+        catalog_price = 1000.0
+        intel_rec = getattr(active_b, "client_intelligence", None)
+        if intel_rec and intel_rec.top_service_name:
+            service_name = intel_rec.top_service_name
+            if intel_rec.recommended_price_usd:
+                catalog_price = float(intel_rec.recommended_price_usd)
+        elif offer:
+            service_name = offer.title or offer.service_type
+            if offer.recommended_price:
+                catalog_price = float(offer.recommended_price)
+
+        location_str = f"{active_b.city}, {active_b.country}" if active_b.city and active_b.country else (active_b.country or "Global")
+
+        score_val = None
+        score_rec = getattr(active_b, "lead_score", None)
+        if score_rec and score_rec.total_score is not None:
+            score_val = float(score_rec.total_score)
+        elif audit and getattr(audit, "overall_health_score", None) is not None:
+            score_val = float(audit.overall_health_score)
+        elif getattr(active_b, "prospect_score", None) is not None:
+            score_val = float(active_b.prospect_score)
+
+        audit_summary_text = audit.summary if audit and audit.summary else (
+            f"Findings: {', '.join(f.finding[:40] for f in findings)}" if findings else "Empirical audit complete."
+        )
+
+        active_prospect = {
+            "id": active_b.id,
+            "business_name": active_b.name or active_b.domain,
+            "company_name": active_b.name or active_b.domain,
+            "location": location_str,
+            "domain": active_b.domain,
+            "score": score_val,
+            "audit_summary": audit_summary_text,
+            "recommended_service": service_name or "Digital Growth & Conversion Optimization",
+            "target_service": service_name or "Digital Growth & Conversion Optimization",
+            "catalog_price": catalog_price,
+            "offer_price": f"${int(catalog_price):,}" if catalog_price else "$1,000",
+            "current_stage": active_b.pipeline_stage,
+            "stage": active_b.pipeline_stage,
+            "outreach_status": outreach.status if outreach else "NOT_STARTED",
+            "reply_status": reply.classification if reply else "NO_REPLY",
+            "demo_status": "GENERATED" if demo_art else "NOT_GENERATED",
+            "qa_status": qa_status_label,
+            "proposal_status": prop.status if prop else "NOT_GENERATED",
+            "payment_status": payment_data["status"],
+            "demo": demo_data,
+            "proposal": proposal_data,
+            "payment": payment_data
+        }
+
+    # --- 5. Live System Status ---
+    last_event = (await db.execute(
+        select(PipelineEvent).order_by(desc(PipelineEvent.created_at)).limit(1)
+    )).scalars().first()
+
+    last_activity_str = last_event.created_at.isoformat() if last_event and last_event.created_at else datetime.utcnow().isoformat()
+
+    system_status = {
+        "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
+        "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
+        "email_mode": "DRY RUN",
+        "payment_mode": "DISABLED",
+        "worker_status": "Running" if getattr(agency_worker, "is_running", False) else "Idle",
+        "last_activity": last_activity_str
+    }
+
+    pipeline_funnel_dict = {
+        "DISCOVERY": discovery_c,
+        "QUALIFIED": qualified_c,
+        "OUTREACH": outreach_c,
+        "INTERESTED": interested_c,
+        "REQUIREMENTS": requirements_c,
+        "DEMO": demo_c,
+        "QA": qa_c,
+        "PROPOSAL": proposal_c,
+        "PAYMENT": payment_c
+    }
+
+    return {
+        "executive_metrics": metrics,
+        "metrics": metrics,
+        "action_required": actions_required,
+        "actions_required": actions_required,
+        "pipeline_funnel": pipeline_funnel_dict,
+        "pipeline": pipeline_stages,
+        "active_prospect": active_prospect,
+        "system_status": system_status
+    }
+
 @router.get("/api/client/portal-data")
 async def get_client_portal_data_endpoint(
     db: AsyncSession = Depends(get_db),

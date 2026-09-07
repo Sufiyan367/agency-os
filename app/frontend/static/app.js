@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHudClock();
     initTopDate();
     initGlobalSearch();
+    loadCeoControlCenter();
     loadDashboardMetrics();
     loadPriorityProspects();
     loadMarkets();
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-refresh metrics every 30s
     setInterval(() => {
         if (currentView === 'overview') {
+            loadCeoControlCenter();
             loadDashboardMetrics();
             loadPriorityProspects();
             loadMLHealthTelemetry();
@@ -210,13 +212,17 @@ const VIEW_ALIASES = {
     'prospects': 'leads',
     'research': 'markets',
     'outreach': 'queue',
+    'actions': 'queue',
     'sales': 'pipeline',
     'deals': 'pipeline',
+    'demos': 'leads',
+    'proposals': 'pipeline',
     'clients': 'payments',
     'customers': 'payments',
     'analytics': 'decision-analytics',
     'inbox': 'replies',
     'signals': 'replies',
+    'system': 'runs',
     'logs': 'runs',
     'system-logs': 'runs',
     'infrastructure': 'infra'
@@ -243,6 +249,7 @@ function switchView(viewName) {
 
     // Refresh view data
     if (canonicalView === 'overview') {
+        loadCeoControlCenter();
         loadDashboardMetrics();
         loadPriorityProspects();
     }
@@ -384,6 +391,7 @@ async function loadDashboardMetrics() {
 
         // Owner Attention Feed
         loadOwnerAttention();
+        loadCeoControlCenter();
 
         // AI Activity & Inbound Replies (Dynamic real data)
         loadRecentAiActivity();
@@ -405,6 +413,326 @@ function formatTimeAgo(isoString) {
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
+}
+
+// ==========================================
+// CEO CONTROL CENTER CLIENT LOGIC
+// ==========================================
+
+async function loadCeoControlCenter() {
+    try {
+        const res = await fetch('/api/ceo/overview');
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        hideCeoError();
+
+        // 1. Executive Metrics
+        const metrics = data.executive_metrics || {};
+        const setElText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setElText('ceo-val-total-prospects', metrics.total_prospects ?? 0);
+        setElText('val-leads', metrics.total_prospects ?? 0);
+        setElText('ceo-val-qualified-prospects', metrics.qualified_prospects ?? 0);
+        setElText('val-qualified', metrics.qualified_prospects ?? 0);
+        setElText('ceo-val-outreach-approval', metrics.outreach_awaiting_approval ?? 0);
+        setElText('ceo-val-interested-leads', metrics.interested_leads ?? 0);
+        setElText('ceo-val-replies-pending', metrics.interested_leads ?? 0);
+        setElText('ceo-val-active-demos', metrics.active_demos ?? 0);
+        setElText('ceo-val-proposals-action', metrics.proposals_awaiting_action ?? 0);
+        setElText('ceo-val-payments-auth', metrics.payments_awaiting_authorization ?? 0);
+        setElText('ceo-val-deals-won', metrics.payments_awaiting_authorization ?? 0);
+
+        setElText('ceo-val-revenue-dryrun', metrics.revenue_label || '$0.00 (Dry Run)');
+        setElText('ceo-val-revenue', metrics.revenue_label || '$0.00 (Dry Run)');
+
+        // 2. Action Required Section
+        renderCeoActionsRequired(data.action_required || []);
+
+        // 3. 9-Stage Visual Pipeline Funnel
+        renderCeoPipelineFunnel(data.pipeline_funnel || {}, data.active_prospect);
+
+        // 4. Active Prospect Card
+        renderCeoActiveProspect(data.active_prospect);
+
+        // 5. System Status Widget
+        renderCeoSystemStatus(data.system_status || {});
+
+    } catch (err) {
+        console.error('Error loading CEO control center:', err);
+        showCeoError(err);
+    }
+}
+
+function showCeoError(err) {
+    const banner = document.getElementById('ceo-error-banner');
+    const msg = document.getElementById('ceo-error-msg');
+    if (banner) {
+        banner.style.display = 'flex';
+    }
+    if (msg) {
+        msg.textContent = 'Unable to refresh CEO Overview. Operations continue safely in the background.';
+    }
+}
+
+function hideCeoError() {
+    const banner = document.getElementById('ceo-error-banner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+}
+
+function renderCeoActionsRequired(actions) {
+    const container = document.getElementById('ceo-action-required-list');
+    const badge = document.getElementById('attention-status-badge');
+    if (!container) return;
+
+    if (!actions || actions.length === 0) {
+        container.innerHTML = `
+            <div style="color:#94a3b8; font-size:0.75rem; text-align:center; padding:24px 0;">
+                Zero actions pending — operations running smoothly.
+            </div>
+        `;
+        if (badge) {
+            badge.textContent = 'ALL CLEAR';
+            badge.className = 'badge-tag actual';
+        }
+        return;
+    }
+
+    if (badge) {
+        badge.textContent = `${actions.length} ACTION${actions.length === 1 ? '' : 'S'} REQUIRED`;
+        badge.className = 'badge-tag estimated';
+    }
+
+    let html = '';
+    for (const item of actions) {
+        const title = escapeHtml(item.title || 'Action Pending');
+        const company = escapeHtml(item.company || item.lead_name || 'Prospect');
+        const desc = escapeHtml(item.description || '');
+        const timeAgo = formatTimeAgo(item.created_at || item.timestamp);
+        const itemType = escapeHtml(item.type || '');
+
+        let actionBtns = '';
+        if (item.type === 'OUTREACH_APPROVAL') {
+            const msgId = item.id || item.message_id;
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', ${msgId})" style="padding:3px 8px; font-size:0.72rem;">Approve</button>
+                    <button class="btn btn-xs btn-secondary" onclick="rejectCeoAction('OUTREACH_APPROVAL', ${msgId})" style="padding:3px 8px; font-size:0.72rem;">Reject</button>
+                    <button class="btn btn-xs btn-ghost" onclick="navToView('queue')" style="padding:3px 8px; font-size:0.72rem;">Review</button>
+                </div>
+            `;
+        } else if (item.type === 'INTERESTED_REPLY') {
+            const leadId = item.lead_id || item.id;
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="padding:3px 8px; font-size:0.72rem;">Review Lead</button>
+                    <button class="btn btn-xs btn-ghost" onclick="navToView('leads')" style="padding:3px 8px; font-size:0.72rem;">All Leads</button>
+                </div>
+            `;
+        } else if (item.type === 'DEMO_REVIEW') {
+            const leadId = item.lead_id || item.id;
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="btn btn-xs btn-cyan" onclick="openDemoPreview(${leadId})" style="padding:3px 8px; font-size:0.72rem;">Preview Demo</button>
+                </div>
+            `;
+        } else if (item.type === 'PROPOSAL_AUTHORIZATION') {
+            const leadId = item.lead_id || item.id;
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="padding:3px 8px; font-size:0.72rem;">View Proposal</button>
+                </div>
+            `;
+        } else if (item.type === 'PAYMENT_AUTHORIZATION') {
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
+                    <span class="badge badge-amber" style="font-size:0.65rem;">DRY RUN: SAFE</span>
+                </div>
+            `;
+        } else {
+            actionBtns = `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="btn btn-xs btn-secondary" onclick="navToView('leads')" style="padding:3px 8px; font-size:0.72rem;">View</button>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="ceo-action-card" style="background:#080d18; border:1px solid rgba(148,163,184,0.12); border-radius:6px; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                    <span style="font-weight:700; color:#f1f5f9; font-size:0.78rem;">${title}</span>
+                    <span class="badge-tag estimated" style="font-size:0.58rem;">${itemType}</span>
+                </div>
+                <div style="font-size:0.72rem; color:#38bdf8; font-weight:600; margin-bottom:2px;">${company}</div>
+                <div style="font-size:0.7rem; color:#94a3b8; line-height:1.3;">${desc}</div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    ${actionBtns}
+                    <span style="font-size:0.64rem; color:#64748b; font-family:var(--font-mono);">${timeAgo}</span>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+async function approveCeoAction(type, id) {
+    if (type === 'OUTREACH_APPROVAL') {
+        await approveMessage(id, false);
+        await loadCeoControlCenter();
+    }
+}
+
+async function rejectCeoAction(type, id) {
+    if (type === 'OUTREACH_APPROVAL') {
+        await rejectMessage(id);
+        await loadCeoControlCenter();
+    }
+}
+
+function renderCeoPipelineFunnel(funnel, activeProspect) {
+    const stageMap = {
+        'discovery': 'DISCOVERY',
+        'qualified': 'QUALIFIED',
+        'outreach': 'OUTREACH',
+        'interested': 'INTERESTED',
+        'requirements': 'REQUIREMENTS',
+        'demo': 'DEMO',
+        'qa': 'QA',
+        'proposal': 'PROPOSAL',
+        'payment': 'PAYMENT'
+    };
+    const activeStage = (activeProspect && activeProspect.stage) ? activeProspect.stage.toUpperCase() : null;
+
+    for (const [stepKey, dataKey] of Object.entries(stageMap)) {
+        const cntEl = document.getElementById(`step-cnt-${stepKey}`);
+        const stepEl = document.getElementById(`funnel-step-${stepKey}`);
+        const count = funnel ? (funnel[dataKey] || 0) : 0;
+        if (cntEl) cntEl.textContent = count;
+        if (stepEl) {
+            if (activeStage === dataKey || (!activeStage && stepKey === 'discovery')) {
+                stepEl.classList.add('active');
+            } else {
+                stepEl.classList.remove('active');
+            }
+            stepEl.style.opacity = count > 0 ? '1' : '0.65';
+        }
+    }
+}
+
+function renderCeoActiveProspect(prospect) {
+    const setEl = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    if (!prospect) {
+        currentActiveProspectLeadId = null;
+        setEl('ceo-active-prospect-name', 'Standby');
+        setEl('ceo-active-prospect-domain', '—');
+        setEl('ceo-active-prospect-location', 'Global');
+        setEl('ceo-active-prospect-score', '—');
+        setEl('ceo-active-prospect-stage', 'STANDBY');
+        setEl('ceo-active-outreach-status', 'Idle');
+        setEl('ceo-active-reply-status', 'None');
+        setEl('ceo-active-demo-status', 'None');
+        setEl('ceo-active-qa-status', 'None');
+        setEl('ceo-active-proposal-status', 'None');
+        setEl('ceo-active-payment-status', 'Dry Run');
+        setEl('ceo-demo-exists-label', 'NO');
+        setEl('ceo-demo-qa-badge', 'QA: STANDBY');
+        const previewBtn = document.getElementById('ceo-btn-preview-demo');
+        if (previewBtn) previewBtn.style.display = 'none';
+        return;
+    }
+
+    currentActiveProspectLeadId = prospect.id;
+    setEl('ceo-active-prospect-name', prospect.company_name || prospect.contact_name || 'Standby');
+    setEl('ceo-active-prospect-domain', prospect.domain || '—');
+    setEl('ceo-active-prospect-location', prospect.location || 'Global');
+    setEl('ceo-active-prospect-score', (prospect.score !== undefined && prospect.score !== null) ? `${prospect.score}/100` : '—');
+    setEl('ceo-active-prospect-price', prospect.offer_price || (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '$1,000'));
+    setEl('ceo-active-prospect-service', prospect.target_service || 'Digital Growth Optimization');
+    setEl('ceo-active-prospect-audit', prospect.audit_summary || 'Empirical audit findings.');
+    setEl('ceo-active-prospect-stage', (prospect.stage || 'STANDBY').toUpperCase());
+
+    // Status Chips
+    setEl('ceo-active-outreach-status', prospect.outreach_status || 'Idle');
+    setEl('ceo-active-reply-status', prospect.reply_status || 'None');
+    setEl('ceo-active-demo-status', prospect.demo?.exists ? 'Generated' : 'None');
+    setEl('ceo-active-qa-status', prospect.demo?.qa?.overall_passed ? 'Passed (8/8)' : (prospect.demo?.exists ? 'Evaluating' : 'None'));
+    setEl('ceo-active-proposal-status', prospect.proposal?.status || 'None');
+    setEl('ceo-active-payment-status', prospect.payment?.status || 'Dry Run');
+
+    // Demo + QA Panel
+    setEl('ceo-demo-exists-label', prospect.demo?.exists ? 'YES' : 'NO');
+    const qaBadge = document.getElementById('ceo-demo-qa-badge');
+    if (qaBadge) {
+        if (prospect.demo?.qa?.overall_passed) {
+            qaBadge.textContent = 'QA: PASSED (8/8)';
+            qaBadge.className = 'badge badge-emerald';
+        } else if (prospect.demo?.exists) {
+            qaBadge.textContent = 'QA: PENDING';
+            qaBadge.className = 'badge badge-amber';
+        } else {
+            qaBadge.textContent = 'QA: STANDBY';
+            qaBadge.className = 'badge badge-slate';
+        }
+    }
+
+    const qaGatesEl = document.getElementById('ceo-demo-qa-gates');
+    if (qaGatesEl) {
+        if (prospect.demo?.qa?.checks && prospect.demo.qa.checks.length > 0) {
+            qaGatesEl.innerHTML = prospect.demo.qa.checks.map(c => `
+                <div style="display:flex; justify-content:space-between; align-items:center; color:${c.passed ? '#34d399' : '#f87171'};">
+                    <span>${c.passed ? '✓' : '✗'} ${escapeHtml(c.name)}</span>
+                    <span style="font-size:0.62rem; color:${c.passed ? '#34d399' : '#f87171'}; font-weight:700;">${c.passed ? 'PASS' : 'FAIL'}</span>
+                </div>
+            `).join('');
+        } else {
+            qaGatesEl.innerHTML = '<div style="color:#64748b; font-style:italic;">8 QA gates evaluate upon receiving interest.</div>';
+        }
+    }
+
+    const previewBtn = document.getElementById('ceo-btn-preview-demo');
+    if (previewBtn) {
+        previewBtn.style.display = prospect.demo?.exists ? 'block' : 'none';
+    }
+
+    // Commercial Proposal & Payment
+    setEl('ceo-prop-val', prospect.proposal?.amount ? `$${Number(prospect.proposal.amount).toLocaleString()}` : (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : 'N/A'));
+    setEl('ceo-prop-adv', prospect.proposal?.advance ? `$${Number(prospect.proposal.advance).toLocaleString()}` : 'N/A');
+    const payBadge = document.getElementById('ceo-pay-dryrun-badge');
+    if (payBadge) {
+        payBadge.textContent = prospect.payment?.status ? `PAYMENT: ${prospect.payment.status} [DRY RUN]` : 'PAYMENTS: DISABLED';
+    }
+}
+
+function previewActiveDemo() {
+    if (currentActiveProspectLeadId && typeof openDemoPreview === 'function') {
+        openDemoPreview(currentActiveProspectLeadId);
+    }
+}
+
+function renderCeoSystemStatus(status) {
+    const setEl = (id, text, color) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = text;
+            if (color) el.style.color = color;
+        }
+    };
+
+    setEl('ceo-sys-inbox', status.inbox_polling ? '● Active' : '● Inactive', status.inbox_polling ? '#10b981' : '#94a3b8');
+    setEl('ceo-sys-email', status.email_mode ? `● ${status.email_mode}` : '● DRY RUN', '#fbbf24');
+    setEl('ceo-sys-payment', status.payment_mode ? `● ${status.payment_mode}` : '● DISABLED', '#38bdf8');
+    setEl('ceo-sys-worker', status.worker_status ? `● ${status.worker_status}` : '● Idle', '#a78bfa');
+    setEl('ceo-sys-last-activity', status.last_activity ? formatTimeAgo(status.last_activity) : 'Just now');
 }
 
 async function loadOwnerAttention() {

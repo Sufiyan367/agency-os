@@ -558,7 +558,7 @@
                         <rect x="14" y="14" width="7" height="7" rx="1"/>
                         <rect x="3" y="14" width="7" height="7" rx="1"/>
                     </svg>
-                    <span>Dashboard</span>
+                    <span>Overview</span>
                 </li>
                 <li class="agency-nav-item" data-view="leads" onclick="navToView('leads')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -567,51 +567,71 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    <span>Prospects</span>
+                    <span>Leads</span>
                 </li>
-                <li class="agency-nav-item" data-view="markets" onclick="navToView('markets')">
+                <li class="agency-nav-item" data-view="actions" onclick="navToView('actions')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
-                    <span>Research</span>
-                </li>
-                <li class="agency-nav-item" data-view="queue" onclick="navToView('queue')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"/>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                    <span>Outreach</span>
+                    <span>Actions</span>
                 </li>
                 <li class="agency-nav-item" data-view="pipeline" onclick="navToView('pipeline')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                         <line x1="7" y1="7" x2="7.01" y2="7"/>
                     </svg>
-                    <span>Sales</span>
+                    <span>Pipeline</span>
                 </li>
-                <li class="agency-nav-item" data-view="payments" onclick="navToView('payments')">
+                <li class="agency-nav-item" data-view="demos" onclick="navToView('demos')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
-                    <span>Clients</span>
+                    <span>Demos</span>
                 </li>
-                <li class="agency-nav-item" data-view="decision-analytics" onclick="navToView('decision-analytics')">
+                <li class="agency-nav-item" data-view="proposals" onclick="navToView('proposals')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
                     </svg>
-                    <span>Analytics</span>
+                    <span>Proposals</span>
+                </li>
+                <li class="agency-nav-item" data-view="system" onclick="navToView('system')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                        <line x1="6" y1="6" x2="6.01" y2="6"/>
+                        <line x1="6" y1="18" x2="6.01" y2="18"/>
+                    </svg>
+                    <span>System</span>
                 </li>
 
                 <li class="agency-nav-section-label" onclick="toggleNavMore()">
-                    <span>••• More</span>
+                    <span>••• Operations</span>
                     <span id="nav-more-icon" style="font-size:0.65rem; color:#64748b;">▼</span>
                 </li>
 
                 <div id="nav-more-links" style="display:none; flex-direction:column; gap:4px;">
+                    <li class="agency-nav-item" data-view="markets" onclick="navToView('markets')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <span>Research</span>
+                    </li>
+                    <li class="agency-nav-item" data-view="queue" onclick="navToView('queue')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        <span>Outreach Queue</span>
+                    </li>
+                    <li class="agency-nav-item" data-view="payments" onclick="navToView('payments')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        <span>Clients</span>
+                    </li>
+                    <li class="agency-nav-item" data-view="decision-analytics" onclick="navToView('decision-analytics')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        <span>Analytics</span>
+                    </li>
                     <li class="agency-nav-item" data-view="market-intelligence" onclick="navToView('market-intelligence')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
                         <span>Market Intelligence</span>
@@ -727,106 +747,195 @@
                 <div class="agency-dashboard-grid">
                     <!-- Left 2-Column Main Content -->
                     <div class="agency-dashboard-main-col">
+                        <!-- CEO Friendly Error State Banner -->
+                        <div id="ceo-error-banner" style="display:none; margin-bottom:14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; padding:12px 18px; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span style="font-size:1.3rem;">⚠️</span>
+                                <div>
+                                    <div id="ceo-error-title" style="font-weight:700; color:#fca5a5; font-size:0.85rem;">System Notice</div>
+                                    <div id="ceo-error-msg" style="color:#cbd5e1; font-size:0.75rem;">Unable to connect to live operations engine. No data lost.</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="loadCeoControlCenter()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
+                        </div>
+
                         <!-- Hero Section -->
                         <div class="agency-welcome-banner">
                             <div class="agency-welcome-text">
                                 <h1 class="main-heading">
-                                    <span>Live Operations</span>
+                                    <span>CEO Control Center</span>
                                     <span class="pulse-dot" style="background:#10b981; box-shadow:0 0 6px #10b981; display:inline-block;"></span>
                                 </h1>
-                                <p class="tagline">Autonomous lead discovery, research, and revenue pipeline</p>
+                                <p class="tagline">Executive overview of autonomous prospect discovery, qualification, demos & deterministic revenue operations</p>
                             </div>
-                            <div class="agency-welcome-stat-pill">
-                                <span class="pulse-dot" style="background:#10b981;"></span>
-                                <span style="font-size:0.75rem; font-weight:600; color:#e2e8f0;">Autonomous Safe Mode</span>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <div class="agency-welcome-stat-pill">
+                                    <span class="pulse-dot" style="background:#10b981;"></span>
+                                    <span style="font-size:0.75rem; font-weight:600; color:#e2e8f0;">SAFE DRY-RUN ENFORCED</span>
+                                </div>
+                                <span class="badge badge-amber" style="font-size:0.7rem;">PAYMENTS: DISABLED</span>
                             </div>
                         </div>
 
-                        <!-- SECTION 1 — PRIMARY 6 KPI ROW -->
-                        <div class="agency-six-kpi-grid">
-                            <!-- 1. Revenue -->
-                            <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                </div>
-                                <span class="agency-kpi-heading">Revenue</span>
-                                <div class="agency-kpi-big-val" id="ceo-val-revenue">$0</div>
-                                <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">Actual</span>
-                                    <span class="agency-kpi-trend-tag neutral">-</span>
-                                </div>
-                                <span id="val-collected-revenue" style="display:none;">$0</span>
-                                <span id="val-won" style="display:none;">$0</span>
-                            </div>
-
-                            <!-- 2. Pipeline -->
-                            <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge purple">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>
-                                </div>
-                                <span class="agency-kpi-heading">Pipeline</span>
-                                <div class="agency-kpi-big-val" id="val-pipeline">$0</div>
-                                <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">Estimated</span>
-                                    <span class="agency-kpi-trend-tag positive" id="pipeline-trend-tag">↑ 12%</span>
-                                </div>
-                            </div>
-
-                            <!-- 3. Qualified Leads -->
+                        <!-- SECTION 1 — CEO 8 EXECUTIVE KPIS -->
+                        <div class="agency-eight-kpi-grid" id="ceo-metrics-grid" style="margin-bottom:14px;">
+                            <!-- 1. Total Prospects -->
                             <div class="agency-kpi-block">
                                 <div class="agency-kpi-icon-badge blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                 </div>
-                                <span class="agency-kpi-heading">Qualified Leads</span>
-                                <div class="agency-kpi-big-val" id="val-qualified">0</div>
+                                <span class="agency-kpi-heading">Total Prospects</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-total-prospects">0</div>
                                 <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">Total</span>
-                                    <span class="agency-kpi-trend-tag positive">↑ 8%</span>
+                                    <span class="agency-kpi-subtext">Discovered</span>
+                                    <span class="agency-kpi-trend-tag positive" id="val-leads">0</span>
                                 </div>
-                                <span id="val-leads" style="display:none;">0</span>
                                 <span id="val-high-value" style="display:none;">0</span>
                             </div>
 
-                            <!-- 4. Emails Reached -->
+                            <!-- 2. Qualified Prospects -->
+                            <div class="agency-kpi-block">
+                                <div class="agency-kpi-icon-badge green">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                                </div>
+                                <span class="agency-kpi-heading">Qualified Prospects</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-qualified-prospects">0</div>
+                                <div class="agency-kpi-bottom-row">
+                                    <span class="agency-kpi-subtext">Active Pipeline</span>
+                                    <span class="agency-kpi-trend-tag positive" id="val-qualified">0</span>
+                                </div>
+                            </div>
+
+                            <!-- 3. Outreach Awaiting Approval -->
                             <div class="agency-kpi-block">
                                 <div class="agency-kpi-icon-badge orange">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                 </div>
-                                <span class="agency-kpi-heading">Emails Reached</span>
-                                <div class="agency-kpi-big-val" id="val-outreach-sent">0</div>
+                                <span class="agency-kpi-heading">Outreach Approval</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-outreach-approval">0</div>
                                 <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">This Month</span>
-                                    <span class="agency-kpi-trend-tag positive">↑ 23%</span>
+                                    <span class="agency-kpi-subtext">Dispatched</span>
+                                    <span class="agency-kpi-trend-tag neutral" id="val-outreach-sent">0</span>
                                 </div>
                             </div>
 
-                            <!-- 5. Replies Pending -->
+                            <!-- 4. Interested Leads -->
                             <div class="agency-kpi-block">
                                 <div class="agency-kpi-icon-badge violet">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 </div>
-                                <span class="agency-kpi-heading">Replies Pending</span>
-                                <div class="agency-kpi-big-val" id="ceo-val-replies-pending">0</div>
+                                <span class="agency-kpi-heading">Interested Leads</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-interested-leads">0</div>
                                 <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">Awaiting</span>
-                                    <span class="agency-kpi-trend-tag positive">↑ 2%</span>
+                                    <span class="agency-kpi-subtext">Pending Action</span>
+                                    <span class="agency-kpi-trend-tag positive" id="ceo-val-replies-pending">0</span>
                                 </div>
                                 <span id="val-reply-rate" style="display:none;">0%</span>
                             </div>
 
-                            <!-- 6. Deals Won -->
+                            <!-- 5. Active Demos -->
                             <div class="agency-kpi-block">
                                 <div class="agency-kpi-icon-badge teal">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                                 </div>
-                                <span class="agency-kpi-heading">Deals Won</span>
-                                <div class="agency-kpi-big-val" id="ceo-val-deals-won">0</div>
+                                <span class="agency-kpi-heading">Active Demos</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-active-demos">0</div>
                                 <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext">Total</span>
-                                    <span class="agency-kpi-trend-tag positive">↑ 100%</span>
+                                    <span class="agency-kpi-subtext">Quality Gates</span>
+                                    <span class="agency-kpi-trend-tag positive">8/8 QA</span>
+                                </div>
+                            </div>
+
+                            <!-- 6. Proposals Awaiting Action -->
+                            <div class="agency-kpi-block">
+                                <div class="agency-kpi-icon-badge purple">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                </div>
+                                <span class="agency-kpi-heading">Proposals Action</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-proposals-action">0</div>
+                                <div class="agency-kpi-bottom-row">
+                                    <span class="agency-kpi-subtext">Commercial Terms</span>
+                                    <span class="agency-kpi-trend-tag neutral" id="val-meetings-count">0</span>
+                                </div>
+                            </div>
+
+                            <!-- 7. Payments Awaiting Auth -->
+                            <div class="agency-kpi-block">
+                                <div class="agency-kpi-icon-badge green">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                </div>
+                                <span class="agency-kpi-heading">Payments Auth</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-payments-auth">0</div>
+                                <div class="agency-kpi-bottom-row">
+                                    <span class="agency-kpi-subtext">Won Deals</span>
+                                    <span class="agency-kpi-trend-tag positive" id="ceo-val-deals-won">0</span>
                                 </div>
                                 <span id="val-won-count" style="display:none;">0</span>
-                                <span id="val-meetings-count" style="display:none;">0</span>
+                            </div>
+
+                            <!-- 8. Revenue Collected (Dry Run) -->
+                            <div class="agency-kpi-block">
+                                <div class="agency-kpi-icon-badge green">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                </div>
+                                <span class="agency-kpi-heading">Revenue Collected</span>
+                                <div class="agency-kpi-big-val" id="ceo-val-revenue-dryrun" style="font-size:1.35rem; color:#34d399;">$0.00</div>
+                                <div class="agency-kpi-bottom-row">
+                                    <span class="agency-kpi-subtext" style="color:#fbbf24; font-weight:700;">Dry Run Mode</span>
+                                    <span class="agency-kpi-trend-tag neutral" id="ceo-val-revenue">$0</span>
+                                </div>
+                                <span id="val-collected-revenue" style="display:none;">$0</span>
+                                <span id="val-won" style="display:none;">$0</span>
+                                <span id="val-pipeline" style="display:none;">$0</span>
+                                <span id="pipeline-trend-tag" style="display:none;">-</span>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2 — 9-STAGE VISUAL PIPELINE FUNNEL -->
+                        <div class="ceo-pipeline-funnel-bar" id="ceo-pipeline-funnel-bar">
+                            <div class="ceo-funnel-step active" id="funnel-step-discovery">
+                                <span>1. DISCOVERY</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-discovery">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-qualified">
+                                <span>2. QUALIFIED</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-qualified">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-outreach">
+                                <span>3. OUTREACH</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-outreach">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-interested">
+                                <span>4. INTERESTED</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-interested">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-requirements">
+                                <span>5. REQUIREMENTS</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-requirements">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-demo">
+                                <span>6. DEMO</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-demo">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-qa">
+                                <span>7. QA</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-qa">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-proposal">
+                                <span>8. PROPOSAL</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-proposal">0</span>
+                            </div>
+                            <span class="ceo-funnel-arrow">➔</span>
+                            <div class="ceo-funnel-step" id="funnel-step-payment">
+                                <span>9. PAYMENT</span>
+                                <span class="ceo-funnel-step-count" id="step-cnt-payment">0</span>
                             </div>
                         </div>
 
@@ -943,28 +1052,29 @@
 
                         <!-- SECTION 4 & 5 — OWNER ATTENTION & OPERATIONAL SAFEGUARDS -->
                         <div class="agency-two-col-grid">
-                            <!-- Card Left: Needs Your Attention -->
+                            <!-- Card Left: Action Required (Most Prominent Section) -->
                             <div class="agency-panel-card" id="owner-attention-card">
                                 <div class="agency-panel-card-header">
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                        <span class="agency-panel-title">Needs Your Attention</span>
+                                        <span class="agency-panel-title">Action Required</span>
                                     </div>
                                     <span id="attention-status-badge" class="badge-tag actual">Scanning...</span>
                                 </div>
-                                <div id="owner-attention-items" style="display:flex; flex-direction:column; gap:10px; margin-top:8px; min-height:100px;">
+                                <div id="owner-attention-items" style="display:none;"></div>
+                                <div id="ceo-action-required-list" style="display:flex; flex-direction:column; gap:10px; margin-top:8px; min-height:100px;">
                                     <div style="color:#94a3b8; font-size:0.75rem; text-align:center; padding:24px 0;">Scanning operational queue...</div>
                                 </div>
                                 <!-- Hidden compatibility elements -->
                                 <div id="top-countries-list" style="display:none;" aria-hidden="true"></div>
                             </div>
 
-                            <!-- Card Right: Operational Safeguards & Engine -->
+                            <!-- Card Right: System Status & Safeguards -->
                             <div class="agency-panel-card" id="owner-safeguards-card">
                                 <div class="agency-panel-card-header">
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                        <span class="agency-panel-title">Operational Safeguards</span>
+                                        <span class="agency-panel-title">System Status & Safeguards</span>
                                     </div>
                                     <span style="font-size:0.68rem; font-weight:600; color:#10b981; display:flex; align-items:center; gap:4px;">
                                         <span class="pulse-dot" style="background:#10b981;"></span> ENFORCED
@@ -972,27 +1082,35 @@
                                 </div>
                                 <div class="agency-system-status-grid" style="margin-top:10px;">
                                     <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-                                        <span class="agency-sys-chip-title">Outreach Dispatch</span>
-                                        <span class="agency-sys-chip-state" id="owner-outreach-chip-status" style="color:#10b981;">● Dry-Run Safe</span>
+                                        <div class="agency-sys-chip-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                                        <span class="agency-sys-chip-title">Inbox Polling</span>
+                                        <span class="agency-sys-chip-state" id="ceo-sys-inbox" style="color:#10b981;">● Active</span>
+                                    </div>
+                                    <div class="agency-sys-chip">
+                                        <div class="agency-sys-chip-icon" style="background:rgba(245,158,11,0.1); color:#fbbf24;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+                                        <span class="agency-sys-chip-title">Email Mode</span>
+                                        <span class="agency-sys-chip-state" id="ceo-sys-email" style="color:#fbbf24;">● DRY RUN</span>
                                     </div>
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(56,189,248,0.1); color:#38bdf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-                                        <span class="agency-sys-chip-title">Payment Gateway</span>
-                                        <span class="agency-sys-chip-state" id="owner-payment-chip-status" style="color:#38bdf8;">● Test Sandbox</span>
+                                        <span class="agency-sys-chip-title">Payment Mode</span>
+                                        <span class="agency-sys-chip-state" id="ceo-sys-payment" style="color:#38bdf8;">● DISABLED</span>
                                     </div>
                                     <div class="agency-sys-chip">
                                         <div class="agency-sys-chip-icon" style="background:rgba(139,92,246,0.1); color:#a78bfa;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                                        <span class="agency-sys-chip-title">Autonomous Loop</span>
-                                        <span class="agency-sys-chip-state" id="owner-loop-chip-status" style="color:#a78bfa;">● Ready</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(245,158,11,0.1); color:#fbbf24;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-                                        <span class="agency-sys-chip-title">Commercial Floor</span>
-                                        <span class="agency-sys-chip-state" id="owner-floor-chip-status" style="color:#fbbf24;">$500.00 Min</span>
+                                        <span class="agency-sys-chip-title">Worker Engine</span>
+                                        <span class="agency-sys-chip-state" id="ceo-sys-worker" style="color:#a78bfa;">● Idle</span>
                                     </div>
                                 </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:0.72rem; color:#64748b; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
+                                    <span>Last Activity:</span>
+                                    <span id="ceo-sys-last-activity" style="font-family:var(--font-mono); color:#94a3b8;">Just now</span>
+                                </div>
                                 <!-- Hidden compatibility elements -->
+                                <span id="owner-outreach-chip-status" style="display:none;"></span>
+                                <span id="owner-payment-chip-status" style="display:none;"></span>
+                                <span id="owner-loop-chip-status" style="display:none;"></span>
+                                <span id="owner-floor-chip-status" style="display:none;"></span>
                                 <div id="top-services-list" style="display:none;" aria-hidden="true"></div>
                             </div>
                         </div>
@@ -1061,43 +1179,117 @@
 
                     <!-- Right Column Rail (Sales & Operations) -->
                     <div class="agency-dashboard-rail">
-                        <!-- Card 1: Current Prospect -->
-                        <div class="agency-panel-card agency-prospect-card">
+                        <!-- Card 1: Active Prospect Card (CEO Focus Surface) -->
+                        <div class="agency-panel-card agency-prospect-card" id="ceo-active-prospect-card">
                             <div class="agency-prospect-header">
-                                <span class="agency-panel-title">Current Prospect</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                <span class="agency-panel-title">Active Prospect</span>
+                                <span class="agency-stage-tag" id="ceo-active-prospect-stage">STANDBY</span>
                             </div>
                             <div class="agency-prospect-profile">
                                 <div class="agency-prospect-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
                                 </div>
-                                <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                    <span class="agency-prospect-name" id="ceo-active-prospect-name">Standby</span>
-                                    <span class="agency-prospect-location" id="ceo-active-prospect-domain">—</span>
+                                <div style="display:flex; flex-direction:column; line-height:1.2; min-width:0;">
+                                    <span class="agency-prospect-name" id="ceo-active-prospect-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Standby</span>
+                                    <div style="display:flex; gap:8px; font-size:0.72rem; color:#94a3b8; align-items:center;">
+                                        <span id="ceo-active-prospect-domain">—</span>
+                                        <span>•</span>
+                                        <span id="ceo-active-prospect-location">Global</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="agency-prospect-meta">
-                                <div class="agency-prospect-row">
-                                    <span class="agency-prospect-label">Stage</span>
-                                    <span class="agency-stage-tag" id="ceo-active-prospect-stage">STANDBY</span>
+
+                            <!-- Executive Detail Grid -->
+                            <div class="ceo-detail-grid" style="margin-top:10px;">
+                                <div class="ceo-detail-row">
+                                    <span class="ceo-detail-label">Prospect Score</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-score">—</span>
                                 </div>
-                                <div class="agency-prospect-row">
-                                    <span class="agency-prospect-label">Next Action</span>
-                                    <span style="font-weight:600; color:#cbd5e1;" id="ceo-active-prospect-next">Awaiting prospecting cycle trigger</span>
+                                <div class="ceo-detail-row">
+                                    <span class="ceo-detail-label">Catalog Value</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-price">$1,000</span>
                                 </div>
-                                <div class="agency-prospect-row">
-                                    <span class="agency-prospect-label">Outreach</span>
-                                    <span style="color:#64748b; font-weight:600;" id="ceo-active-outreach-status">● Idle</span>
+                                <div class="ceo-detail-row" style="grid-column: span 2;">
+                                    <span class="ceo-detail-label">Recommended Service</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-service" style="font-size:0.74rem;">Digital Growth Optimization</span>
                                 </div>
-                                <div class="agency-prospect-row">
-                                    <span class="agency-prospect-label">Active Prospect</span>
-                                    <span style="font-weight:700; color:#38bdf8;" id="ceo-active-prospect-slot">1 / 1</span>
+                                <div class="ceo-detail-row" style="grid-column: span 2;">
+                                    <span class="ceo-detail-label">Audit Evidence</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-audit" style="font-size:0.72rem; font-weight:400; color:#cbd5e1; line-height:1.3;">Empirical audit findings.</span>
                                 </div>
                             </div>
-                            <button class="agency-btn-primary-card" id="btn-view-active-prospect" onclick="viewCurrentActiveProspect()">
-                                <span>View Prospect</span>
+
+                            <!-- Status Matrix Chips -->
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; font-size:0.7rem;">
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">Outreach:</span>
+                                    <strong id="ceo-active-outreach-status" style="color:#cbd5e1;">Idle</strong>
+                                </div>
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">Reply:</span>
+                                    <strong id="ceo-active-reply-status" style="color:#cbd5e1;">None</strong>
+                                </div>
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">Demo:</span>
+                                    <strong id="ceo-active-demo-status" style="color:#cbd5e1;">None</strong>
+                                </div>
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">QA:</span>
+                                    <strong id="ceo-active-qa-status" style="color:#cbd5e1;">None</strong>
+                                </div>
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">Proposal:</span>
+                                    <strong id="ceo-active-proposal-status" style="color:#cbd5e1;">None</strong>
+                                </div>
+                                <div style="background:rgba(15,23,42,0.6); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                                    <span style="color:#64748b;">Payment:</span>
+                                    <strong id="ceo-active-payment-status" style="color:#cbd5e1;">Dry Run</strong>
+                                </div>
+                            </div>
+
+                            <!-- Demo + Deterministic QA Panel -->
+                            <div style="margin-top:10px; background:rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:#38bdf8; text-transform:uppercase;">Turnkey Demo & QA</span>
+                                    <span class="badge badge-emerald" id="ceo-demo-qa-badge" style="font-size:0.65rem;">QA: STANDBY</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#94a3b8; margin-bottom:4px;">
+                                    <span>Demo Package Exists:</span>
+                                    <strong id="ceo-demo-exists-label" style="color:#f1f5f9;">NO</strong>
+                                </div>
+                                <!-- 8 QA Gates Checklist -->
+                                <div id="ceo-demo-qa-gates" style="margin-top:6px; font-size:0.68rem; display:flex; flex-direction:column; gap:3px;">
+                                    <div style="color:#64748b; font-style:italic;">8 QA gates evaluate upon receiving interest.</div>
+                                </div>
+                                <button class="btn btn-sm btn-cyan" id="ceo-btn-preview-demo" onclick="previewActiveDemo()" style="display:none; width:100%; margin-top:8px; font-size:0.72rem;">
+                                    🔍 Preview Turnkey Demo
+                                </button>
+                            </div>
+
+                            <!-- Commercial Proposal & Dry-Run Payment -->
+                            <div style="margin-top:8px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem;">
+                                    <span style="font-weight:700; color:#34d399;">Commercial Proposal</span>
+                                    <span class="badge badge-amber" id="ceo-pay-dryrun-badge" style="font-size:0.62rem;">PAYMENTS: DISABLED</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-top:4px;">
+                                    <span style="color:#94a3b8;">Total Value:</span>
+                                    <strong id="ceo-prop-val" style="color:#34d399;">N/A</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-top:2px;">
+                                    <span style="color:#94a3b8;">Advance Deposit:</span>
+                                    <strong id="ceo-prop-adv" style="color:#38bdf8;">N/A</strong>
+                                </div>
+                            </div>
+
+                            <button class="agency-btn-primary-card" id="btn-view-active-prospect" onclick="viewCurrentActiveProspect()" style="margin-top:10px;">
+                                <span>View Full Lead Details</span>
                                 <span>→</span>
                             </button>
+
+                            <!-- Compatibility spans for legacy tests -->
+                            <span id="ceo-active-prospect-next" style="display:none;">Awaiting prospecting cycle trigger</span>
+                            <span id="ceo-active-prospect-slot" style="display:none;">1 / 1</span>
                         </div>
 
                         <!-- Card 2: AI Activity -->
