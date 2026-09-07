@@ -47,17 +47,19 @@ class DemoQAEngine:
 
         # 1. FILE_EXISTENCE Gate
         html_exists = os.path.exists(meta.html_file_path) and os.path.getsize(meta.html_file_path) > 0
+        html_filename = os.path.basename(meta.html_file_path)
         checks.append(QACheckItem(
             name="FILE_EXISTENCE_HTML",
             passed=html_exists,
-            details=f"HTML file exists at {meta.html_file_path} ({os.path.getsize(meta.html_file_path) if html_exists else 0} bytes)"
+            details=f"HTML artifact file '{html_filename}' exists ({os.path.getsize(meta.html_file_path) if html_exists else 0} bytes)"
         ))
 
         json_exists = os.path.exists(meta.json_spec_path) and os.path.getsize(meta.json_spec_path) > 0
+        spec_filename = os.path.basename(meta.json_spec_path)
         checks.append(QACheckItem(
             name="FILE_EXISTENCE_SPEC",
             passed=json_exists,
-            details=f"Spec file exists at {meta.json_spec_path}"
+            details=f"Spec artifact file '{spec_filename}' exists"
         ))
 
         # 2. IDENTITY_INTEGRITY Gate

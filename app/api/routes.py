@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, R
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import os
+import re
 from pydantic import BaseModel
 
 from app.database.connection import get_db
@@ -453,6 +454,107 @@ async def list_leads(
         })
     return results
 
+
+def _sanitize_qa_for_client(qa_dict: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Sanitizes QA gate check details to prevent exposing server filesystem paths or secrets."""
+    if not qa_dict:
+        return None
+    from app.core.logging import SENSITIVE_KEY_VALUE_PATTERNS, STANDALONE_SECRET_PATTERNS
+    sanitized_checks = []
+    for check in qa_dict.get("checks", []):
+        d = check.get("details", "")
+        # Remove windows drive letters or unix directory paths
+        d = re.sub(r'[A-Za-z]:\\[^\s\'"]+', lambda m: os.path.basename(m.group(0)), d)
+        d = re.sub(r'/(?:[a-zA-Z0-9_.-]+/)+[a-zA-Z0-9_.-]+', lambda m: os.path.basename(m.group(0)), d)
+        for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
+            d = pattern.sub(r'\1: [REDACTED]', d)
+        for pattern in STANDALONE_SECRET_PATTERNS:
+            d = pattern.sub('[REDACTED_SECRET]', d)
+        sanitized_checks.append({
+            "name": check.get("name"),
+            "passed": bool(check.get("passed", False)),
+            "details": d
+        })
+    err = qa_dict.get("error_summary")
+    if err:
+        err = re.sub(r'[A-Za-z]:\\[^\s\'"]+', lambda m: os.path.basename(m.group(0)), err)
+        err = re.sub(r'/(?:[a-zA-Z0-9_.-]+/)+[a-zA-Z0-9_.-]+', lambda m: os.path.basename(m.group(0)), err)
+        for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
+            err = pattern.sub(r'\1: [REDACTED]', err)
+        for pattern in STANDALONE_SECRET_PATTERNS:
+            err = pattern.sub('[REDACTED_SECRET]', err)
+
+    return {
+        "demo_id": qa_dict.get("demo_id"),
+        "overall_passed": bool(qa_dict.get("overall_passed", False)),
+        "total_checks": qa_dict.get("total_checks", len(sanitized_checks)),
+        "passed_checks": qa_dict.get("passed_checks", sum(1 for c in sanitized_checks if c["passed"])),
+        "failed_checks": qa_dict.get("failed_checks", sum(1 for c in sanitized_checks if not c["passed"])),
+        "checks": sanitized_checks,
+        "qa_signature": qa_dict.get("qa_signature"),
+        "error_summary": err
+    }
+
+
+async def _resolve_lead_demo_and_qa(
+    db: AsyncSession,
+    lead_id: int,
+    b: Business,
+    demo_artifact: Artifact
+) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+    """Resolves demo metadata and deterministic QA result, evaluating dynamically if not already cached."""
+    meta = dict(demo_artifact.metadata_json or {})
+    qa_res = meta.get("qa_result")
+    if not qa_res and demo_artifact.path and os.path.exists(demo_artifact.path):
+        from app.delivery.demo_qa import demo_qa_engine
+        from app.delivery.demo_factory import DemoGenerationResult, DemoArtifactMetadata
+        from app.delivery.requirements_engine import requirements_engine
+        try:
+            packet = await requirements_engine.build_requirements_packet(db, lead_id)
+            with open(demo_artifact.path, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            gen_res = DemoGenerationResult(
+                success=True,
+                demo_id=meta.get("demo_id", f"DEMO-{lead_id}"),
+                metadata=DemoArtifactMetadata(
+                    demo_id=meta.get("demo_id", f"DEMO-{lead_id}"),
+                    business_id=lead_id,
+                    business_name=b.name or b.domain,
+                    domain=b.domain,
+                    service_title=meta.get("service_title", packet.service_title),
+                    price_usd=float(meta.get("price_usd", packet.catalog_price_usd)),
+                    turnaround_days=int(meta.get("turnaround_days", packet.turnaround_days)),
+                    html_file_path=demo_artifact.path,
+                    json_spec_path=meta.get("json_spec_path", ""),
+                    build_checksum=meta.get("checksum_sha256", ""),
+                    features=meta.get("features", packet.deliverables)
+                ),
+                html_content=html_content,
+                artifact_id=demo_artifact.id
+            )
+            qa_obj = demo_qa_engine.validate_demo(gen_res, packet)
+            qa_res = qa_obj.model_dump()
+            meta["qa_result"] = qa_res
+            demo_artifact.metadata_json = meta
+            await db.commit()
+        except Exception as e:
+            logger.warning(f"Could not dynamically evaluate demo QA for lead {lead_id}: {e}")
+
+    demo_info = {
+        "artifact_id": demo_artifact.id,
+        "demo_id": meta.get("demo_id", f"DEMO-{lead_id}"),
+        "service_title": meta.get("service_title", "Turnaround Optimization"),
+        "price_usd": meta.get("price_usd", 1000.0),
+        "turnaround_days": meta.get("turnaround_days", 3),
+        "features": meta.get("features", []),
+        "status": demo_artifact.status,
+        "preview_url": f"/api/leads/{lead_id}/demo/preview",
+        "created_at": demo_artifact.created_at.isoformat() if demo_artifact.created_at else None,
+    }
+    sanitized_qa = _sanitize_qa_for_client(qa_res)
+    return demo_info, sanitized_qa
+
+
 # Lead Detail
 @router.get("/api/leads/{lead_id}")
 async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
@@ -653,6 +755,37 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
             }
         except Exception:
             res["ml_intelligence"] = None
+
+    # Phase 19: Turnkey Demo & Deterministic QA Gates
+    demo_q = select(Artifact).where(
+        Artifact.business_id == lead_id,
+        Artifact.artifact_type == "DEMO_PACKAGE"
+    ).order_by(desc(Artifact.created_at))
+    demo_art = (await db.execute(demo_q)).scalars().first()
+    if demo_art:
+        demo_info, sanitized_qa = await _resolve_lead_demo_and_qa(db, lead_id, b, demo_art)
+        demo_info["qa"] = sanitized_qa
+        res["demo"] = demo_info
+    else:
+        res["demo"] = None
+
+    # Commercial Proposal & Safe Dry-Run Status
+    prop_q = select(Proposal).where(Proposal.business_id == lead_id).order_by(desc(Proposal.created_at))
+    proposal = (await db.execute(prop_q)).scalars().first()
+    if proposal:
+        res["proposal"] = {
+            "id": proposal.id,
+            "title": proposal.title,
+            "total_value": float(proposal.total_value or 0.0),
+            "advance_required": float(proposal.advance_required or 0.0),
+            "status": proposal.status,
+            "service_type": proposal.service_type,
+            "is_mock": bool(proposal.is_mock),
+            "is_dry_run": True,
+            "created_at": proposal.created_at.isoformat() if proposal.created_at else None
+        }
+    else:
+        res["proposal"] = None
 
     return res
 
@@ -2469,7 +2602,16 @@ async def preview_artifact(
         raise HTTPException(status_code=404, detail="Artifact not found")
 
     from app.delivery.website_builder import ARTIFACTS_ROOT
-    abs_file_path = validate_safe_path_within_root(artifact.path, ARTIFACTS_ROOT)
+    raw_path = artifact.path or ""
+    if os.path.isabs(raw_path):
+        try:
+            rel_path = os.path.relpath(raw_path, ARTIFACTS_ROOT)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Cross-drive artifact path disallowed")
+    else:
+        rel_path = raw_path
+
+    abs_file_path = validate_safe_path_within_root(rel_path, ARTIFACTS_ROOT)
 
     if not os.path.exists(abs_file_path):
         raise HTTPException(status_code=404, detail="Artifact file not found on disk")
@@ -2491,6 +2633,158 @@ async def preview_artifact(
         "X-Content-Type-Options": "nosniff"
     }
     return HTMLResponse(content=content, status_code=200, headers=headers)
+
+
+# =====================================================================
+# Phase 19: Turnkey Demo & Deterministic QA Cockpit Endpoints
+# =====================================================================
+
+@router.get("/api/leads/{lead_id}/demo")
+async def get_lead_demo(lead_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Returns the turnkey demo package, 8 deterministic QA gates, and proposal info for a lead.
+    Strictly prevents leaking internal filesystem paths and sensitive credentials.
+    """
+    from app.core.security import validate_safe_id
+    clean_id = validate_safe_id(lead_id, "lead_id")
+    b = await db.get(Business, clean_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    demo_q = select(Artifact).where(
+        Artifact.business_id == clean_id,
+        Artifact.artifact_type == "DEMO_PACKAGE"
+    ).order_by(desc(Artifact.created_at))
+    demo_artifact = (await db.execute(demo_q)).scalars().first()
+
+    if not demo_artifact:
+        return {
+            "has_demo": False,
+            "lead_id": clean_id,
+            "business_name": b.name,
+            "domain": b.domain,
+            "demo": None,
+            "qa": None,
+            "proposal": None,
+            "is_dry_run": True
+        }
+
+    demo_info, sanitized_qa = await _resolve_lead_demo_and_qa(db, clean_id, b, demo_artifact)
+
+    prop_q = select(Proposal).where(Proposal.business_id == clean_id).order_by(desc(Proposal.created_at))
+    proposal = (await db.execute(prop_q)).scalars().first()
+    prop_info = None
+    if proposal:
+        prop_info = {
+            "id": proposal.id,
+            "title": proposal.title,
+            "total_value": float(proposal.total_value or 0.0),
+            "advance_required": float(proposal.advance_required or 0.0),
+            "status": proposal.status,
+            "service_type": proposal.service_type,
+            "is_mock": bool(proposal.is_mock),
+            "is_dry_run": True,
+            "created_at": proposal.created_at.isoformat() if proposal.created_at else None
+        }
+
+    return {
+        "has_demo": True,
+        "lead_id": clean_id,
+        "business_name": b.name,
+        "domain": b.domain,
+        "demo": demo_info,
+        "qa": sanitized_qa,
+        "proposal": prop_info,
+        "is_dry_run": True
+    }
+
+
+@router.get("/api/leads/{lead_id}/demo/preview")
+async def preview_lead_demo(lead_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Safely serves the rendered HTML turnkey demo for embedded preview in dashboard iframes.
+    Strictly verifies paths within ARTIFACTS_ROOT, scrubs credentials, and enforces frame headers.
+    """
+    from app.core.security import validate_safe_id, validate_safe_path_within_root
+    from app.delivery.website_builder import ARTIFACTS_ROOT
+    from app.core.logging import SENSITIVE_KEY_VALUE_PATTERNS, STANDALONE_SECRET_PATTERNS
+
+    clean_id = validate_safe_id(lead_id, "lead_id")
+    b = await db.get(Business, clean_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    demo_q = select(Artifact).where(
+        Artifact.business_id == clean_id,
+        Artifact.artifact_type == "DEMO_PACKAGE"
+    ).order_by(desc(Artifact.created_at))
+    demo_artifact = (await db.execute(demo_q)).scalars().first()
+
+    if not demo_artifact:
+        raise HTTPException(status_code=404, detail="No turnkey demo found for this lead")
+
+    raw_path = demo_artifact.path or ""
+    if os.path.isabs(raw_path):
+        try:
+            rel_path = os.path.relpath(raw_path, ARTIFACTS_ROOT)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Cross-drive artifact path disallowed")
+    else:
+        rel_path = raw_path
+
+    abs_file_path = validate_safe_path_within_root(rel_path, ARTIFACTS_ROOT)
+    if not os.path.exists(abs_file_path):
+        raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
+
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Secret Scrubbing
+    for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
+        content = pattern.sub(r'\1: [REDACTED]', content)
+    for pattern in STANDALONE_SECRET_PATTERNS:
+        content = pattern.sub('[REDACTED_SECRET]', content)
+
+    headers = {
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
+        "Cache-Control": "no-cache",
+        "X-Content-Type-Options": "nosniff"
+    }
+    return HTMLResponse(content=content, status_code=200, headers=headers)
+
+
+@router.get("/api/leads/{lead_id}/demo/qa")
+async def get_lead_demo_qa(lead_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Returns the deterministic QA verification result for a lead's turnkey demo.
+    Validates all 8 deterministic quality gates with individual pass/fail status and signature.
+    """
+    from app.core.security import validate_safe_id
+    clean_id = validate_safe_id(lead_id, "lead_id")
+    b = await db.get(Business, clean_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    demo_q = select(Artifact).where(
+        Artifact.business_id == clean_id,
+        Artifact.artifact_type == "DEMO_PACKAGE"
+    ).order_by(desc(Artifact.created_at))
+    demo_artifact = (await db.execute(demo_q)).scalars().first()
+
+    if not demo_artifact:
+        raise HTTPException(status_code=404, detail="No turnkey demo found for this lead")
+
+    demo_info, sanitized_qa = await _resolve_lead_demo_and_qa(db, clean_id, b, demo_artifact)
+    if not sanitized_qa:
+        raise HTTPException(status_code=404, detail="QA verification result not available for this demo")
+
+    return {
+        "lead_id": clean_id,
+        "business_name": b.name,
+        "domain": b.domain,
+        **sanitized_qa
+    }
 
 
 # =====================================================================

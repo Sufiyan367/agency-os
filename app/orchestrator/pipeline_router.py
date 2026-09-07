@@ -11,7 +11,8 @@ from sqlalchemy import select
 
 from app.database.models import (
     Business, AuditRun, AuditFinding, Offer, LeadScore, OutreachMessage,
-    OutreachStatus, PipelineStage, PipelineEvent, Proposal, ActiveOutreachLock
+    OutreachStatus, PipelineStage, PipelineEvent, Proposal, ActiveOutreachLock,
+    Artifact
 )
 from app.offers.generator import OfferEngine
 from app.scoring.engine import LeadScoringEngine
@@ -236,6 +237,13 @@ class AcquisitionPipelineRouter:
         # STAGE 13: DEMO_QA (Automated Quality Assurance)
         # -------------------------------------------------------------
         qa_result = demo_qa_engine.validate_demo(demo_result, packet)
+        if demo_result.artifact_id:
+            art = await session.get(Artifact, demo_result.artifact_id)
+            if art:
+                meta = dict(art.metadata_json or {})
+                meta["qa_result"] = qa_result.model_dump()
+                art.metadata_json = meta
+                await session.commit()
         assert qa_result.overall_passed is True, f"Demo QA failed: {qa_result.error_summary}"
         stages_completed.append("DEMO_QA")
 

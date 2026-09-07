@@ -26,7 +26,8 @@ from app.database.connection import AsyncSessionLocal
 from app.database.models import (
     Business, AuditRun, Offer, ClientIntelligenceRecord,
     OutreachMessage, OutreachStatus, PipelineStage, PipelineEvent,
-    ActiveOutreachLock, AutonomousDecisionLog, Reply, Proposal, FollowupStatus
+    ActiveOutreachLock, AutonomousDecisionLog, Reply, Proposal, FollowupStatus,
+    Artifact
 )
 from app.acquisition.approval_policy import auto_approval_policy, PolicyEvaluationResult
 from app.acquisition.controller import active_prospect_controller
@@ -404,6 +405,15 @@ class AutonomousAcquisitionController:
         # -------------------------------------------------------------
         self.current_action = f"Running automated QA on demo for {biz.domain}"
         qa_result = demo_qa_engine.validate_demo(demo_result, packet)
+
+        # Attach QA result directly to the persistent artifact record metadata
+        if demo_result.artifact_id:
+            art = await session.get(Artifact, demo_result.artifact_id)
+            if art:
+                meta = dict(art.metadata_json or {})
+                meta["qa_result"] = qa_result.model_dump()
+                art.metadata_json = meta
+                await session.commit()
 
         # Gate: A failed QA strictly prevents proposal creation
         if not qa_result.overall_passed:

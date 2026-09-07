@@ -1503,6 +1503,109 @@ async function viewLeadDetail(leadId) {
                 </div>
             </div>
 
+            <!-- Turnkey Demo & Deterministic QA Gates (Phase 19) -->
+            <div style="margin-bottom:18px; background:rgba(15,23,42,0.8); border:1px solid ${data.demo ? (data.demo.qa?.overall_passed ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)') : 'var(--border-subtle)'}; border-radius:8px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:1.15rem;">🚀</span>
+                        <h3 style="font-size:0.95rem; margin:0; color:var(--text-white);">Turnkey Demo & Deterministic QA Gates</h3>
+                        <span class="badge" style="background:rgba(56,189,248,0.15); color:var(--hud-cyan-bright); border:1px solid rgba(56,189,248,0.3); font-size:0.68rem;">[DRY-RUN SAFE]</span>
+                    </div>
+                    ${data.demo ? `
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="badge ${data.demo.qa?.overall_passed ? 'badge-emerald' : 'badge-crimson'}" style="font-weight:700; font-size:0.75rem;">
+                                ${data.demo.qa?.overall_passed ? '✓ ALL 8 QA GATES PASSED' : '✗ QA GATES FAILED'}
+                            </span>
+                            <button class="btn btn-sm btn-cyan" onclick="openDemoPreview(${b.id})" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; font-size:0.75rem;">
+                                <span>🔍</span> Preview Turnkey Demo
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${data.demo ? `
+                    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:12px;">
+                        <div style="background:rgba(2,6,23,0.5); padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:4px;">Demo Package Metadata</div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:3px;">
+                                <span style="color:var(--text-muted);">Demo ID:</span>
+                                <strong style="color:var(--hud-cyan-bright); font-family:var(--font-mono);">${escapeHtml(data.demo.demo_id || '')}</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:3px;">
+                                <span style="color:var(--text-muted);">Service Scope:</span>
+                                <strong style="color:#f1f5f9;">${escapeHtml(data.demo.service_title || 'Speed & Conversion Turnaround')}</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:3px;">
+                                <span style="color:var(--text-muted);">Catalog Value:</span>
+                                <strong style="color:var(--hud-emerald);">$${Number(data.demo.price_usd || 0).toLocaleString()} (Min $500 Guaranteed)</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+                                <span style="color:var(--text-muted);">QA Signature:</span>
+                                <span style="color:#94a3b8; font-family:var(--font-mono); font-size:0.72rem;">${escapeHtml(data.demo.qa?.qa_signature || 'N/A')}</span>
+                            </div>
+                        </div>
+
+                        <div style="background:rgba(2,6,23,0.5); padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; justify-content:center; text-align:center;">
+                            <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Deterministic QA Status</span>
+                            <div style="font-size:1.35rem; font-weight:800; font-family:var(--font-mono); color:${data.demo.qa?.overall_passed ? 'var(--hud-emerald)' : 'var(--hud-crimson)'}; margin:4px 0;">
+                                ${data.demo.qa?.passed_checks || 0} / ${data.demo.qa?.total_checks || 8} PASSED
+                            </div>
+                            <span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">ZERO PLACEHOLDERS • ZERO FABRICATIONS</span>
+                        </div>
+                    </div>
+
+                    <!-- 8 Deterministic Quality Gates Table -->
+                    <div style="background:rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:6px; overflow:hidden;">
+                        <div style="padding:6px 10px; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between;">
+                            <span>8 Deterministic Quality Assurance Gates</span>
+                            <span>Standard: Zero Hallucination</span>
+                        </div>
+                        <div style="max-height:220px; overflow-y:auto;">
+                            ${(data.demo.qa?.checks || []).map(chk => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.03); font-size:0.78rem;">
+                                    <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                                        <span class="badge ${chk.passed ? 'badge-emerald' : 'badge-crimson'}" style="font-size:0.65rem; padding:1px 6px; font-weight:700;">
+                                            ${chk.passed ? 'PASS' : 'FAIL'}
+                                        </span>
+                                        <span style="font-family:var(--font-mono); font-size:0.75rem; color:#f1f5f9; font-weight:600;">${escapeHtml(chk.name)}</span>
+                                        <span style="color:var(--text-muted); font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">- ${escapeHtml(chk.details)}</span>
+                                    </div>
+                                    <span style="font-size:0.85rem; margin-left:8px;">${chk.passed ? '✅' : '❌'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : `
+                    <div style="padding:16px; background:rgba(2,6,23,0.4); border-radius:6px; text-align:center; color:var(--text-muted); font-size:0.82rem;">
+                        <span style="font-size:1.3rem; display:block; margin-bottom:6px;">📦</span>
+                        Turnkey demo package not yet generated for this prospect.
+                        <div style="font-size:0.74rem; color:#64748b; margin-top:4px;">(Turnkey demos and 8 deterministic QA gates are automatically synthesized upon receiving an INTERESTED prospect reply)</div>
+                    </div>
+                `}
+
+                <!-- Commercial Proposal & Dry-Run Payment Handoff (if available) -->
+                ${data.proposal ? `
+                    <div style="margin-top:12px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.9rem;">💼</span>
+                                <strong style="color:var(--text-white); font-size:0.82rem;">Proposal #${data.proposal.id}: ${escapeHtml(data.proposal.title || 'Turnaround Proposal')}</strong>
+                                <span class="badge badge-cyan" style="font-size:0.65rem;">STAGE: PROPOSAL</span>
+                                <span class="badge badge-amber" style="font-size:0.65rem;">[DRY-RUN SAFE]</span>
+                            </div>
+                            <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
+                                Value: <strong style="color:var(--hud-emerald);">$${Number(data.proposal.total_value || 0).toLocaleString()}</strong> |
+                                Advance Deposit: <strong style="color:#38bdf8;">$${Number(data.proposal.advance_required || 0).toLocaleString()}</strong> |
+                                Status: <span style="color:#f1f5f9;">${escapeHtml(data.proposal.status || 'PENDING_AUTHORIZATION')}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-emerald" style="font-size:0.72rem; font-family:var(--font-mono);">PAYMENT HANDOFF READY</span>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+
             <!-- Autonomous Decision Trace -->
             <div style="margin-bottom:18px;">
                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
@@ -4336,6 +4439,62 @@ function closeWebsitePreview() {
     if (iframe) iframe.src = 'about:blank';
 }
 
+async function openDemoPreview(leadId) {
+    const modal = document.getElementById('modal-website-preview');
+    const iframe = document.getElementById('website-preview-iframe');
+    const title = document.getElementById('preview-title');
+    const subtitle = document.getElementById('preview-subtitle');
+    const extLink = document.getElementById('btn-open-preview-external');
+    const metaInfo = document.getElementById('preview-meta-info');
+    const buildLogs = document.getElementById('preview-build-logs');
+
+    if (!modal || !iframe) return;
+
+    modal.style.display = 'flex';
+    const previewUrl = `/api/leads/${leadId}/demo/preview`;
+    iframe.src = previewUrl;
+
+    if (extLink) {
+        extLink.href = previewUrl;
+    }
+
+    if (title) title.innerText = 'Turnkey Demo Package [DRY-RUN SAFE]';
+    if (subtitle) subtitle.innerText = `Lead #${leadId} • Grounded in empirical audit evidence & validated across 8 QA gates`;
+
+    try {
+        const resp = await fetch(`/api/leads/${leadId}/demo`);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.has_demo && data.demo) {
+                if (title) title.innerText = `Turnkey Demo: ${data.demo.demo_id} [DRY-RUN SAFE]`;
+                if (metaInfo) {
+                    const qaStatus = data.qa?.overall_passed ? 'QA PASSED (8/8)' : (data.qa ? `QA FAILED (${data.qa.passed_checks}/${data.qa.total_checks})` : 'QA PENDING');
+                    metaInfo.innerText = `Demo ID: ${data.demo.demo_id} • Scope: ${data.demo.service_title} • QA: ${qaStatus} • Target Price: $${(data.demo.price_usd || 0).toLocaleString()} • [DRY-RUN SAFE]`;
+                }
+                if (buildLogs && data.qa?.checks) {
+                    buildLogs.style.display = 'block';
+                    buildLogs.innerHTML = `
+                        <div style="font-weight:700; color:#38bdf8; margin-bottom:6px; font-size:0.75rem;">
+                            DETERMINISTIC QA SIGNATURE: ${escapeHtml(data.qa.qa_signature || 'N/A')}
+                        </div>
+                        ${data.qa.checks.map(c => `
+                            <div style="margin-bottom:3px; color:${c.passed ? '#34d399' : '#f87171'};">
+                                ${c.passed ? '✓' : '✗'} [${escapeHtml(c.name)}] ${escapeHtml(c.details)}
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            }
+        }
+    } catch (e) {
+        console.debug('Error loading turnkey demo metadata:', e);
+    }
+}
+
+function closeDemoPreview() {
+    closeWebsitePreview();
+}
+
 function setPreviewViewport(width) {
     const iframe = document.getElementById('website-preview-iframe');
     if (iframe) {
@@ -4799,6 +4958,9 @@ async function loadActiveSlot() {
                             </button>
                             <button class="btn btn-secondary" onclick="handleSimulateReply(${data.business_id})" style="font-size:0.8rem; justify-content:flex-start;">
                                 <span>💬</span> <span>Simulate Prospect Reply</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="openDemoPreview(${data.business_id})" style="font-size:0.8rem; justify-content:flex-start;">
+                                <span>🔍</span> <span>Preview Turnkey Demo & QA</span>
                             </button>
                         </div>
                     </div>
