@@ -1,4 +1,4 @@
-﻿import os
+import os
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.api.app import app
@@ -65,6 +65,8 @@ async def test_ceo_dashboard_browser_access_and_auth_redirection():
             assert 'id="ceo-backend-health-pill"' in html
             assert 'id="ceo-backend-health-dot"' in html
             assert 'id="ceo-backend-health-text"' in html
+            assert 'CONNECTED' in html
+            assert 'retryCeoConnection()' in html
             assert 'id="ceo-sys-backend"' in html
 
             # Existing safeguard and telemetry elements remain intact
@@ -75,6 +77,45 @@ async def test_ceo_dashboard_browser_access_and_auth_redirection():
             assert 'id="ceo-sys-last-activity"' in html
     finally:
         settings.AUTH_ENABLED = orig_auth
+
+
+@pytest.mark.asyncio
+async def test_ceo_overview_api_auth_and_response():
+    """Verifies that /api/ceo/overview requires authentication and returns valid payload when authenticated."""
+    orig_auth = settings.AUTH_ENABLED
+    try:
+        settings.AUTH_ENABLED = True
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            # 1. Unauthenticated request to /api/ceo/overview is unauthorized/redirected
+            res_unauth = await client.get("/api/ceo/overview", follow_redirects=False)
+            assert res_unauth.status_code in (401, 302, 307)
+
+            # 2. Authenticated request succeeds with 200 and executive payload
+            token = create_session_token("admin", role="admin")
+            cookies = {"agency_session": token}
+            res_auth = await client.get("/api/ceo/overview", cookies=cookies)
+            assert res_auth.status_code == 200
+            data = res_auth.json()
+            assert "executive_metrics" in data
+            assert "system_status" in data
+            assert data["system_status"]["email_mode"] == "DRY RUN"
+            assert data["system_status"]["payment_mode"] == "DISABLED"
+    finally:
+        settings.AUTH_ENABLED = orig_auth
+
+
+def test_frontend_scripts_contain_health_and_reconnect_handlers():
+    """Verifies that app.js contains retryCeoConnection and setBackendHealthUI definitions."""
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    app_js_path = os.path.join(base_dir, "app", "frontend", "static", "app.js")
+    assert os.path.isfile(app_js_path)
+    with open(app_js_path, "r", encoding="utf-8", errors="ignore") as f:
+        js_content = f.read()
+    assert "async function retryCeoConnection" in js_content
+    assert "function setBackendHealthUI" in js_content
+    assert "function checkBackendHealth" in js_content
+
 
 
 def test_ceo_launcher_files_exist_and_configured():

@@ -719,7 +719,7 @@
                     <!-- Backend Reachability Live Health Pill -->
                     <div id="ceo-backend-health-pill" title="Backend Server Reachability" style="display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:12px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#10b981; margin-right:4px;">
                         <span id="ceo-backend-health-dot" style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981;"></span>
-                        <span id="ceo-backend-health-text">BACKEND CONNECTED</span>
+                        <span id="ceo-backend-health-text">CONNECTED</span>
                     </div>
 
                     <button class="agency-action-icon-btn" title="Notifications">
@@ -762,7 +762,7 @@
                                     <div id="ceo-error-msg" style="color:#cbd5e1; font-size:0.75rem;">Unable to connect to live operations engine. No data lost.</div>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-secondary" onclick="loadCeoControlCenter()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
+                            <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
                         </div>
 
                         <!-- Hero Section -->

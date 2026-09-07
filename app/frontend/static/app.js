@@ -424,6 +424,10 @@ function formatTimeAgo(isoString) {
 async function loadCeoControlCenter() {
     try {
         const res = await fetch('/api/ceo/overview');
+        if (res.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
         if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
         }
@@ -479,7 +483,8 @@ function showCeoError(err) {
         banner.style.display = 'flex';
     }
     if (msg) {
-        msg.textContent = 'Unable to refresh CEO Overview. Operations continue safely in the background.';
+        const errorDetail = (err && err.message) ? ` (${err.message})` : '';
+        msg.textContent = `Unable to refresh CEO Overview${errorDetail}. Operations continue safely in the background.`;
     }
 }
 
@@ -487,6 +492,24 @@ function hideCeoError() {
     const banner = document.getElementById('ceo-error-banner');
     if (banner) {
         banner.style.display = 'none';
+    }
+}
+
+async function retryCeoConnection() {
+    const btn = document.querySelector('#ceo-error-banner button');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Reconnecting...';
+    }
+    try {
+        await checkBackendHealth();
+        await loadCeoControlCenter();
+        await loadDashboardMetrics();
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Retry Reconnect';
+        }
     }
 }
 
@@ -523,11 +546,11 @@ function renderCeoActionsRequired(actions) {
 
         let actionBtns = '';
         if (item.type === 'OUTREACH_APPROVAL') {
-            const msgId = item.id || item.message_id;
+            const msgId = item.entity_id || item.item_id || item.id || item.message_id;
             actionBtns = `
                 <div style="display:flex; gap:6px; margin-top:6px;">
-                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', ${msgId})" style="padding:3px 8px; font-size:0.72rem;">Approve</button>
-                    <button class="btn btn-xs btn-secondary" onclick="rejectCeoAction('OUTREACH_APPROVAL', ${msgId})" style="padding:3px 8px; font-size:0.72rem;">Reject</button>
+                    <button class="btn btn-xs btn-primary" onclick="approveCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="padding:3px 8px; font-size:0.72rem;">Approve</button>
+                    <button class="btn btn-xs btn-secondary" onclick="rejectCeoAction('OUTREACH_APPROVAL', '${msgId}')" style="padding:3px 8px; font-size:0.72rem;">Reject</button>
                     <button class="btn btn-xs btn-ghost" onclick="navToView('queue')" style="padding:3px 8px; font-size:0.72rem;">Review</button>
                 </div>
             `;
@@ -739,7 +762,7 @@ function setBackendHealthUI(isOnline) {
             dot.style.background = '#10b981';
             dot.style.boxShadow = '0 0 6px #10b981';
         }
-        if (text) text.textContent = 'BACKEND CONNECTED';
+        if (text) text.textContent = 'CONNECTED';
         if (sysBackend) {
             sysBackend.textContent = '● Online';
             sysBackend.style.color = '#10b981';
