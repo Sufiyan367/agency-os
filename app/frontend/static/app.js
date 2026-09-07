@@ -651,7 +651,7 @@ function renderCeoActionsRequired(actions) {
                     <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono); white-space:nowrap; flex-shrink:0;">${timeAgo}</span>
                 </div>
                 <div style="font-size:0.85rem; color:#f4f4f5; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; width:100%; letter-spacing:0.01em;" title="${company}">${company}</div>
-                <div style="font-size:0.74rem; color:#a1a1aa; line-height:1.45; overflow-wrap:anywhere; word-break:normal; min-width:0; width:100%;">${desc}</div>
+                <div style="font-size:0.74rem; color:#a1a1aa; line-height:1.45; overflow-wrap:break-word; word-break:normal; min-width:0; width:100%;">${desc}</div>
                 <div style="margin-top:4px; width:100%; display:flex; align-items:center; gap:8px;">
                     ${actionBtns}
                 </div>
