@@ -18,8 +18,8 @@ from app.lead_generation.providers.prospect_provider import RealProspectProvider
 class SingleProspectAgent:
     """Processes prospects strictly one-at-a-time."""
 
-    def __init__(self, provider_type: str = "mock"):
-        self.provider = MockProspectProvider() if provider_type == "mock" else RealProspectProvider()
+    def __init__(self, provider_type: str = "real"):
+        self.provider = RealProspectProvider() if provider_type == "real" else MockProspectProvider()
         self.service = LeadDiscoveryService(provider=self.provider)
 
     async def get_next_uncontacted_prospect(

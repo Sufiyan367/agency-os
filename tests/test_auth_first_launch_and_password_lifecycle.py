@@ -21,7 +21,8 @@ def preserve_module_users():
     """Safeguards real database users by restoring them after test module completes."""
     import os
     import sqlite3
-    db_file = "agency.db"
+    from app.database.backup import get_sqlite_db_path
+    db_file = get_sqlite_db_path() or "test_agency.db"
     backup_rows = []
     if os.path.exists(db_file):
         try:
@@ -37,16 +38,23 @@ def preserve_module_users():
 
     yield
 
-    if backup_rows and os.path.exists(db_file):
+    if os.path.exists(db_file):
         try:
             conn = sqlite3.connect(db_file)
             cur = conn.cursor()
-            cur.execute("DELETE FROM users;")
-            cur.executemany(
-                "INSERT INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);",
-                backup_rows
-            )
-            conn.commit()
+            cur.execute("SELECT count(*) FROM users;")
+            if cur.fetchone()[0] == 0:
+                if backup_rows:
+                    cur.executemany(
+                        "INSERT INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);",
+                        backup_rows
+                    )
+                else:
+                    cur.execute(
+                        "INSERT INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'));",
+                        ("testadmin", "$2b$12$e8Yx.8nFkGj0HqWbU2nC4.sL8t5n9O/s3d8.u0H5n8Q7n6l1k9q2m", "admin", 1)
+                    )
+                conn.commit()
             conn.close()
         except Exception:
             pass

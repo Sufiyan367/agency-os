@@ -52,7 +52,7 @@ class RevenueAgentOrchestrator:
         }
         self.email_provider = DryRunEmailProvider()
         self.voice_provider = DryRunVoiceProvider()
-        self.prospect_worker = SingleProspectAgent(provider_type="mock")
+        self.prospect_worker = SingleProspectAgent(provider_type="real")
         self.started_at: Optional[datetime] = None
         self.current_domain: Optional[str] = None
         self.current_business_name: Optional[str] = None

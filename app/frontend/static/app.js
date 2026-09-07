@@ -744,26 +744,35 @@ function renderCeoActiveProspect(prospect) {
 
     if (!prospect) {
         currentActiveProspectLeadId = null;
-        setEl('ceo-active-prospect-name', 'Standby');
+        setEl('ceo-active-prospect-name', 'No active prospects');
         setEl('ceo-active-prospect-domain', '—');
-        setEl('ceo-active-prospect-location', 'Global');
+        setEl('ceo-active-prospect-location', '—');
         setEl('ceo-active-prospect-score', '—');
+        setEl('ceo-active-prospect-price', '—');
         setEl('ceo-active-prospect-pwin', '—');
         setEl('ceo-active-prospect-ev', '—');
-        setEl('ceo-active-prospect-email', 'Not discovered');
+        setEl('ceo-active-prospect-email', '—');
+        setEl('ceo-active-prospect-service', 'Awaiting real prospect discovery');
+        setEl('ceo-active-prospect-audit', 'Real businesses will appear here after discovery and verification.');
         setEl('ceo-active-prospect-stage', 'STANDBY');
         setEl('ceo-active-outreach-status', 'Idle');
         setEl('ceo-active-reply-status', 'None');
         setEl('ceo-active-demo-status', 'None');
         setEl('ceo-active-qa-status', 'None');
         setEl('ceo-active-proposal-status', 'None');
-        setEl('ceo-active-payment-status', 'Dry Run');
+        setEl('ceo-active-payment-status', 'Disabled');
         setEl('ceo-demo-exists-label', 'NO');
         setEl('ceo-demo-qa-badge', 'QA: STANDBY');
         const previewBtn = document.getElementById('ceo-btn-preview-demo');
         if (previewBtn) previewBtn.style.display = 'none';
         const btnLabel = document.getElementById('btn-active-prospect-label');
-        if (btnLabel) btnLabel.textContent = 'View Full Lead Details';
+        if (btnLabel) btnLabel.textContent = 'Awaiting Discovery';
+        setEl('ceo-prop-val', '—');
+        setEl('ceo-prop-adv', '—');
+        const payBadge = document.getElementById('ceo-pay-dryrun-badge');
+        if (payBadge) payBadge.textContent = 'PAYMENTS: DISABLED';
+        const qaGatesEl = document.getElementById('ceo-demo-qa-gates');
+        if (qaGatesEl) qaGatesEl.innerHTML = '<div style="color:#64748b; font-style:italic;">No active prospect. 8 QA gates evaluate upon receiving interest.</div>';
         return;
     }
 
@@ -4344,6 +4353,7 @@ function updateCeoActivityList(events) {
     if (!container) return;
 
     if (!events || events.length === 0) {
+        container.innerHTML = '<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:24px 0; font-style:italic;">No operational activity recorded yet. Events will stream here in real time.</div>';
         return;
     }
 

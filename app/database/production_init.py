@@ -10,7 +10,13 @@ from app.database.connection import get_db, init_db
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "agency.db")
+def get_db_path() -> str:
+    from app.database.backup import get_sqlite_db_path
+    resolved = get_sqlite_db_path()
+    if resolved:
+        return resolved
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "agency.db")
+
 BACKUPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backups")
 
 # Operational tables that hold test/demo data (to be cleaned)
@@ -21,6 +27,7 @@ OPERATIONAL_TABLES = [
     "audit_findings",
     "lead_scores",
     "offers",
+    "artifacts",
     "outreach_messages",
     "outreach_events",
     "replies",
@@ -37,7 +44,29 @@ OPERATIONAL_TABLES = [
     "local_outreach_messages",
     "local_lead_events",
     "local_followups",
-    "system_runs"
+    "system_runs",
+    "discovery_runs",
+    "acquisition_runs",
+    "market_research_runs",
+    "followup_sequences",
+    "call_logs",
+    "meetings",
+    "payment_webhook_events",
+    "security_audit_logs",
+    "agent_activity_events",
+    "autonomous_decision_logs",
+    "client_intelligence_records",
+    "prospect_evidence",
+    "prospect_memories",
+    "model_predictions",
+    "model_outcomes",
+    "model_versions",
+    "experiments",
+    "active_outreach_locks",
+    "agent_tasks",
+    "campaign_events",
+    "password_reset_tokens",
+    "suppression_list"
 ]
 
 class ProductionResetService:
@@ -50,7 +79,8 @@ class ProductionResetService:
     @classmethod
     def backup_database(cls) -> Optional[str]:
         """Creates a timestamped copy of the existing SQLite database file."""
-        if not os.path.exists(DB_PATH):
+        db_path = get_db_path()
+        if not os.path.exists(db_path):
             return None
 
         os.makedirs(BACKUPS_DIR, exist_ok=True)
@@ -59,7 +89,7 @@ class ProductionResetService:
         backup_filepath = os.path.join(BACKUPS_DIR, backup_filename)
 
         try:
-            shutil.copy2(DB_PATH, backup_filepath)
+            shutil.copy2(db_path, backup_filepath)
             logger.info(f"[ProductionResetService] Database archived safely to: {backup_filepath}")
             return backup_filepath
         except Exception as e:
@@ -79,12 +109,13 @@ class ProductionResetService:
         if create_backup:
             backup_file = cls.backup_database()
 
-        if not os.path.exists(DB_PATH):
+        db_path = get_db_path()
+        if not os.path.exists(db_path):
             logger.info("[ProductionResetService] Database file does not exist yet. It will be initialized fresh.")
             return cls._get_zero_state_summary(backup_file)
 
         # Connect synchronously to SQLite to clear operational rows safely
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
         # Disable foreign keys temporarily for clean truncation
@@ -115,6 +146,17 @@ class ProductionResetService:
         cursor.execute("PRAGMA foreign_keys = ON;")
         conn.close()
 
+        # Clean demo artifacts directory if present
+        demos_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "artifacts", "demos")
+        if os.path.exists(demos_dir):
+            try:
+                for f in os.listdir(demos_dir):
+                    fp = os.path.join(demos_dir, f)
+                    if os.path.isfile(fp):
+                        os.remove(fp)
+            except Exception as e:
+                logger.debug(f"Could not clear demo artifacts directory: {e}")
+
         logger.info(f"[ProductionResetService] Clean production database initialized. Cleared tables: {cleared_counts}")
 
         return cls._get_zero_state_summary(backup_file, cleared_counts)
@@ -126,7 +168,8 @@ class ProductionResetService:
             raise FileNotFoundError(f"Backup file '{backup_filepath}' not found.")
 
         try:
-            shutil.copy2(backup_filepath, DB_PATH)
+            db_path = get_db_path()
+            shutil.copy2(backup_filepath, db_path)
             logger.info(f"[ProductionResetService] Database restored successfully from: {backup_filepath}")
             return True
         except Exception as e:

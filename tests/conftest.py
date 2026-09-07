@@ -1,3 +1,7 @@
+import os
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_agency.db"
+os.environ["SYNC_DATABASE_URL"] = "sqlite:///./test_agency.db"
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -57,7 +61,8 @@ def safeguard_production_users():
     """Safeguards real production users in agency.db so test runs never leave it wiped."""
     import os
     import sqlite3
-    db_file = "agency.db"
+    from app.database.backup import get_sqlite_db_path
+    db_file = get_sqlite_db_path() or "test_agency.db"
     backup_rows = []
     if os.path.exists(db_file):
         try:

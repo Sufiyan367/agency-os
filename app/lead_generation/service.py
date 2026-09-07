@@ -16,7 +16,7 @@ from app.lead_generation.schemas import (
 )
 from app.lead_generation.providers.base import BaseLeadDiscoveryProvider
 from app.lead_generation.providers.mock import MockLeadDiscoveryProvider
-from app.lead_generation.providers.prospect_provider import BaseProspectProvider, MockProspectProvider
+from app.lead_generation.providers.prospect_provider import BaseProspectProvider, MockProspectProvider, RealProspectProvider
 from app.lead_generation.buyer_scoring import HighValueBuyerScorer
 from app.outreach.contact_verifier import contactability_verifier
 from app.models.entities import LocalBusiness, LocalLead, LocalLeadEvent, EventType, LeadStatus
@@ -102,7 +102,7 @@ class LeadDiscoveryService:
     """
 
     def __init__(self, provider: Optional[Any] = None):
-        self.provider = provider or MockProspectProvider()
+        self.provider = provider or RealProspectProvider()
 
     @staticmethod
     def normalize_domain(url_or_domain: Optional[str]) -> Optional[str]:

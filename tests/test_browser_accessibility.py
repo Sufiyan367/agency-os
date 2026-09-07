@@ -49,12 +49,30 @@ async def test_ceo_dashboard_browser_access_and_auth_redirection():
         settings.AUTH_ENABLED = True
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            # 1. Unauthenticated CEO access redirects to /login
+            # 1. Unauthenticated CEO access redirects to /login (or /setup on fresh DB)
             res_unauth = await client.get("/dashboard", follow_redirects=False)
             assert res_unauth.status_code in (302, 307)
-            assert res_unauth.headers["location"] == "/login"
+            assert res_unauth.headers["location"] in ("/login", "/setup")
 
             # 2. Authenticated CEO access returns 200 with Control Center & Health UI elements
+            from app.database.connection import AsyncSessionLocal
+            from app.database.models import User
+            from sqlalchemy import select
+            from datetime import datetime
+            async with AsyncSessionLocal() as session:
+                user = (await session.execute(select(User))).scalars().first()
+                if not user:
+                    test_user = User(
+                        username="admin",
+                        password_hash="$2b$12$e8Yx.8nFkGj0HqWbU2nC4.sL8t5n9O/s3d8.u0H5n8Q7n6l1k9q2m",
+                        role="admin",
+                        is_setup_completed=True,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    session.add(test_user)
+                    await session.commit()
+
             token = create_session_token("admin", role="admin")
             cookies = {"agency_session": token}
             res_auth = await client.get("/dashboard", cookies=cookies)

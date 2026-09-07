@@ -170,29 +170,5 @@ class SeedLeadDiscoveryAdapter(BaseLeadDiscoveryAdapter):
     async def discover_leads(
         self, country_code: str, niche_slug: str, limit: int = 10
     ) -> List[DiscoveredLeadRaw]:
-        results = []
-        for item in SEED_PROSPECTS:
-            match_country = (country_code.upper() == item["country"].upper()) or (country_code == "ALL")
-            match_niche = (niche_slug.lower() == item["niche"].lower()) or (niche_slug == "ALL")
-            
-            if match_country and match_niche:
-                results.append(
-                    DiscoveredLeadRaw(
-                        name=item["name"],
-                        domain=normalize_domain(item["domain"]),
-                        website_url=item["website_url"],
-                        country=item["country"],
-                        city=item["city"],
-                        niche=item["niche"],
-                        public_email=item.get("public_email"),
-                        email_status="verified" if item.get("public_email") else "unknown",
-                        phone=item.get("phone"),
-                        contact_page_url=item.get("contact_page_url"),
-                        address=item.get("address"),
-                        source=item["source"],
-                        source_url=item["website_url"]
-                    )
-                )
-                if len(results) >= limit:
-                    break
-        return results
+        # Real-data-only enforcement: static seed prospects are disabled in production runtime
+        return []
