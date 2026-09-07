@@ -22,6 +22,14 @@ from app.crm.memory_service import memory_service
 from app.core.config import settings
 
 
+@pytest.fixture(autouse=True)
+def ensure_compliance_limit():
+    orig_limit = getattr(settings, "MAX_OUTREACH_PER_DAY", 50)
+    settings.MAX_OUTREACH_PER_DAY = 10000
+    yield
+    settings.MAX_OUTREACH_PER_DAY = orig_limit
+
+
 @pytest.mark.asyncio
 async def test_non_blocking_prospecting_a_then_b_without_waiting_for_reply():
     """
