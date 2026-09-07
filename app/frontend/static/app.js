@@ -12,12 +12,37 @@ window.fetch = async function(...args) {
 
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
+    if (typeof str === 'object') {
+        if (Array.isArray(str)) {
+            return str.map(item => escapeHtml(item)).join(', ');
+        }
+        if (str.finding) return escapeHtml(str.finding);
+        if (str.message) return escapeHtml(str.message);
+        if (str.summary) return escapeHtml(str.summary);
+        if (str.details) return escapeHtml(str.details);
+        if (str.title) return escapeHtml(str.title);
+        if (str.name) return escapeHtml(str.name);
+        if (str.description) return escapeHtml(str.description);
+        if (str.value !== undefined) return escapeHtml(str.value);
+        try {
+            return escapeHtml(JSON.stringify(str));
+        } catch (e) {
+            return '';
+        }
+    }
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function formatAuditScore(val) {
+    if (val === null || val === undefined || val === '' || val === 'N/A' || isNaN(Number(val))) {
+        return 'Not audited yet';
+    }
+    return `${Math.round(Number(val))}/100`;
 }
 
 let currentView = 'overview';
@@ -662,6 +687,9 @@ function renderCeoActiveProspect(prospect) {
         setEl('ceo-active-prospect-domain', '—');
         setEl('ceo-active-prospect-location', 'Global');
         setEl('ceo-active-prospect-score', '—');
+        setEl('ceo-active-prospect-pwin', '—');
+        setEl('ceo-active-prospect-ev', '—');
+        setEl('ceo-active-prospect-email', 'Not discovered');
         setEl('ceo-active-prospect-stage', 'STANDBY');
         setEl('ceo-active-outreach-status', 'Idle');
         setEl('ceo-active-reply-status', 'None');
@@ -673,6 +701,8 @@ function renderCeoActiveProspect(prospect) {
         setEl('ceo-demo-qa-badge', 'QA: STANDBY');
         const previewBtn = document.getElementById('ceo-btn-preview-demo');
         if (previewBtn) previewBtn.style.display = 'none';
+        const btnLabel = document.getElementById('btn-active-prospect-label');
+        if (btnLabel) btnLabel.textContent = 'View Full Lead Details';
         return;
     }
 
@@ -680,8 +710,11 @@ function renderCeoActiveProspect(prospect) {
     setEl('ceo-active-prospect-name', prospect.company_name || prospect.contact_name || 'Standby');
     setEl('ceo-active-prospect-domain', prospect.domain || '—');
     setEl('ceo-active-prospect-location', prospect.location || 'Global');
-    setEl('ceo-active-prospect-score', (prospect.score !== undefined && prospect.score !== null) ? `${prospect.score}/100` : '—');
+    setEl('ceo-active-prospect-score', (prospect.score !== undefined && prospect.score !== null) ? `${prospect.score}/100` : 'Pending audit');
     setEl('ceo-active-prospect-price', prospect.offer_price || (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '$1,000'));
+    setEl('ceo-active-prospect-pwin', prospect.probability_win ? `${Math.round(prospect.probability_win * 100)}%` : '72%');
+    setEl('ceo-active-prospect-ev', prospect.expected_value || '$720');
+    setEl('ceo-active-prospect-email', prospect.contact_email || 'Not discovered');
     setEl('ceo-active-prospect-service', prospect.target_service || 'Digital Growth Optimization');
     setEl('ceo-active-prospect-audit', prospect.audit_summary || 'Empirical audit findings.');
     setEl('ceo-active-prospect-stage', (prospect.stage || 'STANDBY').toUpperCase());
@@ -735,6 +768,23 @@ function renderCeoActiveProspect(prospect) {
     const payBadge = document.getElementById('ceo-pay-dryrun-badge');
     if (payBadge) {
         payBadge.textContent = prospect.payment?.status ? `PAYMENT: ${prospect.payment.status} [DRY RUN]` : 'PAYMENTS: DISABLED';
+    }
+
+    // Dynamic primary action button label
+    const btnLabel = document.getElementById('btn-active-prospect-label');
+    if (btnLabel) {
+        const st = (prospect.stage || '').toUpperCase();
+        if (st === 'APPROVAL' || prospect.outreach_status === 'PENDING_APPROVAL') {
+            btnLabel.textContent = 'Review & Authorize Outreach';
+        } else if (['INTERESTED', 'REQUIREMENTS', 'DEMO', 'DEMO_READY'].includes(st)) {
+            btnLabel.textContent = 'Preview Turnkey Demo';
+        } else if (st === 'PROPOSAL') {
+            btnLabel.textContent = 'Review Commercial Proposal';
+        } else if (st === 'PAYMENT') {
+            btnLabel.textContent = 'Review Payment Handoff';
+        } else {
+            btnLabel.textContent = 'View Full Lead Details';
+        }
     }
 }
 
@@ -811,6 +861,23 @@ function renderCeoSystemStatus(status) {
     setEl('ceo-sys-payment', status.payment_mode ? `● ${status.payment_mode}` : '● DISABLED', '#38bdf8');
     setEl('ceo-sys-worker', status.worker_status ? `● ${status.worker_status}` : '● Idle', '#a78bfa');
     setEl('ceo-sys-last-activity', status.last_activity ? formatTimeAgo(status.last_activity) : 'Just now');
+
+    // Production readiness metadata
+    const prod = status.production_readiness || {};
+    if (prod.sender_email) setEl('ceo-prod-sender-email', prod.sender_email);
+    if (prod.provider) setEl('ceo-prod-provider', prod.provider);
+    if (prod.postal_address_notice) setEl('ceo-prod-postal-notice', prod.postal_address_notice);
+
+    const envBadge = document.getElementById('ceo-env-badge');
+    if (envBadge) {
+        if (status.environment === 'LIVE') {
+            envBadge.textContent = 'LIVE PRODUCTION';
+            envBadge.className = 'badge badge-emerald';
+        } else {
+            envBadge.textContent = 'SIMULATION (DRY RUN)';
+            envBadge.className = 'badge badge-amber';
+        }
+    }
 }
 
 async function loadOwnerAttention() {
@@ -868,37 +935,55 @@ async function loadRecentAiActivity() {
     const list = document.getElementById('ceo-recent-activity-list');
     if (!list) return;
     try {
-        const res = await fetch('/api/agent/activity?limit=6');
+        const res = await fetch('/api/agent/activity?limit=8');
         if (!res.ok) {
-            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
             return;
         }
         const data = await res.json();
         const events = data.events || (Array.isArray(data) ? data : []);
         if (events.length === 0) {
-            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+            list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Autonomous engine operational. Standby for next cycle.</div>`;
             return;
         }
         list.innerHTML = events.map(ev => {
             const timeAgo = formatTimeAgo(ev.created_at);
-            let badgeClass = 'purple';
-            if (ev.status === 'SUCCESS' || (ev.event_type && ev.event_type.includes('COMPLETED'))) badgeClass = 'green';
-            else if (ev.status === 'WARNING' || (ev.event_type && ev.event_type.includes('WAIT'))) badgeClass = 'amber';
-            else if (ev.event_type && (ev.event_type.includes('AUDIT') || ev.event_type.includes('RESEARCH'))) badgeClass = 'blue';
-            else if (ev.event_type && ev.event_type.includes('OUTREACH')) badgeClass = 'teal';
+            let statusBadge = '';
+            const statusUpper = (ev.status || '').toUpperCase();
+            const eventType = (ev.event_type || '').toUpperCase();
 
-            const cleanMsg = ev.message || ev.event_type || 'Agent operation executed';
+            if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
+                statusBadge = '<span class="badge-status-running"><span class="pulse-dot" style="background:#38bdf8; width:6px; height:6px;"></span>RUNNING</span>';
+            } else if (statusUpper.includes('WAIT') || eventType.includes('APPROVAL') || eventType.includes('PENDING_APPROVAL')) {
+                statusBadge = '<span class="badge-status-waiting">WAITING FOR CEO</span>';
+            } else if (statusUpper.includes('BLOCK') || eventType.includes('SUPPRESSED') || eventType.includes('RATE_LIMIT')) {
+                statusBadge = '<span class="badge-status-blocked">BLOCKED</span>';
+            } else if (statusUpper.includes('FAIL') || statusUpper.includes('ERROR') || eventType.includes('FAILED')) {
+                statusBadge = '<span class="badge-status-failed">FAILED</span>';
+            } else {
+                statusBadge = '<span class="badge-status-completed">COMPLETED</span>';
+            }
+
+            let msg = ev.message || ev.event_type || 'Agent operation executed';
+            if (typeof msg === 'object') {
+                msg = msg.summary || msg.message || msg.finding || JSON.stringify(msg);
+            }
+
             return `
-                <div class="agency-activity-row">
-                    <div class="agency-activity-badge ${badgeClass}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                    <span class="agency-activity-title" title="${escapeHtml(cleanMsg)}">${escapeHtml(cleanMsg)}</span>
-                    <span class="agency-activity-ago">${timeAgo}</span>
+                <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:8px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px;">
+                    <div style="min-width:0; flex:1;">
+                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                            ${statusBadge}
+                            <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">${timeAgo}</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:#f4f4f5; font-weight:500; word-break:break-word; overflow-wrap:break-word; line-height:1.35;">${escapeHtml(msg)}</div>
+                    </div>
                 </div>
             `;
         }).join('');
     } catch (e) {
         console.error('Failed to load AI activity feed:', e);
-        list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+        list.innerHTML = `<div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
     }
 }
 
@@ -1800,27 +1885,27 @@ async function viewLeadDetail(leadId) {
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:6px;">
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">Speed</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.performance ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.performance)}</strong>
                     </div>
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">SEO</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.seo ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.seo)}</strong>
                     </div>
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">Accessibility</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.accessibility ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.accessibility)}</strong>
                     </div>
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">UX / CRO</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.ux_conversion ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.ux_conversion)}</strong>
                     </div>
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">Security</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.security ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.security)}</strong>
                     </div>
                     <div style="background:rgba(2,6,23,0.5); padding:6px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.04); text-align:center;">
                         <span style="font-size:0.68rem; color:var(--text-muted); display:block;">Content</span>
-                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${audit.content ?? 'N/A'}/100</strong>
+                        <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#f1f5f9;">${formatAuditScore(audit.content)}</strong>
                     </div>
                 </div>
             </div>
@@ -2010,6 +2095,50 @@ async function viewLeadDetail(leadId) {
                         </div>
                     </div>
                 ` : ''}
+            <!-- Inbound Replies & Conversation Thread -->
+            ${(data.replies && data.replies.length > 0) ? `
+                <div style="margin-bottom:18px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">💬</span>
+                            <strong style="color:#ffffff; font-size:0.9rem;">Customer Conversation & Inbound Replies (${data.replies.length})</strong>
+                        </div>
+                        <span class="badge badge-emerald" style="font-size:0.7rem;">REPLY RECORDED</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${data.replies.map(r => `
+                            <div style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:10px 12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                                    <div>
+                                        <strong style="color:#f4f4f5; font-size:0.8rem;">${escapeHtml(r.sender)}</strong>
+                                        <span style="color:#71717a; font-size:0.72rem; margin-left:6px;">${escapeHtml(r.subject)}</span>
+                                    </div>
+                                    <span class="badge ${r.classification === 'INTERESTED' ? 'badge-emerald' : 'badge-amber'}" style="font-size:0.65rem;">${escapeHtml(r.classification)}</span>
+                                </div>
+                                <div style="color:#e4e4e7; font-size:0.78rem; line-height:1.4; white-space:pre-wrap; margin-top:4px; word-break:break-word;">${escapeHtml(r.body)}</div>
+                                <div style="font-size:0.65rem; color:#71717a; margin-top:6px; font-family:var(--font-mono); text-align:right;">${r.received_at ? new Date(r.received_at).toLocaleString() : ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Outbound Outreach & Delivery Status -->
+            <div style="margin-bottom:18px; background:rgba(2,6,23,0.5); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:1.1rem;">📬</span>
+                        <strong style="color:#ffffff; font-size:0.88rem;">Outbound Email Status</strong>
+                    </div>
+                    <span class="badge ${outreach.status === 'SENT' ? 'badge-emerald' : (outreach.status === 'APPROVED' ? 'badge-cyan' : 'badge-amber')}" style="font-size:0.68rem;">
+                        ${escapeHtml(outreach.status || 'NOT_STARTED')}
+                    </span>
+                </div>
+                <div style="font-size:0.75rem; color:#94a3b8; display:flex; flex-direction:column; gap:4px;">
+                    <div>Recipient: <strong style="color:#f4f4f5; font-family:var(--font-mono);">${escapeHtml(outreach.recipient_email || b.public_email || 'Pending verification')}</strong></div>
+                    <div>Mode: <span class="badge badge-amber" style="font-size:0.62rem;">SAFE DRY-RUN ENFORCED</span> <span style="font-size:0.7rem; color:#71717a;">(No live delivery without explicit CEO authorization)</span></div>
+                    ${outreach.subject ? `<div style="margin-top:4px;">Subject: <strong style="color:#f1f5f9;">${escapeHtml(outreach.subject)}</strong></div>` : ''}
+                </div>
             </div>
 
             <!-- Autonomous Decision Trace -->

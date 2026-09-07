@@ -39,6 +39,11 @@ class FollowupEngine:
         Validates suppression and pipeline stage before dispatching.
         """
         now = datetime.utcnow()
+        # Phase 8 Follow-Up Safety: Automatic follow-up dispatch blocked for live mode until explicitly CEO approved
+        if not getattr(settings, "EMAIL_DRY_RUN", True):
+            logger.info("[FollowupEngine] Live follow-up auto-send blocked: Production validation requires explicit CEO authorization per follow-up.")
+            return []
+
         q = select(FollowupSequence).where(
             FollowupSequence.status == FollowupStatus.SCHEDULED.value,
             FollowupSequence.scheduled_for <= now

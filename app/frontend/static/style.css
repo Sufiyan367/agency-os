@@ -2542,6 +2542,93 @@ body {
   }
 }
 
+/* Live Operations Status Badges */
+.badge-status-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
 
+.badge-status-waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
 
+.badge-status-completed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
 
+.badge-status-blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
+
+.badge-status-failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+}
+
+.live-ops-item {
+  transition: border-color 0.12s ease;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.live-ops-item:hover {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.ceo-action-card, .agency-panel-card, .kpi-card {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

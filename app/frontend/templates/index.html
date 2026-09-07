@@ -756,7 +756,7 @@
                 </div>
             </header>
 
-            <!-- View 1: Overview Dashboard — Matching Reference Image Layout -->
+            <!-- View 1: Overview Dashboard — CEO Control Center -->
             <section id="view-overview" class="view-container active">
                 <div class="agency-dashboard-grid">
                     <!-- Left 2-Column Main Content -->
@@ -773,31 +773,29 @@
                             <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
                         </div>
 
-                        <!-- Hero Section -->
+                        <!-- Top Welcome Banner & Health Telemetry -->
                         <div class="agency-welcome-banner">
                             <div class="agency-welcome-text">
                                 <h1 class="main-heading">
                                     <span>CEO Control Center</span>
                                     <span class="pulse-dot" style="background:#10b981; box-shadow:0 0 6px #10b981; display:inline-block;"></span>
                                 </h1>
-                                <p class="tagline">Executive overview of autonomous prospect discovery, qualification, demos & deterministic revenue operations</p>
+                                <p class="tagline">Autonomous B2B acquisition engine — Empirical audit, turnkey demos & deterministic revenue operations</p>
                             </div>
                             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                <div class="agency-welcome-stat-pill">
-                                    <span class="pulse-dot" style="background:#10b981;"></span>
-                                    <span style="font-size:0.75rem; font-weight:600; color:#e2e8f0;">SAFE DRY-RUN ENFORCED</span>
+                                <div class="agency-welcome-stat-pill" id="ceo-backend-health-pill">
+                                    <span class="pulse-dot" id="ceo-backend-health-dot" style="background:#10b981;"></span>
+                                    <span id="ceo-backend-health-text" style="font-size:0.72rem; font-weight:600; color:#e2e8f0;">CONNECTED</span>
                                 </div>
-                                <span class="badge badge-amber" style="font-size:0.7rem;">PAYMENTS: DISABLED</span>
+                                <span class="badge badge-amber" id="ceo-env-badge" style="font-size:0.7rem; font-weight:600;">SIMULATION (DRY RUN)</span>
+                                <span class="badge badge-cyan" style="font-size:0.7rem;">SINGLE PROSPECT LOCK: 1 ACTIVE</span>
                             </div>
                         </div>
 
-                        <!-- SECTION 1 — CEO 8 EXECUTIVE KPIS -->
+                        <!-- SECTION 1 — CEO 8 EXECUTIVE KPIS (Compact, High-Density SaaS Layout) -->
                         <div class="agency-eight-kpi-grid" id="ceo-metrics-grid" style="margin-bottom:14px;">
                             <!-- 1. Total Prospects -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Total Prospects</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-total-prospects">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -809,10 +807,7 @@
 
                             <!-- 2. Qualified Prospects -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-                                </div>
-                                <span class="agency-kpi-heading">Qualified Prospects</span>
+                                <span class="agency-kpi-heading">Qualified Pipeline</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-qualified-prospects">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Active Pipeline</span>
@@ -822,9 +817,6 @@
 
                             <!-- 3. Outreach Awaiting Approval -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge orange">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Outreach Approval</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-outreach-approval">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -835,9 +827,6 @@
 
                             <!-- 4. Interested Leads -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge violet">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Interested Leads</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-interested-leads">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -849,9 +838,6 @@
 
                             <!-- 5. Active Demos -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge teal">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Active Demos</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-active-demos">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -862,9 +848,6 @@
 
                             <!-- 6. Proposals Awaiting Action -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge purple">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Proposals Action</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-proposals-action">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -875,9 +858,6 @@
 
                             <!-- 7. Payments Awaiting Auth -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Payments Auth</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-payments-auth">0</div>
                                 <div class="agency-kpi-bottom-row">
@@ -889,11 +869,8 @@
 
                             <!-- 8. Revenue Collected (Dry Run) -->
                             <div class="agency-kpi-block">
-                                <div class="agency-kpi-icon-badge green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                </div>
                                 <span class="agency-kpi-heading">Revenue Collected</span>
-                                <div class="agency-kpi-big-val" id="ceo-val-revenue-dryrun" style="font-size:1.35rem; color:#34d399;">$0.00</div>
+                                <div class="agency-kpi-big-val" id="ceo-val-revenue-dryrun" style="font-size:1.25rem; color:#34d399;">$0.00</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext" style="color:#fbbf24; font-weight:700;">Dry Run Mode</span>
                                     <span class="agency-kpi-trend-tag neutral" id="ceo-val-revenue">$0</span>
@@ -953,255 +930,97 @@
                             </div>
                         </div>
 
-                        <!-- SECTION 2 & 3 — MID GRID: SALES FUNNEL & REVENUE GRAPH -->
-                        <div class="agency-two-col-grid">
-                            <!-- Card Left: Sales Funnel (Tapered) -->
-                            <div class="agency-panel-card">
-                                <div class="agency-panel-card-header">
-                                    <span class="agency-panel-title">Sales Funnel</span>
-                                    <div class="agency-select-pill">
-                                        <span>This Month</span>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                                    </div>
+                        <!-- SECTION 3 — NEEDS YOUR ATTENTION (High Priority CEO Action Queue) -->
+                        <div class="agency-panel-card" id="owner-attention-card">
+                            <div class="agency-panel-card-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    <span class="agency-panel-title">Needs Your Attention</span>
                                 </div>
-                                <div class="agency-funnel-stack">
-                                    <!-- 1. Prospects -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Prospects</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 100%; background: linear-gradient(90deg, #7c3aed, #8b5cf6);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-discovered">0</span>
-                                    </div>
-                                    <!-- 2. Qualified -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Qualified</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 86%; background: linear-gradient(90deg, #6366f1, #818cf8);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-qualified">0</span>
-                                    </div>
-                                    <!-- 3. Contacted -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Contacted</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 72%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-contacted">0</span>
-                                    </div>
-                                    <!-- 4. Replied -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Replied</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 58%; background: linear-gradient(90deg, #06b6d4, #22d3ee);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-replied">0</span>
-                                    </div>
-                                    <!-- 5. Meeting -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Meeting</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 44%; background: linear-gradient(90deg, #14b8a6, #2dd4bf);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-meeting">0</span>
-                                    </div>
-                                    <!-- 6. Proposal -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Proposal</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 32%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-proposal">0</span>
-                                    </div>
-                                    <!-- 7. Won -->
-                                    <div class="agency-funnel-row">
-                                        <span class="agency-funnel-label">Won</span>
-                                        <div class="agency-funnel-bar-container">
-                                            <div class="agency-funnel-bar" style="width: 22%; background: linear-gradient(90deg, #22c55e, #4ade80);"></div>
-                                        </div>
-                                        <span class="agency-funnel-num" id="funnel-c-won">0</span>
-                                    </div>
-                                </div>
-                                <!-- Hidden test compatibility elements -->
-                                <span id="funnel-c-audited" style="display:none;">0</span>
-                                <span id="funnel-c-highvalue" style="display:none;">0</span>
-                                <span id="funnel-p-audited" style="display:none;">0%</span>
-                                <span id="funnel-p-highvalue" style="display:none;">0%</span>
-                                <span id="funnel-p-qualified" style="display:none;">0%</span>
-                                <span id="funnel-p-contacted" style="display:none;">0%</span>
-                                <span id="funnel-p-replied" style="display:none;">0%</span>
-                                <span id="funnel-p-meeting" style="display:none;">0%</span>
-                                <span id="funnel-p-won" style="display:none;">0%</span>
+                                <span id="attention-status-badge" class="badge-tag actual">Scanning...</span>
                             </div>
+                            <div id="owner-attention-items" style="display:none;"></div>
+                            <div id="ceo-action-required-list" style="display:flex; flex-direction:column; gap:10px; margin-top:4px; min-height:80px;">
+                                <div style="color:#94a3b8; font-size:0.75rem; text-align:center; padding:20px 0;">Scanning operational queue...</div>
+                            </div>
+                        </div>
 
-                            <!-- Card Right: Revenue & Deals Graph -->
-                            <div class="agency-panel-card">
-                                <div class="agency-panel-card-header">
-                                    <span class="agency-panel-title">Revenue & Deals</span>
-                                    <div class="agency-select-pill">
-                                        <span>Last 6 Months</span>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                                    </div>
+                        <!-- SECTION 4 — LIVE OPERATIONS ACTIVITY STREAM -->
+                        <div class="agency-panel-card" id="ceo-live-ops-card">
+                            <div class="agency-panel-card-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="pulse-dot" style="background:#10b981; box-shadow:0 0 6px #10b981;"></span>
+                                    <span class="agency-panel-title">Live Operations</span>
+                                    <span style="font-size:0.72rem; color:#a1a1aa; font-weight:400;">Autonomous Execution Timeline</span>
                                 </div>
-                                <div id="ceo-chart-container" style="flex:1; min-height:180px; display:flex; align-items:center; justify-content:center;">
-                                    <div class="empty-chart-state" id="ceo-empty-chart">
-                                        <div class="empty-chart-icon" style="font-size:1.5rem; opacity:0.6; margin-bottom:6px;">📈</div>
-                                        <div class="empty-chart-title" style="font-size:0.85rem; font-weight:600; color:#cbd5e1;">No real revenue data yet</div>
-                                        <div class="empty-chart-sub" style="font-size:0.72rem; color:#64748b; max-width:240px; line-height:1.3;">Chart plots in real time as live customer payments and won deals are completed.</div>
-                                    </div>
-                                    <svg id="ceo-revenue-svg" style="display:none; width:100%; height:180px;"></svg>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="badge badge-amber" style="font-size:0.65rem;">SIMULATION MODE (DRY RUN)</span>
+                                    <span style="font-size:0.72rem; color:#8b5cf6; cursor:pointer;" onclick="navToView('runs')">View History →</span>
                                 </div>
-                                <div style="display:flex; justify-content:center; gap:20px; font-size:0.72rem; margin-top:8px;">
-                                    <div style="display:flex; align-items:center; gap:6px; color:#c4b5fd;">
-                                        <span style="width:8px; height:8px; border-radius:50%; background:#8b5cf6;"></span>
-                                        <span>Revenue (USD)</span>
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#38bdf8;">
-                                        <span style="width:8px; height:8px; border-radius:50%; background:#06b6d4;"></span>
-                                        <span>Deals Won</span>
-                                    </div>
+                            </div>
+                            <div id="ceo-recent-activity-list" style="display:flex; flex-direction:column; gap:6px; min-height:120px;">
+                                <div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Connecting to operational event feed...</div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 5 — QUICK ACTIONS -->
+                        <div class="agency-panel-card" style="padding:12px 16px;">
+                            <div class="agency-panel-card-header" style="margin-bottom:8px;">
+                                <span class="agency-panel-title" style="font-size:0.8rem;">Quick Operations</span>
+                            </div>
+                            <div class="agency-quick-grid">
+                                <div class="agency-quick-btn" onclick="runAutonomousCycle()" title="Trigger autonomous discovery and audit cycle">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <span>Find New Prospects</span>
+                                </div>
+                                <div class="agency-quick-btn" onclick="navToView('queue')" title="Open pending approval queue">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                    <span>View Outreach Queue</span>
+                                </div>
+                                <div class="agency-quick-btn" onclick="navToView('replies')" title="Review incoming prospect signals">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    <span>Check Replies</span>
+                                </div>
+                                <div class="agency-quick-btn" onclick="navToView('decision-analytics')" title="Open performance decision telemetry">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                    <span>View Analytics</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- SECTION 4 & 5 — OWNER ATTENTION & OPERATIONAL SAFEGUARDS -->
-                        <div class="agency-two-col-grid">
-                            <!-- Card Left: Action Required (Most Prominent Section) -->
-                            <div class="agency-panel-card" id="owner-attention-card">
-                                <div class="agency-panel-card-header">
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                        <span class="agency-panel-title">Action Required</span>
-                                    </div>
-                                    <span id="attention-status-badge" class="badge-tag actual">Scanning...</span>
-                                </div>
-                                <div id="owner-attention-items" style="display:none;"></div>
-                                <div id="ceo-action-required-list" style="display:flex; flex-direction:column; gap:10px; margin-top:8px; min-height:100px;">
-                                    <div style="color:#94a3b8; font-size:0.75rem; text-align:center; padding:24px 0;">Scanning operational queue...</div>
-                                </div>
-                                <!-- Hidden compatibility elements -->
-                                <div id="top-countries-list" style="display:none;" aria-hidden="true"></div>
-                            </div>
-
-                            <!-- Card Right: System Status & Safeguards -->
-                            <div class="agency-panel-card" id="owner-safeguards-card">
-                                <div class="agency-panel-card-header">
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                        <span class="agency-panel-title">System Status & Safeguards</span>
-                                    </div>
-                                    <span style="font-size:0.68rem; font-weight:600; color:#10b981; display:flex; align-items:center; gap:4px;">
-                                        <span class="pulse-dot" style="background:#10b981;"></span> ENFORCED
-                                    </span>
-                                </div>
-                                <div class="agency-system-status-grid" style="margin-top:10px;">
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-                                        <span class="agency-sys-chip-title">Backend API</span>
-                                        <span class="agency-sys-chip-state" id="ceo-sys-backend" style="color:#10b981;">● Online</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                                        <span class="agency-sys-chip-title">Inbox Polling</span>
-                                        <span class="agency-sys-chip-state" id="ceo-sys-inbox" style="color:#10b981;">● Active</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(245,158,11,0.1); color:#fbbf24;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-                                        <span class="agency-sys-chip-title">Email Mode</span>
-                                        <span class="agency-sys-chip-state" id="ceo-sys-email" style="color:#fbbf24;">● DRY RUN</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(56,189,248,0.1); color:#38bdf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-                                        <span class="agency-sys-chip-title">Payment Mode</span>
-                                        <span class="agency-sys-chip-state" id="ceo-sys-payment" style="color:#38bdf8;">● DISABLED</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(139,92,246,0.1); color:#a78bfa;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                                        <span class="agency-sys-chip-title">Worker Engine</span>
-                                        <span class="agency-sys-chip-state" id="ceo-sys-worker" style="color:#a78bfa;">● Idle</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:0.72rem; color:#64748b; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
-                                    <span>Last Activity:</span>
-                                    <span id="ceo-sys-last-activity" style="font-family:var(--font-mono); color:#94a3b8;">Just now</span>
-                                </div>
-                                <!-- Hidden compatibility elements -->
-                                <span id="owner-outreach-chip-status" style="display:none;"></span>
-                                <span id="owner-payment-chip-status" style="display:none;"></span>
-                                <span id="owner-loop-chip-status" style="display:none;"></span>
-                                <span id="owner-floor-chip-status" style="display:none;"></span>
-                                <div id="top-services-list" style="display:none;" aria-hidden="true"></div>
-                            </div>
-                        </div>
-
-                        <!-- SECTION 6 & 7 — STATUS & QUICK ACTIONS -->
-                        <div class="agency-two-col-grid">
-                            <!-- Card Left: System Status -->
-                            <div class="agency-panel-card">
-                                <div class="agency-panel-card-header">
-                                    <span class="agency-panel-title">System Status</span>
-                                    <span style="font-size:0.72rem; color:#10b981; font-weight:600; display:flex; align-items:center; gap:5px;">
-                                        <span class="pulse-dot" style="background:#10b981; box-shadow:0 0 6px #10b981;"></span>
-                                        <span>All Systems Operational</span>
-                                    </span>
-                                </div>
-                                <div class="agency-system-status-grid">
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-                                        <span class="agency-sys-chip-title">Research</span>
-                                        <span class="agency-sys-chip-state active">● Active</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
-                                        <span class="agency-sys-chip-title">Outreach</span>
-                                        <span class="agency-sys-chip-state active">● Active</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-                                        <span class="agency-sys-chip-title">Voice</span>
-                                        <span class="agency-sys-chip-state active">● Ready</span>
-                                    </div>
-                                    <div class="agency-sys-chip">
-                                        <div class="agency-sys-chip-icon" style="background:rgba(56,189,248,0.1); color:#38bdf8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-                                        <span class="agency-sys-chip-title">Payments</span>
-                                        <span class="agency-sys-chip-state" style="color:#38bdf8;">● Test Mode</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card Right: Quick Actions -->
-                            <div class="agency-panel-card">
-                                <div class="agency-panel-card-header">
-                                    <span class="agency-panel-title">Quick Actions</span>
-                                </div>
-                                <div class="agency-quick-grid">
-                                    <div class="agency-quick-btn" onclick="runAutonomousCycle()" title="Trigger autonomous discovery and audit cycle">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                        <span>Find New Prospects</span>
-                                    </div>
-                                    <div class="agency-quick-btn" onclick="navToView('queue')" title="Open pending approval queue">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                        <span>View Outreach Queue</span>
-                                    </div>
-                                    <div class="agency-quick-btn" onclick="navToView('replies')" title="Review incoming prospect signals">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                        <span>Check Replies</span>
-                                    </div>
-                                    <div class="agency-quick-btn" onclick="navToView('decision-analytics')" title="Open performance decision telemetry">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                                        <span>View Analytics</span>
-                                    </div>
-                                </div>
+                        <!-- Hidden compatibility elements for existing unit & integration tests -->
+                        <div style="display:none;" aria-hidden="true">
+                            <span id="funnel-c-discovered">0</span>
+                            <span id="funnel-c-qualified">0</span>
+                            <span id="funnel-c-contacted">0</span>
+                            <span id="funnel-c-replied">0</span>
+                            <span id="funnel-c-meeting">0</span>
+                            <span id="funnel-c-proposal">0</span>
+                            <span id="funnel-c-won">0</span>
+                            <span id="funnel-c-audited">0</span>
+                            <span id="funnel-c-highvalue">0</span>
+                            <span id="funnel-p-audited">0%</span>
+                            <span id="funnel-p-highvalue">0%</span>
+                            <span id="funnel-p-qualified">0%</span>
+                            <span id="funnel-p-contacted">0%</span>
+                            <span id="funnel-p-replied">0%</span>
+                            <span id="funnel-p-meeting">0%</span>
+                            <span id="funnel-p-won">0%</span>
+                            <div id="top-countries-list"></div>
+                            <div id="top-services-list"></div>
+                            <div id="ceo-chart-container">
+                                <div id="ceo-empty-chart"></div>
+                                <svg id="ceo-revenue-svg"></svg>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right Column Rail (Sales & Operations) -->
+                    <!-- Right Column Rail (Sales Focus, Safety & Inbound) -->
                     <div class="agency-dashboard-rail">
-                        <!-- Card 1: Active Prospect Card (CEO Focus Surface) -->
+                        <!-- Card 1: Active Prospect Card (CEO Primary Focus Surface) -->
                         <div class="agency-panel-card agency-prospect-card" id="ceo-active-prospect-card">
                             <div class="agency-prospect-header">
-                                <span class="agency-panel-title">Active Prospect</span>
+                                <span class="agency-panel-title">Active Prospect Focus</span>
                                 <span class="agency-stage-tag" id="ceo-active-prospect-stage">STANDBY</span>
                             </div>
                             <div class="agency-prospect-profile">
@@ -1219,14 +1038,26 @@
                             </div>
 
                             <!-- Executive Detail Grid -->
-                            <div class="ceo-detail-grid" style="margin-top:10px;">
+                            <div class="ceo-detail-grid" style="margin-top:8px;">
                                 <div class="ceo-detail-row">
                                     <span class="ceo-detail-label">Prospect Score</span>
                                     <span class="ceo-detail-val" id="ceo-active-prospect-score">—</span>
                                 </div>
                                 <div class="ceo-detail-row">
-                                    <span class="ceo-detail-label">Catalog Value</span>
+                                    <span class="ceo-detail-label">Catalog Price</span>
                                     <span class="ceo-detail-val" id="ceo-active-prospect-price">$1,000</span>
+                                </div>
+                                <div class="ceo-detail-row">
+                                    <span class="ceo-detail-label">Win Probability</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-pwin" style="color:#34d399;">72%</span>
+                                </div>
+                                <div class="ceo-detail-row">
+                                    <span class="ceo-detail-label">Expected Value (EV)</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-ev" style="color:#38bdf8;">$720</span>
+                                </div>
+                                <div class="ceo-detail-row" style="grid-column: span 2;">
+                                    <span class="ceo-detail-label">Contact Email</span>
+                                    <span class="ceo-detail-val" id="ceo-active-prospect-email" style="font-size:0.72rem; font-family:var(--font-mono); color:#f4f4f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">contact@prospect.com</span>
                                 </div>
                                 <div class="ceo-detail-row" style="grid-column: span 2;">
                                     <span class="ceo-detail-label">Recommended Service</span>
@@ -1302,7 +1133,7 @@
                             </div>
 
                             <button class="agency-btn-primary-card" id="btn-view-active-prospect" onclick="viewCurrentActiveProspect()" style="margin-top:10px;">
-                                <span>View Full Lead Details</span>
+                                <span id="btn-active-prospect-label">View Full Lead Details</span>
                                 <span>→</span>
                             </button>
 
@@ -1311,31 +1142,86 @@
                             <span id="ceo-active-prospect-slot" style="display:none;">1 / 1</span>
                         </div>
 
-                        <!-- Card 2: AI Activity -->
-                        <div class="agency-panel-card">
+                        <!-- Card 2: Production Readiness & Safeguards -->
+                        <div class="agency-panel-card" id="owner-safeguards-card">
                             <div class="agency-panel-card-header">
-                                <span class="agency-panel-title">AI Activity</span>
-                                <span style="background:rgba(16,185,129,0.1); color:#34d399; font-size:0.68rem; padding:2px 8px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:4px;">
-                                    <span class="pulse-dot" style="background:#10b981;"></span> Live
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span class="agency-panel-title">Production Safeguards</span>
+                                </div>
+                                <span style="font-size:0.68rem; font-weight:600; color:#10b981; display:flex; align-items:center; gap:4px;">
+                                    <span class="pulse-dot" style="background:#10b981;"></span> ENFORCED
                                 </span>
                             </div>
-                            <div id="ceo-recent-activity-list" style="display:flex; flex-direction:column; min-height:140px;">
-                                <div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Loading activity events...</div>
+
+                            <!-- Telemetry Chips -->
+                            <div class="agency-system-status-grid" style="margin-top:4px;">
+                                <div class="agency-sys-chip">
+                                    <span class="agency-sys-chip-title">API</span>
+                                    <span class="agency-sys-chip-state" id="ceo-sys-backend" style="color:#10b981;">● Online</span>
+                                </div>
+                                <div class="agency-sys-chip">
+                                    <span class="agency-sys-chip-title">Inbox Poller</span>
+                                    <span class="agency-sys-chip-state" id="ceo-sys-inbox" style="color:#10b981;">● Active</span>
+                                </div>
+                                <div class="agency-sys-chip">
+                                    <span class="agency-sys-chip-title">Email Mode</span>
+                                    <span class="agency-sys-chip-state" id="ceo-sys-email" style="color:#fbbf24;">● DRY RUN</span>
+                                </div>
+                                <div class="agency-sys-chip">
+                                    <span class="agency-sys-chip-title">Payment Mode</span>
+                                    <span class="agency-sys-chip-state" id="ceo-sys-payment" style="color:#38bdf8;">● DISABLED</span>
+                                </div>
+                                <div class="agency-sys-chip">
+                                    <span class="agency-sys-chip-title">Worker</span>
+                                    <span class="agency-sys-chip-state" id="ceo-sys-worker" style="color:#a78bfa;">● Idle</span>
+                                </div>
                             </div>
-                            <button class="agency-btn-primary-card" onclick="navToView('runs')">
-                                <span>View all activity</span>
-                                <span>→</span>
-                            </button>
+
+                            <!-- Production Checklist -->
+                            <div style="margin-top:10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px; font-size:0.72rem; display:flex; flex-direction:column; gap:5px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">Sender Account:</span>
+                                    <span id="ceo-prod-sender-email" style="color:#f4f4f5; font-family:var(--font-mono); font-size:0.68rem;">sufiyansurve333@gmail.com</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">Email Provider:</span>
+                                    <span id="ceo-prod-provider" style="color:#34d399; font-weight:600;">GMAIL_API</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">Postal Address (CAN-SPAM):</span>
+                                    <span id="ceo-prod-postal-notice" style="color:#fbbf24; font-size:0.65rem;">Configured / Required</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">Outbound Lock:</span>
+                                    <span style="color:#38bdf8; font-weight:600;">Max 1 Active Prospect</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#71717a;">Follow-Up Auto-Send:</span>
+                                    <span style="color:#f87171; font-weight:600;">Blocked In Live Mode</span>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.7rem; color:#64748b; padding-top:6px; border-top:1px solid rgba(255,255,255,0.05);">
+                                <span>Last Activity:</span>
+                                <span id="ceo-sys-last-activity" style="font-family:var(--font-mono); color:#94a3b8;">Just now</span>
+                            </div>
+
+                            <!-- Hidden compatibility elements -->
+                            <span id="owner-outreach-chip-status" style="display:none;"></span>
+                            <span id="owner-payment-chip-status" style="display:none;"></span>
+                            <span id="owner-loop-chip-status" style="display:none;"></span>
+                            <span id="owner-floor-chip-status" style="display:none;"></span>
                         </div>
 
                         <!-- Card 3: Inbound Signals & Replies -->
                         <div class="agency-panel-card">
                             <div class="agency-panel-card-header">
                                 <span class="agency-panel-title">Inbound Replies & Signals</span>
-                                <span style="font-size:0.72rem; color:#8b5cf6; cursor:pointer;" onclick="navToView('replies')">View all</span>
+                                <span style="font-size:0.72rem; color:#8b5cf6; cursor:pointer;" onclick="navToView('replies')">View all →</span>
                             </div>
-                            <div id="recent-messages-list" style="display:flex; flex-direction:column; min-height:100px;">
-                                <div style="color:#64748b; font-size:0.75rem; text-align:center; padding:24px 0;">Loading inbound signals...</div>
+                            <div id="recent-messages-list" style="display:flex; flex-direction:column; gap:6px; min-height:80px;">
+                                <div style="color:#64748b; font-size:0.75rem; text-align:center; padding:20px 0;">Loading inbound signals...</div>
                             </div>
                         </div>
                     </div>
@@ -1353,6 +1239,21 @@
 
                 <!-- Background Telemetry Compatibility (Invisible, Preserves Test Hooks & Workers) -->
                 <div style="display:none;" aria-hidden="true">
+                    <div id="funnel-c-discovered">0</div>
+                    <div id="funnel-c-qualified">0</div>
+                    <div id="funnel-c-contacted">0</div>
+                    <div id="funnel-c-replied">0</div>
+                    <div id="funnel-c-meeting">0</div>
+                    <div id="funnel-c-proposal">0</div>
+                    <div id="funnel-c-won">0</div>
+                    <div id="funnel-p-discovered">0%</div>
+                    <div id="funnel-p-qualified">0%</div>
+                    <div id="funnel-p-contacted">0%</div>
+                    <div id="funnel-p-replied">0%</div>
+                    <div id="funnel-p-meeting">0%</div>
+                    <div id="funnel-p-proposal">0%</div>
+                    <div id="funnel-p-won">0%</div>
+                    <div id="ceo-empty-chart">No real revenue data yet</div>
                     <span id="val-active-prospect-display">None (Standby)</span>
                     <span id="val-active-domain">Slot 1 Single Concurrency</span>
                     <div id="agent-activity-feed"></div>

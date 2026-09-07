@@ -25,9 +25,15 @@ from app.core.config import settings
 @pytest.fixture(autouse=True)
 def ensure_compliance_limit():
     orig_limit = getattr(settings, "MAX_OUTREACH_PER_DAY", 50)
+    orig_agent = getattr(settings, "AUTONOMOUS_AGENT_ENABLED", True)
+    orig_outreach = getattr(settings, "AUTONOMOUS_OUTREACH", True)
     settings.MAX_OUTREACH_PER_DAY = 10000
+    settings.AUTONOMOUS_AGENT_ENABLED = True
+    settings.AUTONOMOUS_OUTREACH = True
     yield
     settings.MAX_OUTREACH_PER_DAY = orig_limit
+    settings.AUTONOMOUS_AGENT_ENABLED = orig_agent
+    settings.AUTONOMOUS_OUTREACH = orig_outreach
 
 
 @pytest.mark.asyncio

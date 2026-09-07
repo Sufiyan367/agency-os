@@ -36,6 +36,10 @@ class OutreachSenderAdapter:
         if msg.status != OutreachStatus.APPROVED.value:
             raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED).")
 
+        # Phase 7 Outbound Safety Lock: Live outbound transmission requires explicit human CEO authorization
+        if not getattr(settings, "EMAIL_DRY_RUN", True) and not force_live:
+            raise ValueError("Live email transmission blocked: Explicit human CEO approval required.")
+
         # Check suppression
         if await compliance_guard.is_suppressed(session, msg.recipient_email):
             msg.status = OutreachStatus.FAILED.value

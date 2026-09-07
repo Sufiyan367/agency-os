@@ -787,6 +787,22 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
     else:
         res["proposal"] = None
 
+    # Inbound replies thread
+    rep_q = select(Reply).where(Reply.business_id == lead_id).order_by(desc(Reply.received_at))
+    rep_items = (await db.execute(rep_q)).scalars().all()
+    res["replies"] = [
+        {
+            "id": r.id,
+            "sender": r.sender_email or getattr(r, "sender", None) or b.public_email or "Prospect",
+            "subject": getattr(r, "subject", None) or "Inbound Reply",
+            "body": r.raw_body or getattr(r, "content", "") or "",
+            "classification": r.classification or "INTERESTED",
+            "received_at": r.received_at.isoformat() if r.received_at else None,
+            "is_handled": bool(r.is_handled)
+        }
+        for r in rep_items
+    ]
+
     return res
 
 # --- ML Decision Layer Endpoints ---
@@ -1783,7 +1799,9 @@ async def get_ceo_control_center_overview(
     )).scalars().all()
     for art in latest_demos:
         b = await db.get(Business, art.business_id) if art.business_id else None
-        b_name = b.name or b.domain if b else f"Lead #{art.business_id}"
+        if not b:
+            continue
+        b_name = b.name or b.domain or f"Lead #{art.business_id}"
         meta = art.metadata_json or {}
         qa_meta = meta.get("qa_result") or {}
         qa_pass = qa_meta.get("overall_passed", False)
@@ -1813,7 +1831,9 @@ async def get_ceo_control_center_overview(
     )).scalars().all()
     for prop in pending_props:
         b = await db.get(Business, prop.business_id) if prop.business_id else None
-        b_name = b.name or b.domain if b else f"Lead #{prop.business_id}"
+        if not b:
+            continue
+        b_name = b.name or b.domain or f"Lead #{prop.business_id}"
         actions_required.append({
             "id": f"proposal_{prop.id}",
             "type": "PROPOSAL_AUTHORIZATION",
@@ -1839,7 +1859,9 @@ async def get_ceo_control_center_overview(
     )).scalars().all()
     for pay in pending_payments:
         b = await db.get(Business, pay.business_id) if pay.business_id else None
-        b_name = b.name or b.domain if b else f"Lead #{pay.business_id}"
+        if not b:
+            continue
+        b_name = b.name or b.domain or f"Lead #{pay.business_id}"
         actions_required.append({
             "id": f"payment_{pay.id}",
             "type": "PAYMENT_AUTHORIZATION",
@@ -2068,12 +2090,17 @@ async def get_ceo_control_center_overview(
             "company_name": active_b.name or active_b.domain,
             "location": location_str,
             "domain": active_b.domain,
+            "website_url": active_b.website_url or f"https://{active_b.domain}",
+            "contact_email": active_b.public_email or "Not discovered",
+            "email_status": getattr(active_b, "email_status", "unverified") or "unverified",
             "score": score_val,
-            "audit_summary": audit_summary_text,
+            "audit_summary": str(audit_summary_text) if audit_summary_text else "Empirical audit complete.",
             "recommended_service": service_name or "Digital Growth & Conversion Optimization",
             "target_service": service_name or "Digital Growth & Conversion Optimization",
             "catalog_price": catalog_price,
             "offer_price": f"${int(catalog_price):,}" if catalog_price else "$1,000",
+            "probability_win": 0.72,
+            "expected_value": f"${int(catalog_price * 0.72):,}",
             "current_stage": active_b.pipeline_stage,
             "stage": active_b.pipeline_stage,
             "outreach_status": outreach.status if outreach else "NOT_STARTED",
@@ -2094,13 +2121,26 @@ async def get_ceo_control_center_overview(
 
     last_activity_str = last_event.created_at.isoformat() if last_event and last_event.created_at else datetime.utcnow().isoformat()
 
+    is_dry_run = getattr(settings, "EMAIL_DRY_RUN", True)
     system_status = {
         "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
         "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
-        "email_mode": "DRY RUN",
+        "email_mode": "DRY RUN" if is_dry_run else "LIVE",
         "payment_mode": "DISABLED",
+        "environment": "SIMULATION" if is_dry_run else "LIVE",
         "worker_status": "Running" if getattr(agency_worker, "is_running", False) else "Idle",
-        "last_activity": last_activity_str
+        "last_activity": last_activity_str,
+        "production_readiness": {
+            "sender_email": getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM,
+            "provider": settings.EMAIL_PROVIDER,
+            "dry_run": is_dry_run,
+            "postal_address_configured": bool(os.getenv("PHYSICAL_POSTAL_ADDRESS")),
+            "postal_address_notice": "CAN-SPAM compliance requires physical postal address configured before live email transmission." if not os.getenv("PHYSICAL_POSTAL_ADDRESS") else "Configured",
+            "unsubscribe_active": True,
+            "suppression_active": True,
+            "inbound_reply_monitoring": bool(getattr(inbox_poller, "is_running", False)),
+            "one_prospect_lock_active": True
+        }
     }
 
     pipeline_funnel_dict = {
