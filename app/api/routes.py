@@ -1986,9 +1986,32 @@ async def get_ceo_control_center_overview(
     ]
 
     # --- 4. Active Prospect Focus Card ---
-    active_b = (await db.execute(
-        select(Business).order_by(desc(Business.id)).limit(1)
-    )).scalars().first()
+    # Prioritize prospects with real active outreach or in-flight stages over uncontacted discovered records
+    q_active_sent = (
+        select(Business)
+        .join(OutreachMessage, OutreachMessage.business_id == Business.id)
+        .where(OutreachMessage.status == OutreachStatus.SENT.value)
+        .order_by(desc(OutreachMessage.sent_at))
+        .limit(1)
+    )
+    active_b = (await db.execute(q_active_sent)).scalars().first()
+    if not active_b:
+        q_active_pipeline = (
+            select(Business)
+            .where(Business.pipeline_stage.in_([
+                PipelineStage.CONTACTED.value,
+                PipelineStage.REPLIED.value,
+                PipelineStage.QUALIFIED_REPLY.value,
+                PipelineStage.APPROVAL.value,
+                PipelineStage.OUTREACH_READY.value,
+                PipelineStage.QUALIFIED.value
+            ]))
+            .order_by(Business.id.asc())
+            .limit(1)
+        )
+        active_b = (await db.execute(q_active_pipeline)).scalars().first()
+    if not active_b:
+        active_b = (await db.execute(select(Business).order_by(Business.id.asc()).limit(1))).scalars().first()
 
     active_prospect = None
     if active_b:
@@ -2098,15 +2121,15 @@ async def get_ceo_control_center_overview(
 
         service_name = None
         catalog_price = 1000.0
-        intel_rec = getattr(active_b, "client_intelligence", None)
-        if intel_rec and intel_rec.top_service_name:
-            service_name = intel_rec.top_service_name
-            if intel_rec.recommended_price_usd:
-                catalog_price = float(intel_rec.recommended_price_usd)
-        elif offer:
+        if offer and offer.recommended_price:
             service_name = offer.title or offer.service_type
-            if offer.recommended_price:
-                catalog_price = float(offer.recommended_price)
+            catalog_price = float(offer.recommended_price)
+        else:
+            intel_rec = getattr(active_b, "client_intelligence", None)
+            if intel_rec and intel_rec.top_service_name:
+                service_name = intel_rec.top_service_name
+                if intel_rec.recommended_price_usd:
+                    catalog_price = float(intel_rec.recommended_price_usd)
 
         location_str = f"{active_b.city}, {active_b.country}" if active_b.city and active_b.country else (active_b.country or "Global")
 

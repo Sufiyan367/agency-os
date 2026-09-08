@@ -54,6 +54,10 @@ class CampaignService:
         await session.commit()
         return campaigns
 
+    def get_rollout_status(self) -> RolloutConfigDTO:
+        """Returns the current rollout status and configuration."""
+        return campaign_config_loader.get_rollout_config()
+
     async def list_campaigns(self, session: AsyncSession, include_stats: bool = True) -> List[CampaignDTO]:
         """Lists all campaigns enriched with today's quota, sent counts, and replies."""
         await self.ensure_campaigns_seeded(session)
