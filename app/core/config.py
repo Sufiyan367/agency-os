@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "true").lower() in ("true", "1", "yes")
     AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "true").lower() in ("true", "1", "yes")
     AUTONOMOUS_FIRST_CLIENT: bool = os.getenv("AUTONOMOUS_FIRST_CLIENT", "false").lower() in ("true", "1", "yes")
+    AUTONOMOUS_AUTO_DISCOVERY: bool = os.getenv("AUTONOMOUS_AUTO_DISCOVERY", "false").lower() in ("true", "1", "yes")
     MAX_ACTIVE_OUTREACH_PROSPECTS: int = int(os.getenv("MAX_ACTIVE_OUTREACH_PROSPECTS", "1"))
     EMERGENCY_STOP: bool = os.getenv("EMERGENCY_STOP", "false").lower() in ("true", "1", "yes")
     MINIMUM_TARGET_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_TARGET_SERVICE_VALUE_USD", "500.0"))

@@ -137,15 +137,18 @@ class PersistentAgencyWorker:
                 # Job 4: Lead Discovery (CONTINUOUS WORKER) & Audit/Scoring (AUTOMATIC) & Outreach (QUEUE + APPROVAL)
                 cycle_interval_mins = settings.WORKER_CYCLE_INTERVAL_MINUTES
                 should_run_cycle = False
-                if not self.last_cycle_at:
-                    # Run on startup if pipeline has low volume (< 10 leads)
-                    lead_count = (await session.execute(select(func.count(Business.id)))).scalar() or 0
-                    if lead_count < 10:
-                        should_run_cycle = True
+                if getattr(settings, "AUTONOMOUS_AUTO_DISCOVERY", False):
+                    if not self.last_cycle_at:
+                        # Run on startup if pipeline has low volume (< 10 leads)
+                        lead_count = (await session.execute(select(func.count(Business.id)))).scalar() or 0
+                        if lead_count < 10:
+                            should_run_cycle = True
+                    else:
+                        elapsed_mins = (datetime.utcnow() - self.last_cycle_at).total_seconds() / 60.0
+                        if elapsed_mins >= cycle_interval_mins:
+                            should_run_cycle = True
                 else:
-                    elapsed_mins = (datetime.utcnow() - self.last_cycle_at).total_seconds() / 60.0
-                    if elapsed_mins >= cycle_interval_mins:
-                        should_run_cycle = True
+                    logger.debug("[PersistentWorker] Unsolicited autonomous auto-discovery is disabled by policy (AUTONOMOUS_AUTO_DISCOVERY=False).")
 
                 if should_run_cycle:
                     logger.info("[PersistentWorker] Triggering scheduled autonomous lead cycle...")
@@ -185,7 +188,8 @@ class PersistentAgencyWorker:
             "email_provider": settings.EMAIL_PROVIDER,
             "email_dry_run": settings.EMAIL_DRY_RUN or settings.DRY_RUN,
             "payment_provider": settings.PAYMENT_PROVIDER,
-            "payments_enabled": settings.PAYMENTS_ENABLED
+            "payments_enabled": settings.PAYMENTS_ENABLED,
+            "autonomous_auto_discovery": bool(getattr(settings, "AUTONOMOUS_AUTO_DISCOVERY", False))
         }
 
 agency_worker = PersistentAgencyWorker()
