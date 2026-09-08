@@ -1102,25 +1102,16 @@
                                 </div>
                             </div>
 
-                            <div style="overflow-x:auto; max-height:360px; overflow-y:auto;">
-                                <table class="agency-table" id="ceo-campaigns-table" style="width:100%; font-size:0.73rem; border-collapse:collapse; text-align:left;">
-                                    <thead>
-                                        <tr style="border-bottom:1px solid rgba(255,255,255,0.08); color:#71717a; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;">
-                                            <th style="padding:6px 8px;">Country</th>
-                                            <th style="padding:6px 8px;">Status</th>
-                                            <th style="padding:6px 8px;">Today Quota</th>
-                                            <th style="padding:6px 8px;">Local Window</th>
-                                            <th style="padding:6px 8px; text-align:right;">Sent</th>
-                                            <th style="padding:6px 8px; text-align:right;">Replies</th>
-                                            <th style="padding:6px 8px; text-align:right;">Interested</th>
-                                            <th style="padding:6px 8px; text-align:right;">Bounces</th>
-                                            <th style="padding:6px 8px; text-align:right;">Bounce Rate</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="ceo-campaigns-tbody">
-                                        <tr><td colspan="9" style="text-align:center; padding:16px; color:#71717a;">Loading international campaigns matrix...</td></tr>
-                                    </tbody>
-                                </table>
+                            <div style="width:100%; min-width:0; max-height:360px; overflow-y:auto; overflow-x:hidden; box-sizing:border-box;">
+                                <div id="ceo-campaigns-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.08); color:#71717a; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; font-weight:600; min-width:0; box-sizing:border-box;">
+                                    <span style="flex-shrink:0; min-width:140px; max-width:170px;">Country</span>
+                                    <span style="flex:1 1 auto; min-width:0; padding:0 10px;">Outbound Corridor</span>
+                                    <span style="flex-shrink:0; margin-left:auto; text-align:right;">Status</span>
+                                </div>
+                                <div id="ceo-campaigns-tbody" style="display:flex; flex-direction:column; min-width:0; width:100%; box-sizing:border-box;">
+                                    <div style="text-align:center; padding:16px; color:#71717a; font-size:0.75rem;">Loading international campaigns matrix...</div>
+                                </div>
+                                <table class="agency-table" id="ceo-campaigns-table" style="display:none;" aria-hidden="true"></table>
                             </div>
                         </div>
 

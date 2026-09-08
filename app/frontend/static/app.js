@@ -1015,13 +1015,13 @@ function renderCeoCampaigns(summary) {
         capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY`;
     }
 
-    // Render Table Rows
+    // Render Corridor Rows (Responsive 3-Zone Flex Layout)
     const tbody = document.getElementById('ceo-campaigns-tbody');
     if (!tbody) return;
 
     const campaigns = summary.campaigns || [];
     if (campaigns.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:16px; color:#71717a;">No active campaign corridors configured.</td></tr>';
+        tbody.innerHTML = '<div style="text-align:center; padding:16px; color:#71717a; font-size:0.75rem;">No active campaign corridors configured.</div>';
         return;
     }
 
@@ -1029,34 +1029,38 @@ function renderCeoCampaigns(summary) {
         const flag = COUNTRY_FLAGS_MAP[c.country_code] || '🌐';
         const isActive = (c.status === 'ACTIVE' && c.enabled);
         const statusBadge = isActive
-            ? '<span style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); padding:2px 6px; border-radius:4px; font-weight:600; font-size:0.65rem;">ACTIVE</span>'
-            : '<span style="background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); padding:2px 6px; border-radius:4px; font-weight:600; font-size:0.65rem;">PAUSED</span>';
+            ? '<span class="badge" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); padding:3px 8px; border-radius:4px; font-weight:600; font-size:0.68rem; letter-spacing:0.02em; display:inline-flex; align-items:center;">ACTIVE</span>'
+            : '<span class="badge" style="background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); padding:3px 8px; border-radius:4px; font-weight:600; font-size:0.68rem; letter-spacing:0.02em; display:inline-flex; align-items:center;">PAUSED</span>';
 
-        const windowBadge = c.is_in_sending_window
-            ? `<span style="color:#10b981; font-weight:600;">● OPEN</span> <span style="color:#71717a; font-size:0.65rem;">${escapeHtml(c.local_time_formatted || '')}</span>`
-            : `<span style="color:#71717a;">○ CLOSED</span> <span style="color:#52525b; font-size:0.65rem;">${escapeHtml(c.local_time_formatted || '')}</span>`;
+        const windowText = c.is_in_sending_window
+            ? `● OPEN (${escapeHtml(c.local_time_formatted || '')})`
+            : `○ CLOSED (${escapeHtml(c.local_time_formatted || '')})`;
 
         const bRate = Number(c.bounce_rate || 0.0);
-        const bRateColor = bRate > 2.0 ? '#ef4444' : '#71717a';
 
         return `
-            <tr style="border-bottom:1px solid #141416; transition:background 0.12s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                <td style="padding:7px 8px; font-weight:600; color:#f4f4f5; display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:1.05rem;">${flag}</span>
-                    <span>${escapeHtml(c.country_code)}</span>
-                    <span style="color:#71717a; font-weight:400; font-size:0.68rem;">(${escapeHtml(c.name || '')})</span>
-                </td>
-                <td style="padding:7px 8px;">${statusBadge}</td>
-                <td style="padding:7px 8px; font-family:var(--font-mono); color:#cbd5e1;">
-                    ${c.today_sent ?? 0} / ${c.daily_quota ?? 10}
-                </td>
-                <td style="padding:7px 8px;">${windowBadge}</td>
-                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#cbd5e1;">${c.total_sent ?? 0}</td>
-                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#cbd5e1;">${c.replies_count ?? 0}</td>
-                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#34d399; font-weight:600;">${c.interested_count ?? 0}</td>
-                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:#71717a;">${c.bounces_count ?? 0}</td>
-                <td style="padding:7px 8px; text-align:right; font-family:var(--font-mono); color:${bRateColor}; font-weight:${bRate > 2 ? '700' : '400'};">${bRate.toFixed(1)}%</td>
-            </tr>
+            <div class="corridor-row" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.04); min-width:0; width:100%; box-sizing:border-box; transition:background 0.12s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                <!-- Left: Country code & name -->
+                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; min-width:140px; max-width:170px;">
+                    <span class="badge" style="font-family:var(--font-mono); font-size:0.68rem; font-weight:700; background:rgba(255,255,255,0.06); color:#f4f4f5; border:1px solid rgba(255,255,255,0.12); padding:2px 5px; border-radius:4px; flex-shrink:0;">${escapeHtml(c.country_code)}</span>
+                    <span style="font-weight:500; color:#d4d4d8; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(c.country_name || '')}">${escapeHtml(c.country_name || '')}</span>
+                </div>
+
+                <!-- Middle: Corridor description + telemetry (gracefully truncates with ellipsis) -->
+                <div style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px; overflow:hidden; padding:0 10px;">
+                    <div style="font-size:0.75rem; font-weight:600; color:#f4f4f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(c.name || '')}">
+                        ${escapeHtml(c.name || '')}
+                    </div>
+                    <div style="font-size:0.67rem; color:#71717a; font-family:var(--font-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        Quota: ${c.today_sent ?? 0}/${c.daily_quota ?? 10} · ${windowText} · Sent: ${c.total_sent ?? 0} · Replies: ${c.replies_count ?? 0} · Int: ${c.interested_count ?? 0} · Bounce: ${bRate.toFixed(1)}%
+                    </div>
+                </div>
+
+                <!-- Right: Status Badge (Always fully visible, pinned right) -->
+                <div style="flex-shrink:0; margin-left:auto; display:flex; align-items:center;">
+                    ${statusBadge}
+                </div>
+            </div>
         `;
     }).join('');
 }
