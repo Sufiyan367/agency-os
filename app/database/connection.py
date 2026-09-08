@@ -343,10 +343,22 @@ async def init_db():
                 ("effective_evidence_score", "REAL DEFAULT 0.0"),
                 ("evidence_confidence", "REAL DEFAULT 0.0"),
                 ("research_status", "VARCHAR(50) DEFAULT 'RESEARCH_REQUIRED'"),
-                ("prospect_score", "REAL DEFAULT 0.0")
+                ("prospect_score", "REAL DEFAULT 0.0"),
+                ("whatsapp_eligible", "BOOLEAN DEFAULT 0")
             ]:
                 try:
                     await conn.execute(text(f"ALTER TABLE businesses ADD COLUMN {col} {col_type}"))
+                except Exception:
+                    pass
+
+            # contacts (WhatsApp eligibility & compliance gating)
+            for col, col_type in [
+                ("whatsapp_eligible", "BOOLEAN DEFAULT 0"),
+                ("whatsapp_consent_status", "VARCHAR(50) DEFAULT 'INELIGIBLE_NO_CONSENT'"),
+                ("whatsapp_status_reason", "VARCHAR(255) DEFAULT 'Public phone without opt-in consent'")
+            ]:
+                try:
+                    await conn.execute(text(f"ALTER TABLE contacts ADD COLUMN {col} {col_type}"))
                 except Exception:
                     pass
 

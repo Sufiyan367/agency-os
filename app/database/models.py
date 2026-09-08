@@ -167,6 +167,7 @@ class Business(Base):
     evidence_confidence: Mapped[float] = mapped_column(Float, default=0.0)
     research_status: Mapped[str] = mapped_column(String(50), default="RESEARCH_REQUIRED", index=True)
     prospect_score: Mapped[float] = mapped_column(Float, default=0.0)
+    whatsapp_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -204,6 +205,9 @@ class Contact(Base):
     linkedin: Mapped[Optional[str]] = mapped_column(String(500), default=None)
     email_status: Mapped[str] = mapped_column(String(50), default="unknown")
     source: Mapped[str] = mapped_column(String(100), default="website_scrape")
+    whatsapp_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    whatsapp_consent_status: Mapped[str] = mapped_column(String(50), default="INELIGIBLE_NO_CONSENT")
+    whatsapp_status_reason: Mapped[Optional[str]] = mapped_column(String(255), default="Public phone without opt-in consent")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     business: Mapped["Business"] = relationship("Business", back_populates="contacts", lazy="selectin")

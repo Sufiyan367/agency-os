@@ -2257,6 +2257,8 @@ async def get_ceo_control_center_overview(
         "campaigns": [c.model_dump() for c in campaigns_list]
     }
 
+    me_summary = await campaign_service.get_middle_east_summary(db)
+
     return {
         "executive_metrics": metrics,
         "metrics": metrics,
@@ -2266,8 +2268,18 @@ async def get_ceo_control_center_overview(
         "pipeline": pipeline_stages,
         "active_prospect": active_prospect,
         "system_status": system_status,
-        "campaigns_summary": campaigns_summary
+        "campaigns_summary": campaigns_summary,
+        "middle_east_summary": me_summary
     }
+
+@router.get("/api/campaigns/middle-east")
+async def get_middle_east_campaigns_endpoint(
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """Returns targeted Middle East Phase 1 acquisition hub metrics."""
+    from app.campaigns.service import campaign_service
+    return await campaign_service.get_middle_east_summary(db)
 
 @router.get("/api/client/portal-data")
 async def get_client_portal_data_endpoint(

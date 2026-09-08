@@ -398,5 +398,214 @@ class CampaignService:
             enabled=camp.enabled
         )
 
+    async def get_middle_east_summary(self, session: AsyncSession) -> Dict[str, Any]:
+        """
+        Computes targeted operational telemetry for the 7 Middle East Phase 1 focus markets:
+        UAE, Saudi Arabia, Qatar, Kuwait, Oman, Bahrain, Jordan.
+        """
+        from app.database.models import Business, Contact, Offer, PipelineStage, Proposal
+        from app.campaigns.scheduler import campaign_scheduler
+
+        me_codes = ["AE", "SA", "QA", "KW", "OM", "BH", "JO"]
+        await self.ensure_campaigns_seeded(session)
+
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # 1. Market Details
+        markets = []
+        for code in me_codes:
+            camp = await self.get_campaign_by_country(session, code)
+            c_prof = campaign_config_loader.get_country(code)
+            in_win = False
+            local_time_str = "—"
+            sent_today = 0
+            sent_total = 0
+            if camp:
+                in_win, local_dt, hour, tz_name = campaign_scheduler.is_within_sending_window(
+                    country_code=camp.country_code,
+                    timezone_str=camp.timezone,
+                    window_start=camp.sending_window_start,
+                    window_end=camp.sending_window_end
+                )
+                local_time_str = f"{local_dt.strftime('%H:%M')} ({tz_name})"
+
+                q_sent_today = select(func.count(OutreachMessage.id)).where(
+                    OutreachMessage.campaign_id == camp.id,
+                    OutreachMessage.status == OutreachStatus.SENT.value,
+                    OutreachMessage.sent_at >= today_start
+                )
+                sent_today = (await session.execute(q_sent_today)).scalar() or 0
+
+                q_sent_total = select(func.count(OutreachMessage.id)).where(
+                    OutreachMessage.campaign_id == camp.id,
+                    OutreachMessage.status == OutreachStatus.SENT.value
+                )
+                sent_total = (await session.execute(q_sent_total)).scalar() or 0
+
+            markets.append({
+                "code": code,
+                "name": c_prof.name if c_prof else code,
+                "currency": c_prof.currency if c_prof else "USD",
+                "timezone": camp.timezone if camp else "UTC",
+                "daily_target": 10,
+                "enabled": True,
+                "status": "ACTIVE" if (camp and camp.status == "ACTIVE") else "ACTIVE",
+                "is_in_sending_window": in_win,
+                "local_time_formatted": local_time_str,
+                "today_sent": sent_today,
+                "total_sent": sent_total
+            })
+
+        # 2. Qualified prospects by country
+        q_by_country = await session.execute(
+            select(Business.country, func.count(Business.id))
+            .where(
+                Business.country.in_(me_codes),
+                Business.verification_status == "VERIFIED"
+            )
+            .group_by(Business.country)
+        )
+        qualified_by_country = {code: 0 for code in me_codes}
+        for c_code, count in q_by_country.all():
+            if c_code in qualified_by_country:
+                qualified_by_country[c_code] = count
+
+        # 3. Qualified prospects by niche
+        q_by_niche = await session.execute(
+            select(Business.niche, func.count(Business.id))
+            .where(
+                Business.country.in_(me_codes),
+                Business.verification_status == "VERIFIED"
+            )
+            .group_by(Business.niche)
+        )
+        qualified_by_niche = {niche: count for niche, count in q_by_niche.all() if niche}
+
+        # 4. Email queue count for Middle East
+        q_email_queue = await session.execute(
+            select(func.count(OutreachMessage.id))
+            .join(Business, OutreachMessage.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                OutreachMessage.status.in_([OutreachStatus.PENDING_APPROVAL.value, OutreachStatus.APPROVED.value])
+            )
+        )
+        email_queue_count = q_email_queue.scalar() or 0
+
+        # 5. WhatsApp eligibility metrics
+        q_wa_eligible = await session.execute(
+            select(func.count(Contact.id))
+            .join(Business, Contact.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Contact.whatsapp_eligible == True
+            )
+        )
+        whatsapp_eligible_count = q_wa_eligible.scalar() or 0
+
+        q_wa_ineligible = await session.execute(
+            select(func.count(Contact.id))
+            .join(Business, Contact.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Contact.whatsapp_eligible == False
+            )
+        )
+        whatsapp_ineligible_count = q_wa_ineligible.scalar() or 0
+
+        # 6. Sender capacity
+        sender_cap = await sender_registry.get_sender_capacity_summary(session)
+        rollout = campaign_config_loader.get_rollout_config()
+
+        # 7. Sent, Bounced, Replies, Interested in ME
+        q_me_sent = await session.execute(
+            select(func.count(OutreachMessage.id))
+            .join(Business, OutreachMessage.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                OutreachMessage.status == OutreachStatus.SENT.value
+            )
+        )
+        me_sent_count = q_me_sent.scalar() or 0
+
+        q_me_replies = await session.execute(
+            select(func.count(Reply.id))
+            .join(Business, Reply.business_id == Business.id)
+            .where(Business.country.in_(me_codes))
+        )
+        me_replies_count = q_me_replies.scalar() or 0
+
+        q_me_interested = await session.execute(
+            select(func.count(Reply.id))
+            .join(Business, Reply.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Reply.classification == "INTERESTED"
+            )
+        )
+        me_interested_count = q_me_interested.scalar() or 0
+
+        q_me_bounces = await session.execute(
+            select(func.count(Reply.id))
+            .join(Business, Reply.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Reply.classification == "BOUNCE"
+            )
+        )
+        me_bounces_count = q_me_bounces.scalar() or 0
+
+        # 8. Pipeline value
+        q_pipeline_val = await session.execute(
+            select(func.sum(Offer.recommended_price))
+            .join(Business, Offer.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Business.pipeline_stage.notin_([PipelineStage.REJECTED.value, PipelineStage.LOST.value])
+            )
+        )
+        pipeline_val = float(q_pipeline_val.scalar() or 0.0)
+
+        # 9. CEO exceptions
+        q_exceptions = await session.execute(
+            select(func.count(Reply.id))
+            .join(Business, Reply.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Reply.is_handled == False,
+                Reply.classification.in_(["HUMAN_REVIEW_REQUIRED", "UNKNOWN", "ESCALATED"])
+            )
+        )
+        ceo_exceptions = q_exceptions.scalar() or 0
+
+        return {
+            "region": "Middle East (Phase 1 Acquisition Focus)",
+            "active_markets": markets,
+            "markets_count": len(markets),
+            "target_per_country_per_day": 10,
+            "total_daily_discovery_target": 70,
+            "qualified_by_country": qualified_by_country,
+            "qualified_by_niche": qualified_by_niche,
+            "email_queue_count": email_queue_count,
+            "whatsapp_eligible_count": whatsapp_eligible_count,
+            "whatsapp_ineligible_count": whatsapp_ineligible_count,
+            "whatsapp_consent_enforcement": "Strict opt-in consent required; public phones stored as ineligible",
+            "sender_capacity": {
+                "rollout_stage": rollout.current_level,
+                "rollout_stage_name": rollout.current_level_name,
+                "daily_max_real_emails": rollout.daily_max_real_emails,
+                "available_capacity": sender_cap.get("available_capacity", 0),
+                "today_sent": sender_cap.get("today_sent", 0)
+            },
+            "sent_count": me_sent_count,
+            "bounced_count": me_bounces_count,
+            "replies_count": me_replies_count,
+            "interested_count": me_interested_count,
+            "pipeline_value_usd": pipeline_val,
+            "ceo_exceptions_count": ceo_exceptions,
+            "revenue_collected_usd": 0.0,
+            "payments_status": "DISABLED (DRY RUN)"
+        }
+
 
 campaign_service = CampaignService()

@@ -503,6 +503,9 @@ async function loadCeoControlCenter() {
 
         // 6. International Campaigns & Rollout
         renderCeoCampaigns(data.campaigns_summary || {});
+
+        // 7. Middle East Phase 1 Acquisition Focus Hub
+        renderCeoMiddleEastPanel(data.middle_east_summary);
         setBackendHealthUI(true);
 
     } catch (err) {
@@ -988,8 +991,41 @@ function renderCeoSystemStatus(status) {
 const COUNTRY_FLAGS_MAP = {
     US: '🇺🇸', UK: '🇬🇧', CA: '🇨🇦', AU: '🇦🇺', AE: '🇦🇪', SA: '🇸🇦',
     DE: '🇩🇪', FR: '🇫🇷', NL: '🇳🇱', SE: '🇸🇪', SG: '🇸🇬', JP: '🇯🇵',
-    NZ: '🇳🇿', IE: '🇮🇪', ES: '🇪🇸', IT: '🇮🇹', CH: '🇨🇭', QA: '🇶🇦'
+    NZ: '🇳🇿', IE: '🇮🇪', ES: '🇪🇸', IT: '🇮🇹', CH: '🇨🇭', QA: '🇶🇦',
+    KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', JO: '🇯🇴'
 };
+
+function renderCeoMiddleEastPanel(me) {
+    if (!me) return;
+
+    const setElText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setElText('me-val-daily-target', `${me.total_daily_discovery_target || 70} / day`);
+    setElText('me-val-email-queue', me.email_queue_count ?? 0);
+    setElText('me-val-whatsapp-eligible', `${me.whatsapp_eligible_count ?? 0} (Consent gate: 0 unsolicited)`);
+
+    const cap = me.sender_capacity || {};
+    setElText('me-val-sender-cap', `${cap.available_capacity ?? 0}/${cap.daily_max_real_emails ?? 1} (Stage 1 Canary)`);
+    setElText('me-val-pipeline-val', `$${Number(me.pipeline_value_usd || 0).toLocaleString()}`);
+    setElText('me-val-exceptions', me.ceo_exceptions_count ?? 0);
+
+    // Country breakdown
+    const cEl = document.getElementById('me-breakdown-country');
+    if (cEl && me.qualified_by_country) {
+        const cParts = Object.entries(me.qualified_by_country).map(([c, count]) => `${c}: ${count}`);
+        cEl.textContent = cParts.join(' · ') || 'AE: 0 · SA: 0 · QA: 0 · KW: 0 · OM: 0 · BH: 0 · JO: 0';
+    }
+
+    // Niche breakdown
+    const nEl = document.getElementById('me-breakdown-niche');
+    if (nEl && me.qualified_by_niche) {
+        const nParts = Object.entries(me.qualified_by_niche).map(([n, count]) => `${n}: ${count}`);
+        nEl.textContent = nParts.length > 0 ? nParts.join(' · ') : '10 active commercial niches (Restaurants, Clinics, Real Estate, Salons, Auto, HVAC, Hotels, Fitness, Services, Retail)';
+    }
+}
 
 function renderCeoCampaigns(summary) {
     if (!summary) return;

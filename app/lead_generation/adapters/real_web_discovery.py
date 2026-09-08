@@ -46,18 +46,57 @@ EXPANDED_CITIES = {
     ],
     "SG": [
         "Singapore", "Jurong", "Tampines", "Woodlands", "Bedok"
+    ],
+    "AE": [
+        "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"
+    ],
+    "SA": [
+        "Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina"
+    ],
+    "QA": [
+        "Doha", "Al Rayyan", "Al Wakrah", "Lusail"
+    ],
+    "KW": [
+        "Kuwait City", "Hawalli", "Salmiya", "Al Ahmadi"
+    ],
+    "OM": [
+        "Muscat", "Salalah", "Sohar", "Seeb", "Nizwa"
+    ],
+    "BH": [
+        "Manama", "Riffa", "Muharraq", "Hamad Town"
+    ],
+    "JO": [
+        "Amman", "Zarqa", "Irbid", "Aqaba", "Salt"
     ]
 }
 
 NICHE_SEARCH_MAP = {
-    "roofing-contractors": "roofing",
-    "hvac-services": "hvac",
-    "plumbing-services": "plumber",
-    "dental-practices": "dentist",
-    "commercial-law": "lawyer",
-    "accounting-firms": "accountant",
-    "cosmetic-clinics": "clinic",
-    "commercial-electricians": "electrician"
+    # Traditional & Home Services
+    "roofing-contractors": "roofing contractor",
+    "hvac-services": "hvac air conditioning service",
+    "hvac-home-services": "hvac home maintenance",
+    "plumbing-services": "plumbing contractor",
+    "commercial-electricians": "commercial electrical",
+
+    # Medical & Wellness
+    "dental-practices": "dental clinic",
+    "dental-medical-clinics": "dental medical clinic",
+    "cosmetic-clinics": "aesthetic dermatology clinic",
+    "fitness": "fitness gym wellness club",
+
+    # Professional & Business Services
+    "commercial-law": "commercial law firm",
+    "commercial-lawyers": "law firm lawyers",
+    "accounting-firms": "accounting CPA firm",
+    "professional-services": "management consulting legal services",
+
+    # Local Commercial, Hospitality & Retail
+    "restaurants-cafes": "restaurant cafe dining",
+    "real-estate": "real estate agency brokerage",
+    "salons-barbers": "hair salon barbershop",
+    "automotive": "auto repair garage car service",
+    "hotels": "boutique hotel hospitality resort",
+    "local-retail": "retail boutique store shop"
 }
 
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")

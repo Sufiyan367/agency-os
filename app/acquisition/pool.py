@@ -135,7 +135,10 @@ class GlobalProspectPool:
                     email=p.public_email,
                     phone=p.public_phone,
                     email_status="verified" if p.confidence > 0.8 else "unknown",
-                    source=p.discovery_source
+                    source=p.discovery_source,
+                    whatsapp_eligible=False,
+                    whatsapp_consent_status="INELIGIBLE_NO_CONSENT",
+                    whatsapp_status_reason="Public phone without opt-in consent"
                 )
                 session.add(contact)
 

@@ -73,6 +73,76 @@ COUNTRIES_DATA = [
         "english_accessibility": 95.0,
         "currency": "SGD",
         "regulatory_risk_score": 20.0
+    },
+    {
+        "code": "AE",
+        "name": "United Arab Emirates",
+        "gdp_per_capita": 53700.0,
+        "business_density_score": 92.0,
+        "digital_maturity_score": 90.0,
+        "english_accessibility": 95.0,
+        "currency": "AED",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "SA",
+        "name": "Saudi Arabia",
+        "gdp_per_capita": 30440.0,
+        "business_density_score": 88.0,
+        "digital_maturity_score": 85.0,
+        "english_accessibility": 85.0,
+        "currency": "SAR",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "QA",
+        "name": "Qatar",
+        "gdp_per_capita": 88000.0,
+        "business_density_score": 86.0,
+        "digital_maturity_score": 88.0,
+        "english_accessibility": 90.0,
+        "currency": "QAR",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "KW",
+        "name": "Kuwait",
+        "gdp_per_capita": 38000.0,
+        "business_density_score": 82.0,
+        "digital_maturity_score": 80.0,
+        "english_accessibility": 88.0,
+        "currency": "KWD",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "OM",
+        "name": "Oman",
+        "gdp_per_capita": 21000.0,
+        "business_density_score": 78.0,
+        "digital_maturity_score": 78.0,
+        "english_accessibility": 85.0,
+        "currency": "OMR",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "BH",
+        "name": "Bahrain",
+        "gdp_per_capita": 30000.0,
+        "business_density_score": 84.0,
+        "digital_maturity_score": 84.0,
+        "english_accessibility": 90.0,
+        "currency": "BHD",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "JO",
+        "name": "Jordan",
+        "gdp_per_capita": 4500.0,
+        "business_density_score": 75.0,
+        "digital_maturity_score": 76.0,
+        "english_accessibility": 80.0,
+        "currency": "JOD",
+        "regulatory_risk_score": 25.0
     }
 ]
 
@@ -82,7 +152,7 @@ NICHES_DATA = [
         "name": "Roofing & Exterior Contractors",
         "category": "Home Services",
         "avg_deal_size": 950.0,
-        "digital_weakness_factor": 75.0,  # Highly dated websites, poor mobile conversion
+        "digital_weakness_factor": 75.0,
         "service_fit_score": 88.0,
         "commercial_intent_score": 90.0
     },
@@ -92,6 +162,15 @@ NICHES_DATA = [
         "category": "Home Services",
         "avg_deal_size": 850.0,
         "digital_weakness_factor": 68.0,
+        "service_fit_score": 85.0,
+        "commercial_intent_score": 88.0
+    },
+    {
+        "slug": "hvac-home-services",
+        "name": "HVAC & Home Maintenance Services",
+        "category": "Home Services",
+        "avg_deal_size": 850.0,
+        "digital_weakness_factor": 70.0,
         "service_fit_score": 85.0,
         "commercial_intent_score": 88.0
     },
@@ -109,7 +188,7 @@ NICHES_DATA = [
         "name": "Cosmetic & Aesthetic Clinics",
         "category": "Healthcare & Wellness",
         "avg_deal_size": 1100.0,
-        "digital_weakness_factor": 55.0,  # Better visuals, but slow load times and weak local SEO
+        "digital_weakness_factor": 55.0,
         "service_fit_score": 92.0,
         "commercial_intent_score": 95.0
     },
@@ -123,11 +202,92 @@ NICHES_DATA = [
         "commercial_intent_score": 82.0
     },
     {
+        "slug": "dental-medical-clinics",
+        "name": "Dental & Medical Clinics",
+        "category": "Healthcare",
+        "avg_deal_size": 950.0,
+        "digital_weakness_factor": 62.0,
+        "service_fit_score": 88.0,
+        "commercial_intent_score": 86.0
+    },
+    {
+        "slug": "restaurants-cafes",
+        "name": "Restaurants & Premium Cafes",
+        "category": "Hospitality & Dining",
+        "avg_deal_size": 750.0,
+        "digital_weakness_factor": 70.0,
+        "service_fit_score": 86.0,
+        "commercial_intent_score": 88.0
+    },
+    {
+        "slug": "real-estate",
+        "name": "Real Estate Agencies & Brokerages",
+        "category": "Real Estate",
+        "avg_deal_size": 1200.0,
+        "digital_weakness_factor": 65.0,
+        "service_fit_score": 90.0,
+        "commercial_intent_score": 92.0
+    },
+    {
+        "slug": "salons-barbers",
+        "name": "Salons & Luxury Barbershops",
+        "category": "Beauty & Personal Care",
+        "avg_deal_size": 650.0,
+        "digital_weakness_factor": 72.0,
+        "service_fit_score": 82.0,
+        "commercial_intent_score": 80.0
+    },
+    {
+        "slug": "automotive",
+        "name": "Automotive Sales & Repair Services",
+        "category": "Automotive",
+        "avg_deal_size": 850.0,
+        "digital_weakness_factor": 68.0,
+        "service_fit_score": 84.0,
+        "commercial_intent_score": 85.0
+    },
+    {
+        "slug": "hotels",
+        "name": "Hotels & Hospitality Providers",
+        "category": "Hospitality",
+        "avg_deal_size": 1400.0,
+        "digital_weakness_factor": 58.0,
+        "service_fit_score": 88.0,
+        "commercial_intent_score": 90.0
+    },
+    {
+        "slug": "fitness",
+        "name": "Fitness & Wellness Centers",
+        "category": "Health & Fitness",
+        "avg_deal_size": 750.0,
+        "digital_weakness_factor": 66.0,
+        "service_fit_score": 84.0,
+        "commercial_intent_score": 84.0
+    },
+    {
+        "slug": "professional-services",
+        "name": "Legal, Accounting & Professional Services",
+        "category": "Professional Services",
+        "avg_deal_size": 1000.0,
+        "digital_weakness_factor": 64.0,
+        "service_fit_score": 86.0,
+        "commercial_intent_score": 86.0
+    },
+    {
+        "slug": "local-retail",
+        "name": "Local Retail & E-Commerce Boutiques",
+        "category": "Retail",
+        "avg_deal_size": 700.0,
+        "digital_weakness_factor": 74.0,
+        "service_fit_score": 82.0,
+        "commercial_intent_score": 80.0
+    },
+    {
         "slug": "accounting-firms",
         "name": "Boutique Accounting & CPA Firms",
         "category": "Professional Services",
         "avg_deal_size": 800.0,
-        "digital_weakness_factor": 70.0,  # Static sites, lack of modern booking or clear CTAs
+        "digital_weakness_factor": 70.0,
         "service_fit_score": 80.0,
         "commercial_intent_score": 78.0
     },

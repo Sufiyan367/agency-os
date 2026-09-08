@@ -1076,7 +1076,72 @@
                             </div>
                         </div>
 
-                        <!-- SECTION 4 — INTERNATIONAL CAMPAIGNS & CORRIDORS (18 COUNTRIES) -->
+                        <!-- SECTION 4A — MIDDLE EAST PHASE 1 ACQUISITION HUB -->
+                        <div class="agency-panel-card" id="ceo-middle-east-panel" style="padding:14px 16px; margin-bottom:14px; border:1px solid rgba(245,158,11,0.25); background:linear-gradient(180deg, rgba(245,158,11,0.03) 0%, rgba(9,9,11,0.6) 100%);">
+                            <div class="agency-panel-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🌍</span>
+                                    <span class="agency-panel-title" style="margin-bottom:0; font-size:0.85rem; font-weight:700; letter-spacing:0.02em; color:#f59e0b;">Middle East Phase 1 Acquisition Hub</span>
+                                    <span class="badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-size:0.65rem; font-weight:700;">PHASE 1 PRIORITY</span>
+                                </div>
+                                <div style="font-size:0.72rem; color:#a1a1aa;">
+                                    Discovery Target: <strong style="color:#fbbf24; font-weight:700;">10/country/day = 70/day total</strong>
+                                </div>
+                            </div>
+
+                            <!-- 7 Active Market Indicators -->
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;" id="me-markets-badges">
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇦🇪 UAE (AED)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇸🇦 Saudi Arabia (SAR)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇶🇦 Qatar (QAR)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇰🇼 Kuwait (KWD)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇴🇲 Oman (OMR)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇧🇭 Bahrain (BHD)</span>
+                                <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇯🇴 Jordan (JOD)</span>
+                            </div>
+
+                            <!-- Middle East Metrics Summary Grid -->
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:12px;">
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Daily ME Target</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#fbbf24;" id="me-val-daily-target">70 / day</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">ME Email Queue</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#38bdf8;" id="me-val-email-queue">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">WhatsApp Eligible</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#a1a1aa;" id="me-val-whatsapp-eligible">0 (Opt-in req)</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Sender Capacity</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#10b981;" id="me-val-sender-cap">1/day (Canary)</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">ME Pipeline Value</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#34d399;" id="me-val-pipeline-val">$0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">CEO Exceptions</div>
+                                    <div style="font-size:1rem; font-weight:700; color:#f4f4f5;" id="me-val-exceptions">0</div>
+                                </div>
+                            </div>
+
+                            <!-- Qualified Breakdown by Country & Niche -->
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.72rem;">
+                                <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="color:#a1a1aa; font-weight:600; margin-bottom:6px;">Qualified by Country</div>
+                                    <div id="me-breakdown-country" style="color:#71717a;">AE: 0 · SA: 0 · QA: 0 · KW: 0 · OM: 0 · BH: 0 · JO: 0</div>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
+                                    <div style="color:#a1a1aa; font-weight:600; margin-bottom:6px;">Active Niches</div>
+                                    <div id="me-breakdown-niche" style="color:#71717a;">Restaurants, Clinics, Real Estate, Salons, Auto, HVAC, Hotels, Fitness, Services, Retail</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 4 — INTERNATIONAL CAMPAIGNS & CORRIDORS -->
                         <div class="agency-panel-card" id="ceo-campaigns-panel" style="padding:14px 16px;">
                             <div class="agency-panel-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                                 <div style="display:flex; align-items:center; gap:8px;">

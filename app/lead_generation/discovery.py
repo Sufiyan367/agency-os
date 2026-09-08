@@ -105,7 +105,10 @@ class LeadDiscoveryCoordinator:
                     email=lead_data.public_email,
                     phone=lead_data.phone,
                     email_status="verified" if details.get("email_valid") else "unknown",
-                    source=lead_data.source
+                    source=lead_data.source,
+                    whatsapp_eligible=False,
+                    whatsapp_consent_status="INELIGIBLE_NO_CONSENT",
+                    whatsapp_status_reason="Public phone without opt-in consent"
                 )
                 session.add(contact)
 

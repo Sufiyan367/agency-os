@@ -155,8 +155,8 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "language": "en",
         "currency": "AED",
         "timezone": "Asia/Dubai",
-        "target_cities": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
-        "target_niches": ["corporate-services", "commercial-logistics", "interior-design", "facility-management", "it-consulting"],
+        "target_cities": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, UAE",
             "{city} commercial {niche} firms",
@@ -169,13 +169,217 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
             "max_initial_deal_size_usd": 6000.0,
         },
         "outreach_rules": {
-            "max_messages_per_day": 15,
+            "max_messages_per_day": 10,
             "preferred_contact_channel": "email",
             "working_hours_start": 9,
             "working_hours_end": 18,
         },
         "compliance_settings": {
             "uae_data_protection_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "SA": {
+        "country_code": "SA",
+        "country_name": "Saudi Arabia",
+        "enabled": True,
+        "language": "en",
+        "currency": "SAR",
+        "timezone": "Asia/Riyadh",
+        "target_cities": ["Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Saudi Arabia",
+            "{city} verified {niche} companies",
+            "top {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 5000.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "saudi_pdpl_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "QA": {
+        "country_code": "QA",
+        "country_name": "Qatar",
+        "enabled": True,
+        "language": "en",
+        "currency": "QAR",
+        "timezone": "Asia/Qatar",
+        "target_cities": ["Doha", "Al Rayyan", "Al Wakrah", "Lusail"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Qatar",
+            "{city} top {niche} firms",
+            "best {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 5500.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "qatar_pdp_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "KW": {
+        "country_code": "KW",
+        "country_name": "Kuwait",
+        "enabled": True,
+        "language": "en",
+        "currency": "KWD",
+        "timezone": "Asia/Kuwait",
+        "target_cities": ["Kuwait City", "Hawalli", "Salmiya", "Al Ahmadi"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Kuwait",
+            "{city} leading {niche} businesses",
+            "top {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 5000.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "citra_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "OM": {
+        "country_code": "OM",
+        "country_name": "Oman",
+        "enabled": True,
+        "language": "en",
+        "currency": "OMR",
+        "timezone": "Asia/Muscat",
+        "target_cities": ["Muscat", "Salalah", "Sohar", "Seeb", "Nizwa"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Oman",
+            "{city} commercial {niche} services",
+            "best {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 4500.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "oman_pdpl_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "BH": {
+        "country_code": "BH",
+        "country_name": "Bahrain",
+        "enabled": True,
+        "language": "en",
+        "currency": "BHD",
+        "timezone": "Asia/Bahrain",
+        "target_cities": ["Manama", "Riffa", "Muharraq", "Hamad Town"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Bahrain",
+            "{city} top rated {niche} providers",
+            "leading {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 4500.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "bahrain_pdpl_compliant": True,
+            "opt_out_link_mandatory": True,
+            "risk_score_limit": 25.0
+        },
+        "max_daily_discovery": 30,
+        "concurrency_limit": 2
+    },
+    "JO": {
+        "country_code": "JO",
+        "country_name": "Jordan",
+        "enabled": True,
+        "language": "en",
+        "currency": "JOD",
+        "timezone": "Asia/Amman",
+        "target_cities": ["Amman", "Zarqa", "Irbid", "Aqaba", "Salt"],
+        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "discovery_query_templates": [
+            "{niche} in {city}, Jordan",
+            "{city} professional {niche} firms",
+            "best {niche} {city}"
+        ],
+        "qualification_rules": {
+            "min_website_age_years": 1,
+            "require_ssl": True,
+            "require_phone_or_email": True,
+            "max_initial_deal_size_usd": 4000.0,
+        },
+        "outreach_rules": {
+            "max_messages_per_day": 10,
+            "preferred_contact_channel": "email",
+            "working_hours_start": 9,
+            "working_hours_end": 18,
+        },
+        "compliance_settings": {
+            "jordan_pdpl_compliant": True,
             "opt_out_link_mandatory": True,
             "risk_score_limit": 25.0
         },

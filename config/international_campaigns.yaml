@@ -96,7 +96,7 @@ countries:
   currency: AED
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: UAE Federal Data Protection
@@ -109,7 +109,7 @@ countries:
   currency: SAR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Saudi PDPL
@@ -276,7 +276,7 @@ countries:
   currency: QAR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Law No. 13 of 2016 PDP
@@ -284,3 +284,55 @@ countries:
   requires_opt_out_link: true
   b2b_exemption_notes: Direct B2B commercial electronic communications for corporate
     entities.
+- code: KW
+  name: Kuwait
+  timezone: Asia/Kuwait
+  currency: KWD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: CITRA Regulatory Framework / E-Commerce Law
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Public corporate inquiries with clear identity and direct opt-out.
+- code: OM
+  name: Oman
+  timezone: Asia/Muscat
+  currency: OMR
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Royal Decree 6/2022 (PDPL)
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Direct B2B commercial inquiries regarding observable technical assets.
+- code: BH
+  name: Bahrain
+  timezone: Asia/Bahrain
+  currency: BHD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Law No. 30 of 2018 (PDPL)
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Commercial electronic communication with verified sender and opt-out.
+- code: JO
+  name: Jordan
+  timezone: Asia/Amman
+  currency: JOD
+  language: en
+  daily_quota: 10
+  enabled: true
+  sending_window_start: 9
+  sending_window_end: 18
+  compliance_framework: Personal Data Protection Law 2023
+  requires_postal_address: true
+  requires_opt_out_link: true
+  b2b_exemption_notes: Professional corporate inquiry with functional unsubscribe mechanism.
