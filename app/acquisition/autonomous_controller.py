@@ -91,13 +91,25 @@ class AutonomousAcquisitionController:
         next_stage: Optional[str] = None,
         metadata_json: Optional[Dict[str, Any]] = None
     ) -> AutonomousDecisionLog:
-        """Records an auditable autonomous decision in the database."""
+        log_reasons = list(reasons or (policy_result.reasons if policy_result else []))
+        if policy_result and getattr(policy_result, "decision_reason", None):
+            if policy_result.decision_reason not in log_reasons:
+                log_reasons.insert(0, policy_result.decision_reason)
+
+        meta = dict(metadata_json or {})
+        if policy_result:
+            if getattr(policy_result, "decision_reason", None):
+                meta["decision_reason"] = policy_result.decision_reason
+            meta["is_auto_approved"] = getattr(policy_result, "is_auto_approved", False)
+            meta["is_ceo_exception"] = getattr(policy_result, "is_ceo_exception", False)
+            meta["exception_type"] = getattr(policy_result, "exception_type", None)
+
         log = AutonomousDecisionLog(
             business_id=business_id,
             action=action,
-            decision=decision,
+            decision=str(decision),
             policy_checklist=policy_result.checklist if policy_result else {},
-            reasons=reasons or (policy_result.reasons if policy_result else []),
+            reasons=log_reasons,
             evidence_ids=evidence_ids or [],
             score_inputs=score_inputs or {},
             service_id=service_id,
@@ -105,7 +117,7 @@ class AutonomousAcquisitionController:
             price_usd=price_usd or (policy_result.price_usd if policy_result else None),
             previous_stage=previous_stage,
             next_stage=next_stage,
-            metadata_json=metadata_json or {}
+            metadata_json=meta
         )
         session.add(log)
         await session.commit()
@@ -245,19 +257,31 @@ class AutonomousAcquisitionController:
                 next_stage="APPROVED" if eval_res.is_auto_approved else eval_res.decision
             )
 
-            if eval_res.decision == "BLOCK":
-                logger.info(f"[AutonomousController] Prospect {biz.domain} blocked by policy: {eval_res.reasons}")
+            if eval_res.decision in ("BLOCK", "AUTO_REJECT"):
+                logger.info(f"[AutonomousController] Prospect {biz.domain} auto-rejected by policy: {eval_res.reasons}")
                 await active_prospect_controller.release_active_slot(session, terminal_reason="REJECTED", notes="; ".join(eval_res.reasons))
-                return {"status": "BLOCKED", "reasons": eval_res.reasons}
+                return {"status": "BLOCKED", "reasons": eval_res.reasons, "decision_reason": eval_res.decision_reason}
+
+            if eval_res.decision in ("HOLD", "RESEARCH_REQUIRED"):
+                logger.info(f"[AutonomousController] Prospect {biz.domain} held pending verification: {eval_res.reasons}")
+                lock.status = "HOLD"
+                lock.current_stage = "HOLD"
+                if not lock.metadata_json:
+                    lock.metadata_json = {}
+                lock.metadata_json["hold_reason"] = eval_res.decision_reason or "; ".join(eval_res.reasons)
+                await session.commit()
+                return {"status": "HELD", "reasons": eval_res.reasons, "decision_reason": eval_res.decision_reason}
 
             if eval_res.decision == "HUMAN_APPROVAL_REQUIRED":
                 lock.status = "WAITING_FOR_APPROVAL"
                 lock.current_stage = "WAITING_FOR_APPROVAL"
                 if not lock.metadata_json:
                     lock.metadata_json = {}
-                lock.metadata_json["approval_reason"] = f"Price ${eval_res.price_usd:,.2f} requires human approval."
+                lock.metadata_json["approval_reason"] = eval_res.decision_reason or f"Price ${eval_res.price_usd:,.2f} requires human approval."
+                lock.metadata_json["is_ceo_exception"] = eval_res.is_ceo_exception
+                lock.metadata_json["exception_type"] = eval_res.exception_type
                 await session.commit()
-                return {"status": "AWAITING_OPERATOR_APPROVAL", "price_usd": eval_res.price_usd}
+                return {"status": "AWAITING_OPERATOR_APPROVAL", "price_usd": eval_res.price_usd, "exception_type": eval_res.exception_type}
 
             if eval_res.is_auto_approved:
                 # AUTO_APPROVE: Generate personalized outreach
@@ -268,7 +292,7 @@ class AutonomousAcquisitionController:
                 if not lock.metadata_json:
                     lock.metadata_json = {}
                 lock.metadata_json["message_id"] = msg.id
-                lock.metadata_json["approval_reason"] = "All 16 policy safety checks passed; offer >= $1,000."
+                lock.metadata_json["approval_reason"] = eval_res.decision_reason or "All required policy gates passed; offer >= $500."
                 await session.commit()
                 return {"status": "AUTO_APPROVED", "message_id": msg.id}
 

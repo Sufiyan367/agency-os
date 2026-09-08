@@ -170,24 +170,34 @@ async def test_floor_under_500_rejected(db_session):
     biz = await _create_test_business(db_session, domain="lowoffer.co.uk", target_price=450.0)
     result = await auto_approval_policy.evaluate_prospect(db_session, biz, force_price=450.0)
     
-    assert result.decision == "BLOCK"
+    assert result.decision in ("AUTO_REJECT", "BLOCK")
     assert result.is_auto_approved is False
     assert result.checklist.get("commercial_floor_met") is False
-    assert any("commercial floor" in r.lower() for r in result.reasons)
+    assert any("commercial floor" in r.lower() or "below minimum deal threshold" in r.lower() for r in result.reasons)
 
 
 # ==============================================================================
-# 2. test_500_to_999_requires_human_approval
+# 2. test_500_to_999_auto_approves_unless_exception
 # ==============================================================================
 @pytest.mark.asyncio
 async def test_500_to_999_requires_human_approval(db_session):
+    # Under Economic Auto-Decisioning:
+    # Routine $750 deal with all gates passing auto-approves autonomously
     biz = await _create_test_business(db_session, domain="midtier.co.uk", target_price=750.0)
     result = await auto_approval_policy.evaluate_prospect(db_session, biz, force_price=750.0)
     
-    assert result.decision == "HUMAN_APPROVAL_REQUIRED"
-    assert result.is_auto_approved is False
+    assert result.decision == "AUTO_APPROVE"
+    assert result.is_auto_approved is True
     assert result.checklist.get("commercial_floor_met") is True
-    assert any("requires human approval" in r.lower() or "manual operator approval" in r.lower() for r in result.reasons)
+    assert ">= $500" in result.decision_reason or "economics positive" in result.decision_reason
+
+    # Genuine exception (e.g. unusual discount / legal override) requires human CEO approval
+    result_ex = await auto_approval_policy.evaluate_prospect(
+        db_session, biz, force_price=750.0, is_exception=True, exception_reason="Contractual indemnification clause"
+    )
+    assert result_ex.decision == "HUMAN_APPROVAL_REQUIRED"
+    assert result_ex.is_auto_approved is False
+    assert result_ex.is_ceo_exception is True
 
 
 # ==============================================================================
