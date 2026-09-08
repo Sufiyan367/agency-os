@@ -582,8 +582,7 @@ class ProspectMemoryService:
         if biz.public_email:
             is_suppressed = await compliance_guard.is_suppressed(session, biz.public_email)
 
-        target_val = latest_offer.recommended_price if latest_offer else getattr(settings, "TARGET_OFFER_MINIMUM_USD", 1000.0)
-        target_val = max(target_val, getattr(settings, "TARGET_OFFER_MINIMUM_USD", 1000.0))
+        target_val = latest_offer.recommended_price if (latest_offer and latest_offer.recommended_price) else getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0)
 
         audit_data = {}
         if latest_audit:
@@ -635,20 +634,155 @@ class ProspectMemoryService:
                         "timestamp": rep.received_at.isoformat() if rep.received_at else None
                     })
 
+        # Evidence items
+        from app.database.models import ProspectEvidence, FollowupSequence, OutreachEvent
+        q_evid = select(ProspectEvidence).where(ProspectEvidence.business_id == business_id)
+        evidence_records = (await session.execute(q_evid)).scalars().all()
+        evidence_items = [
+            {
+                "id": ev.id,
+                "evidence_type": ev.evidence_type,
+                "source_url": ev.source_url,
+                "data_points": ev.data_points,
+                "confidence_score": ev.confidence_score,
+                "created_at": ev.created_at.isoformat() if ev.created_at else None
+            }
+            for ev in evidence_records
+        ]
+
+        if not evidence_items and (biz.verification_status == "VERIFIED" or biz.website_url):
+            evidence_items = [
+                {
+                    "id": f"ev-{biz.id}-canonical",
+                    "evidence_type": "canonical_domain_verification",
+                    "source_url": biz.website_url or f"https://{biz.domain}",
+                    "data_points": {
+                        "canonical_domain": biz.domain,
+                        "status": "VERIFIED",
+                        "verification_status": biz.verification_status,
+                        "public_email": biz.public_email
+                    },
+                    "confidence_score": 1.0,
+                    "created_at": biz.created_at.isoformat() if biz.created_at else None
+                }
+            ]
+
+        # Structured outreach history with provider message IDs & thread IDs
+        outreach_history = []
+        for o in outreach_msgs:
+            q_oev = select(OutreachEvent).where(OutreachEvent.outreach_message_id == o.id).order_by(OutreachEvent.created_at.desc())
+            o_events = (await session.execute(q_oev)).scalars().all()
+            dispatch_ev = next((e for e in o_events if e.event_type in ("email_dispatched", "dispatch")), None)
+            ev_det = dispatch_ev.details if (dispatch_ev and dispatch_ev.details) else (o_events[0].details if o_events and o_events[0].details else {})
+            outreach_history.append({
+                "id": o.id,
+                "recipient": o.recipient_email,
+                "subject": o.subject,
+                "body": o.body,
+                "variant": o.variant_name,
+                "status": o.status,
+                "created_at": o.created_at.isoformat() if o.created_at else None,
+                "sent_at": o.sent_at.isoformat() if o.sent_at else None,
+                "provider_message_id": ev_det.get("message_id") or ev_det.get("gmail_message_id"),
+                "thread_id": ev_det.get("thread_id") or ev_det.get("gmail_thread_id") or (memory.thread_id if memory else None),
+                "delivery_status": ev_det.get("delivery_status", "DELIVERED" if o.status == "SENT" else o.status),
+                "provider": ev_det.get("provider", "GmailOAuthEmailProvider" if settings.EMAIL_PROVIDER == "gmail_oauth" else "dry_run")
+            })
+
+        # Structured replies list
+        replies_list = [
+            {
+                "id": rep.id,
+                "sender_email": rep.sender_email,
+                "raw_body": rep.raw_body,
+                "classification": rep.classification,
+                "confidence": rep.confidence,
+                "suggested_response": rep.suggested_response,
+                "is_handled": rep.is_handled,
+                "received_at": rep.received_at.isoformat() if rep.received_at else None
+            }
+            for rep in replies
+        ]
+
+        # Follow-up sequence state
+        q_fu = select(FollowupSequence).join(OutreachMessage).where(OutreachMessage.business_id == business_id)
+        followup_records = (await session.execute(q_fu)).scalars().all()
+        followup_state = {
+            "followups_enabled": getattr(settings, "FOLLOWUPS_ENABLED", False),
+            "total_scheduled": len(followup_records),
+            "pending_count": len([f for f in followup_records if f.status == "SCHEDULED"]),
+            "sequences": [
+                {
+                    "id": f.id,
+                    "step_number": f.step_number,
+                    "delay_days": f.delay_days,
+                    "scheduled_for": f.scheduled_for.isoformat() if f.scheduled_for else None,
+                    "status": f.status,
+                    "subject": f.subject
+                }
+                for f in followup_records
+            ]
+        }
+
+        # Economic Decision
+        deal_val = target_val
+        is_qualified = deal_val >= 500.0 and biz.pipeline_stage != PipelineStage.REJECTED.value
+        economic_decision = {
+            "status": "QUALIFIED" if is_qualified else "AUTO_REJECTED",
+            "approval_policy": "AUTO_APPROVED" if (is_qualified and biz.pipeline_stage != PipelineStage.REJECTED.value) else "AUTO_REJECT",
+            "deal_value": deal_val,
+            "minimum_threshold_usd": 500.0,
+            "meets_floor": deal_val >= 500.0
+        }
+
+        # Final Outcome
+        final_outcome = {
+            "stage": biz.pipeline_stage.value if hasattr(biz.pipeline_stage, "value") else str(biz.pipeline_stage),
+            "is_closed": biz.pipeline_stage in (PipelineStage.WON.value, PipelineStage.LOST.value, PipelineStage.REJECTED.value),
+            "is_contacted": biz.pipeline_stage not in (PipelineStage.DISCOVERED.value, PipelineStage.VERIFIED.value, PipelineStage.AUDITED.value, PipelineStage.QUALIFIED.value),
+            "has_replied": len(replies) > 0,
+            "is_interested": any(r.classification == "INTERESTED" for r in replies)
+        }
+
         snapshot = {
             "business_id": biz.id,
             "name": biz.name,
             "domain": biz.domain,
+            "canonical_domain": biz.domain,
             "niche": biz.niche,
             "city": biz.city,
             "country": biz.country,
             "public_email": biz.public_email,
             "phone": biz.phone,
             "website_url": biz.website_url,
+            "deal_value_usd": target_val,
+            "score": latest_score.total_score if latest_score else (memory.buyer_score if memory else None),
+            "business": {
+                "id": biz.id,
+                "name": biz.name,
+                "domain": biz.domain,
+                "country": biz.country,
+                "city": biz.city,
+                "niche": biz.niche,
+                "website": biz.website_url,
+                "email": biz.public_email,
+                "phone": biz.phone
+            },
+            "public_contacts": {
+                "email": biz.public_email,
+                "phone": biz.phone,
+                "contact_page_url": biz.contact_page_url,
+                "address": biz.address
+            },
             "pipeline_stage": biz.pipeline_stage.value if hasattr(biz.pipeline_stage, "value") else str(biz.pipeline_stage),
             "human_takeover": getattr(biz, "human_takeover", False),
             "verification_status": biz.verification_status.value if hasattr(biz.verification_status, "value") else str(biz.verification_status),
+            "evidence_items": evidence_items,
+            "evidence_count": len(evidence_items),
             "is_suppressed": is_suppressed,
+            "suppression_status": {"suppressed": is_suppressed},
+            "requirements": getattr(biz, "requirements", []),
+            "demo": None,
             "audit": audit_data,
             "latest_score": {
                 "total_score": latest_score.total_score if latest_score else (memory.buyer_score if memory else 0.0),
@@ -662,6 +796,17 @@ class ProspectMemoryService:
                 "service_type": latest_offer.service_type if latest_offer else "Performance Turnaround",
                 "deliverables": latest_offer.deliverables if latest_offer else ["Core Web Vitals remediation", "Mobile CTA optimization"],
             },
+            "economic_decision": economic_decision,
+            "thread_id": memory.thread_id if memory else (outreach_history[0]["thread_id"] if outreach_history else None),
+            "outreach_history": outreach_history,
+            "outreach_count": len(outreach_msgs),
+            "replies": replies_list,
+            "reply_count": len(replies),
+            "reply_classification": replies[0].classification if replies else None,
+            "followup_state": followup_state,
+            "final_outcome": final_outcome,
+            "proposal": proposals[0] if proposals else None,
+            "payment": payments[0] if payments else None,
             "conversation": {
                 "last_interaction": memory.last_interaction if memory else "",
                 "next_expected_action": memory.next_expected_action if memory else "AWAITING_INBOUND_EVENT",
@@ -703,8 +848,6 @@ class ProspectMemoryService:
                 for m in meetings
             ],
             "human_decisions": memory.human_decisions if memory else [],
-            "outreach_count": len(outreach_msgs),
-            "reply_count": len(replies),
             "updated_at": memory.updated_at.isoformat() if memory and memory.updated_at else datetime.utcnow().isoformat()
         }
         return snapshot

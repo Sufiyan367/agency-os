@@ -199,7 +199,7 @@ class OutreachSenderAdapter:
             )
             session.add(fu)
 
-        # 4. Transition Pipeline Stage to CONTACTED
+        # 4. Transition Pipeline Stage to CONTACTED and update ProspectMemory
         if biz:
             old_stage = biz.pipeline_stage
             biz.pipeline_stage = PipelineStage.CONTACTED.value
@@ -211,6 +211,34 @@ class OutreachSenderAdapter:
                 note=f"Initial outreach transmitted ({'DRY_RUN simulated' if settings.DRY_RUN else 'Live SMTP'}). Follow-up sequence scheduled."
             )
             session.add(pevent)
+
+            # Sync ProspectMemory with real threadId, provider message ID, and status
+            try:
+                from app.crm.memory_service import memory_service
+                real_thread_id = details.get("thread_id") or delivery_res.get("details", {}).get("gmail_thread_id")
+                await memory_service.save_memory(
+                    session=session,
+                    business_id=biz.id,
+                    domain=biz.domain,
+                    contact_email=msg.recipient_email,
+                    thread_id=real_thread_id,
+                    channel_used="EMAIL",
+                    pipeline_stage=PipelineStage.CONTACTED.value,
+                    outreach_message={
+                        "message_id": msg.id,
+                        "provider_message_id": delivery_res.get("message_id"),
+                        "thread_id": real_thread_id,
+                        "recipient": msg.recipient_email,
+                        "subject": msg.subject,
+                        "body": msg.body,
+                        "sent_at": msg.sent_at.isoformat() if msg.sent_at else datetime.utcnow().isoformat(),
+                        "provider": provider.__class__.__name__
+                    },
+                    last_interaction=f"Outreach email dispatched to {msg.recipient_email} (Msg ID: {delivery_res.get('message_id')})",
+                    next_expected_action="AWAITING_REPLY"
+                )
+            except Exception as mem_err:
+                logger.warning(f"[OutreachSender] Note updating ProspectMemory for #{biz.id}: {mem_err}")
 
         await session.commit()
         return {"status": "SUCCESS", "message_id": msg.id, "event": event_type, "details": details}

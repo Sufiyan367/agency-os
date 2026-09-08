@@ -244,50 +244,83 @@ class InboxPoller:
                     return None
 
         outreach_msg = None
+        biz = None
 
-        # 3. Thread matching by Gmail threadId or In-Reply-To/References in OutreachEvent details
+        # 3. Multi-tier thread matching by Gmail threadId, In-Reply-To, References in OutreachEvents
         if thread_id or in_reply_to or references:
-            events_q = select(OutreachEvent).order_by(OutreachEvent.created_at.desc()).limit(100)
+            events_q = select(OutreachEvent).order_by(OutreachEvent.created_at.desc()).limit(200)
             recent_events = (await session.execute(events_q)).scalars().all()
             for ev in recent_events:
                 ev_details = ev.details or {}
-                if thread_id and ev_details.get("gmail_thread_id") == thread_id:
-                    outreach_msg = await session.get(OutreachMessage, ev.outreach_message_id)
-                    if outreach_msg:
-                        break
-                if in_reply_to and (
-                    ev_details.get("message_id_header") == in_reply_to or
-                    ev_details.get("gmail_message_id") == in_reply_to
+                if thread_id and (
+                    ev_details.get("thread_id") == thread_id or
+                    ev_details.get("gmail_thread_id") == thread_id
                 ):
                     outreach_msg = await session.get(OutreachMessage, ev.outreach_message_id)
                     if outreach_msg:
                         break
-                if references and ev_details.get("message_id_header") and ev_details.get("message_id_header") in references:
+                if in_reply_to and (
+                    ev_details.get("message_id") == in_reply_to or
+                    ev_details.get("gmail_message_id") == in_reply_to or
+                    ev_details.get("message_id_header") == in_reply_to
+                ):
+                    outreach_msg = await session.get(OutreachMessage, ev.outreach_message_id)
+                    if outreach_msg:
+                        break
+                if references and (
+                    (ev_details.get("message_id") and ev_details.get("message_id") in references) or
+                    (ev_details.get("message_id_header") and ev_details.get("message_id_header") in references)
+                ):
                     outreach_msg = await session.get(OutreachMessage, ev.outreach_message_id)
                     if outreach_msg:
                         break
 
-        # 4. Fallback to matching by recipient email
+        # 3b. ProspectMemory lookup by thread_id if still unmatched
+        if not outreach_msg and thread_id:
+            from app.database.models import ProspectMemory
+            q_pm = select(ProspectMemory).where(ProspectMemory.thread_id == thread_id).order_by(ProspectMemory.updated_at.desc())
+            pm = (await session.execute(q_pm)).scalars().first()
+            if pm and pm.business_id:
+                q_msg = select(OutreachMessage).where(OutreachMessage.business_id == pm.business_id).order_by(OutreachMessage.created_at.desc())
+                outreach_msg = (await session.execute(q_msg)).scalars().first()
+                biz = await session.get(Business, pm.business_id)
+
+        # 4. Fallback to matching by recipient email in OutreachMessage
         if not outreach_msg:
             q_msg = select(OutreachMessage).where(
                 OutreachMessage.recipient_email.ilike(clean_sender)
             ).order_by(OutreachMessage.created_at.desc())
             outreach_msg = (await session.execute(q_msg)).scalars().first()
 
-        biz = None
-        if outreach_msg:
-            biz = await session.get(Business, outreach_msg.business_id)
-        else:
-            q_biz = select(Business).where(
-                or_(
-                    Business.public_email.ilike(clean_sender),
-                    Business.domain.ilike(f"%{clean_sender.split('@')[-1]}%")
+        # 4b. Fallback to matching by Contact record email
+        if not biz and not outreach_msg:
+            from app.database.models import Contact
+            q_contact = select(Contact).where(Contact.email.ilike(clean_sender)).order_by(Contact.id.desc())
+            matched_contact = (await session.execute(q_contact)).scalars().first()
+            if matched_contact:
+                biz = await session.get(Business, matched_contact.business_id)
+                q_msg = select(OutreachMessage).where(OutreachMessage.business_id == matched_contact.business_id).order_by(OutreachMessage.created_at.desc())
+                outreach_msg = (await session.execute(q_msg)).scalars().first()
+
+        # 4c. Fallback to matching by Business public_email or domain
+        if not biz:
+            if outreach_msg:
+                biz = await session.get(Business, outreach_msg.business_id)
+            else:
+                domain_part = clean_sender.split("@")[-1].lower() if "@" in clean_sender else ""
+                q_biz = select(Business).where(
+                    or_(
+                        Business.public_email.ilike(clean_sender),
+                        Business.domain.ilike(f"%{domain_part}%") if domain_part else False
+                    )
                 )
-            )
-            biz = (await session.execute(q_biz)).scalars().first()
+                biz = (await session.execute(q_biz)).scalars().first()
+                if biz:
+                    q_msg = select(OutreachMessage).where(OutreachMessage.business_id == biz.id).order_by(OutreachMessage.created_at.desc())
+                    outreach_msg = (await session.execute(q_msg)).scalars().first()
 
         if not biz:
-            logger.info(f"[InboxPoller] Incoming email from {clean_sender} does not match any active lead. Ignoring.")
+            logger.info(f"[InboxPoller] Incoming email from {clean_sender} does not match any active lead. Ignoring (never create orphan business on inbound).")
             return None
 
         # 5. Database Reply check for identical content from same sender to same business
@@ -328,7 +361,17 @@ class InboxPoller:
                 }
             )
             session.add(inbound_event)
-            await session.commit()
+
+        # 8. Sync ProspectMemory thread_id if available
+        if thread_id:
+            from app.database.models import ProspectMemory
+            q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+            mem = (await session.execute(q_mem)).scalars().first()
+            if mem and (not mem.thread_id or mem.thread_id.startswith("thread-")):
+                mem.thread_id = thread_id
+                mem.updated_at = datetime.utcnow()
+
+        await session.commit()
 
         if gmail_message_id:
             self.mark_message_processed(gmail_message_id)

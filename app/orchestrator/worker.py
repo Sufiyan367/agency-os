@@ -6,8 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database.connection import AsyncSessionLocal
-from app.database.models import SystemRun, Business, PipelineStage
+from app.database.models import SystemRun, Business, PipelineStage, OutreachMessage, OutreachStatus
 from app.crm.inbox_poller import inbox_poller
+from app.crm.attention_engine import attention_engine
+from app.campaigns.sender_registry import sender_registry
+from app.outreach.sender import outreach_sender_adapter
 from app.followups.engine import followup_engine
 from app.payments.provider import stripe_payment_provider, get_active_payment_provider
 from app.payments.service import payment_service
@@ -113,6 +116,40 @@ class PersistentAgencyWorker:
                                 f"[PersistentWorker] Failed to advance AutonomousController for reply #{getattr(reply, 'id', None)}: {ac_err}"
                             )
 
+                # Job 1b: Capacity-Governed Approved Queue Processing (DISPATCH)
+                summary["approved_queue_processed"] = 0
+                summary["approved_queue_deferred"] = 0
+                if getattr(settings, "AUTONOMOUS_OUTREACH", True) and not getattr(settings, "EMERGENCY_STOP", False):
+                    cap_summary = await sender_registry.get_sender_capacity_summary(session)
+                    available_cap = cap_summary.get("available_capacity", 0)
+                    approved_stmt = (
+                        select(OutreachMessage)
+                        .where(OutreachMessage.status == OutreachStatus.APPROVED)
+                        .order_by(OutreachMessage.created_at.asc())
+                    )
+                    approved_msgs = (await session.execute(approved_stmt)).scalars().all()
+
+                    if available_cap > 0 and approved_msgs:
+                        to_send = approved_msgs[:available_cap]
+                        for msg in to_send:
+                            try:
+                                sent_ok = await outreach_sender_adapter.send_approved_message(session, msg.id)
+                                if sent_ok:
+                                    summary["approved_queue_processed"] += 1
+                                    available_cap -= 1
+                            except Exception as send_err:
+                                logger.error(f"[PersistentWorker] Failed to dispatch approved message #{msg.id}: {send_err}")
+                        summary["approved_queue_deferred"] = len(approved_msgs) - summary["approved_queue_processed"]
+                    else:
+                        summary["approved_queue_deferred"] = len(approved_msgs)
+                        if approved_msgs and available_cap <= 0:
+                            logger.info(
+                                f"[PersistentWorker] {len(approved_msgs)} approved messages deferred: "
+                                f"sender capacity exhausted for today ({cap_summary.get('rollout_stage_name')} cap: {cap_summary.get('rollout_daily_cap')}/day)."
+                            )
+                else:
+                    logger.debug("[PersistentWorker] Autonomous outreach dispatch is paused by policy or emergency stop.")
+
                 # Job 2: Process Due Follow-up Cadences (AUTOMATIC)
                 followups = await followup_engine.process_due_followups(session)
                 summary["followups_dispatched"] = len(followups)
@@ -159,8 +196,25 @@ class PersistentAgencyWorker:
                     summary["autonomous_cycle_run"] = True
                     summary["cycle_summary"] = cycle_res
 
+                # Job 5: Attention Engine Scan & Exception Escalation (AUTOMATIC)
+                try:
+                    attention_summary = await attention_engine.get_attention_feed(session)
+                    summary["attention_status"] = attention_summary.get("overall_status", "ALL_CLEAR")
+                    summary["high_priority_events"] = attention_summary.get("counts", {}).get("high_priority", 0)
+                    summary["medium_priority_events"] = attention_summary.get("counts", {}).get("medium_priority", 0)
+                    if attention_summary.get("overall_status") == "ATTENTION_REQUIRED":
+                        logger.warning(
+                            f"[PersistentWorker] ATTENTION REQUIRED: {summary['high_priority_events']} high-priority commercial events need CEO visibility."
+                        )
+                except Exception as att_err:
+                    logger.error(f"[PersistentWorker] Failed to execute attention engine scan: {att_err}")
+
                 run_record.status = "SUCCESS"
-                run_record.records_processed = summary["inbox_replies_processed"] + summary["followups_dispatched"]
+                run_record.records_processed = (
+                    summary["inbox_replies_processed"]
+                    + summary["followups_dispatched"]
+                    + summary.get("approved_queue_processed", 0)
+                )
             except Exception as e:
                 run_record.status = "FAILED"
                 run_record.error_log = str(e)
