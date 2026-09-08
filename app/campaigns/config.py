@@ -30,10 +30,10 @@ DEFAULT_ROLLOUT_LEVELS: Dict[int, Dict[str, Any]] = {
     1: {"name": "Canary Test", "daily_max_real_emails": 1, "description": "Strict single verified lead test with mandatory CEO sign-off."},
     2: {"name": "First Batch", "daily_max_real_emails": 5, "description": "Low-rate validation across verified leads."},
     3: {"name": "1 Country Live", "daily_max_real_emails": 10, "description": "Single-country full quota proof."},
-    4: {"name": "3 Countries Live", "daily_max_real_emails": 30, "description": "Gradual expansion across 3 live countries."},
-    5: {"name": "6 Countries Live", "daily_max_real_emails": 60, "description": "Regional expansion across 6 live countries."},
-    6: {"name": "12 Countries Live", "daily_max_real_emails": 120, "description": "Broad rollout across 12 live countries."},
-    7: {"name": "All 18 Countries Live", "daily_max_real_emails": 180, "description": "10 emails/day across all 18 configured international countries."}
+    4: {"name": "Multi-Corridor Scaling", "daily_max_real_emails": 20, "description": "Gradual expansion across active corridors (20/day)."},
+    5: {"name": "Regional Expansion", "daily_max_real_emails": 50, "description": "Regional expansion across active international corridors (50/day)."},
+    6: {"name": "Broad International Rollout", "daily_max_real_emails": 100, "description": "Broad rollout across international corridors (100/day)."},
+    7: {"name": "All 18 Countries Live", "daily_max_real_emails": 180, "description": "10 qualified prospects/day across all 18 configured international countries (180/day)."}
 }
 
 

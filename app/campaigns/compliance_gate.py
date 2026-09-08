@@ -192,6 +192,64 @@ class CampaignComplianceGate:
             if not has_postal:
                 failure_reasons.append("Mandatory physical postal notice missing.")
 
+        # Check 11: Hard Safety Brake — Campaign Active Status
+        camp_active = (campaign is None) or (campaign.status == "ACTIVE" and campaign.enabled)
+        checks.append(ComplianceCheckItem(
+            check_name="CAMPAIGN_ACTIVE_STATUS",
+            passed=camp_active,
+            detail="Campaign active for outbound" if camp_active else f"Campaign is {campaign.status if campaign else 'INACTIVE'}"
+        ))
+        if not camp_active:
+            failure_reasons.append(f"Campaign {campaign.name if campaign else country_code} is {campaign.status if campaign else 'INACTIVE'}. Outbound paused.")
+
+        # Check 12: Hard Safety Brake — Abnormal Bounce Rate (Auto-pause corridor if > 5%)
+        camp_bounces = 0
+        camp_total_sent = 0
+        if campaign:
+            q_bsent = select(func.count(OutreachMessage.id)).where(
+                OutreachMessage.campaign_id == campaign.id,
+                OutreachMessage.status == OutreachStatus.SENT.value
+            )
+            camp_total_sent = (await session.execute(q_bsent)).scalar() or 0
+            if camp_total_sent >= 3:
+                from app.database.models import Reply
+                q_bnc = select(func.count(Reply.id)).join(OutreachMessage, Reply.outreach_message_id == OutreachMessage.id).where(
+                    OutreachMessage.campaign_id == campaign.id,
+                    Reply.classification == "BOUNCE"
+                )
+                camp_bounces = (await session.execute(q_bnc)).scalar() or 0
+
+        bounce_rate_ok = True
+        bounce_detail = "Bounce rate healthy (<5%)"
+        if camp_total_sent >= 3:
+            brate = (camp_bounces / camp_total_sent) * 100
+            if brate > 5.0:
+                bounce_rate_ok = False
+                bounce_detail = f"Abnormal bounce rate ({brate:.1f}% > 5.0%). Corridor auto-paused."
+                if campaign and campaign.status == "ACTIVE":
+                    campaign.status = "PAUSED"
+                    await session.commit()
+                failure_reasons.append(f"Abnormal bounce rate detected ({brate:.1f}%). Campaign auto-paused to protect sender reputation.")
+
+        checks.append(ComplianceCheckItem(
+            check_name="BOUNCE_RATE_SAFETY_BRAKE",
+            passed=bounce_rate_ok,
+            detail=bounce_detail
+        ))
+
+        # Check 13: Hard Safety Brake — Automatic Sender Capacity Management
+        cap_summary = await sender_registry.get_sender_capacity_summary(session)
+        sender_capacity_ok = (not is_live) or (cap_summary["available_capacity"] > 0)
+        checks.append(ComplianceCheckItem(
+            check_name="SENDER_CAPACITY_MANAGEMENT",
+            passed=sender_capacity_ok,
+            detail=f"Available sender capacity: {cap_summary['available_capacity']}/{cap_summary['safe_per_sender_daily_limit']} (Rollout cap: {cap_summary['rollout_daily_cap']})"
+        ))
+        if is_live and not sender_capacity_ok:
+            failure_reasons.append(
+                f"Sender capacity exhausted ({cap_summary['sent_today']} sent today, safe limit {cap_summary['safe_per_sender_daily_limit']}). Message queued."
+            )
+
         is_eligible = len(failure_reasons) == 0
         return ComplianceGateResult(
             is_eligible=is_eligible,

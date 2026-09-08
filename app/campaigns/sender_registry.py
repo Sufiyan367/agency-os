@@ -81,5 +81,68 @@ class SenderRegistry:
 
         return True, "Sender configuration verified.", resolved
 
+    async def get_sender_capacity_summary(self, session) -> Dict[str, Any]:
+        """
+        Evaluates configuration-driven sender capacity across active outbound accounts.
+        Never assumes a single Gmail account can safely send 180 cold emails/day.
+        Safe cold outreach volume per personal/standard Gmail is capped (default: 20/day).
+        """
+        from datetime import datetime
+        from sqlalchemy import select, func
+        from app.campaigns.config import campaign_config_loader
+        from app.database.models import OutreachEvent
+
+        provider_name = (settings.EMAIL_PROVIDER or "dry_run").lower().strip()
+        is_gmail = provider_name in ("gmail", "gmail_oauth")
+
+        # Configuration-driven safe per-sender daily limit
+        safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else 50
+        from_email = getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM or "sufiyansurve333@gmail.com"
+
+        # Query real dispatches today (since midnight UTC)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        q_sent = select(func.count(OutreachEvent.id)).where(
+            OutreachEvent.event_type == "email_dispatched",
+            OutreachEvent.created_at >= today_start
+        )
+        sent_today = (await session.execute(q_sent)).scalar() or 0
+
+        rollout = campaign_config_loader.get_rollout_config()
+        rollout_cap = rollout.daily_max_real_emails
+
+        # Safe capacity bounds: Minimum of safe account limits and current rollout stage ceiling
+        sender_remaining = max(0, safe_per_sender_daily - sent_today)
+        rollout_remaining = max(0, rollout_cap - sent_today)
+        available_capacity = min(sender_remaining, rollout_remaining)
+
+        # Total production capacity required for 18 countries x 10/day = 180/day
+        target_production_volume = 180
+        accounts_needed_for_target = (target_production_volume + safe_per_sender_daily - 1) // safe_per_sender_daily
+
+        return {
+            "provider": provider_name,
+            "sender_email": from_email,
+            "safe_per_sender_daily_limit": safe_per_sender_daily,
+            "configured_senders_count": 1,
+            "sent_today": sent_today,
+            "rollout_stage": rollout.current_level,
+            "rollout_stage_name": rollout.current_level_name,
+            "rollout_daily_cap": rollout_cap,
+            "available_capacity": available_capacity,
+            "capacity_exhausted": available_capacity <= 0,
+            "is_single_account_safe": safe_per_sender_daily <= 30,
+            "target_production_volume": target_production_volume,
+            "accounts_needed_for_180_daily": accounts_needed_for_target,
+            "senders": [
+                {
+                    "email": from_email,
+                    "provider": provider_name,
+                    "safe_limit": safe_per_sender_daily,
+                    "sent_today": sent_today,
+                    "available": sender_remaining
+                }
+            ]
+        }
+
 
 sender_registry = SenderRegistry()

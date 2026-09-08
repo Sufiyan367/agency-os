@@ -121,7 +121,38 @@ class AutonomousCycleOrchestrator:
                     )
                     break
 
-                # 2b. Lead Discovery: Request/discover exactly ONE new real prospect (target=1)
+                # 2b. Lead Discovery: Check daily country (max 10) and global (max 180) qualified prospect ceilings
+                today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                from sqlalchemy import select, func
+                q_glob = select(func.count(Business.id)).where(
+                    Business.pipeline_stage.in_([
+                        PipelineStage.APPROVAL.value,
+                        PipelineStage.OUTREACH_READY.value,
+                        PipelineStage.CONTACTED.value,
+                        PipelineStage.WON.value
+                    ]),
+                    Business.created_at >= today_start
+                )
+                glob_qualified_today = (await session.execute(q_glob)).scalar() or 0
+                if glob_qualified_today >= 180:
+                    logger.info(f"[DiscoveryCeiling] Global daily qualified prospect ceiling reached ({glob_qualified_today}/180). Halting discovery.")
+                    break
+
+                q_cntry = select(func.count(Business.id)).where(
+                    Business.country == best_market.country_code,
+                    Business.pipeline_stage.in_([
+                        PipelineStage.APPROVAL.value,
+                        PipelineStage.OUTREACH_READY.value,
+                        PipelineStage.CONTACTED.value,
+                        PipelineStage.WON.value
+                    ]),
+                    Business.created_at >= today_start
+                )
+                cntry_qualified_today = (await session.execute(q_cntry)).scalar() or 0
+                if cntry_qualified_today >= 10:
+                    logger.info(f"[DiscoveryCeiling] Country {best_market.country_code} daily qualified prospect ceiling reached ({cntry_qualified_today}/10). Skipping further discovery in this corridor today.")
+                    break
+
                 logger.info(f"--> [Prospect {prospect_idx + 1}/{total_targets}] Requesting discovery of exactly 1 real prospect (target=1)...")
                 await activity_broadcaster.record_event(
                     session=session,
@@ -527,30 +558,60 @@ class AutonomousCycleOrchestrator:
 
                 if auto_dispatch:
                     # 2i. Autonomous Outreach Execution (Direct dispatch when AUTONOMOUS_OUTREACH=True)
-                    logger.info(f"[Prospect {biz.domain}] Dispatching autonomous outreach message...")
-                    try:
-                        from app.agents.revenue_agent import revenue_agent_orchestrator
-                        revenue_agent_orchestrator.current_operation = f"Dispatching outreach email for {biz.domain} (SIMULATED DRY RUN)"
-                        revenue_agent_orchestrator.current_pipeline_stage = PipelineStage.CONTACTED.value
-                    except Exception:
-                        pass
+                    from app.campaigns.sender_registry import sender_registry
+                    capacity_info = await sender_registry.get_sender_capacity_summary(session)
+                    if capacity_info.get("capacity_exhausted", False):
+                        logger.info(
+                            f"[Prospect {biz.domain}] Dispatch safely deferred: Daily capacity cap reached "
+                            f"(Sent today: {capacity_info['sent_today']}, Cap: {capacity_info['rollout_daily_cap']}). "
+                            f"Message {msg.id} remains queued in APPROVED status."
+                        )
+                        await activity_broadcaster.record_event(
+                            session=session,
+                            run_id=run_id,
+                            event_type="DISPATCH_QUEUED",
+                            message=f"Outreach message queued in APPROVED status for {biz.name}. Daily outbound capacity cap reached ({capacity_info['sent_today']} sent today).",
+                            business_id=biz.id,
+                            domain=biz.domain,
+                            status="INFO",
+                            metadata_json={"message_id": msg.id, "capacity_info": capacity_info}
+                        )
+                    else:
+                        logger.info(f"[Prospect {biz.domain}] Dispatching autonomous outreach message...")
+                        try:
+                            from app.agents.revenue_agent import revenue_agent_orchestrator
+                            revenue_agent_orchestrator.current_operation = f"Dispatching outreach email for {biz.domain} (SIMULATED DRY RUN)"
+                            revenue_agent_orchestrator.current_pipeline_stage = PipelineStage.CONTACTED.value
+                        except Exception:
+                            pass
 
-                    await activity_broadcaster.record_event(
-                        session=session,
-                        run_id=run_id,
-                        event_type=AgentEventType.OUTREACH_DISPATCH_STARTED.value,
-                        message=f"Initiating autonomous dispatch to {msg.recipient_email} (DRY RUN SAFE)...",
-                        business_id=biz.id,
-                        domain=biz.domain,
-                        status="INFO"
-                    )
+                        await activity_broadcaster.record_event(
+                            session=session,
+                            run_id=run_id,
+                            event_type=AgentEventType.OUTREACH_DISPATCH_STARTED.value,
+                            message=f"Initiating autonomous dispatch to {msg.recipient_email} (DRY RUN SAFE)...",
+                            business_id=biz.id,
+                            domain=biz.domain,
+                            status="INFO"
+                        )
 
-                    try:
-                        await outreach_sender_adapter.send_approved_message(session, msg.id)
-                        sent_count += 1
-                    except Exception as e:
-                        logger.error(f"[Prospect {biz.domain}] Send failed: {e}")
-                        failed_count += 1
+                        try:
+                            await outreach_sender_adapter.send_approved_message(session, msg.id)
+                            sent_count += 1
+                        except Exception as e:
+                            logger.error(f"[Prospect {biz.domain}] Send failed: {e}")
+                            failed_count += 1
+                            await activity_broadcaster.record_event(
+                                session=session,
+                                run_id=run_id,
+                                event_type=AgentEventType.OUTREACH_FAILED.value,
+                                message=f"Outreach dispatch failed for {biz.domain}: {e}",
+                                business_id=biz.id,
+                                domain=biz.domain,
+                                status="FAILED",
+                                error=str(e)
+                            )
+                            continue
                         await activity_broadcaster.record_event(
                             session=session,
                             run_id=run_id,

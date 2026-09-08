@@ -6,33 +6,33 @@ rollout:
       daily_max_real_emails: 0
       description: Complete pipeline verification with zero real external socket dispatch.
     1:
-      name: Pilot Single-Outreach
+      name: Pilot Single-Outreach (Canary)
       daily_max_real_emails: 1
-      description: Strict single verified lead test with mandatory CEO sign-off.
+      description: Strict single verified lead test with verified delivery signals.
     2:
       name: Controlled Low Volume
       daily_max_real_emails: 5
-      description: Low-rate validation across verified leads.
+      description: Low-rate validation across verified leads (5/day).
     3:
       name: Target Base Tier
       daily_max_real_emails: 10
-      description: Single-country full quota proof.
+      description: Single-country full quota proof (10/day).
     4:
-      name: 3 Countries Live
-      daily_max_real_emails: 30
-      description: Gradual expansion across 3 live countries.
+      name: Multi-Corridor Scaling
+      daily_max_real_emails: 20
+      description: Gradual expansion across active corridors (20/day).
     5:
-      name: 6 Countries Live
-      daily_max_real_emails: 60
-      description: Regional expansion across 6 live countries.
+      name: Regional Expansion
+      daily_max_real_emails: 50
+      description: Regional expansion across active international corridors (50/day).
     6:
-      name: 12 Countries Live
-      daily_max_real_emails: 120
-      description: Broad rollout across 12 live countries.
+      name: Broad International Rollout
+      daily_max_real_emails: 100
+      description: Broad rollout across international corridors (100/day).
     7:
       name: All 18 Countries Live
       daily_max_real_emails: 180
-      description: 10 emails/day across all 18 configured international countries.
+      description: 10 qualified prospects/day across all 18 configured international countries (180/day).
 countries:
 - code: US
   name: United States
@@ -54,7 +54,7 @@ countries:
   currency: GBP
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: UK-GDPR / PECR
@@ -68,7 +68,7 @@ countries:
   currency: CAD
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: CASL
@@ -82,7 +82,7 @@ countries:
   currency: AUD
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Spam Act 2003
@@ -96,7 +96,7 @@ countries:
   currency: AED
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: UAE Federal Data Protection
@@ -109,7 +109,7 @@ countries:
   currency: SAR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Saudi PDPL
@@ -122,7 +122,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / UWG
@@ -136,7 +136,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / CNIL
@@ -150,7 +150,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / Telecommunicatiewet
@@ -164,7 +164,7 @@ countries:
   currency: SEK
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / Marketing Act
@@ -178,7 +178,7 @@ countries:
   currency: SGD
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Spam Control Act / PDPA
@@ -192,7 +192,7 @@ countries:
   currency: JPY
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Specified Electronic Mail Act
@@ -206,7 +206,7 @@ countries:
   currency: NZD
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Unsolicited Electronic Messages Act 2007
@@ -220,7 +220,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / ePrivacy SI 336
@@ -234,7 +234,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / LSSI-CE
@@ -248,7 +248,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / Codice Privacy
@@ -262,7 +262,7 @@ countries:
   currency: CHF
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Swiss FADP / UWG Art 3
@@ -276,7 +276,7 @@ countries:
   currency: QAR
   language: en
   daily_quota: 10
-  enabled: true
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Law No. 13 of 2016 PDP

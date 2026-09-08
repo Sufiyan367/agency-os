@@ -88,6 +88,41 @@ async def get_rollout_configuration():
         )
 
 
+@campaign_router.get("/overview", response_model=Dict[str, Any])
+async def get_production_overview(session: AsyncSession = Depends(get_db)):
+    """
+    Returns unified production rollout telemetry showing all 11 core metrics:
+    active countries, qualified prospects, auto-rejected, auto-approved,
+    available sender capacity, queued, sent, delivery failures/bounces,
+    replies, interested leads, and CEO exceptions.
+    """
+    try:
+        data = await campaign_service.get_overview_summary(session)
+        return {"status": "SUCCESS", "telemetry": data}
+    except Exception as e:
+        logger.error(f"[CampaignsAPI] Failed fetching overview telemetry: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve production overview: {str(e)}"
+        )
+
+
+@campaign_router.post("/rollout/advance", response_model=Dict[str, Any])
+async def advance_rollout_stage(session: AsyncSession = Depends(get_db)):
+    """
+    Advances progressive rollout stage based on validated real-world delivery/reputation signals.
+    """
+    try:
+        res = await campaign_service.advance_rollout_if_eligible(session)
+        return {"status": "SUCCESS" if res["advanced"] else "HELD", "result": res}
+    except Exception as e:
+        logger.error(f"[CampaignsAPI] Rollout advancement failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to evaluate rollout advancement: {str(e)}"
+        )
+
+
 @campaign_router.post("/rollout/level", response_model=Dict[str, Any])
 async def set_rollout_level(req: RolloutLevelUpdateRequest):
     """

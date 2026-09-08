@@ -43,8 +43,12 @@ class CampaignService:
                 session.add(camp)
                 await session.flush()
                 campaigns.append(camp)
-                logger.info(f"[CampaignService] Seeded campaign '{camp.name}' ({c.code})")
             else:
+                target_status = "ACTIVE" if c.enabled else "PAUSED"
+                if existing.enabled != c.enabled or existing.status != target_status:
+                    existing.enabled = c.enabled
+                    existing.status = target_status
+                    logger.info(f"[CampaignService] Synced campaign '{existing.name}' ({c.code}): enabled={c.enabled}, status={target_status}")
                 campaigns.append(existing)
 
         await session.commit()
@@ -166,7 +170,8 @@ class CampaignService:
         return camp
 
     async def get_overview_summary(self, session: AsyncSession) -> Dict[str, Any]:
-        """Calculates executive campaign telemetry for CEO overview."""
+        """Calculates complete executive campaign & rollout telemetry for CEO overview."""
+        from app.database.models import Business, PipelineStage, OutreachEvent
         campaigns = await self.list_campaigns(session)
         total_campaigns = len(campaigns)
         active_campaigns = sum(1 for c in campaigns if c.status == "ACTIVE" and c.enabled)
@@ -175,28 +180,196 @@ class CampaignService:
         today_remaining_total = sum(c.today_remaining for c in campaigns)
         total_replies = sum(c.replies_count for c in campaigns)
         total_interested = sum(c.interested_count for c in campaigns)
+        total_bounces = sum(c.bounces_count for c in campaigns)
 
         rollout = campaign_config_loader.get_rollout_config()
+        sender_cap = await sender_registry.get_sender_capacity_summary(session)
+
+        # 1. Qualified prospects discovered
+        q_qualified = select(func.count(Business.id)).where(
+            Business.verification_status == "VERIFIED",
+            Business.pipeline_stage.in_([
+                PipelineStage.APPROVAL.value,
+                PipelineStage.OUTREACH_READY.value,
+                PipelineStage.CONTACTED.value,
+                PipelineStage.REPLIED.value,
+                PipelineStage.MEETING.value,
+                PipelineStage.PROPOSAL.value,
+                PipelineStage.WON.value
+            ])
+        )
+        qualified_discovered = (await session.execute(q_qualified)).scalar() or 0
+
+        # 2. Auto-rejected (<$500 floor or verification failure)
+        q_rejected = select(func.count(Business.id)).where(
+            Business.pipeline_stage == PipelineStage.REJECTED.value
+        )
+        auto_rejected = (await session.execute(q_rejected)).scalar() or 0
+
+        # 3. Auto-approved (deals >= $500 passing compliance and risk gates)
+        q_approved = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status.in_([OutreachStatus.APPROVED.value, OutreachStatus.SENT.value])
+        )
+        auto_approved = (await session.execute(q_approved)).scalar() or 0
+
+        # 4. Queued (messages waiting in PENDING_APPROVAL or APPROVED awaiting sender capacity)
+        q_queued = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status.in_([OutreachStatus.PENDING_APPROVAL.value, OutreachStatus.APPROVED.value])
+        )
+        queued = (await session.execute(q_queued)).scalar() or 0
+
+        # 5. Sent
+        q_sent_all = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status == OutreachStatus.SENT.value
+        )
+        total_sent = (await session.execute(q_sent_all)).scalar() or 0
+
+        # 6. Delivery failures & bounces
+        q_fails = select(func.count(OutreachEvent.id)).where(
+            OutreachEvent.event_type.in_(["email_delivery_failed", "email_bounced", "outreach_failed"])
+        )
+        failures = (await session.execute(q_fails)).scalar() or 0
+        delivery_failures_bounces = failures + total_bounces
+
+        # 7. CEO Exceptions (failures, escalations, or manual reviews required)
+        q_exceptions = select(func.count(Reply.id)).where(
+            Reply.is_handled == False,
+            Reply.classification.in_(["HUMAN_REVIEW_REQUIRED", "UNKNOWN", "ESCALATED"])
+        )
+        try:
+            ceo_exceptions = (await session.execute(q_exceptions)).scalar() or 0
+        except Exception:
+            ceo_exceptions = 0
+
+        # Signal-based advancement eligibility
+        advancement_eval = await self.evaluate_rollout_advancement(session)
+
+        # 11 Specific Dashboard Telemetry Metrics
+        today_discovery_target = active_campaigns * 10
+        bounce_rate_val = advancement_eval.get("bounce_rate_pct", 0.0)
+        reply_rate_val = round((total_replies / total_sent * 100) if total_sent > 0 else 0.0, 2)
+        remaining_sends_to_advance = max(0, advancement_eval.get("required_sends", 1) - advancement_eval.get("live_sends", 0))
+        estimated_days = 0 if advancement_eval.get("eligible", False) else max(1, remaining_sends_to_advance)
 
         return {
-            "total_campaigns": total_campaigns,
-            "active_campaigns": active_campaigns,
-            "total_daily_target_capacity": total_daily_quota,
+            # 11 Telemetry Metrics
+            "current_rollout_stage": rollout.current_level,
+            "rollout_stage_name": rollout.current_level_name,
+            "today_discovery_target": today_discovery_target,
+            "today_discovery_actual": qualified_discovered,
+            "today_outbound_limit": rollout.daily_max_real_emails,
+            "today_outbound_actual": today_sent_total,
+            "active_countries_count": active_campaigns,
+            "paused_countries_count": total_campaigns - active_campaigns,
+            "total_qualified_leads_in_queue": queued,
+            "bounce_rate": bounce_rate_val,
+            "reply_rate": reply_rate_val,
+            "sender_accounts_active": sender_cap.get("configured_senders_count", 1),
+            "estimated_days_to_next_stage": estimated_days,
+
+            # General Metrics
+            "countries_active": active_campaigns,
+            "total_countries_configured": total_campaigns,
+            "qualified_prospects_discovered": qualified_discovered,
+            "auto_rejected": auto_rejected,
+            "auto_approved": auto_approved,
+            "available_sender_capacity": sender_cap["available_capacity"],
+            "sender_capacity_summary": sender_cap,
+            "queued": queued,
+            "sent": total_sent,
             "today_sent": today_sent_total,
-            "today_remaining": today_remaining_total,
-            "total_replies": total_replies,
-            "total_interested": total_interested,
+            "delivery_failures_bounces": delivery_failures_bounces,
+            "replies": total_replies,
+            "interested_leads": total_interested,
+            "ceo_exceptions": ceo_exceptions,
             "rollout_level": rollout.current_level,
             "rollout_level_name": rollout.current_level_name,
             "daily_max_real_emails": rollout.daily_max_real_emails,
             "is_simulation": rollout.is_simulation,
-            "campaigns": [c.dict() for c in campaigns[:6]]  # top corridors for overview
+            "rollout_advancement": advancement_eval,
+            "total_daily_target_capacity": total_daily_quota,
+            "campaigns": [c.dict() for c in campaigns[:6]]
         }
 
+    async def evaluate_rollout_advancement(self, session: AsyncSession) -> Dict[str, Any]:
+        """
+        Evaluates whether real-world delivery, reputation, and compliance signals
+        warrant advancing to the next progressive rollout stage.
+        Advancement depends on proven performance, not simply time:
+        - Stage 1 (1/day): Requires >=1 verified live send with 0 bounces and 0 complaints.
+        - Stage 2 (5/day): Requires >=5 successful sends with <5% bounce rate.
+        - Stage 3 (10/day): Requires >=10 successful sends with <5% bounce rate.
+        - Stage 4 (20/day): Requires >=20 successful sends with <3% bounce rate.
+        - Stage 5 (50/day): Requires >=50 successful sends with <2% bounce rate.
+        - Stage 6 (100/day): Requires >=100 successful sends with <2% bounce rate.
+        """
+        from app.database.models import OutreachEvent
+        rollout = campaign_config_loader.get_rollout_config()
+        current_lvl = rollout.current_level
 
-    def get_rollout_status(self) -> RolloutConfigDTO:
-        """Returns the current rollout status and levels."""
-        return campaign_config_loader.get_rollout_config()
+        # Query total live sends
+        q_live = select(func.count(OutreachEvent.id)).where(
+            OutreachEvent.event_type == "email_dispatched"
+        )
+        live_sends = (await session.execute(q_live)).scalar() or 0
+
+        # Query total bounces
+        q_bnc = select(func.count(Reply.id)).where(Reply.classification == "BOUNCE")
+        bounces = (await session.execute(q_bnc)).scalar() or 0
+
+        bounce_rate = (bounces / live_sends * 100) if live_sends > 0 else 0.0
+
+        stage_requirements = {
+            0: {"min_sends": 0, "max_bounce_pct": 0.0, "next": 1},
+            1: {"min_sends": 1, "max_bounce_pct": 0.0, "next": 2},
+            2: {"min_sends": 5, "max_bounce_pct": 5.0, "next": 3},
+            3: {"min_sends": 10, "max_bounce_pct": 5.0, "next": 4},
+            4: {"min_sends": 20, "max_bounce_pct": 3.0, "next": 5},
+            5: {"min_sends": 5, "max_bounce_pct": 2.0, "next": 6},
+            6: {"min_sends": 100, "max_bounce_pct": 2.0, "next": 7},
+            7: {"min_sends": 180, "max_bounce_pct": 2.0, "next": 7}
+        }
+
+        req = stage_requirements.get(current_lvl, {"min_sends": 999, "max_bounce_pct": 0.0, "next": current_lvl})
+        has_sufficient_volume = live_sends >= req["min_sends"]
+        reputation_healthy = bounce_rate <= req["max_bounce_pct"]
+        is_eligible = has_sufficient_volume and reputation_healthy and current_lvl < 7
+
+        reason = (
+            f"Stage {current_lvl} verified: {live_sends}/{req['min_sends']} sends completed with {bounce_rate:.1f}% bounce rate (max {req['max_bounce_pct']}%). Eligible to advance to Stage {req['next']}."
+            if is_eligible
+            else f"Current stage {current_lvl}: {live_sends}/{req['min_sends']} sends completed (bounce rate: {bounce_rate:.1f}%)."
+        )
+
+        return {
+            "current_stage": current_lvl,
+            "current_stage_name": rollout.current_level_name,
+            "current_daily_cap": rollout.daily_max_real_emails,
+            "eligible_for_advancement": is_eligible,
+            "next_stage": req["next"],
+            "live_sends_completed": live_sends,
+            "bounces_recorded": bounces,
+            "bounce_rate_pct": round(bounce_rate, 2),
+            "reputation_healthy": reputation_healthy,
+            "reason": reason
+        }
+
+    async def advance_rollout_if_eligible(self, session: AsyncSession) -> Dict[str, Any]:
+        """Advances rollout stage only when real-world delivery and reputation signals pass."""
+        eval_res = await self.evaluate_rollout_advancement(session)
+        if not eval_res["eligible_for_advancement"]:
+            return {"advanced": False, "reason": eval_res["reason"], "status": eval_res}
+
+        next_lvl = eval_res["next_stage"]
+        new_config = campaign_config_loader.set_rollout_level(next_lvl, allow_bulk=True)
+        return {
+            "advanced": True,
+            "previous_stage": eval_res["current_stage"],
+            "new_stage": next_lvl,
+            "new_stage_name": new_config.current_level_name,
+            "new_daily_cap": new_config.daily_max_real_emails,
+            "reason": eval_res["reason"]
+        }
 
     def set_rollout_level(self, level: int, allow_bulk: bool = False) -> RolloutConfigDTO:
         """Sets the active progressive rollout level."""
