@@ -492,9 +492,10 @@ class AutonomousCycleOrchestrator:
                     status="INFO"
                 )
 
+                auto_dispatch = getattr(settings, "AUTONOMOUS_OUTREACH", False)
                 msg = None
                 try:
-                    msg = await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=True)
+                    msg = await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=auto_dispatch)
                     drafted_count += 1
                 except Exception as e:
                     logger.warning(f"[Prospect {biz.domain}] Outreach drafting failed: {e}")
@@ -504,7 +505,7 @@ class AutonomousCycleOrchestrator:
                     session=session,
                     run_id=run_id,
                     event_type=AgentEventType.OUTREACH_DRAFTED.value,
-                    message=f"Outreach message drafted for {biz.name}: '{msg.subject}'.",
+                    message=f"Outreach message drafted for {biz.name}: '{msg.subject}'. Status: {msg.status}.",
                     business_id=biz.id,
                     domain=biz.domain,
                     status="SUCCESS",
@@ -516,6 +517,7 @@ class AutonomousCycleOrchestrator:
                         "variant": msg.variant_name,
                         "from_email": settings.EMAIL_FROM,
                         "from_name": settings.OUTREACH_FROM_NAME,
+                        "status": msg.status,
                         "audit_evidence": {
                             "performance_score": perf_score,
                             "load_time_seconds": load_time
@@ -523,42 +525,45 @@ class AutonomousCycleOrchestrator:
                     }
                 )
 
-                # 2i. Autonomous Outreach Execution (Direct dispatch without human approval gate)
-                logger.info(f"[Prospect {biz.domain}] Dispatching autonomous outreach message...")
-                try:
-                    from app.agents.revenue_agent import revenue_agent_orchestrator
-                    revenue_agent_orchestrator.current_operation = f"Dispatching outreach email for {biz.domain} (SIMULATED DRY RUN)"
-                    revenue_agent_orchestrator.current_pipeline_stage = PipelineStage.CONTACTED.value
-                except Exception:
-                    pass
+                if auto_dispatch:
+                    # 2i. Autonomous Outreach Execution (Direct dispatch when AUTONOMOUS_OUTREACH=True)
+                    logger.info(f"[Prospect {biz.domain}] Dispatching autonomous outreach message...")
+                    try:
+                        from app.agents.revenue_agent import revenue_agent_orchestrator
+                        revenue_agent_orchestrator.current_operation = f"Dispatching outreach email for {biz.domain} (SIMULATED DRY RUN)"
+                        revenue_agent_orchestrator.current_pipeline_stage = PipelineStage.CONTACTED.value
+                    except Exception:
+                        pass
 
-                await activity_broadcaster.record_event(
-                    session=session,
-                    run_id=run_id,
-                    event_type=AgentEventType.OUTREACH_DISPATCH_STARTED.value,
-                    message=f"Initiating autonomous dispatch to {msg.recipient_email} (DRY RUN SAFE)...",
-                    business_id=biz.id,
-                    domain=biz.domain,
-                    status="INFO"
-                )
-
-                try:
-                    await outreach_sender_adapter.send_approved_message(session, msg.id)
-                    sent_count += 1
-                except Exception as e:
-                    logger.error(f"[Prospect {biz.domain}] Send failed: {e}")
-                    failed_count += 1
                     await activity_broadcaster.record_event(
                         session=session,
                         run_id=run_id,
-                        event_type=AgentEventType.OUTREACH_FAILED.value,
-                        message=f"Outreach dispatch failed for {biz.domain}: {e}",
+                        event_type=AgentEventType.OUTREACH_DISPATCH_STARTED.value,
+                        message=f"Initiating autonomous dispatch to {msg.recipient_email} (DRY RUN SAFE)...",
                         business_id=biz.id,
                         domain=biz.domain,
-                        status="FAILED",
-                        error=str(e)
+                        status="INFO"
                     )
-                    continue
+
+                    try:
+                        await outreach_sender_adapter.send_approved_message(session, msg.id)
+                        sent_count += 1
+                    except Exception as e:
+                        logger.error(f"[Prospect {biz.domain}] Send failed: {e}")
+                        failed_count += 1
+                        await activity_broadcaster.record_event(
+                            session=session,
+                            run_id=run_id,
+                            event_type=AgentEventType.OUTREACH_FAILED.value,
+                            message=f"Outreach dispatch failed for {biz.domain}: {e}",
+                            business_id=biz.id,
+                            domain=biz.domain,
+                            status="FAILED",
+                            error=str(e)
+                        )
+                        continue
+                else:
+                    logger.info(f"[Prospect {biz.domain}] Outreach message created in PENDING_APPROVAL status. Queued for human CEO review (AUTONOMOUS_OUTREACH=False).")
 
                 await activity_broadcaster.record_event(
                     session=session,
