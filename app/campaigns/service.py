@@ -198,9 +198,9 @@ class CampaignService:
         """Returns the current rollout status and levels."""
         return campaign_config_loader.get_rollout_config()
 
-    def set_rollout_level(self, level: int) -> RolloutConfigDTO:
+    def set_rollout_level(self, level: int, allow_bulk: bool = False) -> RolloutConfigDTO:
         """Sets the active progressive rollout level."""
-        return campaign_config_loader.set_rollout_level(level)
+        return campaign_config_loader.set_rollout_level(level, allow_bulk=allow_bulk)
 
     async def get_campaign_dto(self, session: AsyncSession, camp: Campaign) -> CampaignDTO:
         """Enriches a single campaign record into CampaignDTO."""

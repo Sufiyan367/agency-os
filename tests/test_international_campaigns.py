@@ -130,6 +130,42 @@ async def test_rollout_progression_levels_0_to_7(db_session):
 
 
 @pytest.mark.asyncio
+async def test_first_live_mode_rollout_cap_regression():
+    """
+    REGRESSION: Ensure first live validation is strictly capped at Level 1 (Canary: 1 real send)
+    and blocks bulk multi-country dispatch (Levels 2-7) unless explicit override is provided.
+    """
+    # 1. Level 0 (Simulation) is allowed
+    cfg0 = campaign_service.set_rollout_level(0)
+    assert cfg0.current_level == 0
+    assert cfg0.daily_max_real_emails == 0
+    assert cfg0.is_simulation is True
+
+    # 2. Level 1 (Canary 1-send) is allowed
+    cfg1 = campaign_service.set_rollout_level(1)
+    assert cfg1.current_level == 1
+    assert cfg1.daily_max_real_emails == 1
+    assert cfg1.is_simulation is False
+
+    # 3. Levels 2 through 7 MUST be rejected during first-client validation
+    for blocked_level in [2, 3, 4, 5, 6, 7]:
+        with pytest.raises(ValueError) as excinfo:
+            campaign_service.set_rollout_level(blocked_level)
+        assert "First live validation is strictly capped" in str(excinfo.value)
+        assert f"Level {blocked_level}" in str(excinfo.value)
+
+    # 4. Explicit allow_bulk=True permits testing of higher levels
+    cfg7 = campaign_service.set_rollout_level(7, allow_bulk=True)
+    assert cfg7.current_level == 7
+    assert cfg7.daily_max_real_emails == 180
+
+    # 5. Reset safely back to Level 0 (Simulation)
+    cfg_reset = campaign_service.set_rollout_level(0)
+    assert cfg_reset.current_level == 0
+    assert cfg_reset.is_simulation is True
+
+
+@pytest.mark.asyncio
 async def test_country_aware_timezone_scheduling():
     """
     INVARIANT 4: Sending window enforced strictly per recipient country's IANA timezone.
@@ -278,10 +314,14 @@ async def test_campaign_api_routes(db_session):
         assert "rollout" in data_r
         assert data_r["rollout"]["current_level"] == 0
 
-        # 3. POST /api/campaigns/rollout/level
-        res_lvl = await client.post("/api/campaigns/rollout/level", json={"level": 2, "confirm": True})
+        # 3. POST /api/campaigns/rollout/level (Level 1 Canary succeeds, Level 2 is locked)
+        res_lvl = await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
         assert res_lvl.status_code == 200
-        assert res_lvl.json()["rollout"]["current_level"] == 2
+        assert res_lvl.json()["rollout"]["current_level"] == 1
+
+        res_blocked = await client.post("/api/campaigns/rollout/level", json={"level": 2, "confirm": True})
+        assert res_blocked.status_code == 400
+        assert "First live validation is strictly capped" in res_blocked.json()["detail"]
 
         # Reset back to Level 0
         await client.post("/api/campaigns/rollout/level", json={"level": 0, "confirm": True})

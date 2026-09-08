@@ -1011,8 +1011,15 @@ function renderCeoCampaigns(summary) {
     const capacityBadge = document.getElementById('campaigns-capacity-badge');
     if (capacityBadge) {
         const sent = summary.total_today_sent ?? 0;
-        const cap = summary.total_daily_capacity || 180;
-        capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY`;
+        const rolloutLvl = summary.rollout ? summary.rollout.current_level : 0;
+        if (rolloutLvl === 0) {
+            capacityBadge.textContent = 'SIMULATION MODE (0 SENDS)';
+        } else if (rolloutLvl === 1) {
+            capacityBadge.textContent = `${sent}/1 REAL SEND CANARY`;
+        } else {
+            const cap = summary.total_daily_capacity || 180;
+            capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY`;
+        }
     }
 
     // Render Corridor Rows (Responsive 3-Zone Flex Layout)
@@ -1029,8 +1036,8 @@ function renderCeoCampaigns(summary) {
         const flag = COUNTRY_FLAGS_MAP[c.country_code] || '🌐';
         const isActive = (c.status === 'ACTIVE' && c.enabled);
         const statusBadge = isActive
-            ? '<span class="badge" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); padding:3px 8px; border-radius:4px; font-weight:600; font-size:0.68rem; letter-spacing:0.02em; display:inline-flex; align-items:center;">ACTIVE</span>'
-            : '<span class="badge" style="background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); padding:3px 8px; border-radius:4px; font-weight:600; font-size:0.68rem; letter-spacing:0.02em; display:inline-flex; align-items:center;">PAUSED</span>';
+            ? '<span class="badge corridor-status-badge" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25);">ACTIVE</span>'
+            : '<span class="badge corridor-status-badge" style="background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.25);">PAUSED</span>';
 
         const windowText = c.is_in_sending_window
             ? `● OPEN (${escapeHtml(c.local_time_formatted || '')})`
@@ -1039,15 +1046,16 @@ function renderCeoCampaigns(summary) {
         const bRate = Number(c.bounce_rate || 0.0);
 
         return `
-            <div class="corridor-row" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.04); min-width:0; width:100%; box-sizing:border-box; transition:background 0.12s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                <!-- Left: Country code & name -->
-                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; min-width:140px; max-width:170px;">
+            <div class="corridor-row" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                <!-- Left: Country code & name (e.g. AE — United Arab Emirates) -->
+                <div class="corridor-zone-left">
                     <span class="badge" style="font-family:var(--font-mono); font-size:0.68rem; font-weight:700; background:rgba(255,255,255,0.06); color:#f4f4f5; border:1px solid rgba(255,255,255,0.12); padding:2px 5px; border-radius:4px; flex-shrink:0;">${escapeHtml(c.country_code)}</span>
+                    <span style="color:#71717a; font-size:0.75rem; flex-shrink:0;">—</span>
                     <span style="font-weight:500; color:#d4d4d8; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(c.country_name || '')}">${escapeHtml(c.country_name || '')}</span>
                 </div>
 
                 <!-- Middle: Corridor description + telemetry (gracefully truncates with ellipsis) -->
-                <div style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px; overflow:hidden; padding:0 10px;">
+                <div class="corridor-zone-middle">
                     <div style="font-size:0.75rem; font-weight:600; color:#f4f4f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(c.name || '')}">
                         ${escapeHtml(c.name || '')}
                     </div>
@@ -1057,7 +1065,7 @@ function renderCeoCampaigns(summary) {
                 </div>
 
                 <!-- Right: Status Badge (Always fully visible, pinned right) -->
-                <div style="flex-shrink:0; margin-left:auto; display:flex; align-items:center;">
+                <div class="corridor-zone-right">
                     ${statusBadge}
                 </div>
             </div>
@@ -1067,6 +1075,11 @@ function renderCeoCampaigns(summary) {
 
 async function handleRolloutLevelChange(level) {
     const levelInt = parseInt(level, 10);
+    if (levelInt > 1) {
+        alert('[FIRST-LIVE VALIDATION LOCK]\n\nAdvancement beyond Level 1 is disabled during initial client validation.\nMaximum permitted live volume is strictly 1 real outbound email (Level 1: Canary).');
+        await loadCeoControlCenter();
+        return;
+    }
     const confirmed = window.confirm(
         `[CEO AUTHORIZATION REQUIRED]\n\nDo you explicitly authorize adjusting the Outbound Campaign Rollout to Level ${levelInt}?\n\n` +
         (levelInt > 0 ? `WARNING: Level ${levelInt} enables real outbound transmissions up to that stage limit when live mode is engaged.` : 'Level 0 enforces 100% Simulation Mode (0 real sends).')

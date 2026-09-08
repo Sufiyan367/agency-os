@@ -40,6 +40,9 @@ DEFAULT_ROLLOUT_LEVELS: Dict[int, Dict[str, Any]] = {
 class CampaignConfigLoader:
     """Loads and caches international campaign configurations from YAML."""
 
+    # First-client live validation guard: By default, rollout level cannot exceed Level 1 (Canary: max 1 real send)
+    FIRST_CLIENT_VALIDATION_ACTIVE: bool = True
+
     def __init__(self, config_path: str = "config/international_campaigns.yaml"):
         self.config_path = config_path
         self._current_rollout_level: int = 0
@@ -56,7 +59,11 @@ class CampaignConfigLoader:
 
                 # Rollout config
                 rollout_data = data.get("rollout", {})
-                self._current_rollout_level = int(rollout_data.get("current_level", 0))
+                loaded_level = int(rollout_data.get("current_level", 0))
+                if self.FIRST_CLIENT_VALIDATION_ACTIVE and loaded_level > 1:
+                    logger.warning(f"[CampaignConfigLoader] Clamping rollout level from {loaded_level} to Level 1 (Canary 1-send lock for live validation).")
+                    loaded_level = 1
+                self._current_rollout_level = loaded_level
 
                 for lvl, info in rollout_data.get("levels", {}).items():
                     self._rollout_levels[int(lvl)] = RolloutLevelDTO(
@@ -105,9 +112,14 @@ class CampaignConfigLoader:
             levels=list(self._rollout_levels.values())
         )
 
-    def set_rollout_level(self, level: int) -> RolloutConfigDTO:
+    def set_rollout_level(self, level: int, allow_bulk: bool = False) -> RolloutConfigDTO:
         if level not in self._rollout_levels:
             raise ValueError(f"Invalid rollout level {level}. Allowed levels are 0 through 7.")
+        if level > 1 and getattr(self, "FIRST_CLIENT_VALIDATION_ACTIVE", True) and not allow_bulk:
+            raise ValueError(
+                f"First live validation is strictly capped at 1 real send (Level 1: Canary). "
+                f"Advancing to Level {level} (bulk multi-country dispatch) is blocked to protect sender reputation prior to CEO review."
+            )
         self._current_rollout_level = level
         logger.info(f"[CampaignConfigLoader] Rollout level set to {level} ({self._rollout_levels[level].name})")
         return self.get_rollout_config()

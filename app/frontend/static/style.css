@@ -2668,3 +2668,67 @@ body {
   overflow-wrap: break-word;
   min-width: 0;
 }
+
+/* International Campaigns 3-Zone Horizontal Layout */
+.corridor-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  transition: background 0.12s ease;
+}
+
+.corridor-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.corridor-zone-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px;
+  flex: 0 0 190px !important;
+  min-width: 160px !important;
+  max-width: 210px !important;
+  overflow: hidden !important;
+}
+
+.corridor-zone-middle {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px;
+  overflow: hidden !important;
+  padding: 0 10px;
+}
+
+.corridor-zone-right {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.corridor-status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.02em !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  white-space: nowrap !important;
+}
