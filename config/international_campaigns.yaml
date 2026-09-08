@@ -1,5 +1,5 @@
 rollout:
-  current_level: 0
+  current_level: 1
   levels:
     0:
       name: Simulation (Dry Run)
