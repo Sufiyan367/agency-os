@@ -70,16 +70,15 @@ class OutreachSenderAdapter:
         else:
             provider = get_email_provider()
 
-        # Phase 6 Hard First-Client Validation Limit: Strictly 1 real outbound email permitted
+        # Stage 1 Canary Outbound Governance: Strictly capacity-governed by daily rollout cap
         if is_live_send:
-            q_real = select(func.count(OutreachEvent.id)).where(
-                OutreachEvent.event_type == "email_dispatched"
-            )
-            real_sent_count = (await session.execute(q_real)).scalar() or 0
-            if real_sent_count >= 1:
+            from app.campaigns.sender_registry import sender_registry
+            cap_summary = await sender_registry.get_sender_capacity_summary(session)
+            if cap_summary.get("available_capacity", 0) <= 0:
                 raise ValueError(
-                    "First-client validation limit reached: Exactly 1 real outbound email is permitted in this pre-production phase. "
-                    f"Prior live send on record ({real_sent_count} sent). Further real sending is blocked to protect sender reputation prior to CEO review."
+                    f"Outbound dispatch blocked: Daily sender capacity exhausted for today "
+                    f"({cap_summary.get('sent_today', 0)}/{cap_summary.get('rollout_daily_cap', 1)} sent today under {cap_summary.get('rollout_stage_name', 'Canary')}). "
+                    f"Sender capacity will reset on next daily window."
                 )
 
         biz = await session.get(Business, msg.business_id) if msg.business_id else None

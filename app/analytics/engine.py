@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -45,6 +46,13 @@ class AnalyticsEngine:
         )).scalar() or 0
         outreach_sent = (await session.execute(
             select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value)
+        )).scalar() or 0
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        outreach_sent_today = (await session.execute(
+            select(func.count(OutreachMessage.id)).where(
+                OutreachMessage.status == OutreachStatus.SENT.value,
+                OutreachMessage.sent_at >= today_start
+            )
         )).scalar() or 0
 
         # 3. Replies & Sales Metrics
@@ -136,6 +144,8 @@ class AnalyticsEngine:
                 "pending_approval": outreach_pending,
                 "approved": outreach_approved,
                 "sent": outreach_sent,
+                "sent_lifetime": outreach_sent,
+                "sent_today": outreach_sent_today,
                 "approval_rate_pct": round((outreach_approved / outreach_total * 100), 1) if outreach_total > 0 else 0.0
             },
             "sales": {

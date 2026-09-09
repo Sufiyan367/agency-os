@@ -477,8 +477,12 @@ async function loadCeoControlCenter() {
         setElText('ceo-val-total-prospects', metrics.total_prospects ?? 0);
         setElText('val-leads', metrics.total_prospects ?? 0);
         setElText('ceo-val-qualified-prospects', metrics.qualified_prospects ?? 0);
-        setElText('val-qualified', metrics.qualified_prospects ?? 0);
         setElText('ceo-val-outreach-approval', metrics.outreach_awaiting_approval ?? 0);
+        setElText('val-outreach-sent', metrics.outreach_sent_lifetime ?? 0);
+        const subtextOutreach = document.getElementById('ceo-subtext-outreach-sent');
+        if (subtextOutreach) {
+            subtextOutreach.textContent = `Today: ${metrics.outreach_sent_today ?? 0} · Total: ${metrics.outreach_sent_lifetime ?? 0}`;
+        }
         setElText('ceo-val-interested-leads', metrics.interested_leads ?? 0);
         setElText('ceo-val-replies-pending', metrics.interested_leads ?? 0);
         setElText('ceo-val-active-demos', metrics.active_demos ?? 0);
@@ -1047,14 +1051,15 @@ function renderCeoCampaigns(summary) {
     const capacityBadge = document.getElementById('campaigns-capacity-badge');
     if (capacityBadge) {
         const sent = summary.total_today_sent ?? 0;
-        const rolloutLvl = summary.rollout ? summary.rollout.current_level : 0;
+        const total = summary.total_sent_lifetime ?? sent;
+        const rolloutLvl = summary.rollout_level ?? (summary.rollout ? summary.rollout.current_level : 0);
         if (rolloutLvl === 0) {
             capacityBadge.textContent = 'SIMULATION MODE (0 SENDS)';
         } else if (rolloutLvl === 1) {
-            capacityBadge.textContent = `${sent}/1 REAL SEND CANARY`;
+            capacityBadge.textContent = `${sent}/1 REAL SEND CANARY (TODAY: ${sent} · TOTAL: ${total})`;
         } else {
             const cap = summary.total_daily_capacity || 180;
-            capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY`;
+            capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY (TODAY: ${sent} · TOTAL: ${total})`;
         }
     }
 

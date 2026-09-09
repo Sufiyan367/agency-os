@@ -1753,6 +1753,25 @@ async def get_ceo_control_center_overview(
         select(func.count(Payment.id)).where(Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"]))
     )).scalar() or 0
 
+    # Real Outreach Dispatched: Lifetime vs Today vs Queued
+    q_sent_lifetime = select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value)
+    total_outreach_sent = (await db.execute(q_sent_lifetime)).scalar() or 0
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    q_sent_today = select(func.count(OutreachMessage.id)).where(
+        OutreachMessage.status == OutreachStatus.SENT.value,
+        OutreachMessage.sent_at >= today_start
+    )
+    sent_today = (await db.execute(q_sent_today)).scalar() or 0
+
+    q_queued_qualified = select(func.count(OutreachMessage.id)).where(
+        OutreachMessage.status.in_([OutreachStatus.APPROVED.value, OutreachStatus.PENDING_APPROVAL.value])
+    )
+    queued_qualified = (await db.execute(q_queued_qualified)).scalar() or 0
+
+    from app.campaigns.sender_registry import sender_registry
+    sender_cap = await sender_registry.get_sender_capacity_summary(db)
+
     revenue_collected = 0.0
     revenue_label = "$0.00 (Dry Run)"
 
@@ -1760,6 +1779,11 @@ async def get_ceo_control_center_overview(
         "total_prospects": total_prospects,
         "qualified_prospects": qualified_prospects,
         "outreach_awaiting_approval": outreach_awaiting_approval,
+        "outreach_sent": total_outreach_sent,
+        "outreach_sent_lifetime": total_outreach_sent,
+        "outreach_sent_today": sent_today,
+        "queued_qualified": queued_qualified,
+        "available_capacity": sender_cap.get("available_capacity", 0),
         "interested_leads": interested_leads,
         "active_demos": active_demos,
         "proposals_awaiting_action": proposals_awaiting_action,
@@ -2252,8 +2276,11 @@ async def get_ceo_control_center_overview(
         "active_campaigns_count": sum(1 for c in campaigns_list if c.status == "ACTIVE" and c.enabled),
         "total_campaigns_count": len(campaigns_list),
         "total_daily_capacity": sum(c.daily_quota for c in campaigns_list),
-        "total_today_sent": sum(c.today_sent for c in campaigns_list),
-        "total_today_remaining": sum(c.today_remaining for c in campaigns_list),
+        "total_today_sent": sent_today,
+        "total_sent_lifetime": total_outreach_sent,
+        "total_today_remaining": max(0, rollout_info.daily_max_real_emails - sent_today),
+        "available_capacity": sender_cap.get("available_capacity", 0),
+        "queued_qualified": queued_qualified,
         "campaigns": [c.model_dump() for c in campaigns_list]
     }
 

@@ -23,7 +23,9 @@ BLOCKED_DOMAINS = {
     "thisoldhouse.com", "bobvila.com", "thespruce.com", "merchantcircle.com",
     "ezlocal.com", "citysearch.com", "bizapedia.com", "opengovus.com", "x.com",
     "indeed.com", "glassdoor.com", "ziprecruiter.com", "kxan.com", "procore.com",
-    "re-thinkingthefuture.com", "azroofing.org", "g.co"
+    "re-thinkingthefuture.com", "azroofing.org", "g.co",
+    "zomato.com", "2gis.ae", "yello.ae", "timeoutdubai.com", "foursquare.com",
+    "talabat.com", "deliveroo.ae", "noon.com"
 }
 
 EXPANDED_CITIES = {
@@ -161,7 +163,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                         r = await client.get(url, headers=osm_headers)
                         if r.status_code == 200:
                             for item in r.json():
-                                tags = item.get("extratags", {})
+                                tags = item.get("extratags") or {}
                                 web = tags.get("website") or tags.get("contact:website")
                                 if not web or not web.startswith("http"):
                                     continue
