@@ -16,15 +16,35 @@ class MarketIntelligenceEngine:
     def calculate_opportunity_score(
         self, country: Country, niche: Niche
     ) -> OpportunityEvaluation:
-        # Market scale factor: reflects addressable volume and outreach feasibility for lead gen
-        market_scale_bonus = 20.0 if country.code == "US" else (10.0 if country.code in ("GB", "CA", "AU") else 0.0)
+        # Market scale & regional focus: Phase 1 prioritizes Middle East corridors
+        if country.code in ("AE", "SA", "QA", "KW", "OM", "BH", "JO"):
+            market_scale_bonus = 25.0
+            outreach_feasibility = 95.0
+        elif country.code == "US":
+            market_scale_bonus = 20.0
+            outreach_feasibility = 98.0
+        elif country.code in ("GB", "CA", "AU"):
+            market_scale_bonus = 10.0
+            outreach_feasibility = 85.0
+        else:
+            market_scale_bonus = 0.0
+            outreach_feasibility = 55.0
+
         business_density_score = min(100.0, country.business_density_score + market_scale_bonus)
         need_score = (niche.digital_weakness_factor * 0.7) + (business_density_score * 0.3)
         ability_to_pay_score = min(100.0, (country.gdp_per_capita / 85000.0) * 100.0)
         digital_weakness_score = niche.digital_weakness_factor
         search_demand_score = niche.commercial_intent_score
-        service_fit_score = niche.service_fit_score
         
+        # Dynamic service fit bonus for high-value call-driven ICP niches (AI Receptionist)
+        service_fit_score = niche.service_fit_score
+        if niche.slug in (
+            "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
+            "hvac-home-services", "hvac-services", "automotive",
+            "commercial-law", "professional-services", "salons-barbers", "real-estate"
+        ):
+            service_fit_score = min(100.0, service_fit_score + 15.0)
+
         # Expected deal value scaled 0-100 relative to $1,500 target
         expected_deal_value = niche.avg_deal_size
         deal_value_factor = min(100.0, (expected_deal_value / 1500.0) * 100.0)
@@ -33,9 +53,6 @@ class MarketIntelligenceEngine:
         competition_score = 45.0 if country.code in ("US", "GB") else 40.0
         outreach_difficulty_score = max(10.0, 100.0 - country.english_accessibility)
         compliance_risk_score = country.regulatory_risk_score
-
-        # Outreach feasibility based on addressable commercial market scale & volume
-        outreach_feasibility = 98.0 if country.code == "US" else (85.0 if country.code in ("GB", "CA", "AU") else 55.0)
 
         # Multi-factor formula:
         # Opportunity = Sum(Positive Factors * Weights) - Sum(Drag Factors * Weights)

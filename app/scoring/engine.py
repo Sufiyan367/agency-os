@@ -36,6 +36,26 @@ class LeadScoringEngine:
         else:
             contactability = 20.0
 
+        # Extract Call Opportunity Evidence from audit metrics
+        call_opp = (audit.metrics or {}).get("ux_conversion", {}).get("call_opportunity", {})
+        call_driven_score = float(call_opp.get("call_driven_score", 50.0))
+        has_hours = bool(call_opp.get("business_hours_detected", False))
+        after_hours_gap = bool(call_opp.get("after_hours_gap_detected", False))
+        app_dep = bool(call_opp.get("appointment_dependency", False))
+
+        is_call_icp = niche.slug in (
+            "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
+            "hvac-home-services", "hvac-services", "automotive",
+            "commercial-law", "professional-services", "salons-barbers", "real-estate"
+        )
+        call_value_potential = min(100.0, (niche.avg_deal_size / 1500.0) * 70.0 + (call_driven_score * 0.3))
+        after_hours_demand = 85.0 if after_hours_gap else (60.0 if has_hours else 40.0)
+
+        # Priority boost for call-driven ICP businesses
+        icp_bonus = 12.0 if is_call_icp else 0.0
+        if call_driven_score >= 60.0:
+            icp_bonus += 8.0
+
         # Weighted composite score
         raw_score = (
             (website_weakness * settings.WEIGHT_WEBSITE_WEAKNESS) +
@@ -43,7 +63,8 @@ class LeadScoringEngine:
             (a11y_opp * settings.WEIGHT_A11Y_OPPORTUNITY) +
             (perf_opp * settings.WEIGHT_PERFORMANCE_OPPORTUNITY) +
             (ux_opp * settings.WEIGHT_CONVERSION_OPPORTUNITY) +
-            (ability_to_pay * settings.WEIGHT_ABILITY_TO_PAY)
+            (ability_to_pay * settings.WEIGHT_ABILITY_TO_PAY) +
+            (icp_bonus * 0.20)
         )
 
         # Apply contactability multiplier (if completely unreachable, cap priority)
@@ -68,11 +89,27 @@ class LeadScoringEngine:
             "ux_conversion_opp": round(ux_opp, 1),
             "ability_to_pay": round(ability_to_pay, 1),
             "contactability": round(contactability, 1),
-            "contact_multiplier": round(contact_multiplier, 2)
+            "contact_multiplier": round(contact_multiplier, 2),
+            "call_opportunity": {
+                "call_driven_score": round(call_driven_score, 1),
+                "call_value_potential": round(call_value_potential, 1),
+                "after_hours_demand_likelihood": round(after_hours_demand, 1),
+                "is_call_driven_icp": is_call_icp,
+                "has_published_phone": bool(call_opp.get("has_published_phone")),
+                "has_business_hours": has_hours,
+                "after_hours_gap": after_hours_gap,
+                "appointment_dependency": app_dep
+            }
         }
 
         # Transparent rationale
         drivers = []
+        if is_call_icp and call_driven_score >= 50.0:
+            drivers.append(f"High-value call-driven ICP ({niche.name}, {call_driven_score:.0f}/100 opportunity score)")
+        if after_hours_gap:
+            drivers.append("Stated operating hours indicate potential after-hours missed-call opportunity")
+        if app_dep:
+            drivers.append("High appointment/inquiry booking dependency observed")
         if ux_opp >= 50:
             drivers.append(f"Major conversion friction ({ux_opp:.0f}% deficit)")
         if seo_opp >= 50:

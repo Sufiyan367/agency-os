@@ -2166,6 +2166,15 @@ async def get_ceo_control_center_overview(
         elif getattr(active_b, "prospect_score", None) is not None:
             score_val = float(active_b.prospect_score)
 
+        call_driven_score = None
+        call_opportunity = None
+        if score_rec and score_rec.scoring_breakdown:
+            call_driven_score = score_rec.scoring_breakdown.get("call_driven_score")
+            call_opportunity = score_rec.scoring_breakdown.get("call_opportunity")
+        if not call_driven_score and audit and getattr(audit, "metrics", None):
+            call_driven_score = audit.metrics.get("call_driven_score")
+            call_opportunity = audit.metrics.get("call_opportunity")
+
         audit_summary_text = audit.summary if audit and audit.summary else (
             f"Findings: {', '.join(f.finding[:40] for f in findings)}" if findings else "Empirical audit complete."
         )
@@ -2196,6 +2205,8 @@ async def get_ceo_control_center_overview(
             "contact_email": active_b.public_email or "Not discovered",
             "email_status": getattr(active_b, "email_status", "unverified") or "unverified",
             "score": score_val,
+            "call_driven_score": call_driven_score,
+            "call_opportunity": call_opportunity,
             "audit_summary": str(audit_summary_text) if audit_summary_text else "Empirical audit complete.",
             "recommended_service": service_name or "Digital Growth & Conversion Optimization",
             "target_service": service_name or "Digital Growth & Conversion Optimization",

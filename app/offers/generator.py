@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database.models import Business, AuditRun, AuditFinding, Offer, LeadScore
@@ -6,6 +6,24 @@ from app.core.config import settings
 from app.core.logging import logger
 
 SERVICE_PACKAGES = {
+    "AI_RECEPTIONIST_MISSED_CALL": {
+        "title": "AI Receptionist + Missed-Call Recovery System",
+        "service_type": "AI Voice & Inbound Lead Recovery",
+        "base_min": 750.0,
+        "base_max": 2500.0,
+        "recommended": 1200.0,
+        "setup_fee": 750.0,
+        "monthly_recurring_fee": 250.0,
+        "days": 7,
+        "deliverables": [
+            "24/7 autonomous conversational voice receptionist for inbound customer calls",
+            "Automated missed-call & after-hours instant text-back qualification flow",
+            "Direct calendar booking and patient/customer appointment synchronization",
+            "Custom business knowledge base trained on verified services, pricing & FAQs",
+            "Instant multi-channel notifications (email/SMS) for captured high-intent leads"
+        ],
+        "value_prop": "Captures and qualifies inbound inquiries when staff are occupied or after business hours, turning potential missed calls into booked revenue without additional staffing overhead."
+    },
     "CONVERSION_REMEDIATION": {
         "title": "Mobile Conversion & Inquiry Engine Turnaround",
         "service_type": "Conversion Rate Optimization",
@@ -90,8 +108,24 @@ class OfferEngine:
     highest-impact service package and generate tailored commercial offers ($400-$1,500+).
     """
 
-    def recommend_service_package(self, audit: AuditRun) -> Dict[str, Any]:
-        # Count severe findings by category
+    def recommend_service_package(self, audit: AuditRun, business: Optional[Business] = None) -> Dict[str, Any]:
+        # 1. Primary Priority: Check call-opportunity evidence & target call-driven ICP niches
+        call_opp = (audit.metrics or {}).get("ux_conversion", {}).get("call_opportunity", {})
+        call_score = float(call_opp.get("call_driven_score", 0.0))
+        is_phone_driven = bool(call_opp.get("phone_inquiry_dependency", False))
+
+        is_call_icp = False
+        if business and business.niche:
+            is_call_icp = business.niche.lower() in (
+                "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
+                "hvac-home-services", "hvac-services", "automotive",
+                "commercial-law", "professional-services", "salons-barbers", "real-estate"
+            )
+
+        if call_score >= 50.0 or is_phone_driven or is_call_icp:
+            return SERVICE_PACKAGES["AI_RECEPTIONIST_MISSED_CALL"]
+
+        # 2. Otherwise evaluate diagnostic deficits
         perf_deficit = 100.0 - audit.performance_score
         seo_deficit = 100.0 - audit.seo_score
         a11y_deficit = 100.0 - audit.a11y_score
@@ -120,22 +154,31 @@ class OfferEngine:
         if not audit:
             raise ValueError(f"Cannot generate offer: Business {business.id} has no audit records.")
 
-        pkg = self.recommend_service_package(audit)
+        pkg = self.recommend_service_package(audit, business=business)
 
         # Check existing offer
         existing_q = select(Offer).where(Offer.business_id == business.id)
         offer = (await session.execute(existing_q)).scalars().first()
 
-        scope_desc = (
-            f"Tailored remediation for {business.name} ({business.domain}). "
-            f"Addresses primary findings identified during technical inspection: "
-            f"{', '.join(pkg['deliverables'][:2])}."
-        )
-
         price_floor = max(getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0), 500.0)
         p_min = max(pkg["base_min"], price_floor)
         p_max = max(pkg["base_max"], p_min)
         p_rec = max(pkg["recommended"], p_min)
+
+        if pkg.get("service_type") == "AI Voice & Inbound Lead Recovery":
+            setup_fee = pkg.get("setup_fee", p_rec)
+            monthly_fee = pkg.get("monthly_recurring_fee", 250.0)
+            scope_desc = (
+                f"AI Receptionist + Missed-Call Recovery System for {business.name} ({business.domain}). "
+                f"Setup fee: ${setup_fee:.0f} (one-time) | Monthly recurring: ${monthly_fee:.0f}/mo. "
+                f"Includes 24/7 call qualification, after-hours text-back, and automated calendar booking."
+            )
+        else:
+            scope_desc = (
+                f"Tailored remediation for {business.name} ({business.domain}). "
+                f"Addresses primary findings identified during technical inspection: "
+                f"{', '.join(pkg['deliverables'][:2])}."
+            )
 
         if not offer:
             offer = Offer(

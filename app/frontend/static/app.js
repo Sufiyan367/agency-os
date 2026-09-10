@@ -755,12 +755,16 @@ function renderCeoActiveProspect(prospect) {
         setEl('ceo-active-prospect-domain', '—');
         setEl('ceo-active-prospect-location', '—');
         setEl('ceo-active-prospect-score', '—');
+        setEl('ceo-active-prospect-call-score', '—');
         setEl('ceo-active-prospect-price', '—');
         setEl('ceo-active-prospect-pwin', '—');
         setEl('ceo-active-prospect-ev', '—');
         setEl('ceo-active-prospect-email', '—');
         setEl('ceo-active-prospect-service', 'Awaiting real prospect discovery');
         setEl('ceo-active-prospect-audit', 'Real businesses will appear here after discovery and verification.');
+        const evBlock = document.getElementById('ceo-active-prospect-call-evidence-block');
+        if (evBlock) evBlock.style.display = 'none';
+        setEl('ceo-active-prospect-call-evidence', '—');
         setEl('ceo-active-prospect-stage', 'STANDBY');
         setEl('ceo-active-outreach-status', 'Idle');
         setEl('ceo-active-reply-status', 'None');
@@ -788,6 +792,20 @@ function renderCeoActiveProspect(prospect) {
     setEl('ceo-active-prospect-domain', prospect.domain || '—');
     setEl('ceo-active-prospect-location', prospect.location || 'Global');
     setEl('ceo-active-prospect-score', (prospect.score !== undefined && prospect.score !== null) ? `${prospect.score}/100` : 'Pending audit');
+    const callScore = prospect.call_driven_score;
+    setEl('ceo-active-prospect-call-score', (callScore !== undefined && callScore !== null) ? `${callScore}/100` : '—');
+    const evBlock = document.getElementById('ceo-active-prospect-call-evidence-block');
+    const callOpp = prospect.call_opportunity;
+    if (callOpp && (callOpp.description || callOpp.finding || callOpp.evidence)) {
+        if (evBlock) evBlock.style.display = 'block';
+        const evText = callOpp.evidence || callOpp.description || callOpp.finding || 'Potential missed calls detected during peak hours.';
+        setEl('ceo-active-prospect-call-evidence', evText);
+    } else if (callScore && callScore >= 40) {
+        if (evBlock) evBlock.style.display = 'block';
+        setEl('ceo-active-prospect-call-evidence', 'High inbound call reliance detected (Phone & business hours published).');
+    } else {
+        if (evBlock) evBlock.style.display = 'none';
+    }
     setEl('ceo-active-prospect-price', prospect.offer_price || (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '$1,000'));
     setEl('ceo-active-prospect-pwin', prospect.probability_win ? `${Math.round(prospect.probability_win * 100)}%` : '72%');
     setEl('ceo-active-prospect-ev', prospect.expected_value || '$720');

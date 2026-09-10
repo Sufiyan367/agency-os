@@ -39,12 +39,20 @@ class HighValueBuyerScorer:
             base_min, base_max = 2000, 6000
         elif any(k in cat_lower for k in ["roofing", "commercial roof"]):
             base_min, base_max = 1500, 4500
-        elif any(k in cat_lower for k in ["hvac", "heating", "cooling", "mechanical"]):
+        elif any(k in cat_lower for k in ["hvac", "heating", "cooling", "mechanical", "home service"]):
+            base_min, base_max = 850, 3000
+        elif any(k in cat_lower for k in ["dental", "cosmetic", "clinic", "medical"]):
+            base_min, base_max = 1000, 3500
+        elif any(k in cat_lower for k in ["law", "legal", "advocate", "attorney"]):
             base_min, base_max = 1200, 3500
+        elif any(k in cat_lower for k in ["real estate", "property", "brokerage"]):
+            base_min, base_max = 1200, 3500
+        elif any(k in cat_lower for k in ["automotive", "auto", "garage", "car repair"]):
+            base_min, base_max = 850, 2500
+        elif any(k in cat_lower for k in ["salon", "barber", "spa"]):
+            base_min, base_max = 650, 2000
         elif any(k in cat_lower for k in ["plumb"]):
             base_min, base_max = 750, 2500
-        elif any(k in cat_lower for k in ["dental"]):
-            base_min, base_max = 1000, 3000
         elif any(k in cat_lower for k in ["cleaning", "janitorial"]):
             base_min, base_max = 500, 2000
 

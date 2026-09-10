@@ -27,7 +27,57 @@ class OutreachPersonalizer:
         fix_text = top_finding.recommended_fix if top_finding else "Deploy high-contrast sticky mobile CTA header."
         impact_text = top_finding.estimated_business_impact if top_finding else "Causes lost inbound calls and estimate requests."
 
-        # Variant 1: Value-First Technical Insight
+        # If this is an AI Receptionist & Missed-Call Recovery offer, generate outcome-focused call recovery variants
+        is_receptionist_offer = (
+            offer.service_type == "AI Voice & Inbound Lead Recovery" or
+            "Receptionist" in offer.title or
+            "Missed-Call" in offer.title
+        )
+
+        if is_receptionist_offer:
+            # Extract observable evidence
+            call_evidence = evidence_text
+            if "potential missed-call opportunity" in evidence_text.lower():
+                evidence_summary = evidence_text.split(".")[0].strip()
+            else:
+                evidence_summary = f"your primary contact path relies heavily on direct telephone inquiries"
+
+            subj_1 = f"Question regarding inbound call handling on {business.domain}"
+            body_1 = (
+                f"Hi {business.name} team,\n\n"
+                f"While reviewing {business.niche.replace('-', ' ')} providers in {business.city or business.country}, I was looking at {business.domain}.\n\n"
+                f"We noticed that {evidence_summary}.\n\n"
+                f"For a business like yours, unanswered inbound calls during busy periods or after-hours represent potential missed-call opportunities.\n\n"
+                f"We build an AI receptionist that can answer, qualify, and book incoming calls when your team can't, with instant text follow-up to the caller.\n\n"
+                f"We've set up an interactive preview showing how this would work for {business.name}. Would you be open to taking a brief look?"
+            )
+
+            subj_2 = f"Inbound inquiry recovery for {business.name}"
+            body_2 = (
+                f"Hi there,\n\n"
+                f"I was reviewing {business.domain} and noticed your published contact flow relies directly on telephone calls.\n\n"
+                f"For established businesses in {business.city or business.country}, unanswered inbound calls during peak hours or evenings can lead high-intent clients to call competing providers.\n\n"
+                f"We implement an AI receptionist ({offer.title}) that answers 24/7, answers service FAQs, and books appointments directly into your schedule.\n\n"
+                f"Would you like me to send over an interactive preview of how this operates for {business.name}? No obligation either way."
+            )
+
+            subj_3 = f"{business.name}: after-hours call capture preview"
+            body_3 = (
+                f"Hello,\n\n"
+                f"I wanted to share a brief operational observation regarding {business.domain}.\n\n"
+                f"We noted that {evidence_summary}.\n\n"
+                f"For high-value services, unanswered inquiries represent potential missed-call opportunities. We build an AI receptionist that answers, qualifies patient/customer inquiries, and books appointments when your staff are occupied.\n\n"
+                f"We can show you what this would look like for {business.name} via an interactive demo.\n\n"
+                f"Are you the right person to review a quick 2-minute preview?"
+            )
+
+            return [
+                {"variant": "Value-First Call Opportunity", "subject": subj_1, "body": body_1},
+                {"variant": "Executive Inquiry Recovery", "subject": subj_2, "body": body_2},
+                {"variant": "Direct Outcome Preview", "subject": subj_3, "body": body_3}
+            ]
+
+        # Standard variants for digital turnaround / performance offers
         subj_1 = f"Technical note on {business.domain} ({finding_text.lower()})"
         body_1 = (
             f"Hi {business.name} team,\n\n"
@@ -40,7 +90,6 @@ class OutreachPersonalizer:
             f"Would you be open to a quick 3-minute Loom video walking through our diagnostic findings and exact line-by-line recommendations?"
         )
 
-        # Variant 2: Executive Conversion Bottleneck
         subj_2 = f"Quick question regarding mobile inquiries on {business.domain}"
         body_2 = (
             f"Hi there,\n\n"
@@ -53,7 +102,6 @@ class OutreachPersonalizer:
             f"Would you like me to send over the full PDF audit report for your internal review? No obligation either way."
         )
 
-        # Variant 3: Direct Problem-Solution
         subj_3 = f"{business.name}: {finding_text}"
         body_3 = (
             f"Hello,\n\n"

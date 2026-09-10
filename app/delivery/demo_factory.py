@@ -78,37 +78,99 @@ class DemoFactory:
 
         deliv_items = "".join(f"<li class='flex items-center gap-2 text-sm text-gray-300 mb-2'><span class='text-emerald-400 font-bold'>✓</span> {d}</li>" for d in packet.deliverables)
 
-        html = f"""<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{biz_name} — Diagnostic Remediation Interactive Demonstration</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .bg-gray-850 {{ background-color: #1a202c; }}
-        .bg-gray-950 {{ background-color: #0d1117; }}
-    </style>
-</head>
-<body class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased p-4 md:p-8">
-    <div class="max-w-6xl mx-auto space-y-8">
-        
-        <!-- Header -->
-        <header class="border-b border-gray-800 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950 border border-blue-700 text-blue-300 text-xs font-semibold mb-2">
-                    <span>AGENCY OS</span> • <span>VERIFIED REMEDIATION PROOF</span>
-                </div>
-                <h1 class="text-3xl font-bold tracking-tight text-white">{biz_name}</h1>
-                <p class="text-sm text-gray-400 mt-1">Target Infrastructure: <span class="text-gray-200 font-mono">{domain}</span> | Location: <span class="text-gray-200">{business.city or 'Dubai'}, {business.country}</span></p>
-            </div>
-            <div class="text-right bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div class="text-xs uppercase text-gray-400 font-semibold tracking-wider">Turnaround Package</div>
-                <div class="text-lg font-bold text-emerald-400">{service}</div>
-                <div class="text-sm text-gray-300 font-mono mt-1">${price:,.2f} USD <span class="text-gray-500">• {days} Day Delivery</span></div>
-            </div>
-        </header>
+        is_receptionist = any(k in service.lower() for k in ["receptionist", "missed-call", "voice"])
 
+        if is_receptionist:
+            comparison_panel = f"""
+        <!-- Before & After AI Receptionist Comparison Panel -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Current Status -->
+            <div class="bg-gray-900 border border-amber-900/40 rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-amber-300 text-xs font-mono font-bold">CURRENT LIVE STATE</div>
+                <h2 class="text-xl font-bold text-white mb-2">Inbound Call Handling Baseline</h2>
+                <p class="text-xs text-gray-400 mb-6">Empirically recorded from public business schedule and contact channels.</p>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">After-Hours Inquiries</span>
+                        <span class="text-amber-400 font-mono font-bold">Unattended / Potential Missed Calls</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">Peak Staff Call Capacity</span>
+                        <span class="text-amber-400 font-mono font-bold">Single-line Queue / Busy Signal</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">Caller Retention Flow</span>
+                        <span class="text-rose-400 font-mono font-bold">Voicemail Drop-Off Risk</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-400">Appointment Booking Speed</span>
+                        <span class="text-amber-400 font-mono font-bold">Delayed (Next Business Day)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staging Remediated Status -->
+            <div class="bg-gray-900 border border-emerald-900/40 rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs font-mono font-bold">AI RECEPTIONIST ACTIVE</div>
+                <h2 class="text-xl font-bold text-white mb-2">Autonomous Recovery Engine</h2>
+                <p class="text-xs text-gray-400 mb-6">Verified staging voice pipeline with instant booking and SMS notification.</p>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">After-Hours Inquiries</span>
+                        <span class="text-emerald-400 font-mono font-bold">24/7 Instant Voice Pickup (&lt;1s)</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">Peak Staff Call Capacity</span>
+                        <span class="text-emerald-400 font-mono font-bold">Unlimited Concurrent Callers</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span class="text-sm text-gray-400">Caller Retention Flow</span>
+                        <span class="text-emerald-400 font-mono font-bold">Instant SMS Confirmation & Text-Back</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-400">Appointment Booking Speed</span>
+                        <span class="text-emerald-400 font-mono font-bold">Real-time Calendar Sync</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive AI Receptionist Call Simulation Panel -->
+        <section class="bg-gray-900 border border-blue-900/40 rounded-xl p-6">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-4 mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Interactive Call Answering & Booking Simulation</h2>
+                    <p class="text-xs text-gray-400">Test how the AI Receptionist interacts with an incoming patient or customer after hours.</p>
+                </div>
+                <span class="px-3 py-1 rounded-full bg-blue-950 border border-blue-700 text-blue-300 text-xs font-mono font-semibold">SIMULATED SCENARIO: 7:45 PM AFTER-HOURS</span>
+            </div>
+            <div class="space-y-3 bg-gray-950 rounded-lg p-4 border border-gray-800 text-sm font-sans">
+                <div class="flex items-start gap-3">
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-300">CALLER</span>
+                    <span class="text-gray-200">"Hi, I was looking at your website and wanted to know if you have an appointment available this Thursday morning for a consultation?"</span>
+                </div>
+                <div class="flex items-start gap-3 border-t border-gray-900 pt-2">
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold">AI RECEPTIONIST</span>
+                    <span class="text-emerald-200">"Welcome to {biz_name}! While our front desk is closed for the evening, I can book that consultation for you right now. We have open times this Thursday at 10:30 AM and 11:45 AM. Which works best for you?"</span>
+                </div>
+                <div class="flex items-start gap-3 border-t border-gray-900 pt-2">
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-300">CALLER</span>
+                    <span class="text-gray-200">"10:30 AM works great."</span>
+                </div>
+                <div class="flex items-start gap-3 border-t border-gray-900 pt-2">
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold">AI RECEPTIONIST</span>
+                    <span class="text-emerald-200">"Excellent, I\'ve reserved Thursday at 10:30 AM for your consultation with {biz_name}. I just sent a confirmation text message with clinic location details to your mobile number. We look forward to seeing you!"</span>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between text-xs text-gray-400 bg-gray-900/60 p-2 rounded border border-gray-800">
+                <span>📱 Automated Text-Back Triggered</span>
+                <span>📅 Google / Outlook Calendar Slot Reserved</span>
+                <span>✉️ Owner / Reception Instant Alert Dispatched</span>
+            </div>
+        </section>
+        """
+        else:
+            comparison_panel = f"""
         <!-- Before & After Comparison Panel -->
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Current Status -->
@@ -161,6 +223,40 @@ class DemoFactory:
                 </div>
             </div>
         </section>
+        """
+
+        html = f"""<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{biz_name} — Diagnostic Remediation Interactive Demonstration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-gray-850 {{ background-color: #1a202c; }}
+        .bg-gray-950 {{ background-color: #0d1117; }}
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="border-b border-gray-800 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950 border border-blue-700 text-blue-300 text-xs font-semibold mb-2">
+                    <span>AGENCY OS</span> • <span>VERIFIED REMEDIATION PROOF</span>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-white">{biz_name}</h1>
+                <p class="text-sm text-gray-400 mt-1">Target Infrastructure: <span class="text-gray-200 font-mono">{domain}</span> | Location: <span class="text-gray-200">{business.city or 'Dubai'}, {business.country}</span></p>
+            </div>
+            <div class="text-right bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <div class="text-xs uppercase text-gray-400 font-semibold tracking-wider">Turnaround Package</div>
+                <div class="text-lg font-bold text-emerald-400">{service}</div>
+                <div class="text-sm text-gray-300 font-mono mt-1">${price:,.2f} USD <span class="text-gray-500">• {days} Day Delivery</span></div>
+            </div>
+        </header>
+
+        {comparison_panel}
 
         <!-- Requirements & Remediation Specifications Table -->
         <section class="bg-gray-900 border border-gray-800 rounded-xl p-6">
