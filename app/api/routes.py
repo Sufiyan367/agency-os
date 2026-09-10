@@ -1698,6 +1698,7 @@ async def get_contacted_history_endpoint(
 
 @router.get("/api/ceo/overview")
 async def get_ceo_control_center_overview(
+    prospect_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     user_info: Dict[str, str] = Depends(get_current_user_info)
 ):
@@ -2010,15 +2011,31 @@ async def get_ceo_control_center_overview(
     ]
 
     # --- 4. Active Prospect Focus Card ---
-    # Prioritize prospects with real active outreach or in-flight stages over uncontacted discovered records
-    q_active_sent = (
-        select(Business)
-        .join(OutreachMessage, OutreachMessage.business_id == Business.id)
-        .where(OutreachMessage.status == OutreachStatus.SENT.value)
-        .order_by(desc(OutreachMessage.sent_at))
-        .limit(1)
-    )
-    active_b = (await db.execute(q_active_sent)).scalars().first()
+    # Prioritize explicit prospect_id selection, then actionable outreach pending approval, then in-flight sent/pipeline stages
+    active_b = None
+    if prospect_id:
+        active_b = (await db.execute(select(Business).where(Business.id == prospect_id))).scalars().first()
+
+    if not active_b:
+        q_pending_approval = (
+            select(Business)
+            .join(OutreachMessage, OutreachMessage.business_id == Business.id)
+            .where(OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value)
+            .order_by(desc(OutreachMessage.created_at))
+            .limit(1)
+        )
+        active_b = (await db.execute(q_pending_approval)).scalars().first()
+
+    if not active_b:
+        q_active_sent = (
+            select(Business)
+            .join(OutreachMessage, OutreachMessage.business_id == Business.id)
+            .where(OutreachMessage.status == OutreachStatus.SENT.value)
+            .order_by(desc(OutreachMessage.sent_at))
+            .limit(1)
+        )
+        active_b = (await db.execute(q_active_sent)).scalars().first()
+
     if not active_b:
         q_active_pipeline = (
             select(Business)
@@ -2034,6 +2051,7 @@ async def get_ceo_control_center_overview(
             .limit(1)
         )
         active_b = (await db.execute(q_active_pipeline)).scalars().first()
+
     if not active_b:
         active_b = (await db.execute(select(Business).order_by(Business.id.asc()).limit(1))).scalars().first()
 
