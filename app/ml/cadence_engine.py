@@ -77,7 +77,7 @@ class CadenceDecisionEngine:
         load_time = getattr(audit, "metrics", {}).get("load_time_seconds", 3.8) if audit else 3.8
 
         agency_name = getattr(settings, "AGENCY_NAME", settings.APP_NAME)
-        from_name = getattr(settings, "OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
+        from_name = getattr(settings, "OUTREACH_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory")
 
         if step_number == 2:
             subject = f"Quick resource for {biz_name} ({domain})"

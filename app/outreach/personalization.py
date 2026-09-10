@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database.models import Business, AuditRun, AuditFinding, Offer, OutreachMessage, OutreachStatus, LeadScore, PipelineStage
@@ -17,7 +17,8 @@ class OutreachPersonalizer:
         business: Business,
         audit: AuditRun,
         findings: List[AuditFinding],
-        offer: Offer
+        offer: Offer,
+        demo_url: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         top_finding = findings[0] if findings else None
         second_finding = findings[1] if len(findings) > 1 else None
@@ -42,6 +43,15 @@ class OutreachPersonalizer:
             else:
                 evidence_summary = f"your primary contact path relies heavily on direct telephone inquiries"
 
+            if demo_url:
+                cta_1 = f"We've set up an interactive preview showing how this would work for {business.name}: {demo_url}\n\nWould you be open to taking a brief look?"
+                cta_2 = f"We can share an interactive preview of how this operates for {business.name} ({demo_url}). Would you be interested in taking a look?"
+                cta_3 = f"We have an interactive preview for {business.name} available here: {demo_url}\n\nAre you the right person to review a quick 2-minute walkthrough?"
+            else:
+                cta_1 = f"Would you be open to exploring what an after-hours automated call recovery flow would look like for {business.name}? No obligation either way."
+                cta_2 = f"Would you be open to exploring how an after-hours call recovery flow would operate for {business.name}? No obligation either way."
+                cta_3 = f"Are you the right person to discuss what an after-hours call recovery setup would look like for {business.name}?"
+
             subj_1 = f"Question regarding inbound call handling on {business.domain}"
             body_1 = (
                 f"Hi {business.name} team,\n\n"
@@ -49,7 +59,7 @@ class OutreachPersonalizer:
                 f"We noticed that {evidence_summary}.\n\n"
                 f"For a business like yours, unanswered inbound calls during busy periods or after-hours represent potential missed-call opportunities.\n\n"
                 f"We build an AI receptionist that can answer, qualify, and book incoming calls when your team can't, with instant text follow-up to the caller.\n\n"
-                f"We've set up an interactive preview showing how this would work for {business.name}. Would you be open to taking a brief look?"
+                f"{cta_1}"
             )
 
             subj_2 = f"Inbound inquiry recovery for {business.name}"
@@ -58,23 +68,22 @@ class OutreachPersonalizer:
                 f"I was reviewing {business.domain} and noticed your published contact flow relies directly on telephone calls.\n\n"
                 f"For established businesses in {business.city or business.country}, unanswered inbound calls during peak hours or evenings can lead high-intent clients to call competing providers.\n\n"
                 f"We implement an AI receptionist ({offer.title}) that answers 24/7, answers service FAQs, and books appointments directly into your schedule.\n\n"
-                f"Would you like me to send over an interactive preview of how this operates for {business.name}? No obligation either way."
+                f"{cta_2}"
             )
 
-            subj_3 = f"{business.name}: after-hours call capture preview"
+            subj_3 = f"{business.name}: after-hours call capture inquiry"
             body_3 = (
                 f"Hello,\n\n"
                 f"I wanted to share a brief operational observation regarding {business.domain}.\n\n"
                 f"We noted that {evidence_summary}.\n\n"
-                f"For high-value services, unanswered inquiries represent potential missed-call opportunities. We build an AI receptionist that answers, qualifies patient/customer inquiries, and books appointments when your staff are occupied.\n\n"
-                f"We can show you what this would look like for {business.name} via an interactive demo.\n\n"
-                f"Are you the right person to review a quick 2-minute preview?"
+                f"For high-value services, unanswered inquiries represent potential missed-call opportunities. We build an AI receptionist that answers, qualifies customer inquiries, and books appointments when your staff are occupied.\n\n"
+                f"{cta_3}"
             )
 
             return [
                 {"variant": "Value-First Call Opportunity", "subject": subj_1, "body": body_1},
                 {"variant": "Executive Inquiry Recovery", "subject": subj_2, "body": body_2},
-                {"variant": "Direct Outcome Preview", "subject": subj_3, "body": body_3}
+                {"variant": "Direct Problem-Solution", "subject": subj_3, "body": body_3}
             ]
 
         # Standard variants for digital turnaround / performance offers
@@ -151,7 +160,20 @@ class OutreachPersonalizer:
         if offer_price < 500.0:
             raise ValueError(f"Cannot prepare outreach: Offer value (${offer_price:.0f}) is below the $500 commercial floor.")
 
-        variants = self.generate_message_variants(business, audit, findings, offer)
+        # Resolve externally accessible demo URL only if configured and valid
+        demo_url = None
+        public_base = getattr(settings, "PUBLIC_DEMO_BASE_URL", None)
+        if public_base and (public_base.startswith("http://") or public_base.startswith("https://")):
+            from app.database.models import Artifact
+            art_q = select(Artifact).where(
+                Artifact.business_id == business.id,
+                Artifact.artifact_type == "DEMO_PACKAGE"
+            ).order_by(Artifact.created_at.desc())
+            art = (await session.execute(art_q)).scalars().first()
+            if art and art.preview_url:
+                demo_url = f"{public_base.rstrip('/')}/{art.preview_url.lstrip('/')}"
+
+        variants = self.generate_message_variants(business, audit, findings, offer, demo_url=demo_url)
         chosen = variants[min(selected_variant, len(variants) - 1)]
 
         # Append compliance footer

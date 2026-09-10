@@ -110,8 +110,10 @@ class Settings(BaseSettings):
     OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co"))
     EMAIL_REPLY_TO: str = os.getenv("EMAIL_REPLY_TO", "replies@agencygrowth.co")
-    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
-    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director"))
+    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", os.getenv("EMAIL_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory"))
+    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory"))
+    PHYSICAL_POSTAL_ADDRESS: Optional[str] = os.getenv("PHYSICAL_POSTAL_ADDRESS")
+    PUBLIC_DEMO_BASE_URL: Optional[str] = os.getenv("PUBLIC_DEMO_BASE_URL")
 
     # Gmail OAuth2 Provider Configuration
     GMAIL_CLIENT_ID: Optional[str] = os.getenv("GMAIL_CLIENT_ID")

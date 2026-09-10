@@ -146,7 +146,7 @@ class LLMClient:
                 "fixing this typically captures 15-25% more direct inquiry volume.\n\n"
                 "We recently helped similar firms resolve this in under 5 business days with zero downtime.\n\n"
                 "Would you be open to a quick 5-minute video walkthrough showing exactly what we found?\n\n"
-                "Best regards,\nElena Vance | Digital Strategy Director"
+                f"Best regards,\n{getattr(settings, 'OUTREACH_FROM_NAME', 'Sufiyan Surve | Digital Strategy Advisory')}"
             )
         elif "classify" in lower or "reply" in lower:
             return "INTERESTED"

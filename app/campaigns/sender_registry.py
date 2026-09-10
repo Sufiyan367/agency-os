@@ -30,7 +30,7 @@ class SenderRegistry:
             from_name = (campaign.sender_name if campaign and campaign.sender_name else None) or settings.OUTREACH_FROM_NAME
             reply_to = (campaign.reply_to if campaign and campaign.reply_to else None) or settings.EMAIL_REPLY_TO or from_email
 
-        postal_addr = (campaign.postal_address if campaign and campaign.postal_address else None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or self.DEFAULT_POSTAL_ADDRESS
+        postal_addr = (campaign.postal_address if campaign and campaign.postal_address else None) or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or self.DEFAULT_POSTAL_ADDRESS
 
         return {
             "from_email": from_email,
@@ -59,8 +59,18 @@ class SenderRegistry:
         if not resolved["from_email"] or "@" not in resolved["from_email"]:
             return False, "Invalid sender email: from_email is missing or malformed.", resolved
 
-        if not resolved["postal_address"] or len(resolved["postal_address"].strip()) < 10:
+        addr = (resolved.get("postal_address") or "").strip()
+        if not addr or len(addr) < 10:
             return False, "Compliance violation: Mandatory physical postal address is missing.", resolved
+
+        KNOWN_PLACEHOLDERS = [
+            "100 innovation way",
+            "100 congress ave",
+            "wilmington, de",
+            "austin, tx",
+        ]
+        if is_live_send and any(p in addr.lower() for p in KNOWN_PLACEHOLDERS):
+            return False, "Compliance violation: Real, controllable physical postal address is required before live transmission (current address is placeholder).", resolved
 
         if is_live_send:
             prov = resolved["provider"]

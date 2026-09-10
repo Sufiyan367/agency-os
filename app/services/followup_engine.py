@@ -67,7 +67,7 @@ class FollowUpEngine:
                 f"Just wanted to follow up on the technical diagnostic we prepared for {lead.business.name if lead.business else 'your business'}.\n"
                 f"Did you have a chance to look over the site speed and SEO notes?\n\n"
                 f"Happy to walk through the highest-impact fixes whenever convenient.\n\n"
-                f"Best,\nElena Vance"
+                f"Best,\nSufiyan Surve"
             ),
             (
                 "Ideas to improve homeowner call conversion for your site",
@@ -75,7 +75,7 @@ class FollowUpEngine:
                 f"Checking in briefly. We've seen local service businesses recover an extra 15-20% in customer inquiries "
                 f"simply by resolving mobile viewport bottlenecks like the ones we spotted on your domain.\n\n"
                 f"Let me know if you'd like the direct checklist.\n\n"
-                f"Best,\nElena Vance"
+                f"Best,\nSufiyan Surve"
             ),
             (
                 "Closing your website diagnostic file",
@@ -83,7 +83,7 @@ class FollowUpEngine:
                 f"I assume improving web conversion isn't a current priority right now, so I'll close out your file "
                 f"and won't follow up again.\n\n"
                 f"If you ever want to revisit the technical review in the future, feel free to reach back out.\n\n"
-                f"Best of luck with business!\nElena Vance"
+                f"Best of luck with business!\nSufiyan Surve"
             )
         ]
 

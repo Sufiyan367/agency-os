@@ -338,7 +338,7 @@ class ObjectionResponseEngine:
         current_offer_val = max(raw_offer_val, cls.TARGET_OFFER_USD)
         current_offer_val = max(current_offer_val, policy_engine.get_commercial_floor())
 
-        from_name = getattr(settings, "OUTREACH_FROM_NAME", "Elena Vance | Digital Strategy Director")
+        from_name = getattr(settings, "OUTREACH_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory")
 
         # 1. Check sensitive triggers first (Fail-Closed Human Takeover)
         sensitive = ObjectionDetector.detect_sensitive_triggers(raw_reply)
