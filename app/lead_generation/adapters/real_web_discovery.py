@@ -190,6 +190,9 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     except Exception as e:
                         logger.debug(f"OSM query note for {city}: {e}")
 
+        # Prioritize candidates that already have verified public corporate contact emails
+        candidates.sort(key=lambda c: 0 if c.get("email") else 1)
+
         logger.info(f"Candidate pool ready: {len(candidates)} unique real businesses. Crawling authentic websites...")
 
         # Step 2: Concurrently crawl and inspect real prospect websites
