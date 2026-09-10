@@ -43,13 +43,6 @@ class LeadScoringEngine:
         after_hours_gap = bool(call_opp.get("after_hours_gap_detected", False))
         app_dep = bool(call_opp.get("appointment_dependency", False))
 
-        # Extend Call Opportunity Intelligence with specific ME/Receptionist Evidence
-        has_urgent_service = bool(call_opp.get("emergency_or_urgent_service", False))
-        high_value_signals = int(call_opp.get("high_value_service_signals", 0))
-        has_pub_phone = bool(call_opp.get("has_published_phone", False))
-        is_phone_dependent = bool(call_opp.get("phone_inquiry_dependency", False))
-
-        # Refine Middle East Call Scoring fit
         is_call_icp = niche.slug in (
             "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
             "hvac-home-services", "hvac-services", "automotive",
@@ -62,15 +55,6 @@ class LeadScoringEngine:
         icp_bonus = 12.0 if is_call_icp else 0.0
         if call_driven_score >= 60.0:
             icp_bonus += 8.0
-
-        # Dynamic Scoring Extension for ME Call Receptionist Focus
-        me_target_countries = ["AE", "SA", "QA", "KW", "OM", "BH", "JO"]
-        if country.code in me_target_countries:
-            # Strong boost if they rely on phone and have urgency/high-value but gaps in availability
-            if is_phone_dependent and (after_hours_gap or has_urgent_service or high_value_signals > 0):
-                icp_bonus += 15.0
-            if has_pub_phone and app_dep:
-                icp_bonus += 10.0
 
         # Weighted composite score
         raw_score = (
@@ -126,10 +110,6 @@ class LeadScoringEngine:
             drivers.append("Stated operating hours indicate potential after-hours missed-call opportunity")
         if app_dep:
             drivers.append("High appointment/inquiry booking dependency observed")
-        if country.code in me_target_countries and is_phone_dependent:
-            drivers.append(f"Phone-oriented customer journey in high-value {country.name} market")
-        if has_urgent_service:
-            drivers.append("Urgent service characteristics flag critical missed-call risks")
         if ux_opp >= 50:
             drivers.append(f"Major conversion friction ({ux_opp:.0f}% deficit)")
         if seo_opp >= 50:
