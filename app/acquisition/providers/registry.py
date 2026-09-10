@@ -2,21 +2,25 @@ from typing import List, Dict, Any, Optional, Set
 from app.acquisition.providers.base import BaseDiscoveryProvider
 from app.acquisition.providers.existing_adapter import ExistingDiscoveryAdapterProvider
 from app.acquisition.providers.scrapegraph_provider import ScrapeGraphProvider
+from app.acquisition.providers.zyte_provider import ZyteProvider
 from app.acquisition.models import StandardizedProspect
 from app.core.logging import logger
 
 class DiscoveryProviderRegistry:
     """
     Coordinates discovery across registered providers with prioritized fallback.
-    Never fails completely if at least one provider is operational.
+    Maintains existing real web discovery as the primary production source of truth,
+    with Zyte operating in evaluation/shadow mode.
     """
 
     def __init__(self):
-        self.scrapegraph = ScrapeGraphProvider()
         self.existing_adapter = ExistingDiscoveryAdapterProvider()
+        self.scrapegraph = ScrapeGraphProvider()
+        self.zyte = ZyteProvider()
         self.providers: List[BaseDiscoveryProvider] = [
+            self.existing_adapter,
             self.scrapegraph,
-            self.existing_adapter
+            self.zyte
         ]
 
     def register_provider(self, provider: BaseDiscoveryProvider, priority_index: int = 0) -> None:
@@ -70,5 +74,22 @@ class DiscoveryProviderRegistry:
                 logger.warning(f"[DiscoveryRegistry] Provider '{provider.name}' failed gracefully: {e}")
 
         return combined_results[:limit]
+
+    async def evaluate_zyte_shadow(
+        self,
+        country_code: str = "AE",
+        niche: str = "automotive",
+        limit: int = 5,
+        sample_url: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Executes safe, non-destructive shadow evaluation of Zyte against existing discovery / direct fetch.
+        Does not alter production database records or active outreach queues.
+        """
+        report = await self.zyte.evaluate_shadow_discovery(country_code, niche, limit)
+        if sample_url:
+            crawl_comp = await self.zyte.evaluate_target_crawl(sample_url)
+            report["crawl_comparison"] = crawl_comp
+        return report
 
 discovery_registry = DiscoveryProviderRegistry()

@@ -148,6 +148,13 @@ class Settings(BaseSettings):
     IMAP_PASSWORD: Optional[str] = os.getenv("IMAP_PASSWORD")
     INBOX_POLL_INTERVAL_SECONDS: int = 120
 
+    # Discovery & Web Research Providers (Zyte & ScrapeGraphAI)
+    SCRAPEGRAPH_API_KEY: Optional[str] = os.getenv("SCRAPEGRAPH_API_KEY")
+    ZYTE_API_KEY: Optional[str] = os.getenv("ZYTE_API_KEY")
+    ZYTE_MODE: str = os.getenv("ZYTE_MODE", "evaluation")
+    ZYTE_TIMEOUT_SECONDS: float = float(os.getenv("ZYTE_TIMEOUT_SECONDS", "15.0"))
+    ZYTE_CREDIT_BUDGET: int = int(os.getenv("ZYTE_CREDIT_BUDGET", "50"))
+
     # Background Autonomous Worker / Scheduler
     WORKER_ENABLED: bool = True
     WORKER_CYCLE_INTERVAL_MINUTES: int = 30

@@ -8,6 +8,7 @@ from app.acquisition.config import country_config_manager
 from app.acquisition.pool import global_prospect_pool
 from app.acquisition.ranking import global_ranker
 from app.acquisition.controller import active_prospect_controller
+from app.acquisition.providers.registry import discovery_registry
 from app.acquisition.models import ActiveSlotStatus, GlobalQueueItem, CountryConfigDTO
 from app.core.logging import logger
 
@@ -188,3 +189,32 @@ async def release_active_prospect(req: ReleaseActiveRequest, db: AsyncSession = 
         terminal_reason=req.terminal_reason,
         notes=req.notes
     )
+
+# 5. Discovery Providers Health & Shadow Evaluation
+@router.get("/providers")
+async def get_discovery_providers_status():
+    """Returns diagnostic health telemetry across registered discovery providers."""
+    return {
+        "production_source_of_truth": "existing_web_search",
+        "providers": discovery_registry.get_providers_health()
+    }
+
+class ZyteShadowEvaluationRequest(BaseModel):
+    country_code: str = "AE"
+    niche: str = "automotive"
+    limit: int = 3
+    sample_url: Optional[str] = None
+
+@router.post("/evaluate/zyte")
+async def trigger_zyte_shadow_evaluation(req: ZyteShadowEvaluationRequest):
+    """
+    Executes a safe, non-destructive shadow evaluation of Zyte against existing discovery / direct fetch.
+    Does NOT alter production database records or active outreach queues.
+    """
+    return await discovery_registry.evaluate_zyte_shadow(
+        country_code=req.country_code,
+        niche=req.niche,
+        limit=req.limit,
+        sample_url=req.sample_url
+    )
+
