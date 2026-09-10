@@ -88,24 +88,35 @@ SYNC_DATABASE_URL=sqlite:////app/data/agency.db
 BACKUP_DIR=/app/backups
 BACKUP_RETENTION_DAYS=30
 
-# Safeguards & Compliance
+# Safeguards & Compliance (Stage-1 Canary: 1 Real Email/Day Max)
 DRY_RUN=true
 EMAIL_DRY_RUN=true
 EMAIL_PROVIDER=dry_run
+COMMERCIAL_FLOOR_USD=500
+MAX_OUTREACH_PER_DAY=1
+MAX_FOLLOWUPS=3
+AUTONOMOUS_OUTREACH=false
+ONE_AT_A_TIME_PROSPECTING=true
+
+# Primary Outreach: Gmail OAuth2
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=
+GMAIL_REFRESH_TOKEN=
+GMAIL_SENDER_EMAIL=
+GMAIL_DAILY_CAPACITY=1
+
+# Discovery: Primary is Existing Adapter; Zyte is Shadow/Evaluation Mode
+ZYTE_API_KEY=
+ZYTE_MODE=evaluation
+ZYTE_CREDIT_BUDGET=50
+
+# Primary Payment Gateway
 PAYMENT_PROVIDER=razorpay
 PAYMENTS_ENABLED=false
-MAX_OUTREACH_PER_DAY=50
-MAX_FOLLOWUPS=3
-
-# Primary Payment Gateway: Razorpay
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 RAZORPAY_CURRENCY=USD
-
-# Email Delivery Provider (Resend/SendGrid)
-RESEND_API_KEY=
-SENDGRID_API_KEY=
 
 # Background Worker Cadence
 WORKER_ENABLED=true

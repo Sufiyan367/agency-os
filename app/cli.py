@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from typing import Optional, List
 import typer
 import uvicorn
 from rich.console import Console
@@ -607,6 +608,62 @@ def activate_production_cmd():
                     console.print(f"[bold red]❌ Activation Blocked: {e}[/bold red]")
 
     asyncio.run(_activate())
+
+@cli_app.command("discover-me-phase1")
+def discover_me_phase1_cmd(
+    target_per_country: int = typer.Option(10, "--target-per-country", "-t", help="Target prospects per country (default: 10)"),
+    niche: Optional[str] = typer.Option(None, "--niche", "-n", help="Optional specific niche filter"),
+    enrich: bool = typer.Option(True, "--enrich/--no-enrich", help="Run audit and client intelligence enrichment")
+):
+    """
+    Executes discovery across all 7 Middle East Phase-1 countries (UAE, SA, QA, KW, OM, BH, JO).
+    Discovers up to 10 qualified prospects per country (70/day total capacity).
+    Strictly halts at qualification without sending any outreach emails.
+    """
+    from app.acquisition.pool import global_prospect_pool
+
+    target_countries = ["AE", "SA", "QA", "KW", "OM", "BH", "JO"]
+    console.print(f"\n[bold cyan]=== Middle East Phase-1 Discovery (70/Day Target) ===[/bold cyan]")
+    console.print(f"Countries: {', '.join(target_countries)} ({len(target_countries)} countries)")
+    console.print(f"Target per country: {target_per_country} (Max daily capacity: {len(target_countries) * target_per_country})")
+    console.print(f"Outreach status: [bold yellow]INACTIVE (Discovery/Qualification ONLY)[/bold yellow]\n")
+
+    async def _discover():
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            discovered = await global_prospect_pool.discover_across_countries(
+                session=session,
+                countries=target_countries,
+                target_per_country=target_per_country,
+                niche=niche
+            )
+            
+            if discovered and enrich:
+                console.print(f"[cyan]Enriching and auditing {len(discovered)} discovered prospects...[/cyan]")
+                await global_prospect_pool.enrich_and_audit_prospects(session=session, businesses=discovered)
+
+            table = Table(title=f"Discovered Prospects ({len(discovered)} total)")
+            table.add_column("ID", style="dim")
+            table.add_column("Name", style="bold white")
+            table.add_column("Domain", style="cyan")
+            table.add_column("Country", style="magenta")
+            table.add_column("City", style="green")
+            table.add_column("Stage", style="yellow")
+
+            for b in discovered:
+                table.add_row(
+                    str(b.id),
+                    b.name,
+                    b.domain,
+                    b.country,
+                    b.city or "-",
+                    str(b.pipeline_stage)
+                )
+            console.print(table)
+            console.print(f"\n[bold green]✓ Discovery completed successfully. {len(discovered)} prospects recorded in database.[/bold green]")
+            console.print("[dim]Outreach remains strictly locked to Stage-1 Canary (1 real email/day). Zero emails dispatched.[/dim]\n")
+
+    asyncio.run(_discover())
 
 if __name__ == "__main__":
     cli_app()

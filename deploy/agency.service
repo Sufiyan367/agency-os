@@ -10,6 +10,7 @@ Group=agency
 WorkingDirectory=/opt/agency
 EnvironmentFile=/opt/agency/.env
 Environment="PYTHONPATH=/opt/agency"
+Environment="PYTHONUNBUFFERED=1"
 Environment="APP_ENV=production"
 
 # Launch the unified server with supervisor restart handling
@@ -18,6 +19,10 @@ ExecStart=/opt/agency/venv/bin/python -m app.service.runner
 # Robust Crash Recovery: Auto-restart on any failure within 5 seconds
 Restart=always
 RestartSec=5s
+
+# Graceful termination: Give FastAPI/SQLite 30s to commit in-flight transactions
+TimeoutStopSec=30s
+KillMode=mixed
 
 # Security Hardening
 NoNewPrivileges=true

@@ -329,23 +329,114 @@ async def auth_me(request: Request):
 @router.get("/health")
 @router.get("/api/health")
 async def health(db: AsyncSession = Depends(get_db)):
+    import time
     db_status = "connected"
+    db_latency_ms = 0.0
+    db_dialect = "sqlite"
     try:
+        t0 = time.perf_counter()
         await db.execute(select(Business.id).limit(1))
+        db_latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+        from app.database.connection import get_database_dialect
+        db_dialect = get_database_dialect()
     except Exception:
         db_status = "unreachable"
 
     worker_status = agency_worker.get_status()
+
+    # 1. Safe Gmail OAuth telemetry without secrets
+    gmail_client_id = getattr(settings, "GMAIL_CLIENT_ID", None)
+    gmail_refresh_token = getattr(settings, "GMAIL_REFRESH_TOKEN", None)
+    gmail_sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None)
+    
+    masked_email = None
+    if gmail_sender and "@" in str(gmail_sender):
+        parts = str(gmail_sender).split("@")
+        masked_user = parts[0][:3] + "***" if len(parts[0]) > 3 else "***"
+        masked_email = f"{masked_user}@{parts[1]}"
+
+    gmail_configured = bool(gmail_client_id and gmail_refresh_token)
+    email_provider = getattr(settings, "EMAIL_PROVIDER", "dry_run")
+    email_dry_run = getattr(settings, "EMAIL_DRY_RUN", True) or getattr(settings, "DRY_RUN", True)
+
+    gmail_telemetry = {
+        "provider": email_provider,
+        "configured": gmail_configured,
+        "dry_run": email_dry_run,
+        "sender_email": masked_email,
+        "oauth_ready": gmail_configured if email_provider in ("gmail", "gmail_oauth") else None
+    }
+
+    # 2. Discovery Provider Status
+    from app.acquisition.providers.registry import discovery_registry
+    primary_prov = discovery_registry.existing_adapter.name
+    discovery_telemetry = {
+        "primary_provider": primary_prov,
+        "registered_providers": [p.name for p in discovery_registry.providers],
+        "available_providers": [p.name for p in discovery_registry.providers if p.is_available()],
+        "zyte_mode": getattr(settings, "ZYTE_MODE", "evaluation"),
+        "me_phase1_target_daily": 70
+    }
+
+    # 3. Outbound Queue & Stage-1 Canary Capacity State
+    from app.campaigns.sender_registry import sender_registry
+    from app.acquisition.controller import active_prospect_controller
+    lock_status_val = "IDLE"
+    try:
+        lock_obj = await active_prospect_controller.get_or_create_lock(db, check_lease=False)
+        lock_status_val = lock_obj.status
+    except Exception:
+        pass
+
+    try:
+        cap_summary = await sender_registry.get_sender_capacity_summary(db)
+        outreach_telemetry = {
+            "rollout_stage": cap_summary.get("rollout_stage_name", "Stage 1 Canary"),
+            "daily_cap": cap_summary.get("rollout_daily_cap", 1),
+            "sent_today": cap_summary.get("total_sent_today", 0),
+            "available_capacity": cap_summary.get("available_capacity", 1),
+            "commercial_floor_usd": getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0),
+            "active_lock_status": lock_status_val
+        }
+    except Exception:
+        outreach_telemetry = {
+            "rollout_stage": "Stage 1 Canary",
+            "daily_cap": 1,
+            "sent_today": 0,
+            "available_capacity": 1,
+            "commercial_floor_usd": 500.0,
+            "active_lock_status": lock_status_val
+        }
+
+    # 4. Payments Gateway State
+    payment_telemetry = {
+        "provider": getattr(settings, "PAYMENT_PROVIDER", "razorpay"),
+        "enabled": getattr(settings, "PAYMENTS_ENABLED", False),
+        "currency": getattr(settings, "RAZORPAY_CURRENCY", "USD")
+    }
+
+    overall_ok = (db_status == "connected") and bool(worker_status.get("is_running", False))
+
     return {
         "status": "ok" if db_status == "connected" else "degraded",
+        "overall_state": "HEALTHY" if overall_ok else "DEGRADED",
         "service": settings.APP_NAME,
         "env": settings.APP_ENV,
-        "database": db_status,
+        "database": {
+            "status": db_status,
+            "dialect": db_dialect,
+            "latency_ms": db_latency_ms
+        },
         "worker": {
             "is_running": worker_status.get("is_running", False),
             "ticks_executed": worker_status.get("ticks_executed", 0),
-            "last_tick_at": worker_status.get("last_tick_at")
+            "last_tick_at": worker_status.get("last_tick_at"),
+            "last_cycle_at": worker_status.get("last_cycle_at")
         },
+        "gmail": gmail_telemetry,
+        "discovery": discovery_telemetry,
+        "outreach": outreach_telemetry,
+        "payment": payment_telemetry,
         "cloud_mode": True,
         "auth_enabled": settings.AUTH_ENABLED
     }
