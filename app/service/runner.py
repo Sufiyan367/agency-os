@@ -68,11 +68,13 @@ def run_service_supervisor():
     restart_count = 0
     while keep_running:
         try:
-            logger.info("Starting Agency Server (FastAPI + Persistent Worker) on http://0.0.0.0:8000...")
+            host = os.getenv("HOST", "127.0.0.1")
+            port = int(os.getenv("PORT", "8000"))
+            logger.info(f"Starting Agency Server (FastAPI + Persistent Worker) on http://{host}:{port}...")
             config = uvicorn.Config(
                 "app.api.app:app",
-                host="0.0.0.0",
-                port=8000,
+                host=host,
+                port=port,
                 log_level="info",
                 access_log=False,
                 timeout_keep_alive=30
