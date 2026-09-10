@@ -2176,7 +2176,9 @@ async def get_ceo_control_center_overview(
         location_str = f"{active_b.city}, {active_b.country}" if active_b.city and active_b.country else (active_b.country or "Global")
 
         score_val = None
-        score_rec = getattr(active_b, "lead_score", None)
+        score_rec = (await db.execute(
+            select(LeadScore).where(LeadScore.business_id == active_b.id).order_by(desc(LeadScore.id))
+        )).scalars().first()
         if score_rec and score_rec.total_score is not None:
             score_val = float(score_rec.total_score)
         elif audit and getattr(audit, "overall_health_score", None) is not None:
@@ -2187,11 +2189,20 @@ async def get_ceo_control_center_overview(
         call_driven_score = None
         call_opportunity = None
         if score_rec and score_rec.scoring_breakdown:
-            call_driven_score = score_rec.scoring_breakdown.get("call_driven_score")
             call_opportunity = score_rec.scoring_breakdown.get("call_opportunity")
+            call_driven_score = score_rec.scoring_breakdown.get("call_driven_score")
+            if not call_driven_score and isinstance(call_opportunity, dict):
+                call_driven_score = call_opportunity.get("call_driven_score")
+
         if not call_driven_score and audit and getattr(audit, "metrics", None):
-            call_driven_score = audit.metrics.get("call_driven_score")
-            call_opportunity = audit.metrics.get("call_opportunity")
+            ux_metrics = audit.metrics.get("ux_conversion", {}) if isinstance(audit.metrics, dict) else {}
+            call_opp = ux_metrics.get("call_opportunity", {}) if isinstance(ux_metrics, dict) else {}
+            if call_opp:
+                call_opportunity = call_opp
+                call_driven_score = call_opp.get("call_driven_score")
+            elif "call_driven_score" in audit.metrics:
+                call_driven_score = audit.metrics.get("call_driven_score")
+                call_opportunity = audit.metrics.get("call_opportunity")
 
         audit_summary_text = audit.summary if audit and audit.summary else (
             f"Findings: {', '.join(f.finding[:40] for f in findings)}" if findings else "Empirical audit complete."
