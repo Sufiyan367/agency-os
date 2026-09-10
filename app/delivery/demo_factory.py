@@ -402,5 +402,8 @@ class DemoFactory:
             artifact_id=artifact.id
         )
 
+    # Alias for builder calls
+    build_demo_for_business = generate_demo_package
+
 
 demo_factory = DemoFactory()
