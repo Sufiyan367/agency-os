@@ -654,6 +654,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "We Will Fix It",
             "domain": "wewillfixit.com",
             "phone": "+971-4-349-0727",
+            "email": "info@wewillfixit.com",
             "city": "Dubai",
             "address": "Dubai, United Arab Emirates"
         },
@@ -728,6 +729,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Medcare Hospitals & Clinics",
             "domain": "medcare.ae",
             "phone": "+971-800-6332273",
+            "email": "info@medcare.ae",
             "city": "Dubai",
             "address": "Dubai, United Arab Emirates"
         },
@@ -818,6 +820,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Orange Auto",
             "domain": "orangeauto.ae",
             "phone": "+971-4-338-1551",
+            "email": "info@orangeauto.ae",
             "city": "Dubai",
             "address": "Dubai, United Arab Emirates"
         }
@@ -880,6 +883,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "BSA Ahmad Bin Hezeem & Associates",
             "domain": "bsabh.com",
             "phone": "+971-4-528-5555",
+            "email": "info@bsalaw.com",
             "city": "Dubai",
             "address": "Dubai, United Arab Emirates"
         },
@@ -920,6 +924,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Al Salem Johnson Controls",
             "domain": "al-salem.com",
             "phone": "+966-12-690-0999",
+            "email": "info@al-salem.com",
             "city": "Riyadh",
             "address": "Riyadh, Saudi Arabia"
         },
@@ -943,6 +948,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Al Salem Johnson Controls",
             "domain": "al-salem.com",
             "phone": "+966-12-690-0999",
+            "email": "info@al-salem.com",
             "city": "Jeddah",
             "address": "Jeddah, Saudi Arabia"
         },
@@ -996,6 +1002,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Mouwasat Medical Services",
             "domain": "mouwasat.com",
             "phone": "+966-13-820-0000",
+            "email": "info@mouwasat.com",
             "city": "Khobar",
             "address": "Khobar, Saudi Arabia"
         },
@@ -1003,6 +1010,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Sigal Dental Clinic",
             "domain": "sigalclinics.com",
             "phone": "+966-11-464-8060",
+            "email": "wecare@sigal.com.sa",
             "city": "Riyadh",
             "address": "Riyadh, Saudi Arabia"
         },
@@ -1010,6 +1018,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Magrabi Hospitals KSA",
             "domain": "magrabi.com.sa",
             "phone": "+966-9200-18000",
+            "email": "ask.doctor@magrabi.com.sa",
             "city": "Jeddah",
             "address": "Jeddah, Saudi Arabia"
         }
@@ -1058,6 +1067,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "Petromin Corporation",
             "domain": "petromin.com",
             "phone": "+966-12-215-6666",
+            "email": "info@petromin.com",
             "city": "Jeddah",
             "address": "Jeddah, Saudi Arabia"
         },
@@ -1065,6 +1075,7 @@ REAL_COMMERCIAL_BUSINESSES = {
             "name": "AutoWorld KSA",
             "domain": "autoworld.com.sa",
             "phone": "+966-13-887-7777",
+            "email": "clientservice@autoworld.com.sa",
             "city": "Khobar",
             "address": "Khobar, Saudi Arabia"
         },

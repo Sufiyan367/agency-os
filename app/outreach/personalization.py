@@ -188,4 +188,7 @@ class OutreachPersonalizer:
         await session.commit()
         return msg
 
+    # Compatibility alias
+    personalize_and_stage_outreach = prepare_outreach_for_business
+
 outreach_personalizer = OutreachPersonalizer()
