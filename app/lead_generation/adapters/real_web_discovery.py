@@ -143,6 +143,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     "title": item["name"],
                     "city": item["city"],
                     "phone": item.get("phone"),
+                    "email": item.get("email") or item.get("public_email"),
                     "source": "commercial_trade_registry"
                 })
                 if len(candidates) >= limit * 3:
@@ -261,8 +262,13 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
 
             soup = BeautifulSoup(resp.text, "html.parser")
             if soup.title and soup.title.get_text(strip=True):
-                pt = soup.title.get_text(strip=True).split("|")[0].split("-")[0].split("–")[0].strip()
-                if len(pt) >= 3 and pt.lower() not in UNWANTED_TITLES:
+                raw_t = soup.title.get_text(strip=True)
+                pt = raw_t.split("|")[0].split("-")[0].split("–")[0].strip()
+                is_unwanted = any(u in raw_t.lower() for u in [
+                    "attention required", "cloudflare", "access denied", "security challenge",
+                    "robot check", "captcha", "just a moment", "403 forbidden", "blocked", "one moment please"
+                ])
+                if len(pt) >= 3 and not is_unwanted and pt.lower() not in UNWANTED_TITLES:
                     clean_name = pt
 
             # Extract emails from homepage
@@ -301,7 +307,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 except Exception:
                     pass
 
-            chosen_email = valid_emails[0] if valid_emails else None
+            candidate_email = candidate.get("email")
+            chosen_email = valid_emails[0] if valid_emails else candidate_email
             email_status = "verified" if chosen_email else "unknown"
 
             return DiscoveredLeadRaw(
@@ -327,8 +334,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 country=country,
                 city=candidate["city"],
                 niche=niche,
-                public_email=None,
-                email_status="unknown",
+                public_email=candidate.get("email"),
+                email_status="verified" if candidate.get("email") else "unknown",
                 phone=phone,
                 address=f"{candidate['city']}, {country}",
                 source=candidate["source"],
