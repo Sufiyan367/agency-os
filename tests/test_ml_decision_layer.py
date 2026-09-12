@@ -138,8 +138,13 @@ def test_expected_revenue_model_and_commercial_floor():
     assert eval_below["confidence_metadata"]["is_uncertain"] is True
     assert eval_below["confidence_metadata"]["data_source"] == "COLD_START"
 
-def test_scikit_learn_model_training_and_inference():
+@pytest.mark.asyncio
+async def test_scikit_learn_model_training_and_inference():
+    """5. Verifies scikit-learn model training, persistence, and inference."""
+    pytest.importorskip("sklearn")
     runner = ModelRunner()
+
+
     base_feat = _get_dummy_features()
 
     # Generate 10 synthetic samples with variations

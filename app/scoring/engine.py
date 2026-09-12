@@ -37,13 +37,15 @@ class LeadScoringEngine:
             contactability = 20.0
 
         # Extract Call Opportunity Evidence from audit metrics
-        call_opp = (audit.metrics or {}).get("ux_conversion", {}).get("call_opportunity", {})
+        metrics = getattr(audit, "metrics", None) or {}
+        call_opp = metrics.get("ux_conversion", {}).get("call_opportunity", {})
         call_driven_score = float(call_opp.get("call_driven_score", 50.0))
         has_hours = bool(call_opp.get("business_hours_detected", False))
         after_hours_gap = bool(call_opp.get("after_hours_gap_detected", False))
         app_dep = bool(call_opp.get("appointment_dependency", False))
 
-        is_call_icp = niche.slug in (
+        niche_slug = getattr(niche, "slug", "") or ""
+        is_call_icp = niche_slug in (
             "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
             "hvac-home-services", "hvac-services", "automotive",
             "commercial-law", "professional-services", "salons-barbers", "real-estate"

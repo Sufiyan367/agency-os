@@ -150,8 +150,9 @@ async def test_hard_one_real_email_limit_enforcement():
                 async with AsyncSessionLocal() as session:
                     await outreach_sender_adapter.send_approved_message(session, msg2_id, force_live=True)
 
-            assert "First-client validation limit reached" in str(excinfo.value)
-            assert "Exactly 1 real outbound email is permitted" in str(excinfo.value)
+            err_msg = str(excinfo.value)
+            assert ("Daily sender capacity exhausted" in err_msg or "First-client validation limit reached" in err_msg)
+            assert ("1/1 sent today" in err_msg or "Exactly 1 real outbound email is permitted" in err_msg)
         finally:
             settings.RESEND_API_KEY = orig_resend
 

@@ -128,6 +128,7 @@ async def test_model_runner_cold_start_and_prediction_logging():
 
 @pytest.mark.asyncio
 async def test_model_runner_sklearn_training_and_inference():
+    pytest.importorskip("sklearn")
     await init_db()
     # 1. Create synthetic training samples
     samples = []

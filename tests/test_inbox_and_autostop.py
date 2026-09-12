@@ -10,6 +10,8 @@ from app.crm.inbox_poller import inbox_poller
 from app.crm.reply_classifier import reply_classifier
 from app.followups.engine import followup_engine
 from app.outreach.compliance import compliance_guard
+from unittest.mock import patch
+from app.core.config import settings
 
 @pytest.mark.asyncio
 async def test_inbox_message_matching_and_interested_reply(db_session):
@@ -214,8 +216,10 @@ async def test_process_due_followups_execution(db_session):
     db_session.add(fu)
     await db_session.commit()
 
-    sent = await followup_engine.process_due_followups(db_session)
-    assert len(sent) == 1
-    assert sent[0].id == fu.id
-    assert sent[0].status == FollowupStatus.SENT.value
-    assert sent[0].sent_at is not None
+    with patch.object(settings, "FOLLOWUPS_ENABLED", True), \
+         patch.object(settings, "EMAIL_DRY_RUN", True):
+        sent = await followup_engine.process_due_followups(db_session)
+        assert len(sent) == 1
+        assert sent[0].id == fu.id
+        assert sent[0].status == FollowupStatus.SENT.value
+        assert sent[0].sent_at is not None

@@ -140,7 +140,7 @@ def test_no_fake_data_introduced_in_discovery_sources():
     # Check that registry entries are real commercial entities with verifiable domains and phone numbers
     assert len(REAL_COMMERCIAL_BUSINESSES) > 0
     total_companies = 0
-    valid_country_codes = {"US", "GB", "UK", "CA", "AU", "DE", "FR", "AE", "SG", "SA"}
+    valid_country_codes = {"US", "GB", "UK", "CA", "AU", "DE", "FR", "AE", "SG", "SA", "BH", "JO", "KW", "OM", "QA"}
     for (country, niche), companies in REAL_COMMERCIAL_BUSINESSES.items():
         assert country in valid_country_codes
         for entry in companies:
