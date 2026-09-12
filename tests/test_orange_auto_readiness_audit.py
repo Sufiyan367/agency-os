@@ -342,4 +342,5 @@ async def test_orange_auto_canary_remains_pending_approval():
 
         # Confirm Stage-1 Canary daily outbound limit is strictly 1
         rollout = campaign_config_loader.get_rollout_config()
-        assert rollout.daily_max_real_emails == 1
+        level_1 = next((l for l in rollout.levels if l.level == 1), None)
+        assert level_1 is not None and level_1.daily_max_real_emails == 1

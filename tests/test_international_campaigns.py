@@ -124,9 +124,9 @@ async def test_rollout_progression_levels_0_to_7(db_session):
     with pytest.raises(ValueError):
         campaign_service.set_rollout_level(99)
 
-    # Reset back to 0
-    campaign_service.set_rollout_level(0)
-    assert campaign_config_loader.get_rollout_config().current_level == 0
+    # Reset back to default Level 1
+    campaign_service.set_rollout_level(1)
+    assert campaign_config_loader.get_rollout_config().current_level == 1
 
 
 @pytest.mark.asyncio
@@ -323,8 +323,8 @@ async def test_campaign_api_routes(db_session):
         assert res_blocked.status_code == 400
         assert "First live validation is strictly capped" in res_blocked.json()["detail"]
 
-        # Reset back to Level 0
-        await client.post("/api/campaigns/rollout/level", json={"level": 0, "confirm": True})
+        # Reset back to Level 1
+        await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
 
         # 4. GET /api/ceo/overview contains campaigns_summary
         res_overview = await client.get("/api/ceo/overview")

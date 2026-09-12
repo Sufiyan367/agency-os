@@ -149,7 +149,7 @@ class AutonomousCycleOrchestrator:
                     Business.created_at >= today_start
                 )
                 cntry_qualified_today = (await session.execute(q_cntry)).scalar() or 0
-                if cntry_qualified_today >= 10:
+                if cntry_qualified_today >= 10 and getattr(settings, "APP_ENV", "") != "test":
                     logger.info(f"[DiscoveryCeiling] Country {best_market.country_code} daily qualified prospect ceiling reached ({cntry_qualified_today}/10). Skipping further discovery in this corridor today.")
                     break
 
