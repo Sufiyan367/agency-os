@@ -168,7 +168,9 @@ def test_gate_02_invalid_email_credentials():
 
 def test_gate_03_unverified_sender_domain():
     """Gate 3: Test/placeholder or unverified sender domain blocks activation."""
-    with patch.object(settings, "EMAIL_FROM", "test@example.com"):
+    with patch.object(settings, "EMAIL_PROVIDER", "dry_run"), \
+         patch.object(settings, "GMAIL_SENDER_EMAIL", ""), \
+         patch.object(settings, "EMAIL_FROM", "test@example.com"):
         readiness = production_activation_manager.evaluate_email_readiness()
         assert readiness.is_ready is False
         assert any("test/placeholder domain" in b for b in readiness.blockers)
@@ -176,9 +178,12 @@ def test_gate_03_unverified_sender_domain():
 
 def test_gate_04_missing_dkim():
     """Gate 4: Missing DKIM DNS records blocks live email sending."""
-    readiness = production_activation_manager.evaluate_email_readiness()
-    assert readiness.is_ready is False
-    assert any("DKIM" in b for b in readiness.blockers)
+    with patch.object(settings, "EMAIL_PROVIDER", "dry_run"), \
+         patch.object(settings, "GMAIL_SENDER_EMAIL", ""), \
+         patch.object(settings, "EMAIL_FROM", "prospects@agencygrowth.co"):
+        readiness = production_activation_manager.evaluate_email_readiness()
+        assert readiness.is_ready is False
+        assert any("DKIM" in b for b in readiness.blockers)
 
 
 def test_gate_05_missing_payment_credentials():

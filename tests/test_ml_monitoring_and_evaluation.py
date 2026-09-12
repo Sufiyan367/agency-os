@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+np = pytest.importorskip("numpy")
 from datetime import datetime, timedelta
 from httpx import AsyncClient, ASGITransport
 

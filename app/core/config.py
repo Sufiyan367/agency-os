@@ -2,9 +2,15 @@ import os
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+def get_env_file() -> Optional[str]:
+    """Returns the environment file path, or None during test execution to prevent production leakage."""
+    if os.getenv("TESTING", "").lower() in ("true", "1", "yes") or os.getenv("APP_ENV") == "test":
+        return os.getenv("ENV_FILE", None)
+    return os.getenv("ENV_FILE", ".env")
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=get_env_file(),
         env_file_encoding="utf-8",
         extra="ignore"
     )
