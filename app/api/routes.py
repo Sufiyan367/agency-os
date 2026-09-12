@@ -3543,10 +3543,20 @@ async def preview_lead_demo(lead_id: int, db: AsyncSession = Depends(get_db)):
 
     abs_file_path = validate_safe_path_within_root(rel_path, ARTIFACTS_ROOT)
     if not os.path.exists(abs_file_path):
-        raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
-
-    with open(abs_file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        try:
+            from app.delivery.requirements_engine import requirements_engine
+            from app.delivery.demo_factory import demo_factory
+            packet = await requirements_engine.build_requirements_packet(db, clean_id)
+            content = demo_factory.generate_demo_html(b, packet)
+            os.makedirs(os.path.dirname(abs_file_path), exist_ok=True)
+            with open(abs_file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+        except Exception as e:
+            logger.warning(f"Could not on-demand generate demo preview HTML for lead {clean_id}: {e}")
+            raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
+    else:
+        with open(abs_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
 
     # Secret Scrubbing
     for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
@@ -3617,6 +3627,7 @@ async def get_public_client_demo(business_slug: str, db: AsyncSession = Depends(
     artifacts = (await db.execute(art_q)).scalars().all()
 
     matched_art = None
+    matched_biz = None
     for art in artifacts:
         meta = art.metadata_json or {}
         if meta.get("slug") == clean_slug or meta.get("demo_slug") == clean_slug:
@@ -3655,12 +3666,28 @@ async def get_public_client_demo(business_slug: str, db: AsyncSession = Depends(
     else:
         rel_path = raw_path
 
+    if matched_art and not matched_biz:
+        matched_biz = await db.get(Business, matched_art.business_id)
+
     abs_file_path = validate_safe_path_within_root(rel_path, ARTIFACTS_ROOT)
     if not os.path.exists(abs_file_path):
-        raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
-
-    with open(abs_file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        if matched_biz:
+            try:
+                from app.delivery.requirements_engine import requirements_engine
+                from app.delivery.demo_factory import demo_factory
+                packet = await requirements_engine.build_requirements_packet(db, matched_biz.id)
+                content = demo_factory.generate_demo_html(matched_biz, packet)
+                os.makedirs(os.path.dirname(abs_file_path), exist_ok=True)
+                with open(abs_file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+            except Exception as e:
+                logger.warning(f"Could not on-demand generate demo HTML for {clean_slug}: {e}")
+                raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
+        else:
+            raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
+    else:
+        with open(abs_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
 
     # Secret Scrubbing
     for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
