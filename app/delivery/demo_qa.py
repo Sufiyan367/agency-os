@@ -83,8 +83,12 @@ class DemoQAEngine:
             details=f"Service '{meta.service_title}' and Price ${meta.price_usd:,.2f} (>= $500 floor) present in demo."
         ))
 
-        # 4. ZERO_PLACEHOLDERS Gate
-        placeholder_patterns = [r"\{\{", r"\}\}", r"TODO", r"lorem ipsum", r"undefined", r"\[Business Name\]"]
+        # 4. ZERO_PLACEHOLDERS Gate (also enforces no internal data leakage)
+        placeholder_patterns = [
+            r"\{\{", r"\}\}", r"TODO", r"lorem ipsum", r"undefined", r"\[Business Name\]",
+            r"[a-zA-Z]:\\(?:Users|opt|AGENCY)[^<>\s]*", r"/opt/agency/[^<>\s]*",
+            r"\b(OUTREACH_READY|PENDING_APPROVAL|QUALIFIED_REPLY)\b"
+        ]
         found_placeholders = []
         for pat in placeholder_patterns:
             if re.search(pat, html, re.I):
@@ -93,7 +97,7 @@ class DemoQAEngine:
         checks.append(QACheckItem(
             name="ZERO_PLACEHOLDERS",
             passed=no_placeholders,
-            details="No unpopulated placeholders detected." if no_placeholders else f"Found placeholders: {found_placeholders}"
+            details="No unpopulated placeholders or internal leaks detected." if no_placeholders else f"Found placeholders/leaks: {found_placeholders}"
         ))
 
         # 5. STRUCTURAL_HTML Gate
@@ -143,6 +147,33 @@ class DemoQAEngine:
             qa_signature=f"QA-PASS-{meta.build_checksum[:12]}" if overall else "QA-FAIL",
             error_summary=errors
         )
+
+    @classmethod
+    def verify_zero_internal_leakage(cls, html: str) -> Dict[str, Any]:
+        """
+        Independent verification asserting zero operational data leakage:
+        - No server filesystem paths
+        - No internal database pipeline stages
+        - No internal database primary keys
+        - No live credentials or API tokens
+        """
+        leak_patterns = [
+            (r"[a-zA-Z]:\\(?:Users|opt|AGENCY)[^<>\s]*", "Absolute server path (Windows)"),
+            (r"/opt/agency/[^<>\s]*", "Absolute server path (Linux)"),
+            (r"\b(OUTREACH_READY|PENDING_APPROVAL|QUALIFIED_REPLY|IN_DELIVERY|ADVANCE_PAID)\b", "Internal pipeline stage"),
+            (r"business_id:\s*\d+", "Internal database foreign key"),
+            (r"sk-live-[a-zA-Z0-9]+", "API secret key")
+        ]
+        leaks = []
+        for pat, desc in leak_patterns:
+            matches = re.findall(pat, html)
+            if matches:
+                leaks.append(f"{desc}: {matches[:3]}")
+        return {
+            "passed": len(leaks) == 0,
+            "leak_count": len(leaks),
+            "leaks": leaks
+        }
 
 
 demo_qa_engine = DemoQAEngine()

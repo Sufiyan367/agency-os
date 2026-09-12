@@ -3596,6 +3596,88 @@ async def get_lead_demo_qa(lead_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/demo/{business_slug}")
+async def get_public_client_demo(business_slug: str, db: AsyncSession = Depends(get_db)):
+    """
+    Public prospect-facing custom demonstration endpoint.
+    Accessible without dashboard login cookies.
+    Serves sanitized, client-safe interactive HTML with strict security headers.
+    """
+    import re
+    from app.delivery.website_builder import ARTIFACTS_ROOT
+    from app.core.security import validate_safe_path_within_root
+    from app.core.logging import SENSITIVE_KEY_VALUE_PATTERNS, STANDALONE_SECRET_PATTERNS
+
+    clean_slug = re.sub(r'[^a-z0-9\-]', '', business_slug.lower()).strip('-')
+    if not clean_slug:
+        raise HTTPException(status_code=404, detail="Invalid demo identifier")
+
+    # 1. Look for an Artifact with matching slug in metadata_json
+    art_q = select(Artifact).where(Artifact.artifact_type == "DEMO_PACKAGE").order_by(desc(Artifact.created_at))
+    artifacts = (await db.execute(art_q)).scalars().all()
+
+    matched_art = None
+    for art in artifacts:
+        meta = art.metadata_json or {}
+        if meta.get("slug") == clean_slug or meta.get("demo_slug") == clean_slug:
+            matched_art = art
+            break
+
+    # 2. Fallback: match business by name/domain slug
+    if not matched_art:
+        biz_q = select(Business)
+        businesses = (await db.execute(biz_q)).scalars().all()
+        matched_biz = None
+        for b in businesses:
+            name_slug = re.sub(r'[^a-z0-9\-]+', '-', (b.name or "").lower()).strip('-')
+            domain_slug = re.sub(r'[^a-z0-9\-]+', '-', (b.domain or "").lower()).strip('-')
+            domain_root_slug = re.sub(r'[^a-z0-9\-]+', '-', (b.domain or "").split('.')[0].lower()).strip('-')
+            if clean_slug in (name_slug, domain_slug, domain_root_slug):
+                matched_biz = b
+                break
+
+        if matched_biz:
+            b_art_q = select(Artifact).where(
+                Artifact.business_id == matched_biz.id,
+                Artifact.artifact_type == "DEMO_PACKAGE"
+            ).order_by(desc(Artifact.created_at))
+            matched_art = (await db.execute(b_art_q)).scalars().first()
+
+    if not matched_art or not matched_art.path:
+        raise HTTPException(status_code=404, detail=f"No demonstration package found for '{clean_slug}'")
+
+    raw_path = matched_art.path
+    if os.path.isabs(raw_path):
+        try:
+            rel_path = os.path.relpath(raw_path, ARTIFACTS_ROOT)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Cross-drive artifact path disallowed")
+    else:
+        rel_path = raw_path
+
+    abs_file_path = validate_safe_path_within_root(rel_path, ARTIFACTS_ROOT)
+    if not os.path.exists(abs_file_path):
+        raise HTTPException(status_code=404, detail="Demo artifact file not found on disk")
+
+    with open(abs_file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Secret Scrubbing
+    for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
+        content = pattern.sub(r'\1: [REDACTED]', content)
+    for pattern in STANDALONE_SECRET_PATTERNS:
+        content = pattern.sub('[REDACTED_SECRET]', content)
+
+    headers = {
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
+        "Cache-Control": "public, max-age=3600",
+        "X-Content-Type-Options": "nosniff"
+    }
+    return HTMLResponse(content=content, status_code=200, headers=headers)
+
+
+
 # =====================================================================
 # Phase 6: Prospect Memory & Objection Handling Cockpit Endpoints
 # =====================================================================
