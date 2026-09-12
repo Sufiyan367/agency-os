@@ -51,7 +51,7 @@ class ContentAuditor:
                 "finding": "Missing Dedicated Service Sub-pages",
                 "severity": AuditSeverity.HIGH.value,
                 "evidence": "No links pointing to distinct dedicated service pages detected in navigation.",
-                "recommended_fix": "Create standalone URLs for each specialized service (e.g. /commercial-roofing, /emergency-repair).",
+                "recommended_fix": "Create standalone landing pages for each core service offering.",
                 "estimated_business_impact": "Prevents ranking for high-intent specific service queries.",
                 "confidence": 0.92
             })
@@ -64,8 +64,8 @@ class ContentAuditor:
                 "category": "Content",
                 "finding": "Missing City / Geographic Service Area Pages",
                 "severity": AuditSeverity.MEDIUM.value,
-                "evidence": "No regional landing page links found (e.g. /service-areas/north-austin).",
-                "recommended_fix": "Develop targeted city/suburb landing pages to dominate neighboring regional search queries.",
+                "evidence": "No dedicated geographic or regional service area pages detected in site navigation.",
+                "recommended_fix": "Develop targeted service area pages for primary metropolitan and neighboring service locations.",
                 "estimated_business_impact": "Loses local search traffic from adjacent towns and metropolitan suburbs.",
                 "confidence": 0.88
             })

@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Tuple, Optional
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database.models import Business, AuditRun, AuditFinding, Offer, OutreachMessage, OutreachStatus, LeadScore, PipelineStage
 from app.core.config import settings
 from app.core.llm import llm_client
@@ -18,7 +19,8 @@ class OutreachPersonalizer:
         audit: AuditRun,
         findings: List[AuditFinding],
         offer: Offer,
-        demo_url: Optional[str] = None
+        demo_url: Optional[str] = None,
+        has_empirical_evidence: bool = False
     ) -> List[Dict[str, Any]]:
         top_finding = findings[0] if findings else None
         second_finding = findings[1] if len(findings) > 1 else None
@@ -26,7 +28,12 @@ class OutreachPersonalizer:
         finding_text = top_finding.finding if top_finding else "Mobile conversion pathway friction"
         evidence_text = top_finding.evidence if top_finding else "Primary call-to-action is delayed below the fold."
         fix_text = top_finding.recommended_fix if top_finding else "Deploy high-contrast sticky mobile CTA header."
-        impact_text = top_finding.estimated_business_impact if top_finding else "Causes lost inbound calls and estimate requests."
+        
+        # When empirical evidence is zero or unverified, soften operational impact claims to hypotheses
+        if not has_empirical_evidence:
+            impact_text = "May represent a potential friction point for prospective customers seeking immediate contact."
+        else:
+            impact_text = top_finding.estimated_business_impact if top_finding else "Causes lost inbound calls and estimate requests."
 
         # If this is an AI Receptionist & Missed-Call Recovery offer, generate outcome-focused call recovery variants
         is_receptionist_offer = (
@@ -100,11 +107,16 @@ class OutreachPersonalizer:
         )
 
         subj_2 = f"Quick question regarding mobile inquiries on {business.domain}"
+        friction_phrase = (
+            "noticed a technical aspect that could potentially optimize the mobile visitor experience:"
+            if not has_empirical_evidence
+            else "noticed a friction point that is likely depressing your inbound contact rate:"
+        )
         body_2 = (
             f"Hi there,\n\n"
-            f"I was recently looking at {business.domain} on mobile and noticed a friction point that is likely depressing your inbound contact rate:\n\n"
+            f"I was recently looking at {business.domain} on mobile and {friction_phrase}\n\n"
             f"• Observation: {finding_text}\n"
-            f"• Evidence: {evidence_text}\n"
+            f"• Technical Evidence: {evidence_text}\n"
             f"{f'• Secondary factor: {second_finding.finding}' if second_finding else ''}\n\n"
             f"For businesses in {business.city or business.country}, resolving high-friction mobile bottlenecks helps capture high-intent visitors who would otherwise navigate away.\n\n"
             f"We have packaged a turnkey fix ({offer.title}) that addresses this in {offer.estimated_delivery_days} days.\n\n"
@@ -173,7 +185,17 @@ class OutreachPersonalizer:
             if art and art.preview_url:
                 demo_url = f"{public_base.rstrip('/')}/{art.preview_url.lstrip('/')}"
 
-        variants = self.generate_message_variants(business, audit, findings, offer, demo_url=demo_url)
+        # Check empirical evidence count to ground language
+        ev_count = getattr(business, "evidence_count", 0) or 0
+        if ev_count == 0:
+            from app.database.models import ProspectEvidence
+            ev_q = select(func.count(ProspectEvidence.id)).where(ProspectEvidence.business_id == business.id)
+            ev_count = (await session.execute(ev_q)).scalar() or 0
+        has_empirical_evidence = (ev_count > 0)
+
+        variants = self.generate_message_variants(
+            business, audit, findings, offer, demo_url=demo_url, has_empirical_evidence=has_empirical_evidence
+        )
         chosen = variants[min(selected_variant, len(variants) - 1)]
 
         # Append compliance footer
@@ -197,7 +219,8 @@ class OutreachPersonalizer:
                 body=full_body,
                 variant_name=chosen["variant"],
                 status=target_status,
-                confidence=0.92
+                confidence=0.92,
+                approved_at=datetime.utcnow() if auto_approve else None
             )
             session.add(msg)
         else:
@@ -205,6 +228,8 @@ class OutreachPersonalizer:
             msg.body = full_body
             msg.variant_name = chosen["variant"]
             msg.status = target_status
+            if target_status == OutreachStatus.PENDING_APPROVAL.value:
+                msg.approved_at = None
 
         business.pipeline_stage = PipelineStage.OUTREACH_READY.value if auto_approve else PipelineStage.APPROVAL.value
         await session.commit()

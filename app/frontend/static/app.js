@@ -2238,7 +2238,7 @@ async function viewLeadDetail(leadId) {
                     </div>
                     <div>
                         <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block;">ROI & Economic Value Hypothesis:</span>
-                        <strong style="color:var(--hud-amber); font-size:0.88rem;">${(intel.roi_estimate && typeof intel.roi_estimate === 'object') ? escapeHtml(intel.roi_estimate.summary || intel.roi_estimate.value_hypothesis || 'Expected to restore 15–30% lost commercial pipeline through technical remediation.') : escapeHtml(intel.roi_estimate || 'Expected to restore 15–30% lost commercial pipeline through technical remediation.')}</strong>
+                        <strong style="color:var(--hud-amber); font-size:0.88rem;">${(intel.roi_estimate && typeof intel.roi_estimate === 'object' && (intel.roi_estimate.summary || intel.roi_estimate.value_hypothesis)) ? escapeHtml(intel.roi_estimate.summary || intel.roi_estimate.value_hypothesis) : ((typeof intel.roi_estimate === 'string' && intel.roi_estimate) ? escapeHtml(intel.roi_estimate) : 'Evidence-backed ROI calculation pending verified operational metrics.')}</strong>
                     </div>
                 </div>
             </div>

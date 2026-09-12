@@ -73,4 +73,35 @@ class OutreachApprovalQueue:
         await session.commit()
         return msg
 
+    async def reset_to_pending(
+        self, session: AsyncSession, message_id: int, reason: str = ""
+    ) -> OutreachMessage:
+        """
+        Resets an outreach message back to PENDING_APPROVAL and clears approved_at.
+        Ensures state consistency across OutreachMessage and PipelineEvent.
+        """
+        msg = await session.get(OutreachMessage, message_id)
+        if not msg:
+            raise ValueError(f"OutreachMessage {message_id} not found.")
+
+        msg.status = OutreachStatus.PENDING_APPROVAL.value
+        msg.approved_at = None
+
+        biz = await session.get(Business, msg.business_id)
+        if biz:
+            biz.pipeline_stage = PipelineStage.APPROVAL.value
+            event = PipelineEvent(
+                business_id=biz.id,
+                from_stage=biz.pipeline_stage,
+                to_stage=PipelineStage.APPROVAL.value,
+                deal_value=0.0,
+                note=f"Outreach draft staged. Awaiting human CEO review and approval (PENDING_APPROVAL). {reason}".strip()
+            )
+            session.add(event)
+
+        await session.commit()
+        logger.info(f"Reset message {message_id} to PENDING_APPROVAL: {reason}")
+        return msg
+
 outreach_approval_queue = OutreachApprovalQueue()
+

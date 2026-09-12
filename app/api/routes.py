@@ -700,6 +700,7 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
             "total_score": b.lead_score.total_score if b.lead_score else None,
             "priority": b.lead_score.priority if b.lead_score else None,
             "rationale": b.lead_score.rationale if b.lead_score else None,
+            "score_type": "Firmographic Commercial Opportunity (Macro)",
             "breakdown": b.lead_score.scoring_breakdown if b.lead_score else {}
         },
         "audit": {
@@ -767,11 +768,15 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
     intel_q = select(ClientIntelligenceRecord).where(ClientIntelligenceRecord.business_id == lead_id)
     intel_rec = (await db.execute(intel_q)).scalars().first()
     if intel_rec:
+        fit_score_val = float(intel_rec.fit_score or 0.0)
+        fit_label = "OPTIMAL" if fit_score_val >= 0.85 else ("STRONG" if fit_score_val >= 0.70 else "MODERATE")
         res["client_intelligence"] = {
             "segment": intel_rec.segment,
             "top_service_id": intel_rec.top_service_id,
             "top_service_name": intel_rec.top_service_name,
             "fit_score": intel_rec.fit_score,
+            "fit_score_type": "Service Solution Alignment (Micro)",
+            "fit_label": fit_label,
             "selection_score": intel_rec.selection_score,
             "recommended_price_usd": float(intel_rec.recommended_price_usd) if intel_rec.recommended_price_usd else None,
             "target_price_usd": float(intel_rec.target_price_usd) if intel_rec.target_price_usd else None,
@@ -787,17 +792,23 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
     # Fetch Real Empirical Pipeline Events Timeline
     events_q = select(PipelineEvent).where(PipelineEvent.business_id == lead_id).order_by(PipelineEvent.created_at.asc())
     events = (await db.execute(events_q)).scalars().all()
-    res["timeline"] = [
-        {
+    timeline_items = []
+    for ev in events:
+        ev_note = ev.note
+        # Reconcile state consistency: if the prospect's outreach is currently PENDING_APPROVAL,
+        # ensure timeline events never contradict this by claiming active human approval
+        if outreach and outreach.status == OutreachStatus.PENDING_APPROVAL.value:
+            if "approved by human operator" in (ev_note or "").lower():
+                ev_note = "Outreach draft staged. Awaiting human CEO review and approval (PENDING_APPROVAL)."
+        timeline_items.append({
             "id": ev.id,
             "from_stage": ev.from_stage,
             "to_stage": ev.to_stage,
             "deal_value": float(ev.deal_value) if ev.deal_value else 0.0,
-            "note": ev.note,
+            "note": ev_note,
             "created_at": ev.created_at.isoformat() if ev.created_at else None
-        }
-        for ev in events
-    ]
+        })
+    res["timeline"] = timeline_items
 
     # Fetch latest ModelPrediction if available
     pred_q = (
