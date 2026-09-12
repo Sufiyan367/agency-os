@@ -203,17 +203,24 @@ async def test_websocket_authentication():
 @pytest.mark.asyncio
 async def test_rate_limiting_enforcement_429():
     """7. Verify rate limiting returns 429 when threshold is exceeded."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Submit 6 quick login attempts (threshold is 5/min)
-        statuses = []
-        for i in range(6):
-            resp = await client.post("/api/auth/login", json={"username": "bad", "password": "bad"})
-            statuses.append(resp.status_code)
+    orig_rl = settings.RATE_LIMIT_ENABLED
+    settings.RATE_LIMIT_ENABLED = True
+    await rate_limiter.reset()
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            # Submit 6 quick login attempts (threshold is 5/min)
+            statuses = []
+            for i in range(6):
+                resp = await client.post("/api/auth/login", json={"username": "bad", "password": "bad"})
+                statuses.append(resp.status_code)
 
-        # First 5 should be 401 (invalid creds), 6th must be 429 (rate limited)
-        assert 429 in statuses
-        assert statuses[-1] == 429
+            # First 5 should be 401 (invalid creds), 6th must be 429 (rate limited)
+            assert 429 in statuses
+            assert statuses[-1] == 429
+    finally:
+        settings.RATE_LIMIT_ENABLED = orig_rl
+        await rate_limiter.reset()
 
 
 # --- 5. Security Headers ---

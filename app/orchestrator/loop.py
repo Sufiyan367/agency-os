@@ -612,17 +612,7 @@ class AutonomousCycleOrchestrator:
                                 error=str(e)
                             )
                             continue
-                        await activity_broadcaster.record_event(
-                            session=session,
-                            run_id=run_id,
-                            event_type=AgentEventType.OUTREACH_FAILED.value,
-                            message=f"Outreach dispatch failed for {biz.domain}: {e}",
-                            business_id=biz.id,
-                            domain=biz.domain,
-                            status="FAILED",
-                            error=str(e)
-                        )
-                        continue
+
                 else:
                     logger.info(f"[Prospect {biz.domain}] Outreach message created in PENDING_APPROVAL status. Queued for human CEO review (AUTONOMOUS_OUTREACH=False).")
 

@@ -40,10 +40,48 @@ if "data/agency.db" in _raw_db or ("/opt/agency/data" in _raw_db):
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+def pytest_sessionstart(session):
+    """Ensure a clean, uncorrupted test database file at the start of each pytest session."""
+    import os
+    for suffix in ("", "-wal", "-shm"):
+        f = os.path.abspath(f"./test_agency.db{suffix}")
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+            except Exception:
+                pass
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def ensure_db_schema():
-    from app.database.connection import init_db
+    from app.database.connection import init_db, AsyncSessionLocal
+    from app.database.seed_data import seed_initial_data
     await init_db()
+    async with AsyncSessionLocal() as session:
+        await seed_initial_data(session)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_transient_test_tables():
+    yield
+    from app.database.connection import AsyncSessionLocal
+    from sqlalchemy import text
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("DELETE FROM active_outreach_locks;"))
+            await session.execute(text("DELETE FROM suppression_list;"))
+            res = await session.execute(text("SELECT count(*) FROM users;"))
+            if res.scalar() == 0:
+                from app.core.security import hash_password
+                await session.execute(
+                    text("INSERT INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (:u, :p, :r, :s, datetime('now'), datetime('now'))"),
+                    {"u": "testadmin", "p": hash_password("test_admin_secure_password_2026"), "r": "admin", "s": 1}
+                )
+            await session.commit()
+    except Exception:
+        pass
+
+
 
 @pytest_asyncio.fixture(autouse=True)
 async def reset_rate_limiter_between_tests():

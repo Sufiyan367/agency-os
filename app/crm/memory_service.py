@@ -582,7 +582,15 @@ class ProspectMemoryService:
         if biz.public_email:
             is_suppressed = await compliance_guard.is_suppressed(session, biz.public_email)
 
-        target_val = latest_offer.recommended_price if (latest_offer and latest_offer.recommended_price) else getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0)
+        target_val = (
+            latest_offer.recommended_price
+            if (latest_offer and latest_offer.recommended_price)
+            else (
+                (memory.estimated_value or getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0))
+                if (memory and getattr(memory, "estimated_value", None))
+                else getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0)
+            )
+        )
 
         audit_data = {}
         if latest_audit:
