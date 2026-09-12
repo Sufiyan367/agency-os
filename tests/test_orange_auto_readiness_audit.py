@@ -330,8 +330,11 @@ async def test_orange_auto_canary_remains_pending_approval():
     strictly in PENDING_APPROVAL with approved_at is None and daily capacity = 1.
     """
     async with AsyncSessionLocal() as session:
-        # Check Orange Auto message in database
-        q = select(OutreachMessage).where(OutreachMessage.id == 12)
+        # Check Orange Auto message in database (Business 30, Message 12)
+        q = select(OutreachMessage).where(
+            OutreachMessage.id == 12,
+            OutreachMessage.business_id == 30
+        )
         msg = (await session.execute(q)).scalar_one_or_none()
         if msg:
             assert msg.status == OutreachStatus.PENDING_APPROVAL.value
