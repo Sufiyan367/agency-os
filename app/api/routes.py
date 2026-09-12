@@ -2149,13 +2149,13 @@ async def get_ceo_control_center_overview(
                 PipelineStage.OUTREACH_READY.value,
                 PipelineStage.QUALIFIED.value
             ]))
-            .order_by(Business.id.asc())
+            .order_by(desc(Business.id))
             .limit(1)
         )
         active_b = (await db.execute(q_active_pipeline)).scalars().first()
 
     if not active_b:
-        active_b = (await db.execute(select(Business).order_by(Business.id.asc()).limit(1))).scalars().first()
+        active_b = (await db.execute(select(Business).order_by(desc(Business.id)).limit(1))).scalars().first()
 
     active_prospect = None
     if active_b:

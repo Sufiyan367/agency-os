@@ -5,8 +5,12 @@ from bs4 import BeautifulSoup
 from app.api.app import app
 from app.core.security import create_session_token
 
+import shutil
+
 def test_app_js_syntax_integrity():
     """Verify app.js parses with Node with zero syntax errors."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js runtime not installed on host")
     res = subprocess.run(["node", "-c", "app/frontend/static/app.js"], capture_output=True, text=True)
     assert res.returncode == 0, f"app.js syntax error: {res.stderr}"
 

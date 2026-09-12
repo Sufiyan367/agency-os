@@ -157,7 +157,7 @@ async def test_ceo_overview_active_prospect_with_demo_and_qa_gates():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.get("/api/ceo/overview")
+        res = await client.get(f"/api/ceo/overview?prospect_id={biz.id}")
         assert res.status_code == 200
         data = res.json()
 
@@ -260,9 +260,9 @@ async def test_ceo_overview_action_required_queue_aggregation():
 
 def test_ceo_dashboard_templates_and_scripts_contain_control_center():
     """Validates that index.html and app.js include all CEO Control Center elements and client functions."""
-    target_root = "s:/AGENCY/BY AG"
-    html_path = os.path.join(target_root, "app", "frontend", "templates", "index.html")
-    js_path = os.path.join(target_root, "app", "frontend", "static", "app.js")
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(repo_root, "app", "frontend", "templates", "index.html")
+    js_path = os.path.join(repo_root, "app", "frontend", "static", "app.js")
 
     assert os.path.exists(html_path)
     assert os.path.exists(js_path)
