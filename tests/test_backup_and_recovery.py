@@ -18,12 +18,14 @@ def test_list_backups():
     assert "filepath" in backups[0]
     assert "size_bytes" in backups[0]
 
-def test_restore_backup_verification():
+def test_restore_backup_verification(tmp_path):
     # Take a backup first
     backup_meta = backup_manager.create_backup()
     filepath = backup_meta["filepath"]
 
-    # Verify restore executes cleanly and checks integrity
-    restore_res = backup_manager.restore_backup(filepath)
+    # Verify restore executes cleanly and checks integrity to an isolated target
+    target_path = str(tmp_path / "restored_agency.db")
+    restore_res = backup_manager.restore_backup(filepath, target_db_path=target_path)
     assert restore_res["success"] is True
     assert "restored_from" in restore_res
+    assert os.path.exists(target_path)

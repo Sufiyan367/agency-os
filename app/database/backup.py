@@ -149,7 +149,7 @@ class DatabaseBackupManager:
             })
         return results
 
-    def restore_backup(self, backup_filepath_or_name: str) -> Dict[str, Any]:
+    def restore_backup(self, backup_filepath_or_name: str, target_db_path: Optional[str] = None) -> Dict[str, Any]:
         """Restores the database from a compressed backup file."""
         backup_dir = get_backup_directory()
         if not os.path.isabs(backup_filepath_or_name):
@@ -160,7 +160,7 @@ class DatabaseBackupManager:
         if not os.path.exists(backup_filepath):
             raise FileNotFoundError(f"Backup file not found: {backup_filepath}")
 
-        db_path = get_sqlite_db_path()
+        db_path = target_db_path or get_sqlite_db_path()
         if not db_path:
             raise ValueError("Restore only currently supported for SQLite databases.")
 
@@ -182,6 +182,24 @@ class DatabaseBackupManager:
             if os.path.exists(temp_restore):
                 os.remove(temp_restore)
             raise ValueError(f"Restored file failed integrity check: {res}")
+
+        # Close existing engine connections before file replacement if restoring active database
+        if not target_db_path:
+            try:
+                from app.database.connection import engine, sync_engine
+                engine.sync_engine.dispose()
+                sync_engine.dispose()
+            except Exception:
+                pass
+
+        # Clean up stale WAL / SHM files
+        for suffix in ("-wal", "-shm"):
+            wal_file = db_path + suffix
+            if os.path.exists(wal_file):
+                try:
+                    os.remove(wal_file)
+                except Exception:
+                    pass
 
         # Replace active db
         if os.path.exists(db_path):
