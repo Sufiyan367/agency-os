@@ -191,13 +191,44 @@ async def test_multi_niche_rendering_through_same_factory():
                 leak_res = demo_qa_engine.verify_zero_internal_leakage(demo_res.html_content)
                 assert leak_res["passed"] is True, f"Internal leakage detected in {biz.name}: {leak_res['leaks']}"
 
-                # 3. Content Correctness
+                # 3. Content Correctness & Sales Demo Hierarchy
                 html = demo_res.html_content
                 assert biz.name in html
                 assert biz.domain in html
                 assert item["service_title"] in html
                 assert f"${item['price']:,.2f}" in html
                 assert "<!DOCTYPE html>" in html
+
+                # Sales Demo Hierarchy Assertions:
+                assert "Launch Interactive Simulator" in html
+                assert "SIMULATION ONLY" in html
+                assert "How Autonomous Lead Recovery Works" in html or "STAGE 1" in html
+                assert "Core Operational Capabilities" in html
+                assert "Verified Business Footprint" in html
+                assert "Turnkey Implementation Deliverables" in html
+                assert "Commercial Authorization" in html
+
+                # Simulator is placed BEFORE secondary technical specifications table
+                sim_pos = html.find('id="interactive-simulator"')
+                specs_pos = html.find('id="specifications"')
+                comm_pos = html.find('id="commercial"')
+                assert sim_pos != -1, "Interactive simulator section missing"
+                assert specs_pos != -1, "Secondary specifications section missing"
+                assert comm_pos != -1, "Commercial section missing"
+                assert sim_pos < specs_pos, "Simulator must appear before secondary technical specifications"
+                assert sim_pos < comm_pos, "Simulator must appear before commercial section"
+
+                # Zero unsupported dollar ROI claims
+                assert "$3,500" not in html
+                assert "$8,500" not in html
+                assert "$4,500" not in html
+                assert "$12,000" not in html
+
+                # Niche-specific simulator checks
+                if item["expected_scenario"] == InteractiveScenarioType.CALL_SIMULATOR:
+                    assert "INSTANT SMS TEXT-BACK" in html
+                    assert "LIVE VOICE SIMULATOR" in html
+                    assert "CALENDAR SLOT SECURED" in html
 
                 # 4. Client-Safe Spec Validation
                 with open(demo_res.metadata.json_spec_path, "r", encoding="utf-8") as f:
@@ -209,6 +240,9 @@ async def test_multi_niche_rendering_through_same_factory():
                 assert client_config.scenario.scenario_type == item["expected_scenario"]
                 assert len(client_config.identity.verified_facts) >= 2
                 assert len(client_config.opportunity.diplomatic_observations) >= 2
+                assert len(client_config.capabilities) >= 4
+                assert len(client_config.recovery_flow) >= 5
+                assert client_config.is_simulation is True
 
                 # 5. Public Endpoint Serving (/demo/{business-slug})
                 slug = client_config.identity.slug
@@ -218,6 +252,7 @@ async def test_multi_niche_rendering_through_same_factory():
                 assert public_res.headers.get("X-Frame-Options") == "SAMEORIGIN"
                 assert public_res.headers.get("X-Content-Type-Options") == "nosniff"
                 assert biz.name in public_res.text
+                assert "Launch Interactive Simulator" in public_res.text
 
 
 @pytest.mark.asyncio

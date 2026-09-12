@@ -42,6 +42,7 @@ class SolutionSpecification(BaseModel):
     service_category: str
     scope_deliverables: List[str] = Field(default_factory=list)
     specifications: List[Dict[str, Any]] = Field(default_factory=list)
+    capabilities: List[Dict[str, str]] = Field(default_factory=list)
     turnaround_days: int = 5
     total_price_usd: float = 1000.0
     advance_amount_usd: float = 400.0
@@ -53,6 +54,8 @@ class InteractiveScenario(BaseModel):
     description: str
     scenario_badge: str
     payload: Dict[str, Any] = Field(default_factory=dict)
+    is_simulation: bool = True
+    simulation_notice: str = "Interactive Prototype Simulation • No real calls, SMS, or bookings are triggered."
 
 
 class ClientSafeDemoConfig(BaseModel):
@@ -61,7 +64,11 @@ class ClientSafeDemoConfig(BaseModel):
     opportunity: OpportunitySummary
     solution: SolutionSpecification
     scenario: InteractiveScenario
+    capabilities: List[Dict[str, str]] = Field(default_factory=list)
+    recovery_flow: List[Dict[str, str]] = Field(default_factory=list)
     benefits: List[str] = Field(default_factory=list)
     cta_text: str = "Authorize Implementation"
+    is_simulation: bool = True
+    simulation_notice: str = "Interactive Prototype Simulation • No real calls, SMS, or bookings are triggered."
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     checksum: str = ""

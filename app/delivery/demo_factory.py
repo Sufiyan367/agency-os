@@ -98,7 +98,7 @@ class DemoFactory:
         if business.phone:
             verified_facts.append(f"Published customer phone line verified ({business.phone})")
 
-        # 2. Opportunity Summary (Diplomatic Framing - Zero Fabricated Problems)
+        # 2. Opportunity Summary & Core Capabilities (Diplomatic Framing - Zero Fabricated Problems)
         st_lower = service.lower()
         if any(k in st_lower for k in ["receptionist", "voice", "call", "missed-call", "phone"]):
             headline = "Autonomous 24/7 Inbound Inquiry Capture & Appointment Booking"
@@ -114,6 +114,12 @@ class DemoFactory:
             scenario_title = f"{biz_name} Autonomous Voice Booking Simulation"
             scenario_desc = f"Simulated interaction demonstrating automated intake and appointment scheduling for {biz_name}."
             payload = {
+                "caller_name": "Alex M.",
+                "caller_phone": "+1 (555) 019-2834",
+                "detected_intent": "APPOINTMENT_REQUEST",
+                "intent_confidence": "99.4%",
+                "service_requested": "Consultation & Inspection",
+                "confirmed_slot": "Thursday at 10:30 AM",
                 "dialogue": [
                     {
                         "speaker": "CALLER",
@@ -121,7 +127,7 @@ class DemoFactory:
                     },
                     {
                         "speaker": "ASSISTANT",
-                        "text": f"Welcome to {biz_name}! While our main office is currently closed for the evening, I can reserve that consultation for you right now. We have openings this Thursday at 10:30 AM or 11:45 AM. Which works best?"
+                        "text": f"Welcome to {biz_name}! While our service advisors are assisting customers right now, I can reserve that consultation for you immediately. We have openings this Thursday at 10:30 AM or 11:45 AM. Which works best?"
                     },
                     {
                         "speaker": "CALLER",
@@ -132,12 +138,33 @@ class DemoFactory:
                         "text": f"Excellent, I've confirmed Thursday at 10:30 AM for your appointment with {biz_name}. I just sent a confirmation text message with location details to your mobile number. We look forward to seeing you!"
                     }
                 ],
+                "sms_preview": {
+                    "sender": biz_name,
+                    "recipient": "+1 (555) 019-2834",
+                    "timestamp": "Just now",
+                    "message": f"Confirmed: Your appointment with {biz_name} is scheduled for Thursday at 10:30 AM. Reply HELP for directions or RESCHEDULE to adjust."
+                },
                 "automated_actions": [
                     "📱 Automated SMS Confirmation Dispatched",
                     "📅 Google / Outlook Calendar Slot Reserved",
                     "✉️ Priority Notification Dispatched to Team"
                 ]
             }
+            capabilities = [
+                {"title": "24/7 Autonomous Intake", "desc": "Answers every inbound customer call within 2 rings, capturing leads after hours and during peak overflow."},
+                {"title": "Instant Caller Qualification", "desc": "Extracts service requirements, timeline, urgency, and customer contact details automatically."},
+                {"title": "Live Calendar Booking", "desc": "Checks real-time availability and confirms appointment slots directly into your booking calendar."},
+                {"title": "Automated SMS Text-Back", "desc": "Dispatches immediate text confirmations, directions, and calendar reminders to caller mobile phones."},
+                {"title": "Double-Booking Prevention", "desc": "Prevents schedule conflicts and validates caller phone numbers to eliminate ghost bookings."},
+                {"title": "Real-Time Team Sync", "desc": "Pushes call recordings, structured transcripts, and job details straight to your staff queue."}
+            ]
+            recovery_flow = [
+                {"step": "1", "title": "Inbound Call", "desc": f"Customer calls {biz_name} after hours or during peak queue congestion."},
+                {"step": "2", "title": "Instant AI Intake", "desc": "Assistant picks up within 2 rings with branded greeting and conversational voice."},
+                {"step": "3", "title": "Intent Triage", "desc": "Identifies service inquiry, assesses urgency, and collects project or vehicle details."},
+                {"step": "4", "title": "Calendar Reserved", "desc": "Matches schedule openings and books preferred consultation slot in real time."},
+                {"step": "5", "title": "SMS Confirmation", "desc": "Dispatches immediate SMS confirmation to customer and syncs briefing to team."}
+            ]
 
         elif any(k in st_lower for k in ["lead qualification", "chat", "customer support", "intake", "screening"]):
             headline = "Instant 24/7 Web Visitor Qualification & Conversion"
@@ -154,6 +181,9 @@ class DemoFactory:
             scenario_desc = f"Interactive preview of automated prospect qualification and scope triage for {biz_name}."
             payload = {
                 "lead_status": "HIGH INTENT • QUALIFIED",
+                "detected_intent": "COMMERCIAL_SCOPE_TRIAGE",
+                "intent_confidence": "98.7%",
+                "confirmed_slot": "Priority Routing Activated",
                 "messages": [
                     {
                         "from": "prospect",
@@ -171,8 +201,34 @@ class DemoFactory:
                         "from": "assistant",
                         "text": f"Thank you! Your inquiry has been qualified as high priority. I've logged your requirements into {biz_name}'s priority queue and scheduled a technical briefing."
                     }
+                ],
+                "sms_preview": {
+                    "sender": biz_name,
+                    "recipient": "Visitor Mobile",
+                    "timestamp": "Just now",
+                    "message": f"Thank you for contacting {biz_name}. Your project requirements have been triaged and our senior specialist will review them shortly."
+                },
+                "automated_actions": [
+                    "⚡ Instant < 800ms Web Visitor Engagement",
+                    "🎯 Commercial Scope & Budget Verification",
+                    "📋 Priority Routing to Senior Account Lead"
                 ]
             }
+            capabilities = [
+                {"title": "Sub-Second Inbound Engagement", "desc": "Greets web visitors within 800ms to maximize inquiry capture before bounce."},
+                {"title": "Automated Scope Screening", "desc": "Filters inquiries by project scope, timeline, and commercial budget criteria automatically."},
+                {"title": "Priority Lead Routing", "desc": "Instantly alerts senior staff when high-intent commercial opportunities are detected."},
+                {"title": "Multi-Channel Handoff", "desc": "Dispatches lead summaries via SMS and email and logs full context into your CRM."},
+                {"title": "24/7 Consultation Scheduling", "desc": "Allows qualified prospects to schedule technical briefings directly on your calendar."},
+                {"title": "Zero Manual Copy-Pasting", "desc": "Eliminates administrative backlog with structured inquiry intake and export."}
+            ]
+            recovery_flow = [
+                {"step": "1", "title": "Web Inquiry", "desc": f"Prospect visits {domain} seeking pricing, service details, or quotes."},
+                {"step": "2", "title": "Sub-Second Chat", "desc": "Interactive assistant initiates conversational screening in under 1 second."},
+                {"step": "3", "title": "Scope Extraction", "desc": "Collects project specifications, timeline constraints, and contact coordinates."},
+                {"step": "4", "title": "Intent Scoring", "desc": "Scores commercial viability and flags high-priority prospects automatically."},
+                {"step": "5", "title": "Team Handoff", "desc": "Directs qualified dossier to service coordinators for instant follow-up."}
+            ]
 
         elif any(k in st_lower for k in ["speed", "performance", "core web vitals", "latency"]):
             headline = "Edge CDN & Core Web Vitals Performance Turnaround"
@@ -195,6 +251,21 @@ class DemoFactory:
                     {"label": "Core Web Vitals Pass Rate", "before": "50 / 100", "after": "95+ / 100"}
                 ]
             }
+            capabilities = [
+                {"title": "Global Edge CDN Caching", "desc": "Distributes static assets across edge servers to deliver sub-300ms response times."},
+                {"title": "Render-Blocking Elimination", "desc": "Defers non-critical JavaScript and CSS to unlock instant first contentful paint."},
+                {"title": "Next-Gen Image Conversion", "desc": "Compresses raster assets into WebP/AVIF to slash mobile bandwidth consumption by 60%+."},
+                {"title": "Core Web Vitals Pass SLA", "desc": "Optimizes LCP, INP, and CLS scores to surpass 90+ on official Lighthouse audits."},
+                {"title": "Mobile-First Responsiveness", "desc": "Eliminates viewport layout shifts and guarantees instant touch-to-render response."},
+                {"title": "Empirical Benchmark Audits", "desc": "Provides verifiable before-and-after telemetry certifying speed improvements."}
+            ]
+            recovery_flow = [
+                {"step": "1", "title": "Diagnostic Baseline", "desc": f"Empirical audit detects latency bottlenecks on {domain}."},
+                {"step": "2", "title": "Edge Architecture", "desc": "Deploys edge-level cache headers and global CDN routing rules."},
+                {"step": "3", "title": "Asset Modernization", "desc": "Transforms media into next-gen formats with responsive picture sets."},
+                {"step": "4", "title": "Script Deferral", "desc": "Asynchronously loads analytics and non-essential third-party scripts."},
+                {"step": "5", "title": "Lighthouse Verification", "desc": "Verifies 95+ Core Web Vitals score across simulated mobile devices."}
+            ]
 
         elif any(k in st_lower for k in ["crm", "workflow", "rpa", "appointment", "scheduling", "invoice", "ap automation"]):
             headline = "Operational Workflow & Pipeline Automation"
@@ -217,6 +288,21 @@ class DemoFactory:
                     {"step": "4. Team Handover", "detail": "Full briefing packet sent to technicians before client contact."}
                 ]
             }
+            capabilities = [
+                {"title": "Multi-Channel Ingest", "desc": "Consolidates phone, web form, and chat inquiries into one unified intake pipeline."},
+                {"title": "Automated Data Verification", "desc": "Validates phone numbers, emails, and address fields before creating records."},
+                {"title": "Bi-Directional Calendar Sync", "desc": "Keeps Google, Outlook, and CRM calendars synchronized in real time."},
+                {"title": "Automated Customer Reminders", "desc": "Reduces consultation no-shows via automated SMS and email reminders."},
+                {"title": "Instant Technician Briefs", "desc": "Supplies field teams with complete customer context prior to arrival."},
+                {"title": "End-to-End Audit Trail", "desc": "Maintains a transparent log of every customer interaction and status transition."}
+            ]
+            recovery_flow = [
+                {"step": "1", "title": "Customer Ingest", "desc": f"Inquiry captured from {domain} or telephone channels."},
+                {"step": "2", "title": "Data Normalization", "desc": "Cleanses contact parameters and deduplicates existing records."},
+                {"step": "3", "title": "Slot Scheduling", "desc": "Secures available booking time with conflict prevention checks."},
+                {"step": "4", "title": "CRM Synchronization", "desc": "Logs customer dossier, conversation transcript, and job ticket."},
+                {"step": "5", "title": "Staff Dispatch", "desc": "Sends instant push alert and calendar invite to on-duty specialists."}
+            ]
 
         else:
             # Default / Reporting / General
@@ -235,11 +321,24 @@ class DemoFactory:
             payload = {
                 "estimates": [
                     {"label": "Administrative Hours Reclaimed", "value": "12 - 18 hrs / wk"},
-                    {"label": "Unattended Inquiries Recovered", "value": "25 - 40 / month"},
-                    {"label": "Projected Additional Revenue", "value": "$3,500 - $8,500 / mo"},
-                    {"label": "Break-Even Timeline", "value": "< 21 Days"}
+                    {"label": "Unattended Inquiries Recovered", "value": "25 - 40 / mo"},
+                    {"label": "Inquiry Coverage SLA", "value": "100% 24/7 Coverage"},
+                    {"label": "Intake Response Latency", "value": "< 60 Seconds"}
                 ]
             }
+            capabilities = [
+                {"title": "24/7 Digital Intake", "desc": "Guarantees continuous customer inquiry response across all digital channels."},
+                {"title": "Turnkey SLA Guarantee", "desc": "All deliverables backed by fixed-fee turnaround and milestone acceptance."},
+                {"title": "Operational Streamlining", "desc": "Eliminates administrative bottlenecks and reduces manual data entry."},
+                {"title": "Staging Verification", "desc": "Complete end-to-end prototype verification prior to production rollout."}
+            ]
+            recovery_flow = [
+                {"step": "1", "title": "Baseline Audit", "desc": f"Identifies operational bottlenecks in current {domain} workflow."},
+                {"step": "2", "title": "Staging Prototype", "desc": "Builds customized functional prototype reflecting verified brand parameters."},
+                {"step": "3", "title": "Verification Run", "desc": "Executes automated quality gates and SLA performance benchmarks."},
+                {"step": "4", "title": "Milestone Review", "desc": "Client reviews interactive demonstration with zero production risk."},
+                {"step": "5", "title": "Production Handover", "desc": "Deploys turnkey modernization with complete documentation."}
+            ]
 
         # 3. Build Specifications from packet requirements
         specs = [
@@ -276,6 +375,7 @@ class DemoFactory:
             service_category=getattr(offer, "service_type", "Operational Modernization") or "Operational Modernization",
             scope_deliverables=packet.deliverables,
             specifications=specs,
+            capabilities=capabilities,
             turnaround_days=days,
             total_price_usd=price,
             advance_amount_usd=advance
@@ -286,7 +386,9 @@ class DemoFactory:
             title=scenario_title,
             description=scenario_desc,
             scenario_badge=scenario_badge,
-            payload=payload
+            payload=payload,
+            is_simulation=True,
+            simulation_notice="Interactive Prototype Simulation • No real calls, SMS, or bookings are triggered."
         )
 
         # Expected Outcomes / Benefits
@@ -304,8 +406,12 @@ class DemoFactory:
             opportunity=opportunity_obj,
             solution=solution_obj,
             scenario=scenario_obj,
+            capabilities=capabilities,
+            recovery_flow=recovery_flow,
             benefits=benefits,
-            cta_text="Authorize Implementation & Secure Delivery Window"
+            cta_text="Authorize Implementation & Secure Delivery Window",
+            is_simulation=True,
+            simulation_notice="Interactive Prototype Simulation • No real calls, SMS, or bookings are triggered."
         )
         return config
 
