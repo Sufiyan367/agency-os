@@ -490,6 +490,12 @@ class Payment(Base):
     razorpay_signature: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    verification_method: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # CEO_APPROVAL, BANK_RECONCILIATION, GATEWAY_WEBHOOK
+    verified_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    instructions_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    gpay_reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    
     paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)

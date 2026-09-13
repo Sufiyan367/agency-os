@@ -34,6 +34,7 @@ from app.payments.provider import stripe_payment_provider, get_active_payment_pr
 from app.payments.razorpay import razorpay_payment_provider
 from app.payments.service import payment_service
 from app.payments.deal_service import deal_closing_service
+from app.sales.payment_flow import payment_workflow_manager
 from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
 from app.orchestrator.loop import orchestrator
@@ -4446,6 +4447,125 @@ async def run_customer_health_check(
 ):
     res = await customer_monitoring_service.run_customer_health_check(db, customer_id)
     return res.dict()
+
+
+# =========================================================================
+# Payment Provider Strategy & 5-Stage Lifecycle Endpoints
+# PROPOSAL_ACCEPTED -> PAYMENT_INSTRUCTIONS -> PAYMENT_PENDING -> VERIFIED_PAYMENT -> DELIVERY_UNLOCKED
+# =========================================================================
+
+class ProposalAcceptRequest(BaseModel):
+    accepted_by: str = "CLIENT"
+    notes: Optional[str] = "Client accepted proposal terms."
+
+class PaymentInstructionsRequest(BaseModel):
+    provider: Optional[str] = "google_pay"
+    amount_usd: Optional[float] = None
+
+class PaymentVerificationRequest(BaseModel):
+    transaction_reference: str
+    amount_received: float
+    source: str = "CEO_VERIFICATION"
+    verified_by: Optional[str] = None
+    evidence: Optional[Dict[str, Any]] = None
+
+@router.post("/api/proposals/{proposal_id}/accept")
+async def accept_proposal_endpoint(
+    proposal_id: int,
+    req: ProposalAcceptRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        prop = await payment_workflow_manager.accept_proposal(
+            session=db,
+            proposal_id=proposal_id,
+            accepted_by=req.accepted_by,
+            note=req.notes or ""
+        )
+        return {
+            "proposal_id": prop.id,
+            "status": prop.status,
+            "approved_by": prop.approved_by,
+            "approved_at": prop.approved_at.isoformat() if prop.approved_at else None,
+            "total_value": float(prop.total_value)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/api/proposals/{proposal_id}/payment-instructions")
+async def issue_payment_instructions_endpoint(
+    proposal_id: int,
+    req: PaymentInstructionsRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        res = await payment_workflow_manager.issue_payment_instructions(
+            session=db,
+            proposal_id=proposal_id,
+            provider_name=req.provider,
+            amount_usd=req.amount_usd
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/api/payments/{payment_id}/verify")
+async def verify_payment_endpoint(
+    payment_id: int,
+    req: PaymentVerificationRequest,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    verifier = req.verified_by or user_info.get("username", "CEO")
+    try:
+        res = await payment_workflow_manager.verify_payment(
+            session=db,
+            payment_id=payment_id,
+            verified_by=verifier,
+            transaction_reference=req.transaction_reference,
+            amount_received=req.amount_received,
+            source=req.source,
+            evidence=req.evidence
+        )
+        return res.model_dump()
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+@router.post("/api/payments/{payment_id}/unlock-delivery")
+async def unlock_delivery_endpoint(
+    payment_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    try:
+        res = await payment_workflow_manager.unlock_delivery(session=db, payment_id=payment_id)
+        return res
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+
+@router.get("/api/payments/{payment_id}/instructions")
+async def get_payment_instructions_endpoint(
+    payment_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    pmt = await db.get(Payment, payment_id)
+    if not pmt:
+        raise HTTPException(status_code=404, detail=f"Payment #{payment_id} not found.")
+    return {
+        "payment_id": pmt.id,
+        "reference_id": pmt.reference_id,
+        "amount": float(pmt.amount),
+        "currency": pmt.currency,
+        "provider": pmt.provider,
+        "status": pmt.status,
+        "gpay_reference": pmt.gpay_reference,
+        "instructions": pmt.extra_metadata.get("instructions", {})
+    }
+
 
 
 

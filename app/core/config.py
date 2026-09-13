@@ -156,16 +156,22 @@ class Settings(BaseSettings):
     GMAIL_SENDER_EMAIL: Optional[str] = os.getenv("GMAIL_SENDER_EMAIL")
     GMAIL_DAILY_CAPACITY: int = int(os.getenv("GMAIL_DAILY_CAPACITY", "20"))
 
-    # Payment Gateway (Razorpay Primary, Stripe Optional, Dry Run)
-    PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "razorpay")  # 'razorpay' (primary), 'stripe', 'dry_run'
+    # Payment Architecture & Provider Strategy
+    PREFERRED_PAYMENT_METHOD: str = os.getenv("PREFERRED_PAYMENT_METHOD", "google_pay")
+    GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", "agencyos@okhdfcbank")
+    GOOGLE_PAY_MERCHANT_NAME: str = os.getenv("GOOGLE_PAY_MERCHANT_NAME", "Autonomous Agency OS")
+    GOOGLE_PAY_MERCHANT_ID: Optional[str] = os.getenv("GOOGLE_PAY_MERCHANT_ID")
+    
+    PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "google_pay")  # 'google_pay' (default), 'razorpay', 'dry_run'
     PAYMENTS_ENABLED: bool = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
     PAYMENT_DRY_RUN: bool = os.getenv("PAYMENT_DRY_RUN", "true").lower() in ("true", "1", "yes")
     MINIMUM_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_SERVICE_VALUE_USD", "500.0"))
     TARGET_OFFER_MINIMUM_USD: float = float(os.getenv("TARGET_OFFER_MINIMUM_USD", "1000.0"))
-    RAZORPAY_MODE: str = os.getenv("RAZORPAY_MODE", "test")
     DEFAULT_ADVANCE_PERCENTAGE: float = float(os.getenv("DEFAULT_ADVANCE_PERCENTAGE", "40.0"))
     
-    # Razorpay (Primary)
+    # Razorpay Gateway (Inactive unless explicitly configured and approved)
+    RAZORPAY_ENABLED: bool = os.getenv("RAZORPAY_ENABLED", "false").lower() in ("true", "1", "yes")
+    RAZORPAY_MODE: str = os.getenv("RAZORPAY_MODE", "test")
     RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
     RAZORPAY_KEY_SECRET: Optional[str] = os.getenv("RAZORPAY_KEY_SECRET")
     RAZORPAY_WEBHOOK_SECRET: Optional[str] = os.getenv("RAZORPAY_WEBHOOK_SECRET")

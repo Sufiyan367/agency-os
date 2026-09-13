@@ -424,4 +424,17 @@ async def init_db():
                 except Exception:
                     pass
 
+            # payments (Google Pay & Trusted Verification Strategy)
+            for col, col_type in [
+                ("verification_method", "VARCHAR(50)"),
+                ("verified_by", "VARCHAR(100)"),
+                ("verified_at", "TIMESTAMP"),
+                ("instructions_sent_at", "TIMESTAMP"),
+                ("gpay_reference", "VARCHAR(100)")
+            ]:
+                try:
+                    await conn.execute(text(f"ALTER TABLE payments ADD COLUMN {col} {col_type}"))
+                except Exception:
+                    pass
+
 
