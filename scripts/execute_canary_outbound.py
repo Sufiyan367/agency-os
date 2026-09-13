@@ -120,7 +120,7 @@ async def execute_canary():
             send_res = await outreach_sender_adapter.send_approved_message(
                 session=session,
                 message_id=TARGET_MESSAGE_ID,
-                force_live=True
+                force_live=True, enforce_window=False
             )
             logger.info("Live dispatch completed successfully!")
             logger.info(f"Send Result: {send_res}")
