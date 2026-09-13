@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#080c14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <title>{{ app_name }} — JARVIS Command Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -630,6 +635,40 @@
             }
             .me-country-chip { flex-shrink: 0 !important; }
         }
+
+        /* CEO Notification Center Styles */
+        .notification-drawer.open {
+            transform: translateX(0) !important;
+        }
+        .notif-filter-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .notif-filter-pill.active {
+            background: rgba(56, 189, 248, 0.15) !important;
+            border-color: rgba(56, 189, 248, 0.4) !important;
+            color: #38bdf8 !important;
+        }
+        .notif-filter-pill:hover {
+            color: #f8fafc;
+        }
+        #btn-enable-push.push-active {
+            background: rgba(16, 185, 129, 0.15) !important;
+            color: #10b981 !important;
+            border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -878,6 +917,17 @@
 
                     <!-- Deliverability Readiness HUD (TypeScript Powered) -->
                     <div id="deliverability-readiness-hud-container" style="display:inline-flex; align-items:center; margin-right:8px;"></div>
+
+                    <!-- CEO Mobile Notification Bell & Live Unread Counter -->
+                    <div id="ceo-notification-bell-container" style="position:relative; display:inline-flex; align-items:center; margin-right:8px;">
+                        <button id="btn-notification-center" class="agency-icon-btn" aria-label="Notification Center" title="Executive Event Notifications" onclick="toggleNotificationCenter()" style="position:relative; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#f8fafc; transition:all 0.2s ease;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span id="notif-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#ffffff; font-size:10px; font-weight:700; border-radius:10px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px; box-shadow:0 0 8px rgba(239,68,68,0.8);">0</span>
+                        </button>
+                    </div>
 
                     <div class="agency-avatar" style="width:28px; height:28px; font-size:0.75rem; font-weight:600; border-radius:5px; background:#18181b; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#f4f4f5;">A</div>
                     <div class="agency-topbar-user-status">
@@ -3984,8 +4034,81 @@
         </div>
     </div>
 
+    <!-- Notification Center Backdrop & Drawer -->
+    <div id="notification-drawer-backdrop" class="notification-drawer-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9998; backdrop-filter:blur(3px);"></div>
+    <aside id="notification-drawer" class="notification-drawer" aria-hidden="true" style="position:fixed; top:0; right:0; width:min(420px, 100vw); height:100vh; background:#0b0e14; border-left:1px solid rgba(255,255,255,0.08); z-index:9999; display:flex; flex-direction:column; box-shadow:-8px 0 32px rgba(0,0,0,0.7); transform:translateX(100%); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+        <!-- Drawer Header -->
+        <div style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; justify-content:space-between; align-items:center; background:#0e121a;">
+            <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.95rem; font-weight:700; color:#f8fafc; letter-spacing:-0.01em;">Executive Alerts</span>
+                    <span id="drawer-unread-count" style="font-size:0.7rem; font-weight:600; padding:2px 7px; border-radius:10px; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25);">0 unread</span>
+                </div>
+                <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">Canonical mobile &amp; lifecycle notifications</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btn-mark-all-read" title="Mark all read" style="background:transparent; border:none; color:#94a3b8; font-size:0.72rem; cursor:pointer; padding:4px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Mark all read
+                </button>
+                <button id="btn-close-notif-drawer" aria-label="Close drawer" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#cbd5e1; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Push Subscription Status & Action Strip -->
+        <div style="padding:10px 16px; background:#111622; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="push-status-dot" style="width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block;"></span>
+                <span id="push-status-text" style="font-size:0.75rem; font-weight:600; color:#cbd5e1;">Mobile Push Inactive</span>
+            </div>
+            <button id="btn-enable-push" style="background:#38bdf8; border:none; color:#0b0e14; font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:5px; cursor:pointer; transition:all 0.2s ease;">
+                Enable Mobile Push
+            </button>
+        </div>
+
+        <!-- Quick Filters -->
+        <div style="padding:10px 16px; display:flex; gap:6px; overflow-x:auto; border-bottom:1px solid rgba(255,255,255,0.05); background:#0c0f16;">
+            <button class="notif-filter-pill active" data-category="ALL">All</button>
+            <button class="notif-filter-pill" data-category="FINANCIAL">Financial</button>
+            <button class="notif-filter-pill" data-category="PRODUCTION">Incidents</button>
+            <button class="notif-filter-pill" data-category="SALES">Sales</button>
+            <button class="notif-filter-pill" data-category="DELIVERY">Delivery</button>
+            <button class="notif-filter-pill" data-category="SECURITY">Security</button>
+        </div>
+
+        <!-- Scrollable Notification List Container -->
+        <div id="notification-list-items" style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column;">
+            <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Internal Test Alert Trigger Bar (Testing & Verification) -->
+        <div style="padding:12px 16px; border-top:1px solid rgba(255,255,255,0.07); background:#0e121a;">
+            <div style="font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Test Event Simulation</span>
+                <span style="font-size:0.65rem; color:#f59e0b;">(Internal Only)</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button class="btn-trigger-test-alert" data-event-type="TEST_PAYMENT_VERIFIED" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:#10b981; font-size:0.7rem; font-weight:600; padding:6px 8px; border-radius:5px; cursor:pointer; text-align:left;">
+                    + Test Payment
+                </button>
+                <button class="btn-trigger-test-alert" data-event-type="TEST_SEV1" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#ef4444; font-size:0.7rem; font-weight:600; padding:6px 8px; border-radius:5px; cursor:pointer; text-align:left;">
+                    + Test SEV-1 Alert
+                </button>
+                <button class="btn-trigger-test-alert" data-event-type="TEST_POSITIVE_REPLY" style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; font-size:0.7rem; font-weight:600; padding:6px 8px; border-radius:5px; cursor:pointer; text-align:left;">
+                    + Test Inbound Reply
+                </button>
+                <button class="btn-trigger-test-alert" data-event-type="TEST_DELIVERY_COMPLETE" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; font-size:0.7rem; font-weight:600; padding:6px 8px; border-radius:5px; cursor:pointer; text-align:left;">
+                    + Test Deployment
+                </button>
+            </div>
+        </div>
+    </aside>
+
     <script type="module" src="/static/deliverability_hud.js"></script>
     <script type="module" src="/static/project_pipeline_hud.js"></script>
+    <script type="module" src="/static/notification_center.js"></script>
     <script src="/static/app.js?v=3.6.1"></script>
 </body>
 </html>

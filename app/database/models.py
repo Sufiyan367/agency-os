@@ -1939,6 +1939,113 @@ class BlastRadiusReportRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
+# ==========================================
+# 45. CEO Mobile Notification & Event Alert Models
+# ==========================================
+
+class NotificationDevice(Base):
+    """Registered devices authorized to receive push notifications."""
+    __tablename__ = "notification_devices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    device_name: Mapped[str] = mapped_column(String(100), default="Mobile Device")
+    device_type: Mapped[str] = mapped_column(String(50), default="mobile_web")  # mobile_android, mobile_ios, desktop_chrome, tablet
+    endpoint: Mapped[str] = mapped_column(Text, unique=True, index=True)
+    p256dh: Mapped[str] = mapped_column(Text)
+    auth_token: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user: Mapped["User"] = relationship("User", backref="devices", lazy="selectin")
+    deliveries: Mapped[List["NotificationDelivery"]] = relationship("NotificationDelivery", back_populates="device", cascade="all, delete-orphan", lazy="selectin")
+
+
+class NotificationPreference(Base):
+    """CEO alert preferences, category toggles, and quiet hours."""
+    __tablename__ = "notification_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    critical_enabled: Mapped[bool] = mapped_column(Boolean, default=True)  # Policy enforced: cannot be disabled
+    high_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    normal_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    low_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    payment_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    sales_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    delivery_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    support_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    security_alerts: Mapped[bool] = mapped_column(Boolean, default=True)  # Policy enforced: cannot be disabled
+    compliance_alerts: Mapped[bool] = mapped_column(Boolean, default=True)  # Policy enforced: cannot be disabled
+    quiet_hours_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    quiet_hours_start: Mapped[str] = mapped_column(String(10), default="22:00")  # HH:MM local
+    quiet_hours_end: Mapped[str] = mapped_column(String(10), default="08:00")    # HH:MM local
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user: Mapped["User"] = relationship("User", backref="notification_preferences", lazy="selectin")
+
+
+class Notification(Base):
+    """Normalized, deduplicated business event notifications."""
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    event_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    deduplication_key: Mapped[str] = mapped_column(String(255), index=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    category: Mapped[str] = mapped_column(String(50), default="SYSTEM", index=True)  # SECURITY, PRODUCTION, FINANCIAL, COMPLIANCE, SALES, DELIVERY, SUPPORT, SYSTEM
+    priority: Mapped[str] = mapped_column(String(20), default="NORMAL", index=True)  # CRITICAL, HIGH, NORMAL, LOW
+    severity: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, index=True)  # SEV-1, SEV-2, SEV-3
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text)
+    deep_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    action_required: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    action_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    project_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    incident_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    payment_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    metadata_safe: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    deliveries: Mapped[List["NotificationDelivery"]] = relationship("NotificationDelivery", back_populates="notification", cascade="all, delete-orphan", lazy="selectin")
+
+    __table_args__ = (
+        Index("ix_notifications_user_read", "user_id", "is_read"),
+        Index("ix_notifications_user_created", "user_id", "created_at"),
+        Index("ix_notifications_dedupe", "user_id", "deduplication_key", "created_at"),
+    )
+
+
+class NotificationDelivery(Base):
+    """Delivery attempts, retries, and audit history per device."""
+    __tablename__ = "notification_deliveries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    notification_id: Mapped[int] = mapped_column(Integer, ForeignKey("notifications.id", ondelete="CASCADE"), index=True)
+    device_id: Mapped[int] = mapped_column(Integer, ForeignKey("notification_devices.id", ondelete="CASCADE"), index=True)
+    channel: Mapped[str] = mapped_column(String(50), default="web_push")
+    status: Mapped[str] = mapped_column(String(50), default="PENDING", index=True)  # PENDING, SENT, DELIVERED, FAILED, EXPIRED
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    next_retry_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    notification: Mapped["Notification"] = relationship("Notification", back_populates="deliveries", lazy="selectin")
+    device: Mapped["NotificationDevice"] = relationship("NotificationDevice", back_populates="deliveries", lazy="selectin")
+
+
+
 
 
 

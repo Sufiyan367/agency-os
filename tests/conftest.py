@@ -74,7 +74,7 @@ async def cleanup_transient_test_tables():
             if res.scalar() == 0:
                 from app.core.security import hash_password
                 await session.execute(
-                    text("INSERT INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (:u, :p, :r, :s, datetime('now'), datetime('now'))"),
+                    text("INSERT OR IGNORE INTO users (username, password_hash, role, is_setup_completed, created_at, updated_at) VALUES (:u, :p, :r, :s, datetime('now'), datetime('now'))"),
                     {"u": "testadmin", "p": hash_password("test_admin_secure_password_2026"), "r": "admin", "s": 1}
                 )
             await session.commit()

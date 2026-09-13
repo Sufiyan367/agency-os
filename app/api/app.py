@@ -26,6 +26,8 @@ async def lifespan(app: FastAPI):
     await init_db()
     async with AsyncSessionLocal() as session:
         await seed_initial_data(session)
+    from app.notifications.service import notification_service
+    notification_service.hook_event_bus()
     logger.info("Application initialized and ready.")
 
     if settings.WORKER_ENABLED:
@@ -63,7 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from app.core.security import verify_session_token, rate_limiter
 
 # Security Headers & Rate Limiting Middleware
@@ -137,6 +139,9 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/login",
             "/setup",
             "/reset-password",
+            "/sw.js",
+            "/manifest.json",
+            "/api/notifications/vapid-public-key",
         }
         privileged_prefixes = (
             "/api/agent/start",
@@ -327,6 +332,32 @@ app.include_router(intelligence_router)
 from app.api.unified_routes import router as orchestration_router, ceo_router
 app.include_router(orchestration_router)
 app.include_router(ceo_router)
+from app.api.notification_routes import router as notification_router
+app.include_router(notification_router)
+
+
+@app.get("/sw.js")
+async def serve_service_worker():
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    if not os.path.exists(sw_path):
+        return HTMLResponse("// Service worker not initialized", media_type="application/javascript")
+    return FileResponse(
+        sw_path,
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/manifest.json")
+async def serve_manifest():
+    manifest_path = os.path.join(STATIC_DIR, "manifest.json")
+    if not os.path.exists(manifest_path):
+        return JSONResponse({"name": settings.APP_NAME, "short_name": "AgencyOS"})
+    return FileResponse(
+        manifest_path,
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.get("/setup", response_class=HTMLResponse)
