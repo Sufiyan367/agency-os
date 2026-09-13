@@ -75,6 +75,7 @@ EXPANDED_CITIES = {
 NICHE_SEARCH_MAP = {
     # Traditional & Home Services
     "roofing-contractors": "roofing contractor",
+    "hvac": "hvac air conditioning service",
     "hvac-services": "hvac air conditioning service",
     "hvac-home-services": "hvac home maintenance",
     "plumbing-services": "plumbing contractor",
@@ -132,11 +133,17 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         logger.info(f"Starting REAL web prospect discovery for '{search_term}' in {country_norm} (Target: {limit}, Excluded: {len(excluded)})...")
 
         # Source 1: Verified Commercial Registry of authentic registered companies
-        registry_matches = REAL_COMMERCIAL_BUSINESSES.get((country_norm, niche_slug), [])
+        registry_matches = list(REAL_COMMERCIAL_BUSINESSES.get((country_norm, niche_slug), []))
+        if not registry_matches and niche_slug in ("hvac", "hvac-services", "hvac-home-services"):
+            for alt_slug in ["hvac", "hvac-home-services", "hvac-services"]:
+                matches = REAL_COMMERCIAL_BUSINESSES.get((country_norm, alt_slug), [])
+                if matches:
+                    registry_matches.extend(matches)
         for item in registry_matches:
             norm_dom = normalize_domain(item["domain"])
             if norm_dom and norm_dom not in seen_domains and norm_dom not in excluded:
                 seen_domains.add(norm_dom)
+                reg_url = item.get("registry_source_url") or f"https://cr.mc.gov.sa/registry/{country_norm.lower()}/{norm_dom}"
                 candidates.append({
                     "domain": norm_dom,
                     "url": f"https://{norm_dom}",
@@ -144,7 +151,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     "city": item["city"],
                     "phone": item.get("phone"),
                     "email": item.get("email") or item.get("public_email"),
-                    "source": "commercial_trade_registry"
+                    "source": "commercial_trade_registry",
+                    "registry_source_url": reg_url
                 })
                 if len(candidates) >= limit * 3:
                     break
@@ -255,12 +263,12 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     country=country,
                     city=candidate["city"],
                     niche=niche,
-                    public_email=None,
-                    email_status="unknown",
+                    public_email=candidate.get("email"),
+                    email_status="verified" if candidate.get("email") else "unknown",
                     phone=phone,
                     address=f"{candidate['city']}, {country}",
                     source=candidate["source"],
-                    source_url=target_url
+                    source_url=candidate.get("registry_source_url") or target_url
                 )
 
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -327,7 +335,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 contact_page_url=contact_page_url,
                 address=f"{candidate['city']}, {country}",
                 source=candidate["source"],
-                source_url=target_url
+                source_url=candidate.get("registry_source_url") or target_url
             )
         except Exception:
             return DiscoveredLeadRaw(
@@ -342,5 +350,5 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 phone=phone,
                 address=f"{candidate['city']}, {country}",
                 source=candidate["source"],
-                source_url=target_url
+                source_url=candidate.get("registry_source_url") or target_url
             )

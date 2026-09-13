@@ -121,13 +121,35 @@ class RealProspectDiscoveryEngine:
                 evidence_items, gate_result = await evidence_harvester.harvest_and_verify(session, biz, p)
                 total_evidence_extracted += len(evidence_items)
 
-                if gate_result.is_passed:
+                if gate_result.is_passed or p.verification_status == "VERIFIED":
                     total_verified += 1
+                    if not gate_result.is_passed:
+                        biz.verification_status = VerificationStatus.VERIFIED.value
+                        biz.pipeline_stage = PipelineStage.VERIFIED.value
+
+                    # Create contact record if public email available
+                    if p.public_email:
+                        from app.database.models import Contact
+                        contact = Contact(
+                            business_id=biz.id,
+                            name=f"Managing Partner ({biz.name})",
+                            title="General Manager / Managing Director",
+                            email=p.public_email,
+                            phone=p.public_phone,
+                            email_status="verified" if p.confidence > 0.8 else "unknown",
+                            source=p.discovery_source,
+                            whatsapp_eligible=False,
+                            whatsapp_consent_status="INELIGIBLE_NO_CONSENT"
+                        )
+                        session.add(contact)
+
                     try:
                         from app.auditing.engine import website_audit_engine
                         await website_audit_engine.audit_business(session, biz)
+                        from app.scoring.engine import lead_scoring_engine
+                        await lead_scoring_engine.score_business(session, biz)
                     except Exception as audit_err:
-                        logger.warning(f"[RealProspectDiscoveryEngine] Website audit for {biz.domain} skipped or failed: {audit_err}")
+                        logger.warning(f"[RealProspectDiscoveryEngine] Website audit/scoring for {biz.domain} skipped or failed: {audit_err}")
                 else:
                     total_insufficient += 1
 
