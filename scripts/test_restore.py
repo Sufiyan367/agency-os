@@ -45,6 +45,10 @@ def run_restore_test(backup_file: str = None) -> int:
         logger.error(f"Target backup file not found: {target_backup}")
         return 1
 
+    if os.path.getsize(target_backup) < 1024:
+        logger.error(f"Target backup file is empty or corrupted (<1024 bytes): {target_backup}")
+        return 1
+
     logger.info(f"Selected backup for restore validation: {target_backup}")
 
     # Use a secure isolated temporary file

@@ -141,6 +141,9 @@ class DatabaseBackupManager:
         for f in sorted(files, reverse=True):
             full_path = os.path.join(backup_dir, f)
             stat = os.stat(full_path)
+            # Filter out empty or partial files
+            if stat.st_size < 1024:
+                continue
             results.append({
                 "filename": f,
                 "filepath": full_path,
