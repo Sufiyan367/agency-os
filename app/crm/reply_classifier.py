@@ -102,6 +102,16 @@ class ReplyClassifier:
                 "classifier_provider": "deterministic_rules"
             }
 
+        if re.search(r"\b(demo|prototype|preview|interactive demo|test system|sample system|can i see a demo|show me a demo|can you build|build a prototype|see what it looks like)\b", lower) and \
+           any(w in lower for w in ["demo", "prototype", "preview", "build", "show", "test", "see"]):
+            return {
+                "classification": ReplyClassification.DEMO_REQUEST.value,
+                "confidence": 0.95,
+                "reasoning": "Prospect explicitly requested an interactive demonstration or prototype.",
+                "suggested_response": "We have prepared a live interactive demonstration custom-built for your business. You can explore it here: {demo_url}",
+                "classifier_provider": "deterministic_rules"
+            }
+
         if any(w in lower for w in ["interested", "sounds good", "send more", "send video", "send audit", "send demo", "sure", "love to see", "yes please", "would love to see", "show me", "definitely"]):
             return {
                 "classification": ReplyClassification.POSITIVE.value,
@@ -202,14 +212,18 @@ class ReplyClassifier:
             # Advance CRM stage based on intent
             if biz:
                 old_stage = biz.pipeline_stage
+                is_demo_req = (cat == ReplyClassification.DEMO_REQUEST.value)
                 is_positive = cat in (
                     ReplyClassification.INTERESTED.value,
                     ReplyClassification.POSITIVE.value,
                     ReplyClassification.MEETING_REQUEST.value,
-                    ReplyClassification.PRICE_REQUEST.value
+                    ReplyClassification.PRICE_REQUEST.value,
+                    ReplyClassification.DEMO_REQUEST.value
                 )
 
-                if is_positive:
+                if is_demo_req:
+                    new_stage = PipelineStage.DEMO_REQUESTED.value
+                elif is_positive:
                     new_stage = PipelineStage.QUALIFIED_REPLY.value
                 elif cat == ReplyClassification.QUESTION.value:
                     new_stage = PipelineStage.REPLIED.value
@@ -227,8 +241,27 @@ class ReplyClassifier:
                 session.add(event)
                 await session.commit()
 
+                # Trigger autonomous demo build pipeline for demo requests
+                if is_demo_req:
+                    try:
+                        from app.builder.pipeline import pipeline_orchestrator
+                        demo_run = await pipeline_orchestrator.trigger_demo_pipeline(
+                            session=session,
+                            business_id=biz.id,
+                            reply_text=raw_body
+                        )
+                        if demo_run.get("success") and demo_run.get("demo_url"):
+                            suggested = (
+                                f"Thank you for requesting a preview! We custom-built an interactive demonstration "
+                                f"for {biz.name or biz.domain}: {demo_run['demo_url']}. Take a look and let us know your thoughts!"
+                            )
+                            reply.suggested_response = suggested
+                            await session.commit()
+                    except Exception as pipe_err:
+                        logger.error(f"[ReplyClassifier] Failed to run autonomous demo pipeline: {pipe_err}")
+
                 # For positive replies, trigger autonomous demo generation
-                if is_positive:
+                if is_positive and not is_demo_req:
                     try:
                         from app.acquisition.autonomous_controller import autonomous_acquisition_controller
                         await autonomous_acquisition_controller._step_process_reply(

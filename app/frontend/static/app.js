@@ -250,7 +250,7 @@ const VIEW_ALIASES = {
     'actions': 'queue',
     'sales': 'pipeline',
     'deals': 'pipeline',
-    'demos': 'leads',
+    'demos': 'demos',
     'proposals': 'pipeline',
     'clients': 'payments',
     'customers': 'payments',
@@ -303,6 +303,7 @@ function switchView(viewName) {
     if (canonicalView === 'decision-analytics') loadDecisionAnalytics();
     if (canonicalView === 'infra') loadInfrastructureView();
     if (canonicalView === 'settings') loadSettings();
+    if (canonicalView === 'demos') { if (window.pipelineHUD) window.pipelineHUD.refresh(); }
 }
 
 async function loadDashboardMetrics() {

@@ -36,6 +36,7 @@ class RoutineCategory(str, Enum):
     ALREADY_HAVE_SOLUTION = "ALREADY_HAVE_SOLUTION"
     WANTS_PROPOSAL = "WANTS_PROPOSAL"
     WANTS_MEETING = "WANTS_MEETING"
+    WANTS_DEMO = "WANTS_DEMO"
 
 
 class EscalationCategory(str, Enum):
@@ -177,6 +178,17 @@ class AutonomousReplyHandler:
                 confidence=0.95,
                 reasoning="Prospect requested or proposed a discussion time.",
                 suggested_response="Thank you! I can do Thursday at 10:00 AM or 2:30 PM. Would either time work for a brief 10-minute overview?"
+            )
+
+        if re.search(r"\b(demo|prototype|preview|interactive demo|test system|sample system|can i see a demo|show me a demo|can you build|build a prototype|see what it looks like)\b", lower) and \
+           any(w in lower for w in ["demo", "prototype", "preview", "build", "show", "test", "see"]):
+            return ReplyClassificationResult(
+                category=RoutineCategory.WANTS_DEMO.value,
+                is_escalation=False,
+                is_opt_out=False,
+                confidence=0.96,
+                reasoning="Prospect requested an interactive demonstration or custom prototype.",
+                suggested_response="We have prepared a live interactive demonstration custom-built for your business."
             )
 
         if re.search(r"\b(send (?:a )?proposal|send contract|formal quote|scope of work|sow|agreement|send invoice)\b", lower):

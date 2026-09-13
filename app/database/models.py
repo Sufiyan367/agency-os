@@ -29,7 +29,12 @@ class PipelineStage(str, enum.Enum):
     WON = "WON"
     LOST = "LOST"
     REJECTED = "REJECTED"
+    DEMO_REQUESTED = "DEMO_REQUESTED"
+    DEMO_REQUIREMENTS_REQUIRED = "DEMO_REQUIREMENTS_REQUIRED"
+    DEMO_SPEC_READY = "DEMO_SPEC_READY"
+    DEMO_BUILDING = "DEMO_BUILDING"
     DEMO_READY = "DEMO_READY"
+    DEMO_DELIVERED = "DEMO_DELIVERED"
     COLD = "COLD"
     DEAD = "DEAD"
 
@@ -75,8 +80,43 @@ class ReplyClassification(str, enum.Enum):
     BOUNCE = "BOUNCE"
     OBJECTION = "OBJECTION"
     NEEDS_HUMAN = "NEEDS_HUMAN"
+    DEMO_REQUEST = "DEMO_REQUEST"
     UNKNOWN = "UNKNOWN"
     UNCLEAR = "UNCLEAR"
+
+class ProjectStatus(str, enum.Enum):
+    REQUESTED = "REQUESTED"
+    SPEC_READY = "SPEC_READY"
+    DESIGNING = "DESIGNING"
+    AI_PROTOTYPING = "AI_PROTOTYPING"
+    BUILDING = "BUILDING"
+    QA = "QA"
+    REPAIRING = "REPAIRING"
+    DEPLOYING = "DEPLOYING"
+    READY = "READY"
+    FAILED = "FAILED"
+    BLOCKED = "BLOCKED"
+
+class BuildStatus(str, enum.Enum):
+    BUILD_PENDING = "BUILD_PENDING"
+    BUILD_RUNNING = "BUILD_RUNNING"
+    BUILD_FAILED = "BUILD_FAILED"
+    BUILD_REPAIR_REQUIRED = "BUILD_REPAIR_REQUIRED"
+    BUILD_PASSED = "BUILD_PASSED"
+    BUILD_READY_FOR_DEPLOY = "BUILD_READY_FOR_DEPLOY"
+
+class QAStatus(str, enum.Enum):
+    PASS = "PASS"
+    WARN = "WARN"
+    FAIL = "FAIL"
+    BLOCKED = "BLOCKED"
+
+class DeploymentStatus(str, enum.Enum):
+    DEPLOYMENT_READY = "DEPLOYMENT_READY"
+    DEPLOYING = "DEPLOYING"
+    VERIFYING = "VERIFYING"
+    DEMO_READY = "DEMO_READY"
+    FAILED = "FAILED"
 
 class ChannelType(str, enum.Enum):
     EMAIL = "EMAIL"
@@ -227,6 +267,7 @@ class Business(Base):
     support_tickets: Mapped[List["SupportTicket"]] = relationship("SupportTicket", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     incidents: Mapped[List["CustomerIncident"]] = relationship("CustomerIncident", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     health_metrics: Mapped[List["CustomerHealthMetric"]] = relationship("CustomerHealthMetric", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
+    customer_projects: Mapped[List["CustomerProject"]] = relationship("CustomerProject", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
 
 
 # 5. Contacts
@@ -1331,6 +1372,194 @@ class CustomerHealthMetric(Base):
 
     customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="health_metrics", lazy="selectin")
     business: Mapped[Optional["Business"]] = relationship("Business", back_populates="health_metrics", lazy="selectin")
+
+
+# 48. Customer Projects (Phase 1: Automated Demo -> Build -> QA -> Deploy Pipeline)
+class CustomerProject(Base):
+    __tablename__ = "customer_projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    customer_slug: Mapped[str] = mapped_column(String(150), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    industry: Mapped[str] = mapped_column(String(100), default="General")
+    status: Mapped[str] = mapped_column(String(50), default=ProjectStatus.REQUESTED.value, index=True)
+    current_stage: Mapped[str] = mapped_column(String(50), default="SPEC", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    business: Mapped["Business"] = relationship("Business", back_populates="customer_projects", lazy="selectin")
+    specifications: Mapped[List["ProjectSpecification"]] = relationship("ProjectSpecification", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    design_specs: Mapped[List["DesignSpecification"]] = relationship("DesignSpecification", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    ai_specs: Mapped[List["AIFeatureSpecification"]] = relationship("AIFeatureSpecification", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    builds: Mapped[List["ProjectBuild"]] = relationship("ProjectBuild", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    deployments: Mapped[List["ProjectDeployment"]] = relationship("ProjectDeployment", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    events: Mapped[List["ProjectEvent"]] = relationship("ProjectEvent", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 49. Project Specification (Canonical, Immutable, Versioned)
+class ProjectSpecification(Base):
+    __tablename__ = "project_specifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_canonical: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    # Strict 3-way segregation
+    facts: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    customer_requests: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    ai_inferences: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+
+    # Technology & Engineering Stack
+    architecture_style: Mapped[str] = mapped_column(String(100), default="modular_monolith")
+    primary_language: Mapped[str] = mapped_column(String(50), default="typescript")
+    framework: Mapped[str] = mapped_column(String(50), default="react")
+    backend_framework: Mapped[str] = mapped_column(String(50), default="fastapi")
+    styling_library: Mapped[str] = mapped_column(String(50), default="tailwind")
+    
+    # Requirements
+    required_screens: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    ai_features: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    checksum: Mapped[str] = mapped_column(String(64), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "version", name="uq_project_spec_version"),
+    )
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="specifications", lazy="selectin")
+
+
+# 50. Design Specification (Stitch Provider Spec)
+class DesignSpecification(Base):
+    __tablename__ = "design_specifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    provider: Mapped[str] = mapped_column(String(50), default="stitch")
+    
+    screens: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    color_system: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    typography: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    responsive_variants: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="design_specs", lazy="selectin")
+
+
+# 51. AI Feature Specification (Google AI Studio Provider Spec)
+class AIFeatureSpecification(Base):
+    __tablename__ = "ai_feature_specifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    provider: Mapped[str] = mapped_column(String(50), default="google_ai_studio")
+    
+    prototype_type: Mapped[str] = mapped_column(String(100), default="conversational_assistant")
+    prompt_templates: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    system_instructions: Mapped[str] = mapped_column(Text, default="")
+    safety_settings: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    model_name: Mapped[str] = mapped_column(String(100), default="gemini-2.5-flash")
+    fallback_behavior: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="ai_specs", lazy="selectin")
+
+
+# 52. Project Build (Antigravity Code Generation Artifact)
+class ProjectBuild(Base):
+    __tablename__ = "project_builds"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    build_number: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(50), default=BuildStatus.BUILD_PENDING.value, index=True)
+    
+    artifacts_manifest: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    routes_manifest: Mapped[List[str]] = mapped_column(JSON, default=list)
+    dependencies_manifest: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    build_duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "build_number", name="uq_project_build_number"),
+    )
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="builds", lazy="selectin")
+    qa_runs: Mapped[List["BuildQA"]] = relationship("BuildQA", back_populates="build", cascade="all, delete-orphan", lazy="selectin")
+    repairs: Mapped[List["RepairAttempt"]] = relationship("RepairAttempt", back_populates="build", cascade="all, delete-orphan", lazy="selectin")
+    deployments: Mapped[List["ProjectDeployment"]] = relationship("ProjectDeployment", back_populates="build", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 53. Build QA (20-Gate Quality Assurance Results)
+class BuildQA(Base):
+    __tablename__ = "build_qas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    build_id: Mapped[int] = mapped_column(Integer, ForeignKey("project_builds.id"), index=True)
+    overall_status: Mapped[str] = mapped_column(String(50), default=QAStatus.BLOCKED.value, index=True)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    gate_results: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    critical_violations: Mapped[List[str]] = mapped_column(JSON, default=list)
+    non_critical_warnings: Mapped[List[str]] = mapped_column(JSON, default=list)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    build: Mapped["ProjectBuild"] = relationship("ProjectBuild", back_populates="qa_runs", lazy="selectin")
+
+
+# 54. Repair Attempts (Bounded Autonomous Feedback Loop, max 3)
+class RepairAttempt(Base):
+    __tablename__ = "repair_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    build_id: Mapped[int] = mapped_column(Integer, ForeignKey("project_builds.id"), index=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, default=1)
+    failing_gate: Mapped[str] = mapped_column(String(100), default="")
+    failure_classification: Mapped[str] = mapped_column(String(100), default="SYNTAX_ERROR")
+    diff_applied: Mapped[str] = mapped_column(Text, default="")
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    build: Mapped["ProjectBuild"] = relationship("ProjectBuild", back_populates="repairs", lazy="selectin")
+
+
+# 55. Project Deployments (Isolated Customer Sandbox Demos)
+class ProjectDeployment(Base):
+    __tablename__ = "project_deployments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    build_id: Mapped[int] = mapped_column(Integer, ForeignKey("project_builds.id"), index=True)
+    demo_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    deployment_url: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(50), default=DeploymentStatus.DEPLOYMENT_READY.value, index=True)
+    deployed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="deployments", lazy="selectin")
+    build: Mapped["ProjectBuild"] = relationship("ProjectBuild", back_populates="deployments", lazy="selectin")
+
+
+# 56. Project Events (Audit Trail & Telemetry Timeline)
+class ProjectEvent(Base):
+    __tablename__ = "project_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    stage: Mapped[str] = mapped_column(String(50), default="SPEC")
+    details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="events", lazy="selectin")
 
 
 

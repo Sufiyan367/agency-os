@@ -4060,6 +4060,188 @@ async def get_public_client_demo(business_slug: str, db: AsyncSession = Depends(
     return HTMLResponse(content=content, status_code=200, headers=headers)
 
 
+@router.get("/demo/{customer_slug}/{demo_id}")
+async def get_isolated_customer_demo(
+    customer_slug: str,
+    demo_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Public prospect-facing isolated customer demonstration endpoint.
+    Serves custom-built, client-safe HTML sandbox from physical disk artifact.
+    """
+    import os
+    import re
+    from app.core.security import validate_safe_path_within_root
+    from app.core.logging import SENSITIVE_KEY_VALUE_PATTERNS, STANDALONE_SECRET_PATTERNS
+
+    clean_slug = re.sub(r'[^a-z0-9\-]', '', customer_slug.lower()).strip('-')
+    clean_demo = re.sub(r'[^a-zA-Z0-9_\-]', '', demo_id)
+
+    if not clean_slug or not clean_demo:
+        raise HTTPException(status_code=404, detail="Invalid customer demo identifier")
+
+    demos_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "artifacts", "demos"))
+    demo_dir = os.path.join(demos_root, clean_slug, clean_demo)
+    html_file = os.path.join(demo_dir, "index.html")
+
+    if not os.path.exists(html_file):
+        from app.database.models import ProjectDeployment
+        q = select(ProjectDeployment).where(ProjectDeployment.demo_id == clean_demo)
+        deploy = (await db.execute(q)).scalars().first()
+        if deploy and deploy.metadata_json:
+            stored_path = deploy.metadata_json.get("sandbox_path", "")
+            alt_html = os.path.join(stored_path, "index.html")
+            if os.path.exists(alt_html):
+                html_file = alt_html
+
+    if not os.path.exists(html_file):
+        raise HTTPException(status_code=404, detail=f"Demonstration package '{clean_demo}' not found for '{clean_slug}'")
+
+    with open(html_file, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+
+    for pattern in SENSITIVE_KEY_VALUE_PATTERNS:
+        content = pattern.sub(r'\1: [REDACTED]', content)
+    for pattern in STANDALONE_SECRET_PATTERNS:
+        content = pattern.sub('[REDACTED_SECRET]', content)
+
+    headers = {
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
+        "Cache-Control": "public, max-age=3600",
+        "X-Content-Type-Options": "nosniff"
+    }
+    return HTMLResponse(content=content, status_code=200, headers=headers)
+
+
+# =====================================================================
+# Phase 1 & 6: Customer Projects & Autonomous Demo Build API
+# =====================================================================
+
+@router.get("/api/projects")
+async def list_customer_projects(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    """Lists customer demo and build projects with pipeline status and QA telemetry."""
+    from app.database.models import CustomerProject, Business, ProjectDeployment, BuildQA
+    q = select(CustomerProject).order_by(desc(CustomerProject.created_at)).limit(limit)
+    projects = (await db.execute(q)).scalars().all()
+    results = []
+    for p in projects:
+        biz = await db.get(Business, p.business_id)
+        latest_deploy = p.deployments[-1] if p.deployments else None
+        latest_build = p.builds[-1] if p.builds else None
+        latest_qa = latest_build.qa_runs[-1] if (latest_build and latest_build.qa_runs) else None
+
+        results.append({
+            "id": p.id,
+            "project_id": p.project_id,
+            "business_id": p.business_id,
+            "business_name": biz.name if biz else p.title,
+            "domain": biz.domain if biz else f"{p.customer_slug}.com",
+            "customer_slug": p.customer_slug,
+            "title": p.title,
+            "industry": p.industry,
+            "status": p.status,
+            "current_stage": p.current_stage,
+            "demo_url": latest_deploy.deployment_url if latest_deploy else None,
+            "demo_id": latest_deploy.demo_id if latest_deploy else None,
+            "qa_score": latest_qa.score if latest_qa else None,
+            "qa_status": latest_qa.overall_status if latest_qa else None,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "updated_at": p.updated_at.isoformat() if p.updated_at else None
+        })
+    return results
+
+
+@router.get("/api/projects/{project_id}")
+async def get_customer_project_detail(
+    project_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves full specification, build manifests, QA runs, and events for a project."""
+    from app.database.models import CustomerProject, Business
+    q = select(CustomerProject).where(CustomerProject.project_id == project_id)
+    p = (await db.execute(q)).scalars().first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    biz = await db.get(Business, p.business_id)
+    latest_spec = p.specifications[-1] if p.specifications else None
+    latest_build = p.builds[-1] if p.builds else None
+    latest_qa = latest_build.qa_runs[-1] if (latest_build and latest_build.qa_runs) else None
+    latest_deploy = p.deployments[-1] if p.deployments else None
+
+    return {
+        "project_id": p.project_id,
+        "business_id": p.business_id,
+        "business_name": biz.name if biz else p.title,
+        "customer_slug": p.customer_slug,
+        "industry": p.industry,
+        "status": p.status,
+        "current_stage": p.current_stage,
+        "demo_url": latest_deploy.deployment_url if latest_deploy else None,
+        "specification": {
+            "version": latest_spec.version if latest_spec else None,
+            "checksum": latest_spec.checksum if latest_spec else None,
+            "facts": latest_spec.facts if latest_spec else [],
+            "customer_requests": latest_spec.customer_requests if latest_spec else [],
+            "ai_inferences": latest_spec.ai_inferences if latest_spec else [],
+            "required_screens": latest_spec.required_screens if latest_spec else [],
+            "ai_features": latest_spec.ai_features if latest_spec else []
+        } if latest_spec else None,
+        "latest_build": {
+            "build_number": latest_build.build_number if latest_build else None,
+            "status": latest_build.status if latest_build else None,
+            "duration_ms": latest_build.build_duration_ms if latest_build else None,
+            "routes": latest_build.routes_manifest if latest_build else [],
+            "artifacts": list(latest_build.artifacts_manifest.keys()) if (latest_build and latest_build.artifacts_manifest) else []
+        } if latest_build else None,
+        "qa_run": {
+            "score": latest_qa.score if latest_qa else None,
+            "status": latest_qa.overall_status if latest_qa else None,
+            "gate_results": latest_qa.gate_results if latest_qa else {},
+            "critical_violations": latest_qa.critical_violations if latest_qa else [],
+            "non_critical_warnings": latest_qa.non_critical_warnings if latest_qa else []
+        } if latest_qa else None,
+        "events": [
+            {
+                "event_type": e.event_type,
+                "stage": e.stage,
+                "details": e.details,
+                "created_at": e.created_at.isoformat() if e.created_at else None
+            }
+            for e in p.events
+        ]
+    }
+
+
+@router.post("/api/projects/trigger")
+async def trigger_project_demo_build(
+    payload: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+):
+    """Triggers autonomous demo build pipeline for a given business."""
+    business_id = payload.get("business_id")
+    if not business_id:
+        raise HTTPException(status_code=400, detail="business_id is required")
+
+    reply_text = payload.get("reply_text")
+    from app.builder.pipeline import pipeline_orchestrator
+    try:
+        res = await pipeline_orchestrator.trigger_demo_pipeline(
+            session=db,
+            business_id=int(business_id),
+            reply_text=reply_text
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Failed to trigger demo pipeline: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 # =====================================================================
 # Phase 6: Prospect Memory & Objection Handling Cockpit Endpoints
