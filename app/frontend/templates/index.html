@@ -19,26 +19,30 @@
         body { display: flex; flex-direction: row; }
 
         /* Single Desktop Sidebar (Width: 240px Canonical Geometry) */
-        .sidebar, .agency-sidebar, #app-sidebar {
-            width: var(--sidebar-width, 240px) !important;
-            min-width: var(--sidebar-width, 240px) !important;
-            max-width: var(--sidebar-width, 240px) !important;
-            flex-shrink: 0 !important;
-            background-color: #080808 !important;
-            border-right: 1px solid #1f1f1f !important;
-            display: flex !important;
-            flex-direction: column !important;
-            height: 100vh !important;
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 100 !important;
-            padding: 18px 12px 14px 12px !important;
-            box-sizing: border-box !important;
+        @media (min-width: 769px) {
+            .sidebar, .agency-sidebar, #app-sidebar {
+                width: var(--sidebar-width, 240px) !important;
+                min-width: var(--sidebar-width, 240px) !important;
+                max-width: var(--sidebar-width, 240px) !important;
+                flex-shrink: 0 !important;
+                background-color: #080808 !important;
+                border-right: 1px solid #1f1f1f !important;
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100vh !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 100 !important;
+                padding: 18px 12px 14px 12px !important;
+                box-sizing: border-box !important;
+            }
         }
 
         /* Prevent Any Duplicate Secondary Sidebar on Desktop */
-        #mobile-drawer, .mobile-drawer, #mobile-drawer-backdrop, .mobile-drawer-backdrop, .mobile-header {
-            display: none !important;
+        @media (min-width: 769px) {
+            #mobile-drawer, .mobile-drawer, #mobile-drawer-backdrop, .mobile-drawer-backdrop, .mobile-header {
+                display: none !important;
+            }
         }
 
         /* Main Content Wrapper fills remaining viewport */
@@ -539,7 +543,7 @@
         }
         @media (max-width: 768px) {
             body { flex-direction: column !important; }
-            .sidebar, .agency-sidebar { display: none !important; }
+            .sidebar, .agency-sidebar, #app-sidebar { display: none !important; }
             .mobile-header { display: flex !important; }
             .main-wrapper { width: 100% !important; }
             .agency-content-area, .view-container {

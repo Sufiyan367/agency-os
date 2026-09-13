@@ -1647,21 +1647,23 @@ body {
   --sidebar-width: 240px;
 }
 
-.agency-sidebar, #app-sidebar {
-  width: var(--sidebar-width, 240px) !important;
-  min-width: var(--sidebar-width, 240px) !important;
-  max-width: var(--sidebar-width, 240px) !important;
-  background-color: #080808 !important;
-  border-right: 1px solid #1f1f1f !important;
-  display: flex !important;
-  flex-direction: column !important;
-  padding: 18px 12px 14px 12px !important;
-  height: 100vh !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  box-sizing: border-box !important;
-  flex-shrink: 0 !important;
+@media (min-width: 769px) {
+  .agency-sidebar, #app-sidebar {
+    width: var(--sidebar-width, 240px) !important;
+    min-width: var(--sidebar-width, 240px) !important;
+    max-width: var(--sidebar-width, 240px) !important;
+    background-color: #080808 !important;
+    border-right: 1px solid #1f1f1f !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 18px 12px 14px 12px !important;
+    height: 100vh !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+  }
 }
 
 .agency-brand-block {
@@ -2760,8 +2762,12 @@ body {
   }
 }
 @media (max-width: 768px) {
-  .agency-sidebar {
-    display: none;
+  .sidebar, .agency-sidebar, #app-sidebar {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    visibility: hidden !important;
   }
 }
 @media (max-width: 480px) {
