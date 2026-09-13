@@ -41,65 +41,130 @@ export class NotificationCenterController {
 
   async init() {
     this.bindDOM();
-    await this.initServiceWorker();
-    await this.fetchUnreadCount();
+    this.fetchUnreadCount();
+    this.checkInitialUrlState();
     this.startPolling();
+    this.initServiceWorker().catch((err) => console.warn('[NotificationCenter] SW init deferred/error:', err));
+  }
+
+  checkInitialUrlState() {
+    const hash = window.location.hash || '';
+    const params = new URLSearchParams(window.location.search);
+    if (hash === '#notifications' || params.get('tab') === 'notifications' || params.get('notif') === '1') {
+      setTimeout(() => this.openDrawer(), 300);
+    }
   }
 
   bindDOM() {
     const bellBtn = document.getElementById('btn-notification-center');
     if (bellBtn) {
-      bellBtn.addEventListener('click', (e) => {
+      bellBtn.onclick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         this.toggleDrawer();
-      });
+      };
+    }
+
+    const mobileBottomNotifBtn = document.getElementById('mobile-bottom-notif-btn');
+    if (mobileBottomNotifBtn) {
+      mobileBottomNotifBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleDrawer();
+      };
     }
 
     const closeBtn = document.getElementById('btn-close-notif-drawer');
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.closeDrawer());
+      closeBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeDrawer();
+      };
     }
 
     const backdrop = document.getElementById('notification-drawer-backdrop');
     if (backdrop) {
-      backdrop.addEventListener('click', () => this.closeDrawer());
+      backdrop.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeDrawer();
+      };
     }
+
+    const drawer = document.getElementById('notification-drawer');
+    if (drawer) {
+      drawer.onclick = (e) => e.stopPropagation();
+    }
+
+    // Escape key listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.drawerOpen) {
+        this.closeDrawer();
+      }
+    });
+
+    // Outside click listener
+    document.addEventListener('click', (e) => {
+      if (!this.drawerOpen) return;
+      if (e.target && e.target.closest && (
+        e.target.closest('#notification-drawer') ||
+        e.target.closest('#btn-notification-center') ||
+        e.target.closest('#mobile-bottom-notif-btn')
+      )) {
+        return;
+      }
+      this.closeDrawer();
+    });
 
     const markAllBtn = document.getElementById('btn-mark-all-read');
     if (markAllBtn) {
-      markAllBtn.addEventListener('click', () => this.markAllRead());
+      markAllBtn.onclick = (e) => {
+        e.preventDefault();
+        this.markAllRead();
+      };
     }
 
     const pushBtn = document.getElementById('btn-enable-push');
     if (pushBtn) {
-      pushBtn.addEventListener('click', () => this.subscribePush());
+      pushBtn.onclick = (e) => {
+        e.preventDefault();
+        this.subscribePush();
+      };
     }
 
     // Filter pills
     const filterPills = document.querySelectorAll('.notif-filter-pill');
     filterPills.forEach((pill) => {
-      pill.addEventListener('click', (e) => {
+      pill.onclick = (e) => {
+        e.preventDefault();
         const target = e.currentTarget;
         const category = target.dataset.category || 'ALL';
         this.setFilter(category);
-      });
+      };
     });
 
     // Test alert triggers
     const testBtns = document.querySelectorAll('.btn-trigger-test-alert');
     testBtns.forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
         const target = e.currentTarget;
         const eventType = target.dataset.eventType || 'TEST_PAYMENT_VERIFIED';
         this.triggerTestEvent(eventType);
-      });
+      };
     });
   }
 
   async initServiceWorker() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('[NotificationCenter] Push messaging not supported in this browser environment.');
-      this.updatePushUI(false, 'Unsupported');
+      console.warn('[NotificationCenter] Push messaging not supported in this browser.');
+      this.updatePushUI('unsupported', 'Push Unsupported');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      this.updatePushUI('blocked', 'Notifications Blocked');
       return;
     }
 
@@ -111,10 +176,10 @@ export class NotificationCenterController {
       const sub = await this.swRegistration.pushManager.getSubscription();
       if (sub) {
         this.isPushSubscribed = true;
-        this.updatePushUI(true, 'Push Active');
+        this.updatePushUI('active', '✓ Notifications Active');
       } else {
         this.isPushSubscribed = false;
-        this.updatePushUI(false, 'Enable Mobile Push');
+        this.updatePushUI('idle', 'Enable Mobile Push');
       }
 
       // Listen for message from service worker
@@ -131,24 +196,35 @@ export class NotificationCenterController {
   }
 
   async subscribePush() {
-    if (!this.swRegistration) {
-      alert('Service Worker is not ready. Please reload the page.');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Web Push is not supported in this browser environment.');
+      this.updatePushUI('unsupported', 'Push Unsupported');
+      return false;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert('Notifications are blocked in your browser. Please enable notifications in your browser or site settings.');
+      this.updatePushUI('blocked', 'Notifications Blocked');
       return false;
     }
 
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        alert('Notification permission was denied. Please enable notifications in your browser settings.');
-        this.updatePushUI(false, 'Permission Denied');
+        alert('Notification permission was not granted.');
+        this.updatePushUI('blocked', 'Permission Denied');
         return false;
+      }
+
+      if (!this.swRegistration) {
+        this.swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
       }
 
       // Fetch VAPID key
       const keyResp = await fetch('/api/notifications/vapid-public-key');
       const keyData = await keyResp.json();
       if (!keyData.public_key) {
-        throw new Error('Server returned empty VAPID public key.');
+        throw new Error('Server returned unconfigured VAPID public key.');
       }
 
       const convertedVapidKey = urlB64ToUint8Array(keyData.public_key);
@@ -161,7 +237,7 @@ export class NotificationCenterController {
       const p256dhKey = subscription.getKey('p256dh');
       const authKey = subscription.getKey('auth');
       if (!p256dhKey || !authKey) {
-        throw new Error('Subscription missing p256dh or auth keys.');
+        throw new Error('Subscription missing cryptographic keys.');
       }
 
       const p256dh = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(p256dhKey))))
@@ -184,10 +260,10 @@ export class NotificationCenterController {
         devName = 'Android Mobile Phone';
       } else if (isIOS) {
         devType = 'mobile_ios';
-        devName = 'iOS Apple Mobile';
+        devName = 'iOS Apple Device';
       } else if (isMobile) {
         devType = 'mobile_web';
-        devName = 'Mobile Device';
+        devName = 'Mobile Browser';
       }
 
       const regResp = await fetch('/api/notifications/devices', {
@@ -203,12 +279,12 @@ export class NotificationCenterController {
       });
 
       if (!regResp.ok) {
-        throw new Error(`Device registration failed: ${regResp.status}`);
+        throw new Error(`Device registration failed with status ${regResp.status}`);
       }
 
       this.isPushSubscribed = true;
-      this.updatePushUI(true, 'Push Active');
-      this.showToast('Push Notifications Active', 'Your device will now receive real-time CEO event alerts.', 'success');
+      this.updatePushUI('active', '✓ Notifications Active');
+      this.showToast('Push Notifications Active', 'This device will receive critical CEO alerts.', 'success');
       return true;
     } catch (err) {
       console.error('[NotificationCenter] Error subscribing to push:', err);
@@ -217,22 +293,46 @@ export class NotificationCenterController {
     }
   }
 
-  updatePushUI(active, label) {
+  updatePushUI(state, label) {
     const pushBtn = document.getElementById('btn-enable-push');
     const pushDot = document.getElementById('push-status-dot');
     const pushText = document.getElementById('push-status-text');
 
     if (pushBtn) {
-      if (active) {
+      if (state === 'active') {
         pushBtn.classList.add('push-active');
+        pushBtn.textContent = '✓ Subscribed';
+        pushBtn.style.background = 'rgba(16, 185, 129, 0.2)';
+        pushBtn.style.color = '#10b981';
+        pushBtn.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+      } else if (state === 'blocked' || state === 'unsupported') {
+        pushBtn.classList.remove('push-active');
+        pushBtn.textContent = 'Settings';
+        pushBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+        pushBtn.style.color = '#ef4444';
+        pushBtn.style.border = '1px solid rgba(239, 68, 68, 0.3)';
       } else {
         pushBtn.classList.remove('push-active');
+        pushBtn.textContent = 'Enable';
+        pushBtn.style.background = '#38bdf8';
+        pushBtn.style.color = '#0b0e14';
+        pushBtn.style.border = 'none';
       }
     }
+
     if (pushDot) {
-      pushDot.style.background = active ? '#10b981' : '#f59e0b';
-      pushDot.style.boxShadow = active ? '0 0 8px #10b981' : 'none';
+      if (state === 'active') {
+        pushDot.style.background = '#10b981';
+        pushDot.style.boxShadow = '0 0 8px #10b981';
+      } else if (state === 'blocked' || state === 'unsupported') {
+        pushDot.style.background = '#ef4444';
+        pushDot.style.boxShadow = 'none';
+      } else {
+        pushDot.style.background = '#f59e0b';
+        pushDot.style.boxShadow = 'none';
+      }
     }
+
     if (pushText) {
       pushText.textContent = label;
     }
@@ -302,10 +402,10 @@ export class NotificationCenterController {
     `;
 
     try {
-      const url = `/api/notifications?category=${encodeURIComponent(this.currentFilter)}&page_size=30`;
+      const url = `/api/notifications?category=${encodeURIComponent(this.currentFilter)}&page_size=40`;
       const resp = await fetch(url);
       if (!resp.ok) {
-        throw new Error(`Failed loading notifications: ${resp.status}`);
+        throw new Error(`Status ${resp.status}`);
       }
       const data = await resp.json();
       this.renderNotificationList(data.items);
@@ -314,7 +414,7 @@ export class NotificationCenterController {
       console.error('[NotificationCenter] Error loading notifications:', err);
       listContainer.innerHTML = `
         <div style="padding:24px; text-align:center; color:#ef4444; font-size:0.75rem;">
-          Failed to load alerts. ${err.message}
+          Failed to load alerts. (${err.message})
         </div>
       `;
     }
@@ -329,7 +429,7 @@ export class NotificationCenterController {
         <div style="padding:48px 24px; text-align:center; color:#64748b;">
           <div style="font-size:1.8rem; margin-bottom:8px;">🔔</div>
           <div style="font-size:0.85rem; font-weight:600; color:#cbd5e1; margin-bottom:4px;">Zero Unread Alerts</div>
-          <div style="font-size:0.75rem;">All systems and canonical business pipelines are nominal.</div>
+          <div style="font-size:0.75rem;">All systems and autonomous business pipelines are nominal.</div>
         </div>
       `;
       return;
@@ -341,8 +441,8 @@ export class NotificationCenterController {
       const isCritical = item.priority === 'CRITICAL';
       const isHigh = item.priority === 'HIGH';
 
-      let priorityColor = '#3b82f6';
-      let priorityBg = 'rgba(59, 130, 246, 0.1)';
+      let priorityColor = '#38bdf8';
+      let priorityBg = 'rgba(56, 189, 248, 0.12)';
       if (isCritical) {
         priorityColor = '#ef4444';
         priorityBg = 'rgba(239, 68, 68, 0.15)';
@@ -351,7 +451,9 @@ export class NotificationCenterController {
         priorityBg = 'rgba(245, 158, 11, 0.12)';
       }
 
-      const borderGlow = isCritical && isUnread ? 'border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);' : (isUnread ? 'border: 1px solid rgba(56, 189, 248, 0.25);' : 'border: 1px solid rgba(255, 255, 255, 0.05);');
+      const borderGlow = isCritical && isUnread 
+        ? 'border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);' 
+        : (isUnread ? 'border: 1px solid rgba(56, 189, 248, 0.25);' : 'border: 1px solid rgba(255, 255, 255, 0.06);');
 
       html += `
         <div class="notification-card ${isUnread ? 'unread' : 'read'}" data-id="${item.id}" style="${borderGlow} background: ${isUnread ? '#0f141d' : '#0a0d13'}; border-radius:8px; padding:12px 14px; margin-bottom:10px; transition: all 0.2s ease;">
@@ -363,32 +465,32 @@ export class NotificationCenterController {
               <span style="background:rgba(255,255,255,0.05); color:#94a3b8; font-size:0.65rem; font-weight:600; padding:2px 6px; border-radius:4px; text-transform:uppercase;">
                 ${item.category}
               </span>
-              ${isUnread ? '<span style="width:6px; height:6px; border-radius:50%; background:#38bdf8; display:inline-block;" title="Unread"></span>' : ''}
+              ${isUnread ? '<span class="unread-dot" style="width:6px; height:6px; border-radius:50%; background:#38bdf8; display:inline-block;" title="Unread"></span>' : ''}
             </div>
             <span style="font-size:0.68rem; color:#64748b; white-space:nowrap;">
               ${formatRelativeTime(item.created_at)}
             </span>
           </div>
 
-          <div style="font-size:0.82rem; font-weight:600; color:${isUnread ? '#f8fafc' : '#cbd5e1'}; margin-bottom:4px; line-height:1.3;">
+          <div style="font-size:0.84rem; font-weight:600; color:${isUnread ? '#f8fafc' : '#cbd5e1'}; margin-bottom:4px; line-height:1.3;">
             ${item.title}
           </div>
 
-          <div style="font-size:0.75rem; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
+          <div style="font-size:0.75rem; color:#94a3b8; line-height:1.4; margin-bottom:10px; white-space:pre-line;">
             ${item.body}
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div>
               ${item.deep_link ? `
-                <a href="${item.deep_link}" class="btn-notif-action" onclick="window.notificationCenter.handleItemClick(${item.id}, '${item.deep_link}')" style="display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:600; color:#38bdf8; text-decoration:none; padding:3px 8px; border-radius:4px; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25);">
-                  ${item.action_required ? 'Take Action →' : 'View Context →'}
-                </a>
+                <button type="button" class="btn-notif-action" data-id="${item.id}" data-url="${item.deep_link}" style="display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:600; color:#38bdf8; text-decoration:none; padding:4px 9px; border-radius:4px; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); cursor:pointer;">
+                  ${item.action_required ? 'Take Action →' : 'View Details →'}
+                </button>
               ` : ''}
             </div>
 
             ${isUnread ? `
-              <button class="btn-mark-single-read" onclick="window.notificationCenter.markRead(${item.id})" style="background:transparent; border:none; color:#64748b; font-size:0.7rem; cursor:pointer; padding:3px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">
+              <button type="button" class="btn-mark-single-read" data-id="${item.id}" style="background:transparent; border:none; color:#64748b; font-size:0.7rem; cursor:pointer; padding:3px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                 Mark Read
               </button>
@@ -399,26 +501,76 @@ export class NotificationCenterController {
     });
 
     listContainer.innerHTML = html;
+
+    // Attach click listeners to cards and actions
+    listContainer.querySelectorAll('.btn-notif-action').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const notifId = btn.dataset.id;
+        const targetUrl = btn.dataset.url;
+        this.handleItemClick(notifId, targetUrl);
+      };
+    });
+
+    listContainer.querySelectorAll('.btn-mark-single-read').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const notifId = btn.dataset.id;
+        this.markRead(notifId);
+      };
+    });
   }
 
   async handleItemClick(notificationId, deepLink) {
     await this.markRead(notificationId);
     this.closeDrawer();
+
+    if (!deepLink) return;
+
+    // Validate safe same-origin or relative path
+    if (deepLink.startsWith('http://') || deepLink.startsWith('https://')) {
+      const url = new URL(deepLink);
+      if (url.origin !== window.location.origin) {
+        console.warn('[NotificationCenter] External deep link blocked:', deepLink);
+        return;
+      }
+    }
+
+    // Parse target view from hash or query
+    let targetView = null;
+    if (deepLink.includes('#')) {
+      const hashPart = deepLink.split('#')[1] || '';
+      targetView = hashPart.split('?')[0];
+    } else if (deepLink.includes('view=')) {
+      const params = new URLSearchParams(deepLink.split('?')[1] || '');
+      targetView = params.get('view');
+    }
+
+    if (targetView && typeof window.navToView === 'function') {
+      window.navToView(targetView);
+    } else if (deepLink && !deepLink.startsWith('#')) {
+      window.location.href = deepLink;
+    }
   }
 
   async markRead(notificationId) {
     try {
-      await fetch(`/api/notifications/${notificationId}/read`, { method: 'POST' });
-      const card = document.querySelector(`.notification-card[data-id="${notificationId}"]`);
-      if (card) {
-        card.classList.remove('unread');
-        card.classList.add('read');
-        card.style.background = '#0a0d13';
-        card.style.border = '1px solid rgba(255, 255, 255, 0.05)';
-        const btn = card.querySelector('.btn-mark-single-read');
-        if (btn) btn.remove();
+      const resp = await fetch(`/api/notifications/${notificationId}/read`, { method: 'POST' });
+      if (resp.ok) {
+        const card = document.querySelector(`.notification-card[data-id="${notificationId}"]`);
+        if (card) {
+          card.classList.remove('unread');
+          card.classList.add('read');
+          card.style.background = '#0a0d13';
+          card.style.border = '1px solid rgba(255, 255, 255, 0.06)';
+          card.style.boxShadow = 'none';
+          const dot = card.querySelector('.unread-dot');
+          if (dot) dot.remove();
+          const btn = card.querySelector('.btn-mark-single-read');
+          if (btn) btn.remove();
+        }
+        await this.fetchUnreadCount();
       }
-      this.fetchUnreadCount();
     } catch (err) {
       console.error('[NotificationCenter] Failed to mark notification read:', err);
     }
@@ -426,9 +578,23 @@ export class NotificationCenterController {
 
   async markAllRead() {
     try {
-      await fetch('/api/notifications/read-all', { method: 'POST' });
-      this.updateUnreadBadge(0);
-      this.loadNotifications();
+      const resp = await fetch('/api/notifications/read-all', { method: 'POST' });
+      if (resp.ok) {
+        this.updateUnreadBadge(0);
+        const cards = document.querySelectorAll('.notification-card.unread');
+        cards.forEach((card) => {
+          card.classList.remove('unread');
+          card.classList.add('read');
+          card.style.background = '#0a0d13';
+          card.style.border = '1px solid rgba(255, 255, 255, 0.06)';
+          card.style.boxShadow = 'none';
+          const dot = card.querySelector('.unread-dot');
+          if (dot) dot.remove();
+          const btn = card.querySelector('.btn-mark-single-read');
+          if (btn) btn.remove();
+        });
+        this.showToast('All Alerts Read', 'All notifications marked as read.', 'info');
+      }
     } catch (err) {
       console.error('[NotificationCenter] Failed to mark all read:', err);
     }
@@ -442,23 +608,29 @@ export class NotificationCenterController {
         this.updateUnreadBadge(data.unread_count || 0);
       }
     } catch (err) {
-      // silent polling error
+      // silent polling catch
     }
   }
 
   updateUnreadBadge(count) {
     this.unreadCount = count;
     const badge = document.getElementById('notif-badge');
+    const bottomBadge = document.getElementById('mobile-bottom-notif-badge');
     const topCount = document.getElementById('drawer-unread-count');
 
-    if (badge) {
+    const updateBadge = (el) => {
+      if (!el) return;
       if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : String(count);
-        badge.style.display = 'inline-block';
+        el.textContent = count > 99 ? '99+' : String(count);
+        el.style.display = 'inline-flex';
       } else {
-        badge.style.display = 'none';
+        el.style.display = 'none';
       }
-    }
+    };
+
+    updateBadge(badge);
+    updateBadge(bottomBadge);
+
     if (topCount) {
       topCount.textContent = `${count} unread`;
     }
@@ -473,7 +645,8 @@ export class NotificationCenterController {
       });
       if (resp.ok) {
         const res = await resp.json();
-        this.showToast('Test Alert Dispatched', `${res.notification ? res.notification.title : eventType}`, 'info');
+        const title = res.notification ? res.notification.title : eventType;
+        this.showToast('Test Alert Dispatched', title, 'info');
         await this.fetchUnreadCount();
         if (this.drawerOpen) {
           await this.loadNotifications();

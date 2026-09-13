@@ -2,7 +2,7 @@
   "name": "Agency OS — CEO Mobile Command",
   "short_name": "AgencyOS",
   "description": "Executive mobile event notification and control system for Agency OS",
-  "start_url": "/dashboard?tab=notifications",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

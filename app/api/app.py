@@ -153,6 +153,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/reset-password",
             "/sw.js",
             "/manifest.json",
+            "/manifest.webmanifest",
             "/api/notifications/vapid-public-key",
         }
         privileged_prefixes = (
@@ -378,6 +379,7 @@ async def serve_service_worker():
 
 
 @app.get("/manifest.json")
+@app.get("/manifest.webmanifest")
 async def serve_manifest():
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")
     if not os.path.exists(manifest_path):

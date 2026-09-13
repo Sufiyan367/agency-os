@@ -920,7 +920,7 @@
 
                     <!-- CEO Mobile Notification Bell & Live Unread Counter -->
                     <div id="ceo-notification-bell-container" style="position:relative; display:inline-flex; align-items:center; margin-right:8px;">
-                        <button id="btn-notification-center" class="agency-icon-btn" aria-label="Notification Center" title="Executive Event Notifications" onclick="toggleNotificationCenter()" style="position:relative; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#f8fafc; transition:all 0.2s ease;">
+                        <button id="btn-notification-center" class="agency-icon-btn" aria-label="Notification Center" title="Executive Event Notifications" style="position:relative; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:44px; height:44px; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#f8fafc; transition:all 0.2s ease; padding:0;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -3914,25 +3914,85 @@
         </div>
     </div>
 
-    <!-- Mobile Bottom Navigation Bar -->
-    <nav class="mobile-bottom-nav">
-        <div class="bottom-nav-item active" data-view="overview" onclick="navToView('overview')">
-            <span class="bottom-nav-icon">📊</span>
-            <span>Overview</span>
-        </div>
-        <div class="bottom-nav-item" data-view="queue" onclick="navToView('queue')">
-            <span class="bottom-nav-icon">📬</span>
-            <span>Queue</span>
-        </div>
-        <div class="bottom-nav-item" data-view="replies" onclick="navToView('replies')">
-            <span class="bottom-nav-icon">💬</span>
-            <span>Replies</span>
-        </div>
-        <div class="bottom-nav-item" data-view="payments" onclick="navToView('payments')">
-            <span class="bottom-nav-icon">💳</span>
-            <span>Deals</span>
-        </div>
+    <!-- Mobile Bottom Navigation Bar (5 Items: Home, Activity, Sales, Alerts, More) -->
+    <nav class="mobile-bottom-nav" aria-label="Mobile CEO Navigation">
+        <button type="button" class="bottom-nav-item active" data-view="overview" onclick="navToView('overview')">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Home</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-view="queue" onclick="navToView('queue')">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Activity</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-view="pipeline" onclick="navToView('pipeline')">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <span>Sales</span>
+        </button>
+        <button type="button" class="bottom-nav-item" id="mobile-bottom-notif-btn" aria-label="Notifications" style="position:relative;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="mobile-bottom-notif-badge" style="display:none; position:absolute; top:3px; right:calc(50% - 15px); background:#ef4444; color:#ffffff; font-size:9px; font-weight:700; border-radius:10px; min-width:14px; height:14px; line-height:14px; text-align:center; padding:0 2px;">0</span>
+            <span>Alerts</span>
+        </button>
+        <button type="button" class="bottom-nav-item" id="btn-mobile-more" onclick="toggleMobileMoreSheet()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+            <span>More</span>
+        </button>
     </nav>
+
+    <!-- Mobile More Slide-Up Sheet -->
+    <div id="mobile-more-backdrop" class="mobile-more-backdrop" onclick="closeMobileMoreSheet()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:9990; backdrop-filter:blur(4px);"></div>
+    <div id="mobile-more-sheet" class="mobile-more-sheet" aria-hidden="true" style="position:fixed; bottom:0; left:0; right:0; max-height:85vh; background:#0b0f17; border-top:1px solid rgba(255,255,255,0.12); border-radius:20px 20px 0 0; z-index:9991; display:flex; flex-direction:column; box-shadow:0 -8px 36px rgba(0,0,0,0.85); transform:translateY(100%); transition:transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); overflow:hidden;">
+        <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); background:#0e131d;">
+            <div>
+                <div style="font-size:0.95rem; font-weight:700; color:#f8fafc; letter-spacing:-0.01em;">All Operating Domains</div>
+                <div style="font-size:0.7rem; color:#64748b;">Autonomous Agency OS Navigation</div>
+            </div>
+            <button type="button" onclick="closeMobileMoreSheet()" aria-label="Close sheet" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:50%; color:#cbd5e1; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.1rem;">&times;</button>
+        </div>
+        <div style="overflow-y:auto; padding:16px 20px 48px 20px; display:flex; flex-direction:column; gap:16px;">
+            <!-- Growth -->
+            <div>
+                <div style="font-size:0.64rem; font-weight:700; color:#64748b; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">GROWTH</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('global-acquisition'); closeMobileMoreSheet();">🌐 Acquisition</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('leads'); closeMobileMoreSheet();">👥 Prospects</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('queue'); closeMobileMoreSheet();">📬 Outreach</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('replies'); closeMobileMoreSheet();">💬 Conversations</button>
+                </div>
+            </div>
+            <!-- Delivery -->
+            <div>
+                <div style="font-size:0.64rem; font-weight:700; color:#64748b; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">DELIVERY</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('demos'); closeMobileMoreSheet();">⚡ Demos</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('proposals'); closeMobileMoreSheet();">📄 Proposals</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('payments'); closeMobileMoreSheet();">💳 Payments</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('client-intelligence'); closeMobileMoreSheet();">🏢 Customers</button>
+                </div>
+            </div>
+            <!-- Intelligence -->
+            <div>
+                <div style="font-size:0.64rem; font-weight:700; color:#64748b; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">INTELLIGENCE</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('intelligence'); closeMobileMoreSheet();">🧠 Intelligence</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('decision-analytics'); closeMobileMoreSheet();">📈 Optimization</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('support-ops'); closeMobileMoreSheet();">🛡️ Support</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('runs'); closeMobileMoreSheet();">📋 Incidents &amp; Logs</button>
+                </div>
+            </div>
+            <!-- System -->
+            <div>
+                <div style="font-size:0.64rem; font-weight:700; color:#64748b; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">SYSTEM</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('infra'); closeMobileMoreSheet();">🖥️ System Health</button>
+                    <button type="button" class="mobile-sheet-item" onclick="navToView('settings'); closeMobileMoreSheet();">⚙️ Settings</button>
+                </div>
+            </div>
+            <button type="button" onclick="handleLogout()" style="margin-top:8px; padding:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; color:#ef4444; font-size:0.85rem; font-weight:700; cursor:pointer; text-align:center;">
+                Sign Out (End CEO Session)
+            </button>
+        </div>
+    </div>
 
     <!-- Modal: Request Changes / Customer Feedback Loop (v2/v3) -->
     <div id="modal-request-changes" class="modal-overlay" style="display:none;">
@@ -4113,5 +4173,55 @@
     <script type="module" src="/static/notification_center.js"></script>
     <script src="/static/dashboard_3d.js"></script>
     <script src="/static/app.js?v=3.6.1"></script>
+    <script>
+      // Mobile More Sheet Controller
+      window.toggleMobileMoreSheet = function(e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        const sheet = document.getElementById('mobile-more-sheet');
+        if (!sheet) return;
+        if (sheet.classList.contains('open')) {
+          window.closeMobileMoreSheet();
+        } else {
+          window.openMobileMoreSheet();
+        }
+      };
+
+      window.openMobileMoreSheet = function() {
+        const sheet = document.getElementById('mobile-more-sheet');
+        const backdrop = document.getElementById('mobile-more-backdrop');
+        if (sheet) {
+          sheet.classList.add('open');
+          sheet.style.transform = 'translateY(0%)';
+          sheet.setAttribute('aria-hidden', 'false');
+        }
+        if (backdrop) {
+          backdrop.style.display = 'block';
+          backdrop.classList.add('open');
+        }
+      };
+
+      window.closeMobileMoreSheet = function() {
+        const sheet = document.getElementById('mobile-more-sheet');
+        const backdrop = document.getElementById('mobile-more-backdrop');
+        if (sheet) {
+          sheet.classList.remove('open');
+          sheet.style.transform = 'translateY(100%)';
+          sheet.setAttribute('aria-hidden', 'true');
+        }
+        if (backdrop) {
+          backdrop.style.display = 'none';
+          backdrop.classList.remove('open');
+        }
+      };
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          const sheet = document.getElementById('mobile-more-sheet');
+          if (sheet && sheet.classList.contains('open')) {
+            window.closeMobileMoreSheet();
+          }
+        }
+      });
+    </script>
 </body>
 </html>

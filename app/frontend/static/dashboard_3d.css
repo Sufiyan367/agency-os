@@ -888,6 +888,117 @@
   }
 }
 
+/* ==========================================================================
+   9. MOBILE CEO ACCESS & NOTIFICATION DRAWER EXPANSION
+   ========================================================================== */
+.mobile-bottom-nav {
+  display: none !important;
+}
+
+.mobile-more-backdrop, .mobile-more-sheet {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    background: rgba(10, 14, 22, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    z-index: 9980 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 0 4px !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .bottom-nav-item {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    min-height: 48px !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    font-size: 0.62rem !important;
+    font-weight: 600 !important;
+    gap: 3px !important;
+    padding: 4px 0 !important;
+    user-select: none !important;
+    transition: color 0.15s ease !important;
+  }
+
+  .bottom-nav-item:hover, .bottom-nav-item.active {
+    color: var(--accent-cyan) !important;
+  }
+
+  .bottom-nav-item svg {
+    flex-shrink: 0 !important;
+  }
+
+  /* Mobile Sheet Items */
+  .mobile-more-backdrop, .mobile-more-sheet {
+    display: flex;
+  }
+
+  .mobile-sheet-item {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    color: #e2e8f0 !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 44px !important;
+    transition: all 0.18s ease !important;
+  }
+
+  .mobile-sheet-item:hover {
+    background: rgba(0, 212, 239, 0.08) !important;
+    border-color: rgba(0, 212, 239, 0.3) !important;
+    color: #ffffff !important;
+  }
+
+  /* Topbar Mobile Clean Layout */
+  .agency-search-pill {
+    display: none !important;
+  }
+
+  #ceo-backend-health-pill, #ceo-simulation-badge, #deliverability-readiness-hud-container {
+    display: none !important;
+  }
+
+  .top-date, .top-greeting {
+    display: none !important;
+  }
+
+  .agency-topbar-actions {
+    gap: 10px !important;
+  }
+
+  /* Mobile Full-Screen Notification Center */
+  .notification-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-left: none !important;
+  }
+}
+
 /* Accessibility: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -262,7 +262,7 @@ class WebPushNotificationProvider(BaseNotificationProvider):
                 "event_type": notification.event_type,
                 "priority": notification.priority,
                 "category": notification.category,
-                "deep_link": notification.deep_link or "/?tab=notifications",
+                "deep_link": notification.deep_link or "/dashboard",
                 "action_url": notification.action_url,
                 "action_required": notification.action_required,
                 "created_at": notification.created_at.isoformat() if notification.created_at else None,
