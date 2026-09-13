@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /services
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /static/
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /app
+Disallow: /client
+Disallow: /api/
+Disallow: /setup
+Disallow: /login
+Disallow: /reset-password
+
+Sitemap: https://automatedagencyos.tech/sitemap.xml

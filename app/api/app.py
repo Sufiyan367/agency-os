@@ -118,6 +118,11 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
                     headers={"Retry-After": str(retry_after)}
                 )
 
+    # Block direct access to sensitive system or database files
+    lower_path = path.lower()
+    if any(lower_path.endswith(ext) for ext in (".env", ".db", ".sqlite", ".sqlite3", ".py", ".pyc", ".bak", ".log")) or "/.git" in lower_path or "/.." in lower_path:
+        return JSONResponse(status_code=404, content={"detail": "Not found", "status_code": 404})
+
     # Authentication & RBAC enforcement when AUTH_ENABLED is True
     if getattr(settings, "AUTH_ENABLED", False):
         # Normalize path to prevent double slash or traversal bypasses
@@ -127,6 +132,13 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         public_exact_paths = {
             "/",
             "/website",
+            "/about",
+            "/services",
+            "/contact",
+            "/privacy",
+            "/terms",
+            "/robots.txt",
+            "/sitemap.xml",
             "/api/contact",
             "/health",
             "/api/health",
@@ -144,6 +156,9 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/api/notifications/vapid-public-key",
         }
         privileged_prefixes = (
+            "/api/ceo",
+            "/api/orchestration",
+            "/api/unified-control",
             "/api/agent/start",
             "/api/agent/pause",
             "/api/agent/resume",
@@ -172,6 +187,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             or normalized_path.startswith("/static/")
             or normalized_path.startswith("/api/webhooks")
             or normalized_path.startswith("/demo/")
+            or normalized_path.startswith("/proposal/")
         )
 
         if not is_public:
@@ -271,8 +287,8 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: https:; "
             "connect-src 'self' ws: wss:; "
@@ -282,14 +298,27 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: https:; "
             "connect-src 'self' ws: wss:; "
             "frame-ancestors 'none';"
         )
     return response
+
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 404:
+        accept = request.headers.get("accept", "").lower()
+        if "application/json" in accept or request.url.path.startswith("/api/"):
+            return JSONResponse(status_code=404, content={"detail": "Resource not found", "status_code": 404})
+        if templates:
+            return templates.TemplateResponse(request=request, name="404.html", status_code=404, context={"app_name": settings.APP_NAME})
+        return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "status_code": exc.status_code})
 
 # Global Exception Sanitization (prevents path, traceback, and raw DB error leakage)
 @app.exception_handler(Exception)
@@ -358,6 +387,58 @@ async def serve_manifest():
         media_type="application/manifest+json",
         headers={"Cache-Control": "no-cache"},
     )
+
+
+@app.get("/robots.txt")
+async def serve_robots_txt():
+    robots_path = os.path.join(STATIC_DIR, "robots.txt")
+    if os.path.exists(robots_path):
+        return FileResponse(robots_path, media_type="text/plain")
+    return HTMLResponse("User-agent: *\nDisallow: /dashboard\n", media_type="text/plain")
+
+
+@app.get("/sitemap.xml")
+async def serve_sitemap_xml():
+    sitemap_path = os.path.join(STATIC_DIR, "sitemap.xml")
+    if os.path.exists(sitemap_path):
+        return FileResponse(sitemap_path, media_type="application/xml")
+    return HTMLResponse("<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'></urlset>", media_type="application/xml")
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def serve_privacy(request: Request):
+    if templates:
+        return templates.TemplateResponse(
+            request=request,
+            name="privacy.html",
+            context={"app_name": settings.APP_NAME}
+        )
+    return HTMLResponse("<h1>Privacy Policy</h1>")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+async def serve_terms(request: Request):
+    if templates:
+        return templates.TemplateResponse(
+            request=request,
+            name="terms.html",
+            context={"app_name": settings.APP_NAME}
+        )
+    return HTMLResponse("<h1>Terms of Service</h1>")
+
+
+@app.get("/about", response_class=HTMLResponse)
+@app.get("/services", response_class=HTMLResponse)
+@app.get("/contact", response_class=HTMLResponse)
+async def serve_public_sections(request: Request):
+    if templates:
+        return templates.TemplateResponse(
+            request=request,
+            name="website.html",
+            context={"app_name": settings.APP_NAME, "active_section": request.url.path.lstrip("/")}
+        )
+    return RedirectResponse(url="/")
+
 
 
 @app.get("/setup", response_class=HTMLResponse)
