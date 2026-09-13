@@ -25,11 +25,16 @@ export interface ProviderHealth {
 }
 
 export interface DeliverabilityReadinessReport {
+    primary_provider?: string;
+    role?: string;
     sender: string;
     reply_to: string;
-    active_provider: 'gmail' | 'gmail_oauth' | 'titan' | 'titan_smtp' | 'smtp' | 'resend' | 'sendgrid' | 'dry_run';
+    active_provider: 'gmail' | 'gmail_oauth' | 'titan' | 'titan_smtp' | 'smtp' | 'resend' | 'sendgrid' | 'dry_run' | string;
+    fallback_provider?: string | null;
     dry_run: boolean;
     smtp_readiness: string;
+    outbound_authorization?: string;
+    outbound_auth_blocker?: string | null;
     titan_smtp: ProviderHealth;
     titan_imap: ProviderHealth;
     gmail_oauth: ProviderHealth;
@@ -48,7 +53,7 @@ export interface DeliverabilityReadinessReport {
         sent_today: number;
         available_capacity: number;
     };
-    outreach_lock: 'IDLE' | 'BUSY' | string;
+    outreach_lock: 'IDLE' | 'ACTIVE' | 'BUSY' | string;
     overall_readiness: 'READY_LIVE' | 'BLOCKED' | 'WARNING' | 'DRY_RUN_SAFE' | 'READY FOR CONTROLLED TEST' | string;
 }
 
@@ -143,18 +148,25 @@ export class DeliverabilityHUDController {
      * Renders deliverability readiness status badge into specified container.
      */
     public renderReadinessBadge(container: HTMLElement, report: DeliverabilityReadinessReport): void {
-        const isHealthy = report.overall_readiness === 'READY FOR CONTROLLED TEST' || (report.gmail_oauth && report.gmail_oauth.healthy);
+        const isAuthBlocked = report.outbound_authorization === 'BLOCKED';
         const lockStatus = report.outreach_lock || 'IDLE';
         const cap = report.daily_cap;
+        const provLabel = report.primary_provider || (report.active_provider ? report.active_provider.toUpperCase() : 'Titan Email');
+        const sender = report.sender || 'hello@automatedagencyos.tech';
+        const spf = report.spf ? report.spf.status : 'Verified';
+        const dkim = report.dkim ? report.dkim.status : 'Verified';
+        const dmarc = report.dmarc ? report.dmarc.status : 'Not Verified';
 
         const badgeHtml = `
-            <div class="deliverability-hud-pill" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(24, 24, 27, 0.85); border:1px solid ${isHealthy ? '#10b981' : '#f59e0b'}; border-radius:20px; font-size:0.75rem; font-family:'JetBrains Mono', monospace;">
-                <span style="width:8px; height:8px; border-radius:50%; background:${isHealthy ? '#10b981' : '#f59e0b'}; display:inline-block;"></span>
-                <span style="color:#e4e4e7; font-weight:600;">${report.active_provider.toUpperCase()}</span>
+            <div class="deliverability-hud-pill" title="Sender: ${sender} | SPF: ${spf} | DKIM: ${dkim} | DMARC: ${dmarc} | Outbound: ${report.outbound_authorization || 'BLOCKED'}${report.outbound_auth_blocker ? ` (${report.outbound_auth_blocker})` : ''}" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(24, 24, 27, 0.85); border:1px solid ${isAuthBlocked ? '#ef4444' : '#10b981'}; border-radius:20px; font-size:0.75rem; font-family:'JetBrains Mono', monospace; cursor:help;">
+                <span style="width:8px; height:8px; border-radius:50%; background:${isAuthBlocked ? '#ef4444' : '#10b981'}; display:inline-block;"></span>
+                <span style="color:#e4e4e7; font-weight:600;">${provLabel} (Primary)</span>
                 <span style="color:#71717a;">|</span>
-                <span style="color:#a1a1aa;">Cap: ${cap ? `${cap.sent_today}/${cap.rollout_daily_cap}` : '1/1'}</span>
+                <span style="color:#a1a1aa;">${sender}</span>
                 <span style="color:#71717a;">|</span>
-                <span style="color:${lockStatus === 'IDLE' ? '#10b981' : '#ef4444'};">Lock: ${lockStatus}</span>
+                <span style="color:${isAuthBlocked ? '#f87171' : '#10b981'};">Auth: ${report.outbound_authorization || 'BLOCKED'}</span>
+                <span style="color:#71717a;">|</span>
+                <span style="color:${lockStatus === 'IDLE' ? '#10b981' : '#f59e0b'};">Lock: ${lockStatus}</span>
             </div>
         `;
         container.innerHTML = badgeHtml;

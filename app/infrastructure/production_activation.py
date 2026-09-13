@@ -79,8 +79,8 @@ class ProductionActivationManager:
         # 1. Provider configuration check
         if prov == "dry_run":
             blockers.append("Email provider is configured in simulated 'dry_run' mode.")
-        elif prov not in ("resend", "sendgrid", "smtp", "gmail", "gmail_oauth"):
-            blockers.append(f"Unsupported email provider: '{prov}'. Supported: gmail, resend, sendgrid, smtp.")
+        elif prov not in ("resend", "sendgrid", "smtp", "gmail", "gmail_oauth", "titan", "titan_smtp"):
+            blockers.append(f"Unsupported email provider: '{prov}'. Supported: titan, gmail, resend, sendgrid, smtp.")
 
         # 2. Credential format and presence
         if prov in ("gmail", "gmail_oauth"):
@@ -149,7 +149,7 @@ class ProductionActivationManager:
             else:
                 if not dns_res.get("spf_present", False):
                     blockers.append(f"Domain '{target_domain}' is missing an SPF TXT record.")
-                elif prov in ("resend", "sendgrid", "gmail", "gmail_oauth") and not dns_res.get("spf_includes_provider", False):
+                elif prov in ("resend", "sendgrid", "gmail", "gmail_oauth", "titan", "titan_smtp") and not dns_res.get("spf_includes_provider", False):
                     blockers.append(f"Domain '{target_domain}' SPF record does not include provider '{prov}'.")
 
                 if not dns_res.get("dmarc_present", False):
@@ -194,9 +194,11 @@ class ProductionActivationManager:
         Builds a comprehensive, CEO-friendly email readiness checklist satisfying Phase 3.
         Never fakes DNS verification; reports exact status and blockers.
         """
-        prov = (getattr(settings, "EMAIL_PROVIDER", "dry_run") or "dry_run").lower()
+        prov = (getattr(settings, "EMAIL_PROVIDER", "titan") or "titan").lower()
         if prov in ("gmail", "gmail_oauth"):
             sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", "")
+        elif prov in ("titan", "titan_smtp"):
+            sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "")
         else:
             sender = getattr(settings, "EMAIL_FROM", "")
         reply_to = getattr(settings, "EMAIL_REPLY_TO", "") or sender
@@ -235,6 +237,7 @@ class ProductionActivationManager:
         from app.crm.inbox_poller import inbox_poller
         inbox_ok = bool(
             (prov in ("gmail", "gmail_oauth") and getattr(settings, "GMAIL_REFRESH_TOKEN", None)) or
+            (prov in ("titan", "titan_smtp") and (getattr(settings, "TITAN_IMAP_HOST", None) or getattr(settings, "IMAP_HOST", None))) or
             (getattr(settings, "IMAP_HOST", None) and getattr(settings, "IMAP_USER", None)) or
             getattr(inbox_poller, "is_running", False)
         )

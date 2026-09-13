@@ -345,27 +345,42 @@ async def health(db: AsyncSession = Depends(get_db)):
 
     worker_status = agency_worker.get_status()
 
-    # 1. Safe Gmail OAuth telemetry without secrets
-    gmail_client_id = getattr(settings, "GMAIL_CLIENT_ID", None)
-    gmail_refresh_token = getattr(settings, "GMAIL_REFRESH_TOKEN", None)
-    gmail_sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None)
-    
+    # 1. Safe Email & Titan/Gmail telemetry without secrets
+    primary_email_provider = getattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
+    email_provider = getattr(settings, "EMAIL_PROVIDER", "titan")
+    fallback_email_provider = getattr(settings, "FALLBACK_EMAIL_PROVIDER", None)
+    email_dry_run = getattr(settings, "EMAIL_DRY_RUN", True) or getattr(settings, "DRY_RUN", True)
+
+    primary_sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
     masked_email = None
-    if gmail_sender and "@" in str(gmail_sender):
-        parts = str(gmail_sender).split("@")
+    if primary_sender and "@" in str(primary_sender):
+        parts = str(primary_sender).split("@")
         masked_user = parts[0][:3] + "***" if len(parts[0]) > 3 else "***"
         masked_email = f"{masked_user}@{parts[1]}"
 
+    gmail_client_id = getattr(settings, "GMAIL_CLIENT_ID", None)
+    gmail_refresh_token = getattr(settings, "GMAIL_REFRESH_TOKEN", None)
+    gmail_sender = getattr(settings, "GMAIL_SENDER_EMAIL", None)
     gmail_configured = bool(gmail_client_id and gmail_refresh_token)
-    email_provider = getattr(settings, "EMAIL_PROVIDER", "dry_run")
-    email_dry_run = getattr(settings, "EMAIL_DRY_RUN", True) or getattr(settings, "DRY_RUN", True)
+
+    email_telemetry = {
+        "primary_provider": primary_email_provider,
+        "active_provider": email_provider,
+        "fallback_provider": fallback_email_provider,
+        "sender_email": primary_sender,
+        "masked_sender": masked_email,
+        "role": "PRIMARY BUSINESS OUTBOUND",
+        "dry_run": email_dry_run
+    }
 
     gmail_telemetry = {
-        "provider": email_provider,
+        "provider": "gmail_oauth",
         "configured": gmail_configured,
+        "is_primary": False,
+        "role": "FALLBACK_OR_DISABLED",
         "dry_run": email_dry_run,
-        "sender_email": masked_email,
-        "oauth_ready": gmail_configured if email_provider in ("gmail", "gmail_oauth") else None
+        "sender_email": gmail_sender,
+        "oauth_ready": gmail_configured
     }
 
     # 2. Discovery Provider Status
@@ -466,6 +481,7 @@ async def health(db: AsyncSession = Depends(get_db)):
             "last_tick_at": worker_status.get("last_tick_at"),
             "last_cycle_at": worker_status.get("last_cycle_at")
         },
+        "email": email_telemetry,
         "gmail": gmail_telemetry,
         "discovery": discovery_telemetry,
         "outreach": outreach_telemetry,
@@ -1255,18 +1271,22 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
     prov_state = production_activation.get_email_readiness_checklist()
     cap_summary = await sender_registry.get_sender_capacity_summary(db)
     lock = await active_prospect_controller.get_or_create_lock(db)
-    lock_status = "IDLE" if lock.status in ("IDLE", "RELEASED") else lock.status
+    lock_status = lock.status
+
+    primary_prov = getattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
+    email_prov = getattr(settings, "EMAIL_PROVIDER", "titan")
+    fallback_prov = getattr(settings, "FALLBACK_EMAIL_PROVIDER", None)
 
     titan_smtp_health = {"status": "NOT_CHECKED"}
     titan_imap_health = {"status": "NOT_CHECKED"}
-    if settings.EMAIL_PROVIDER in ("titan", "titan_smtp") or getattr(settings, "TITAN_SMTP_USER", None):
+    if email_prov in ("titan", "titan_smtp") or primary_prov in ("titan", "titan_smtp") or getattr(settings, "TITAN_SMTP_USER", None):
         from app.outreach.providers.titan_provider import TitanEmailProvider
         tp = TitanEmailProvider()
         titan_smtp_health = tp.check_auth_health()
         titan_imap_health = tp.check_imap_health()
 
     gmail_health = {"status": "NOT_CHECKED"}
-    if settings.EMAIL_PROVIDER in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None):
+    if email_prov in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None):
         try:
             from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
             gp = GmailOAuthEmailProvider()
@@ -1274,12 +1294,32 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
         except Exception as e:
             gmail_health = {"status": "ERROR", "healthy": False, "error": str(e)}
 
+    # Outbound authorization status:
+    has_titan_pw = bool(getattr(settings, "TITAN_SMTP_PASSWORD", None))
+    if not has_titan_pw:
+        outbound_auth = "BLOCKED"
+        auth_blocker = "TITAN_SMTP_PASSWORD is missing in configuration"
+    elif titan_smtp_health.get("healthy"):
+        outbound_auth = "AUTHORIZED"
+        auth_blocker = None
+    else:
+        outbound_auth = "BLOCKED"
+        auth_blocker = titan_smtp_health.get("error", "SMTP authentication check failed")
+
+    sender_email = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
+    reply_to_email = getattr(settings, "EMAIL_REPLY_TO", None) or sender_email
+
     return {
-        "sender": prov_state.get("sender_identity", {}).get("value") or settings.EMAIL_FROM,
-        "reply_to": prov_state.get("reply_to", {}).get("value") or settings.EMAIL_REPLY_TO,
-        "active_provider": settings.EMAIL_PROVIDER,
+        "primary_provider": "Titan Email",
+        "role": "PRIMARY BUSINESS OUTBOUND",
+        "sender": sender_email,
+        "reply_to": reply_to_email,
+        "active_provider": email_prov,
+        "fallback_provider": fallback_prov,
         "dry_run": getattr(settings, "EMAIL_DRY_RUN", True),
         "smtp_readiness": "CONFIGURED" if prov_state.get("overall_status") == "READY FOR CONTROLLED TEST" else "BLOCKED",
+        "outbound_authorization": outbound_auth,
+        "outbound_auth_blocker": auth_blocker,
         "titan_smtp": titan_smtp_health,
         "titan_imap": titan_imap_health,
         "gmail_oauth": gmail_health,

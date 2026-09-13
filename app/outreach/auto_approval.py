@@ -108,7 +108,7 @@ class DeterministicAutoApprovalEngine:
             "detail": "Address is not suppressed" if not is_supp else "Address is on suppression list"
         })
         if is_supp:
-            blocking_reasons.append(f"Recipient '{email}' is actively suppressed.")
+            blocking_reasons.append(f"Recipient '{email}' is actively suppressed (is on suppression list).")
 
         # 4. Explicit Opt-Out / Unsubscribe Check
         unsub_stmt = select(SuppressionList.id).where(
@@ -314,7 +314,7 @@ class DeterministicAutoApprovalEngine:
             "detail": "Address is not suppressed" if not is_supp else "Address is on suppression list"
         })
         if is_supp:
-            blocking_reasons.append(f"Recipient '{email}' is actively suppressed.")
+            blocking_reasons.append(f"Recipient '{email}' is actively suppressed (is on suppression list).")
 
         # 4. Explicit Opt-Out / Unsubscribe Check
         unsub_stmt = select(SuppressionList.id).where(

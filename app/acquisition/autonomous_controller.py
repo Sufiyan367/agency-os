@@ -305,7 +305,7 @@ class AutonomousAcquisitionController:
             msg = await session.get(OutreachMessage, msg_id) if msg_id else None
             if msg and msg.status == OutreachStatus.SENT.value:
                 logger.warning(f"[AutonomousController] Outreach {msg_id} already marked SENT. Skipping dispatch to prevent duplicate.")
-                lock.status = "WAITING_FOR_REPLY"
+                lock.status = "IDLE"
                 lock.current_stage = "SENT"
                 await session.commit()
                 return {"status": "ALREADY_SENT", "message_id": msg_id}
@@ -331,7 +331,7 @@ class AutonomousAcquisitionController:
 
             return {"status": "DISPATCHED", "send_result": send_res}
 
-        # STAGE: WAITING_FOR_REPLY / SENT -> Waiting or Process Reply
+        # STAGE: WAITING_FOR_REPLY / SENT -> Waiting or Process Reply (Non-blocking)
         if lock.current_stage in ("SENT", "WAITING_FOR_REPLY"):
             reply_q = select(Reply).where(Reply.business_id == biz.id).order_by(Reply.id.desc())
             latest_reply = (await session.execute(reply_q)).scalars().first()
@@ -343,7 +343,7 @@ class AutonomousAcquisitionController:
                     reply_body=latest_reply.raw_body
                 )
 
-            self.current_action = f"Awaiting prospect reply from {biz.domain} (sequential slot locked)"
+            self.current_action = f"Awaiting prospect reply from {biz.domain} (lock IDLE, non-blocking)"
             return {"status": "WAITING_FOR_REPLY", "domain": biz.domain}
 
         # STAGE: NEGOTIATING / PROPOSAL_READY -> Awaiting proposal acceptance

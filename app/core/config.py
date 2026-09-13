@@ -77,8 +77,10 @@ class Settings(BaseSettings):
     NVIDIA_MODEL: str = "meta/llama-3.1-70b-instruct"
 
     # Email Providers & Outreach Delivery
-    EMAIL_PROVIDER: str = "dry_run"  # 'dry_run', 'resend', 'sendgrid', 'smtp'
-    EMAIL_DRY_RUN: bool = True
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "titan")  # 'titan', 'resend', 'sendgrid', 'smtp', 'gmail_oauth', 'dry_run'
+    PRIMARY_EMAIL_PROVIDER: str = os.getenv("PRIMARY_EMAIL_PROVIDER", "titan")
+    FALLBACK_EMAIL_PROVIDER: Optional[str] = os.getenv("FALLBACK_EMAIL_PROVIDER")
+    EMAIL_DRY_RUN: bool = os.getenv("EMAIL_DRY_RUN", "true").lower() in ("true", "1", "yes")
     VOICE_DRY_RUN: bool = os.getenv("VOICE_DRY_RUN", "true").lower() in ("true", "1", "yes")
     VOICE_CALLING_ENABLED: bool = os.getenv("VOICE_CALLING_ENABLED", "false").lower() in ("true", "1", "yes")
     VOICE_PROVIDER: str = os.getenv("VOICE_PROVIDER", "dry_run")  # 'dry_run', 'twilio', 'bland'
@@ -141,11 +143,11 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
     SMTP_USERNAME: Optional[str] = os.getenv("SMTP_USERNAME", os.getenv("SMTP_USER"))
     SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
-    OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co")
-    EMAIL_FROM: str = os.getenv("EMAIL_FROM", os.getenv("OUTREACH_FROM_EMAIL", "prospects@agencygrowth.co"))
-    EMAIL_REPLY_TO: str = os.getenv("EMAIL_REPLY_TO", "replies@agencygrowth.co")
-    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", os.getenv("EMAIL_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory"))
-    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Sufiyan Surve | Digital Strategy Advisory"))
+    OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "hello@automatedagencyos.tech")
+    EMAIL_FROM: str = os.getenv("EMAIL_FROM", os.getenv("OUTREACH_FROM_EMAIL", "hello@automatedagencyos.tech"))
+    EMAIL_REPLY_TO: str = os.getenv("EMAIL_REPLY_TO", "hello@automatedagencyos.tech")
+    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", os.getenv("EMAIL_FROM_NAME", "Agency OS | Autonomous Growth Engine"))
+    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Agency OS | Autonomous Growth Engine"))
     PHYSICAL_POSTAL_ADDRESS: Optional[str] = os.getenv("PHYSICAL_POSTAL_ADDRESS")
     PUBLIC_DEMO_BASE_URL: Optional[str] = os.getenv("PUBLIC_DEMO_BASE_URL")
 
@@ -156,14 +158,14 @@ class Settings(BaseSettings):
     GMAIL_SENDER_EMAIL: Optional[str] = os.getenv("GMAIL_SENDER_EMAIL")
     GMAIL_DAILY_CAPACITY: int = int(os.getenv("GMAIL_DAILY_CAPACITY", "20"))
 
-    # Titan Business Email Configuration
+    # Titan Business Email Configuration (Primary Outbound Provider)
     TITAN_SMTP_HOST: str = os.getenv("TITAN_SMTP_HOST", "smtp.titan.email")
     TITAN_SMTP_PORT: int = int(os.getenv("TITAN_SMTP_PORT", "465"))
-    TITAN_SMTP_USER: Optional[str] = os.getenv("TITAN_SMTP_USER")
+    TITAN_SMTP_USER: Optional[str] = os.getenv("TITAN_SMTP_USER", "hello@automatedagencyos.tech")
     TITAN_SMTP_PASSWORD: Optional[str] = os.getenv("TITAN_SMTP_PASSWORD")
     TITAN_IMAP_HOST: str = os.getenv("TITAN_IMAP_HOST", "imap.titan.email")
     TITAN_IMAP_PORT: int = int(os.getenv("TITAN_IMAP_PORT", "993"))
-    TITAN_IMAP_USER: Optional[str] = os.getenv("TITAN_IMAP_USER")
+    TITAN_IMAP_USER: Optional[str] = os.getenv("TITAN_IMAP_USER", "hello@automatedagencyos.tech")
     TITAN_IMAP_PASSWORD: Optional[str] = os.getenv("TITAN_IMAP_PASSWORD")
 
     # Autonomous Outbound Approval

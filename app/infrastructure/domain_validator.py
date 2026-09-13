@@ -158,6 +158,8 @@ class DomainValidator:
             "sendgrid": "include:sendgrid.net",
             "gmail": "include:_spf.google.com",
             "gmail_oauth": "include:_spf.google.com",
+            "titan": "include:spf.titan.email",
+            "titan_smtp": "include:spf.titan.email",
             "smtp": ""
         }
         target_sig = provider_spf_signatures.get(provider_clean, "")
@@ -196,8 +198,33 @@ class DomainValidator:
         except Exception:
             pass
 
-        # DKIM: Google native for @gmail.com; otherwise provider verification required
-        if clean_domain in ("gmail.com", "googlemail.com"):
+        # 5. DKIM Check (Query Titan selectors like titan1, titan when Titan provider is active)
+        dkim_present = False
+        dkim_selector = None
+        dkim_record = None
+        selectors_to_check = ["titan1", "titan"] if provider_clean in ("titan", "titan_smtp") else []
+        for sel in selectors_to_check:
+            try:
+                dkim_host = f"{sel}._domainkey.{clean_domain}"
+                dkim_answers = resolver.resolve(dkim_host, "TXT")
+                for rdata in dkim_answers:
+                    for txt_str in rdata.strings:
+                        decoded = txt_str.decode("utf-8", errors="ignore")
+                        if "v=DKIM1" in decoded or "p=" in decoded:
+                            dkim_present = True
+                            dkim_selector = sel
+                            dkim_record = decoded
+                            break
+                    if dkim_present:
+                        break
+                if dkim_present:
+                    break
+            except Exception:
+                pass
+
+        if dkim_present:
+            dkim_status = f"VERIFIED ({dkim_selector})"
+        elif clean_domain in ("gmail.com", "googlemail.com"):
             dkim_status = "VERIFIED (Google Managed)"
         else:
             dkim_status = "Verification required"
@@ -217,6 +244,8 @@ class DomainValidator:
             "spf_includes_provider": spf_includes_provider,
             "dmarc_present": dmarc_present,
             "dmarc_policy": dmarc_policy,
+            "dkim_present": dkim_present,
+            "dkim_selector": dkim_selector,
             "dkim_status": dkim_status,
             "ready_for_production": ready
         }

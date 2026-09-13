@@ -55,21 +55,33 @@ class OutreachSenderAdapter:
         if not send_eval.is_eligible:
             raise ValueError(f"Outbound dispatch blocked by safety policy: {'; '.join(send_eval.blocking_reasons)}")
 
-        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail, Titan)
-        provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
+        # 1. Execution via modular email provider (Titan primary, Resend, SendGrid, SMTP, Gmail)
+        primary_provider = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or "titan").lower().strip()
+        provider_name = (settings.EMAIL_PROVIDER or primary_provider).lower().strip()
+        fallback_provider = (getattr(settings, "FALLBACK_EMAIL_PROVIDER", None) or "").lower().strip()
+
         if is_live_send:
-            if provider_name in ("gmail", "gmail_oauth"):
+            if provider_name in ("titan", "titan_smtp"):
+                titan_user = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or "hello@automatedagencyos.tech"
+                titan_pass = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
+                if not titan_user or not titan_pass:
+                    raise ValueError(
+                        "Cannot send live: Titan SMTP configuration incomplete (TITAN_SMTP_PASSWORD is missing in configuration). "
+                        "Primary business outbound is BLOCKED."
+                    )
+                from app.outreach.providers.titan_provider import TitanEmailProvider
+                provider = TitanEmailProvider(smtp_user=titan_user, smtp_password=titan_pass)
+            elif provider_name in ("gmail", "gmail_oauth"):
+                if fallback_provider not in ("gmail", "gmail_oauth"):
+                    raise ValueError(
+                        "Outbound dispatch blocked: Gmail OAuth cannot be selected as primary business outbound. "
+                        "Normal production business outreach must route via Titan (hello@automatedagencyos.tech). "
+                        "Gmail is only permissible if explicitly enabled in FALLBACK_EMAIL_PROVIDER."
+                    )
                 if not getattr(settings, "GMAIL_CLIENT_ID", None) or not getattr(settings, "GMAIL_REFRESH_TOKEN", None) or not getattr(settings, "GMAIL_CLIENT_SECRET", None):
                     raise ValueError("Cannot send live: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN is not configured in .env")
                 from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
                 provider = GmailOAuthEmailProvider()
-            elif provider_name in ("titan", "titan_smtp"):
-                titan_user = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None)
-                titan_pass = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
-                if not titan_user or not titan_pass:
-                    raise ValueError("Cannot send live: TITAN_SMTP_USER or TITAN_SMTP_PASSWORD is not configured in .env")
-                from app.outreach.providers.titan_provider import TitanEmailProvider
-                provider = TitanEmailProvider()
             elif provider_name == "resend" or (provider_name == "dry_run" and settings.RESEND_API_KEY):
                 if not settings.RESEND_API_KEY:
                     raise ValueError("Cannot send live: RESEND_API_KEY is not configured in .env")
@@ -86,7 +98,7 @@ class OutreachSenderAdapter:
                 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
                 provider = SendGridEmailProvider()
             else:
-                raise ValueError("Cannot send live: No live email credentials configured in .env (configure GMAIL OAuth, TITAN, RESEND_API_KEY, or SMTP).")
+                raise ValueError("Cannot send live: No live email credentials configured in .env (configure TITAN_SMTP_PASSWORD, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
 

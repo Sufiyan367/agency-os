@@ -19,7 +19,7 @@ def get_email_provider() -> BaseEmailProvider:
     if settings.EMAIL_DRY_RUN or settings.EMAIL_PROVIDER == "dry_run":
         return DryRunEmailProvider()
 
-    provider_name = settings.EMAIL_PROVIDER.lower().strip()
+    provider_name = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or settings.EMAIL_PROVIDER or "titan").lower().strip()
 
     if provider_name == "resend":
         return ResendEmailProvider()

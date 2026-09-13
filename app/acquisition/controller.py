@@ -70,7 +70,8 @@ class ActiveProspectController:
         """Returns the current state and inspection metrics of the active outreach slot."""
         lock = await self.get_or_create_lock(session)
 
-        is_occupied = (lock.status not in ("IDLE", "RELEASED")) and (lock.business_id is not None)
+        # Slot is occupied if an active prospect is assigned and in progress
+        is_occupied = (lock.business_id is not None) and (lock.current_stage not in ("NONE", "RELEASED"))
         if not is_occupied:
             return ActiveSlotStatus(
                 slot_id=1,
@@ -296,15 +297,26 @@ class ActiveProspectController:
         if msg.status != OutreachStatus.APPROVED.value:
             await outreach_approval_queue.approve_message(session, msg.id)
 
-        # 2. Dispatch message
-        send_result = await outreach_sender_adapter.send_approved_message(
-            session=session,
-            message_id=msg.id,
-            force_live=force_live
-        )
+        # 2. Critical Section Concurrency Lock Acquisition
+        # ActiveOutreachLock represents ONLY the short-lived concurrency lock protecting actual outbound send
+        lock.status = "ACTIVE"
+        lock.locked_at = datetime.utcnow()
+        await session.commit()
 
-        # 3. Update Active Slot Lock Stage
-        lock.status = "WAITING_FOR_REPLY"
+        try:
+            # Dispatch message
+            send_result = await outreach_sender_adapter.send_approved_message(
+                session=session,
+                message_id=msg.id,
+                force_live=force_live
+            )
+        finally:
+            # Concurrency Lock Release: immediately return lock to IDLE
+            lock.status = "IDLE"
+            lock.locked_at = None
+            lock.acquired_by = "orchestrator"
+
+        # 3. Update Conversation / Prospect State (Independent of Concurrency Lock)
         lock.current_stage = "SENT"
         lock.waiting_since = datetime.utcnow()
         if not lock.metadata_json:
@@ -313,13 +325,15 @@ class ActiveProspectController:
         lock.metadata_json["sent_provider"] = send_result.get("provider", "dry_run")
 
         await session.commit()
-        logger.info(f"[ActiveProspectController] Outreach dispatched to {msg.recipient_email}. Slot now WAITING_FOR_REPLY.")
+        logger.info(f"[ActiveProspectController] Outreach dispatched to {msg.recipient_email}. ActiveOutreachLock returned to IDLE; prospect stage SENT / WAITING_FOR_REPLY.")
 
         return {
             "status": "SENT",
             "message_id": msg.id,
             "send_result": send_result,
-            "slot_status": lock.status,
+            "lock_status": "IDLE",
+            "slot_status": "IDLE",
+            "prospect_stage": "SENT",
             "waiting_since": lock.waiting_since.isoformat() if lock.waiting_since else None
         }
 

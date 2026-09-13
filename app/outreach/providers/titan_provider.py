@@ -31,6 +31,7 @@ class TitanEmailProvider(BaseEmailProvider):
     And IMAP inbox health auditing (Port 993 SSL).
     Never logs or leaks credentials.
     """
+    provider_name: str = "titan"
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class TitanEmailProvider(BaseEmailProvider):
         imap_user: Optional[str] = None,
         imap_password: Optional[str] = None
     ):
+        self.provider_name = "titan"
         self.smtp_host = smtp_host or getattr(settings, "TITAN_SMTP_HOST", "smtp.titan.email") or getattr(settings, "SMTP_HOST", "smtp.titan.email")
         self.smtp_port = smtp_port or getattr(settings, "TITAN_SMTP_PORT", 465) or getattr(settings, "SMTP_PORT", 465)
         self.smtp_user = smtp_user or getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None)

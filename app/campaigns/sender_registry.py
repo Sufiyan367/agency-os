@@ -18,10 +18,15 @@ class SenderRegistry:
         country_code: Optional[str] = None
     ) -> Dict[str, Any]:
         """Resolves verified sender credentials for a campaign or country."""
-        provider_name = (settings.EMAIL_PROVIDER or "dry_run").lower().strip()
+        provider_name = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or settings.EMAIL_PROVIDER or "titan").lower().strip()
         is_gmail = provider_name in ("gmail", "gmail_oauth")
+        is_titan = provider_name in ("titan", "titan_smtp")
 
-        if is_gmail:
+        if is_titan:
+            from_email = getattr(settings, "TITAN_SMTP_USER", None) or settings.EMAIL_FROM or "hello@automatedagencyos.tech"
+            from_name = (campaign.sender_name if campaign and campaign.sender_name else None) or settings.OUTREACH_FROM_NAME
+            reply_to = settings.EMAIL_REPLY_TO or from_email
+        elif is_gmail:
             from_email = getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM
             from_name = None if "Elena Vance" in (settings.EMAIL_FROM_NAME or "") else settings.EMAIL_FROM_NAME
             reply_to = from_email
@@ -107,12 +112,18 @@ class SenderRegistry:
         from app.campaigns.config import campaign_config_loader
         from app.database.models import OutreachEvent
 
-        provider_name = (settings.EMAIL_PROVIDER or "dry_run").lower().strip()
+        provider_name = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or settings.EMAIL_PROVIDER or "titan").lower().strip()
         is_gmail = provider_name in ("gmail", "gmail_oauth")
+        is_titan = provider_name in ("titan", "titan_smtp")
 
         # Configuration-driven safe per-sender daily limit
         safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else 50
-        from_email = getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM or "sufiyansurve333@gmail.com"
+        if is_titan:
+            from_email = getattr(settings, "TITAN_SMTP_USER", None) or settings.EMAIL_FROM or "hello@automatedagencyos.tech"
+        elif is_gmail:
+            from_email = getattr(settings, "GMAIL_SENDER_EMAIL", None) or settings.EMAIL_FROM or "hello@automatedagencyos.tech"
+        else:
+            from_email = settings.EMAIL_FROM or "hello@automatedagencyos.tech"
 
         # Query real dispatches today (since midnight UTC)
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
