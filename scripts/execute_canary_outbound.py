@@ -161,7 +161,7 @@ async def execute_canary():
         logger.info(f"Delivered canary message to: {msg.recipient_email}")
         logger.info(f"Provider Message ID: {msg.provider_message_id}")
         logger.info("System is now in WAITING_FOR_REPLY state. Further outbound sends are locked.")
-        break
+        return
 
 if __name__ == "__main__":
     asyncio.run(execute_canary())
