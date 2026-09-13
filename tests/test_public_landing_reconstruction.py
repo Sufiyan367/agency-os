@@ -16,24 +16,27 @@ async def test_public_landing_page_renders_200():
 
 @pytest.mark.asyncio
 async def test_public_landing_no_portal_link():
-    """Verify 'Portal' is strictly absent from header, drawer, and footer navigation."""
+    """Verify 'Portal', 'Dashboard', 'Control Center', 'Login' are strictly absent from public page."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
         assert response.status_code == 200
         html = response.text.lower()
         
-        # Check that there are no portal links in navigation or buttons
-        assert 'href="/portal"' not in html
-        assert "operator portal" not in html
+        # Absolute Rule: ZERO mentions of portal, dashboard, control center, login
+        assert "portal" not in html
+        assert "dashboard" not in html
+        assert "control center" not in html
+        assert "login" not in html
         assert 'class="btn-portal-link"' not in html
         
-        # Ensure header navigation strictly contains expected labels
+        # Ensure header navigation strictly contains expected labels:
+        # OSAI, Solutions, How It Works, Services, Industries, Contact, Book a Strategy Call
+        assert "osai" in html
         assert ">solutions<" in html
         assert ">how it works<" in html
         assert ">services<" in html
         assert ">industries<" in html
-        assert ">interactive demo<" in html
         assert ">contact<" in html
         assert "book a strategy call" in html
 

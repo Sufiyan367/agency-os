@@ -197,7 +197,7 @@
   }
 
   /* --------------------------------------------------------------------------
-     2. Mobile Navigation Drawer (Zero Portal Exposure)
+     2. Mobile Navigation Drawer
      -------------------------------------------------------------------------- */
   function initMobileNav() {
     const toggleBtn = document.getElementById('mobileToggle');

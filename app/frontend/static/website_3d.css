@@ -134,7 +134,7 @@ body {
 }
 
 /* ==========================================================================
-   NAVIGATION BAR (STRICTLY NO PORTAL LINK)
+   SITE HEADER & PRIMARY NAVIGATION
    ========================================================================== */
 .site-header {
   position: fixed;
@@ -1245,7 +1245,7 @@ body {
 }
 
 /* ==========================================================================
-   FOOTER (STRICTLY NO PORTAL LINK)
+   SITE FOOTER & PUBLIC NAVIGATION
    ========================================================================== */
 .site-footer {
   border-top: 1px solid var(--border-subtle);
