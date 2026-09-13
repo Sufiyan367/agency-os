@@ -21,7 +21,12 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.core.logging import logger
 from app.communications.voicebox_client import voicebox_client, VoiceSynthesisResult
-from app.communications.voice_provider import format_e164_phone
+from app.communications.voice_provider import (
+    format_e164_phone,
+    get_voice_provider,
+    BaseVoiceProvider,
+    CallResult
+)
 from app.database.models import (
     ChannelType,
     EventDirection,
@@ -51,6 +56,7 @@ class VoiceAdapter:
 
     def __init__(
         self,
+        provider: Optional[BaseVoiceProvider] = None,
         account_sid: Optional[str] = None,
         auth_token: Optional[str] = None,
         caller_id: Optional[str] = None,
@@ -61,6 +67,7 @@ class VoiceAdapter:
         self.caller_id = caller_id or os.getenv("TWILIO_CALLER_ID", "+18005550199")
         self.dry_run = dry_run if dry_run is not None else getattr(settings, "VOICE_DRY_RUN", True)
         self.voice_calling_enabled = getattr(settings, "VOICE_CALLING_ENABLED", False)
+        self.provider = provider or get_voice_provider()
 
     def can_initiate_call(self, phone: str, is_authorized: bool = False) -> Dict[str, Any]:
         """
@@ -96,7 +103,7 @@ class VoiceAdapter:
         is_authorized: bool = False
     ) -> VoiceCallResult:
         """
-        Initiates an outbound voice call session.
+        Initiates an outbound voice call session via the modular voice provider.
         Respects safety gates and dry-run defaults.
         """
         check = self.can_initiate_call(recipient_phone, is_authorized=is_authorized)
@@ -117,67 +124,53 @@ class VoiceAdapter:
         sim_call_id = f"CA{hashlib.md5(f'{e164_phone}{datetime.utcnow().isoformat()}'.encode()).hexdigest()[:24]}"
 
         # Dry-run execution
-        if self.dry_run or not self.account_sid or not self.auth_token:
-            logger.info(
-                f"[VoiceAdapter] [SIMULATED CALL] To: {e164_phone} | From: {outbound_caller} | "
-                f"Context: {script_context[:60]}..."
+        if self.dry_run or getattr(settings, "VOICE_DRY_RUN", True):
+            res = await self.provider.place_call(
+                phone=e164_phone,
+                script_context=script_context,
+                caller_id=outbound_caller
             )
             return VoiceCallResult(
-                success=True,
-                call_id=sim_call_id,
-                recipient_phone=e164_phone,
-                caller_id=outbound_caller,
-                status="CALL_INITIATED",
+                success=res.success,
+                call_id=res.call_id or sim_call_id,
+                recipient_phone=res.recipient_phone or e164_phone,
+                caller_id=res.caller_id or outbound_caller,
+                status="CALL_INITIATED" if res.success else "FAILED",
                 dry_run=True,
+                duration_seconds=res.duration_seconds,
+                recording_url=res.recording_url,
+                transcript=res.transcript,
+                error=res.error,
                 metadata={
                     "script_context": script_context,
-                    "business_id": business_id
+                    "business_id": business_id,
+                    "provider": res.provider
                 }
             )
 
-        # Real Twilio API dispatch (when enabled and authorized)
-        import httpx
-        url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Calls.json"
-        auth = (self.account_sid, self.auth_token)
-        data = {
-            "To": e164_phone,
-            "From": outbound_caller,
-            "Url": f"https://{settings.SERVER_HOST}/api/v1/voice/twiml?context={script_context[:50]}"
-        }
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(url, data=data, auth=auth)
-                if resp.status_code in (200, 201):
-                    res_json = resp.json()
-                    return VoiceCallResult(
-                        success=True,
-                        call_id=res_json.get("sid", sim_call_id),
-                        recipient_phone=e164_phone,
-                        caller_id=outbound_caller,
-                        status="CALL_INITIATED",
-                        dry_run=False,
-                        metadata=res_json
-                    )
-                else:
-                    return VoiceCallResult(
-                        success=False,
-                        call_id="",
-                        recipient_phone=e164_phone,
-                        caller_id=outbound_caller,
-                        status="FAILED",
-                        dry_run=False,
-                        error=f"Twilio API error {resp.status_code}: {resp.text}"
-                    )
-        except Exception as e:
-            return VoiceCallResult(
-                success=False,
-                call_id="",
-                recipient_phone=e164_phone,
-                caller_id=outbound_caller,
-                status="FAILED",
-                dry_run=False,
-                error=str(e)
-            )
+        # Real provider dispatch via active modular voice provider
+        res = await self.provider.place_call(
+            phone=e164_phone,
+            script_context=script_context,
+            caller_id=outbound_caller
+        )
+        return VoiceCallResult(
+            success=res.success,
+            call_id=res.call_id,
+            recipient_phone=res.recipient_phone or e164_phone,
+            caller_id=res.caller_id or outbound_caller,
+            status=res.status,
+            dry_run=res.dry_run,
+            duration_seconds=res.duration_seconds,
+            recording_url=res.recording_url,
+            transcript=res.transcript,
+            error=res.error,
+            metadata={
+                "script_context": script_context,
+                "business_id": business_id,
+                "provider": res.provider
+            }
+        )
 
     async def synthesize_speech(
         self,
@@ -195,8 +188,8 @@ class VoiceAdapter:
         Parses standard Twilio or telephony status callback into a normalized ConversationEvent dictionary.
         Recognizes: CALL_INITIATED, RINGING, ANSWERED, COMPLETED, FAILED, VOICEMAIL.
         """
-        call_sid = payload.get("CallSid") or payload.get("call_id") or "unknown_call"
-        raw_status = (payload.get("CallStatus") or payload.get("status") or "").lower()
+        call_sid = payload.get("CallSid") or payload.get("call_id") or payload.get("id") or "unknown_call"
+        raw_status = (payload.get("CallStatus") or payload.get("status") or payload.get("state") or "").lower()
         from_number = payload.get("From") or payload.get("caller_id") or ""
         to_number = payload.get("To") or payload.get("recipient_phone") or ""
         direction_str = payload.get("Direction", "outbound-api").lower()
@@ -204,12 +197,34 @@ class VoiceAdapter:
         recording_url = payload.get("RecordingUrl")
         answered_by = payload.get("AnsweredBy", "")
 
+        # Recognize Asterisk ARI events
+        ast_type = payload.get("type", "")
+        if ast_type == "StasisStart":
+            raw_status = "answered"
+        elif ast_type == "StasisEnd":
+            raw_status = "completed"
+
+        # Recognize FreeSWITCH ESL events
+        fs_event = payload.get("Event-Name", "")
+        if fs_event == "CHANNEL_CREATE":
+            raw_status = "initiated"
+        elif fs_event == "CHANNEL_ANSWER":
+            raw_status = "answered"
+        elif fs_event in ("CHANNEL_HANGUP_COMPLETE", "CHANNEL_HANGUP"):
+            raw_status = "completed"
+
+        provider = payload.get("provider") or (
+            "asterisk" if ast_type or "ast" in call_sid else
+            "freeswitch" if fs_event or "fs" in call_sid else
+            "twilio_voice"
+        )
+
         direction = EventDirection.INBOUND.value if "inbound" in direction_str else EventDirection.OUTBOUND.value
 
         event_type = ConversationEventType.CALL_INITIATED.value
-        if raw_status in ("ringing", "initiated"):
+        if raw_status in ("ringing", "initiated", "dialing"):
             event_type = ConversationEventType.RINGING.value
-        elif raw_status in ("in-progress", "answered"):
+        elif raw_status in ("in-progress", "answered", "up"):
             event_type = ConversationEventType.ANSWERED.value
         elif raw_status in ("completed",):
             if "machine" in answered_by.lower():
@@ -225,7 +240,7 @@ class VoiceAdapter:
             "channel": ChannelType.VOICE.value,
             "direction": direction,
             "event_type": event_type,
-            "provider": "twilio_voice",
+            "provider": provider,
             "provider_event_id": call_sid,
             "idempotency_key": idempotency_key,
             "from_number": from_number,

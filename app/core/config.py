@@ -92,6 +92,19 @@ class Settings(BaseSettings):
     VOICEBOX_API_URL: Optional[str] = os.getenv("VOICEBOX_API_URL")
     VOICEBOX_API_KEY: Optional[str] = os.getenv("VOICEBOX_API_KEY")
 
+    # Asterisk ARI Telephony Configuration
+    ASTERISK_ARI_URL: str = os.getenv("ASTERISK_ARI_URL", "http://localhost:8088/ari")
+    ASTERISK_ARI_USER: Optional[str] = os.getenv("ASTERISK_ARI_USER")
+    ASTERISK_ARI_PASSWORD: Optional[str] = os.getenv("ASTERISK_ARI_PASSWORD")
+    ASTERISK_APP_NAME: str = os.getenv("ASTERISK_APP_NAME", "agency_os_stasis")
+    ASTERISK_SIP_TRUNK: str = os.getenv("ASTERISK_SIP_TRUNK", "PJSIP")
+
+    # FreeSWITCH ESL Telephony Configuration
+    FREESWITCH_ESL_HOST: str = os.getenv("FREESWITCH_ESL_HOST", "127.0.0.1")
+    FREESWITCH_ESL_PORT: int = int(os.getenv("FREESWITCH_ESL_PORT", "8021"))
+    FREESWITCH_ESL_PASSWORD: Optional[str] = os.getenv("FREESWITCH_ESL_PASSWORD")
+    FREESWITCH_GATEWAY: str = os.getenv("FREESWITCH_GATEWAY", "default_gateway")
+
     # WhatsApp Business Platform (Cloud API)
     WHATSAPP_PHONE_NUMBER_ID: Optional[str] = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
     WHATSAPP_ACCESS_TOKEN: Optional[str] = os.getenv("WHATSAPP_ACCESS_TOKEN")

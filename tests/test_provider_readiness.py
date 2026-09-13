@@ -416,3 +416,81 @@ async def test_multi_prospect_concurrency_10_industries():
             assert res.channels["EMAIL"].eligible is True
             # Voice is disabled globally by default
             assert res.channels["VOICE"].eligible is False
+
+
+@pytest.mark.asyncio
+async def test_modular_voice_providers_and_telephony_events():
+    """Verify modular voice provider decoupling (Twilio, Asterisk, FreeSWITCH, DryRun)."""
+    from app.communications.voice_provider import (
+        get_voice_provider,
+        DryRunVoiceProvider,
+        TwilioProvider,
+        AsteriskProvider,
+        FreeSwitchProvider
+    )
+
+    # 1. Factory resolution
+    p_dry = get_voice_provider("dry_run")
+    assert isinstance(p_dry, DryRunVoiceProvider)
+
+    with patch.object(settings, "VOICE_DRY_RUN", False):
+        p_ast = get_voice_provider("asterisk")
+        assert isinstance(p_ast, AsteriskProvider)
+
+        p_fs = get_voice_provider("freeswitch")
+        assert isinstance(p_fs, FreeSwitchProvider)
+
+        with patch.object(settings, "TWILIO_ACCOUNT_SID", "ACtest123"), \
+             patch.object(settings, "TWILIO_AUTH_TOKEN", "authtest"):
+            p_tw = get_voice_provider("twilio")
+            assert isinstance(p_tw, TwilioProvider)
+
+    # 2. Asterisk & FreeSWITCH dry-run / simulated execution
+    ast_res = await p_ast.place_call(phone="+15125550199", script_context="Diagnostic audit")
+    assert ast_res.success is True
+    assert ast_res.dry_run is True
+    assert ast_res.provider == "asterisk"
+    assert "ast_dry_" in ast_res.call_id
+
+    fs_res = await p_fs.place_call(phone="+15125550199", script_context="Diagnostic audit")
+    assert fs_res.success is True
+    assert fs_res.dry_run is True
+    assert fs_res.provider == "freeswitch"
+    assert "fs_dry_" in fs_res.call_id
+
+    # 3. Asterisk ARI event normalization
+    ari_start = voice_adapter.parse_telephony_webhook({
+        "type": "StasisStart",
+        "id": "ast_channel_99182",
+        "caller_id": "+15125550100",
+        "recipient_phone": "+15125550199",
+        "duration": 5
+    })
+    assert ari_start["provider"] == "asterisk"
+    assert ari_start["event_type"] == ConversationEventType.ANSWERED.value
+
+    ari_end = voice_adapter.parse_telephony_webhook({
+        "type": "StasisEnd",
+        "id": "ast_channel_99182",
+        "duration": 45
+    })
+    assert ari_end["provider"] == "asterisk"
+    assert ari_end["event_type"] == ConversationEventType.COMPLETED.value
+
+    # 4. FreeSWITCH ESL event normalization
+    fs_create = voice_adapter.parse_telephony_webhook({
+        "Event-Name": "CHANNEL_CREATE",
+        "call_id": "fs_call_88219",
+        "duration": 0
+    })
+    assert fs_create["provider"] == "freeswitch"
+    assert fs_create["event_type"] == ConversationEventType.RINGING.value
+
+    fs_ans = voice_adapter.parse_telephony_webhook({
+        "Event-Name": "CHANNEL_ANSWER",
+        "call_id": "fs_call_88219",
+        "duration": 12
+    })
+    assert fs_ans["provider"] == "freeswitch"
+    assert fs_ans["event_type"] == ConversationEventType.ANSWERED.value
+

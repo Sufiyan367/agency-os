@@ -117,7 +117,7 @@ async def test_conversation_event_model_crud():
         # Query via Business relationship
         await session.refresh(biz, ["conversation_events"])
         assert len(biz.conversation_events) >= 1
-        assert biz.conversation_events[0].id == evt.id
+        assert any(e.id == evt.id for e in biz.conversation_events)
 
 
 @pytest.mark.asyncio
