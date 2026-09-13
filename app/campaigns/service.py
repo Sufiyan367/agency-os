@@ -698,10 +698,17 @@ class CampaignService:
 
         upcoming_targets = {
             "next_discovery": "08:00 GST (+4)",
+            "next_discovery_country": "Saudi Arabia",
+            "next_discovery_flag": "🇸🇦",
+            "next_discovery_target": "10 prospects / day",
             "next_batch": "10 Prospects / Market",
+            "next_batch_desc": "Compliance & Floor Gated",
             "next_outreach": "09:00 - 17:00 Local",
+            "next_outreach_desc": f"Capacity: {rollout.daily_max_real_emails}/day ({rollout.current_level_name})",
             "next_review": "CEO Audit 18:00 GST",
-            "pipeline_target": "$105,000 / Mo"
+            "next_review_desc": "Inbound Replies & Qualification",
+            "pipeline_target": "$105,000 / Mo",
+            "pipeline_target_desc": f"${int(pipeline_val):,} Active" if pipeline_val > 0 else "$105,000 / Mo Target"
         }
 
         country_priorities = [
