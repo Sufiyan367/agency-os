@@ -23,7 +23,7 @@ logger = logging.getLogger("canary_dispatcher")
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.database.session import get_db_session
+from app.database.connection import AsyncSessionLocal
 from app.database.models import OutreachMessage, OutreachStatus, Business
 from app.outreach.auto_approval import auto_approval_engine
 from app.outreach.sender import outreach_sender_adapter
@@ -37,7 +37,7 @@ CANARY_GUARD_RECORD_ID = 12
 async def execute_canary():
     logger.info("=== STARTING AUTONOMOUS REAL-WORLD CANARY DISPATCH ===")
 
-    async for session in get_db_session():
+    async with AsyncSessionLocal() as session:
         # Step 1: Canary Guard Invariant Check
         logger.info(f"Checking Canary Guard record #{CANARY_GUARD_RECORD_ID}...")
         guard_msg = await session.get(OutreachMessage, CANARY_GUARD_RECORD_ID)
