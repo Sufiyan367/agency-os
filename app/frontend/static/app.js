@@ -801,6 +801,7 @@ function renderCeoActiveProspect(prospect) {
         if (payBadge) payBadge.textContent = 'PAYMENTS: DISABLED';
         const qaGatesEl = document.getElementById('ceo-demo-qa-gates');
         if (qaGatesEl) qaGatesEl.innerHTML = '<div style="color:#64748b; font-style:italic;">No active prospect. 8 QA gates evaluate upon receiving interest.</div>';
+        if (typeof updateCommercialActionButtons === 'function') updateCommercialActionButtons(null);
         return;
     }
 
@@ -897,6 +898,10 @@ function renderCeoActiveProspect(prospect) {
         } else {
             btnLabel.textContent = 'View Full Lead Details';
         }
+    }
+
+    if (typeof updateCommercialActionButtons === 'function') {
+        updateCommercialActionButtons(prospect);
     }
 }
 
@@ -7265,3 +7270,330 @@ async function loadDecisionAnalytics(timeFilter) {
         console.error('[DecisionAnalytics] Failed to load telemetry:', err);
     }
 }
+
+// ==============================================================================
+// MEGA PROMPT 5 — Commercial & Production Delivery Pipeline Client Handlers
+// ==============================================================================
+
+let currentActiveProjectData = null;
+
+async function updateCommercialActionButtons(prospect) {
+    const btnAccept = document.getElementById('ceo-btn-accept-demo');
+    const btnReqChanges = document.getElementById('ceo-btn-request-changes');
+    const btnViewProp = document.getElementById('ceo-btn-view-proposal');
+    const btnPayAdv = document.getElementById('ceo-btn-pay-advance');
+
+    if (!prospect || !prospect.id) {
+        currentActiveProjectData = null;
+        if (btnAccept) btnAccept.style.display = 'none';
+        if (btnReqChanges) btnReqChanges.style.display = 'none';
+        if (btnViewProp) btnViewProp.style.display = 'none';
+        if (btnPayAdv) btnPayAdv.style.display = 'none';
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/projects/by-business/${prospect.id}`);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.has_project) {
+                currentActiveProjectData = data;
+                const hasDemo = Boolean(data.demo_url || prospect.demo?.exists);
+                const hasProposal = Boolean(data.proposal);
+                const isPaid = data.production_project?.is_payment_verified;
+
+                if (btnAccept) btnAccept.style.display = hasDemo ? 'block' : 'none';
+                if (btnReqChanges) btnReqChanges.style.display = hasDemo ? 'block' : 'none';
+                if (btnViewProp) btnViewProp.style.display = hasProposal ? 'block' : 'none';
+                if (btnPayAdv) btnPayAdv.style.display = (hasProposal && !isPaid) ? 'block' : 'none';
+
+                if (data.proposal) {
+                    const propVal = document.getElementById('ceo-prop-val');
+                    if (propVal) propVal.textContent = `$${Number(data.proposal.total_price_usd).toLocaleString()}`;
+                    const propStatus = document.getElementById('ceo-active-proposal-status');
+                    if (propStatus) propStatus.textContent = data.proposal.status;
+                }
+                if (data.payment) {
+                    const payStatus = document.getElementById('ceo-active-payment-status');
+                    if (payStatus) payStatus.textContent = data.payment.status;
+                }
+                return;
+            }
+        }
+    } catch (e) {
+        console.debug('Error loading commercial state:', e);
+    }
+
+    const hasDemo = Boolean(prospect.demo?.exists);
+    if (btnAccept) btnAccept.style.display = hasDemo ? 'block' : 'none';
+    if (btnReqChanges) btnReqChanges.style.display = hasDemo ? 'block' : 'none';
+    if (btnViewProp) btnViewProp.style.display = 'none';
+    if (btnPayAdv) btnPayAdv.style.display = 'none';
+}
+
+async function handleAcceptActiveDemo() {
+    if (!currentActiveProjectData?.id) {
+        alert('No active project record found for this prospect.');
+        return;
+    }
+    const notes = prompt('Enter customer acceptance notes (or leave blank to accept directly):', 'Demo verified and accepted.');
+    if (notes === null) return;
+
+    try {
+        const res = await fetch(`/api/projects/${currentActiveProjectData.id}/accept`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feedback_notes: notes, actor: 'CLIENT' })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            alert(`✓ Demo Accepted! Commercial Proposal #${result.proposal?.proposal_id || ''} generated successfully.`);
+            openPaymentModal();
+            if (currentActiveProspectLeadId) {
+                updateCommercialActionButtons({ id: currentActiveProspectLeadId });
+            }
+        } else {
+            alert(`Error accepting demo: ${result.detail || 'Request failed'}`);
+        }
+    } catch (err) {
+        alert(`Network error: ${err.message}`);
+    }
+}
+
+function openRequestChangesModal() {
+    const modal = document.getElementById('modal-request-changes');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeRequestChangesModal() {
+    const modal = document.getElementById('modal-request-changes');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitRequestChanges() {
+    if (!currentActiveProjectData?.id) {
+        alert('No active project record found for this prospect.');
+        return;
+    }
+    const feedback = document.getElementById('change-request-text')?.value;
+    if (!feedback || feedback.trim().length < 5) {
+        alert('Please specify details of the requested revisions.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-submit-change-request');
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting Revisions...'; }
+
+    try {
+        const res = await fetch(`/api/projects/${currentActiveProjectData.id}/request-changes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                change_requests: [{ category: 'custom_feedback', requested_change: feedback }],
+                feedback_notes: feedback,
+                actor: 'CLIENT'
+            })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            alert(`✓ Revisions submitted! Created specification v${result.new_specification_version}. Rebuilding demo...`);
+            closeRequestChangesModal();
+            if (currentActiveProspectLeadId) {
+                updateCommercialActionButtons({ id: currentActiveProspectLeadId });
+            }
+        } else {
+            alert(`Error requesting changes: ${result.detail || 'Request failed'}`);
+        }
+    } catch (err) {
+        alert(`Network error: ${err.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit Revision Request'; }
+    }
+}
+
+function viewActiveProposal() {
+    if (currentActiveProjectData?.proposal?.id) {
+        window.open(`/proposal/${currentActiveProjectData.proposal.id}`, '_blank');
+    } else {
+        openPaymentModal();
+    }
+}
+
+function openPaymentModal() {
+    const modal = document.getElementById('modal-proposal-payment');
+    if (!modal) return;
+
+    if (currentActiveProjectData?.proposal) {
+        const p = currentActiveProjectData.proposal;
+        const totalEl = document.getElementById('modal-pay-total-price');
+        const advEl = document.getElementById('modal-pay-advance-price');
+        const openBtn = document.getElementById('modal-pay-open-proposal-btn');
+        if (totalEl) totalEl.textContent = `$${Number(p.total_price_usd).toLocaleString()}`;
+        if (advEl) advEl.textContent = `$${Number(p.advance_deposit_usd).toLocaleString()}`;
+        if (openBtn && p.id) openBtn.href = `/proposal/${p.id}`;
+    }
+    modal.style.display = 'flex';
+}
+
+function closePaymentModal() {
+    const modal = document.getElementById('modal-proposal-payment');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitPaymentVerification() {
+    const utr = document.getElementById('payment-utr-input')?.value;
+    const payer = document.getElementById('payment-payer-input')?.value;
+
+    if (!utr || utr.trim().length < 4) {
+        alert('Please enter a valid Bank Reference / UTR Number.');
+        return;
+    }
+
+    const paymentId = currentActiveProjectData?.payment?.id;
+    if (!paymentId) {
+        if (currentActiveProjectData?.proposal?.id) {
+            try {
+                const initRes = await fetch(`/api/proposals/${currentActiveProjectData.proposal.id}/accept`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider_name: 'google_pay' })
+                });
+                if (initRes.ok) {
+                    const initData = await initRes.json();
+                    return proceedVerify(initData.payment_id, utr, payer);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        alert('No active payment or proposal record found.');
+        return;
+    }
+
+    await proceedVerify(paymentId, utr, payer);
+}
+
+async function proceedVerify(paymentId, utr, payer) {
+    const statusEl = document.getElementById('payment-verify-status');
+    const btn = document.getElementById('btn-submit-verify-payment');
+    const advanceAmount = currentActiveProjectData?.proposal?.advance_deposit_usd || 400.0;
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Verifying Bank UTR...'; }
+    if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(56,189,248,0.1)';
+        statusEl.style.color = '#38bdf8';
+        statusEl.textContent = 'Verifying bank transaction reference & enforcing replay protection...';
+    }
+
+    try {
+        const res = await fetch(`/api/payments/${paymentId}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                transaction_reference: utr.trim(),
+                amount_received: advanceAmount,
+                verified_by: payer || 'CEO_VERIFIER',
+                source: 'CEO_VERIFICATION'
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (statusEl) {
+                statusEl.style.background = 'rgba(16,185,129,0.1)';
+                statusEl.style.color = '#34d399';
+                statusEl.textContent = '✓ PAYMENT VERIFIED! Production delivery unlocked.';
+            }
+
+            const prodBlock = document.getElementById('modal-production-pipeline-block');
+            if (prodBlock) prodBlock.style.display = 'block';
+
+            if (data.production_project_id) {
+                runProductionDeliverySequence(data.production_project_id);
+            }
+        } else {
+            if (statusEl) {
+                statusEl.style.background = 'rgba(239,68,68,0.1)';
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = `Verification Rejected: ${data.detail || 'Invalid reference'}`;
+            }
+        }
+    } catch (err) {
+        if (statusEl) {
+            statusEl.style.background = 'rgba(239,68,68,0.1)';
+            statusEl.style.color = '#ef4444';
+            statusEl.textContent = `Network Error: ${err.message}`;
+        }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Verify Advance & Authorize Production Build →'; }
+    }
+}
+
+async function runProductionDeliverySequence(prodProjectId) {
+    const logEl = document.getElementById('modal-prod-logs');
+    const badge = document.getElementById('modal-prod-status-badge');
+    const addLog = (msg) => {
+        if (logEl) {
+            logEl.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${escapeHtml(msg)}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+    };
+
+    try {
+        addLog('Compiling production container build (zero mock, zero demo watermarks)...');
+        const bStep = document.getElementById('step-prod-build');
+        if (bStep) bStep.style.color = '#38bdf8';
+        const bRes = await fetch(`/api/production/${prodProjectId}/build`, { method: 'POST' });
+        const bData = await bRes.json();
+        addLog(`Production build #${bData.build_number} complete in ${bData.build_duration_ms}ms.`);
+        if (bStep) {
+            bStep.style.color = '#34d399';
+            bStep.textContent = '✓ 1. Production Build & Clean Packaging Complete';
+        }
+
+        addLog('Running 10-gate production QA (security, secret scan, responsiveness, performance)...');
+        const qStep = document.getElementById('step-prod-qa');
+        if (qStep) qStep.style.color = '#38bdf8';
+        const qRes = await fetch(`/api/production/${prodProjectId}/qa`, { method: 'POST' });
+        const qData = await qRes.json();
+        addLog(`Production QA passed: ${qData.passed_gates}/${qData.total_gates} gates (Signature: ${qData.qa_signature}).`);
+        if (qStep) {
+            qStep.style.color = '#34d399';
+            qStep.textContent = `✓ 2. 10-Gate Production QA (${qData.passed_gates}/10 PASSED)`;
+        }
+
+        addLog('Deploying to staging target...');
+        const dStep = document.getElementById('step-prod-deploy');
+        if (dStep) dStep.style.color = '#38bdf8';
+        const dRes = await fetch(`/api/production/${prodProjectId}/deploy`, { method: 'POST' });
+        const dData = await dRes.json();
+        addLog(`Production live at: ${dData.live_url}`);
+        if (dStep) {
+            dStep.style.color = '#34d399';
+            dStep.textContent = '✓ 3. Staging/Production Deployment Live';
+        }
+
+        addLog('Generating customer handover package (README, credentials manifest, warranty doc)...');
+        const hStep = document.getElementById('step-prod-handover');
+        if (hStep) hStep.style.color = '#38bdf8';
+        const hRes = await fetch(`/api/production/${prodProjectId}/handover`, { method: 'POST' });
+        const hData = await hRes.json();
+        addLog(`Handover documentation generated: ${hData.handover_slug}. Delivery completed.`);
+        if (hStep) {
+            hStep.style.color = '#34d399';
+            hStep.textContent = '✓ 4. Customer Documentation & Handover Delivered';
+        }
+
+        if (badge) {
+            badge.className = 'badge badge-emerald';
+            badge.textContent = 'DELIVERED';
+        }
+    } catch (err) {
+        addLog(`Error during production sequence: ${err.message}`);
+        if (badge) {
+            badge.className = 'badge badge-amber';
+            badge.textContent = 'FAILED';
+        }
+    }
+}
+

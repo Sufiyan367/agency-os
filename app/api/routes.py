@@ -4910,6 +4910,385 @@ async def get_payment_instructions_endpoint(
     }
 
 
+# ==============================================================================
+# COMMERCIAL & PRODUCTION DELIVERY PIPELINE (MEGA PROMPT 5)
+# ==============================================================================
+
+class ProjectAcceptanceRequest(BaseModel):
+    feedback_notes: Optional[str] = "Demo meets customer requirements."
+    actor: Optional[str] = "CLIENT"
+
+class ProjectChangeRequest(BaseModel):
+    change_requests: List[Dict[str, Any]]
+    feedback_notes: Optional[str] = ""
+    actor: Optional[str] = "CLIENT"
+
+class ProposalAcceptanceRequest(BaseModel):
+    accepted_by: Optional[str] = "CLIENT"
+    provider_name: Optional[str] = "google_pay"
+
+class PaymentVerificationRequest(BaseModel):
+    transaction_reference: str
+    amount_received: float
+    verified_by: Optional[str] = "CEO_VERIFIER"
+    source: Optional[str] = "CEO_VERIFICATION"
+    evidence: Optional[Dict[str, Any]] = None
+
+
+@router.get("/api/projects/by-business/{business_id}")
+async def get_project_by_business_endpoint(
+    business_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves latest customer project and commercial pipeline state for a business."""
+    from app.database.models import CustomerProject, ProjectProposal, ProductionProject, Payment
+    stmt = select(CustomerProject).where(CustomerProject.business_id == business_id).order_by(CustomerProject.id.desc())
+    project = (await db.execute(stmt)).scalars().first()
+    if not project:
+        return {"has_project": False}
+
+    prop_stmt = select(ProjectProposal).where(ProjectProposal.project_id == project.id).order_by(ProjectProposal.version.desc())
+    prop = (await db.execute(prop_stmt)).scalars().first()
+
+    prod_stmt = select(ProductionProject).where(ProductionProject.project_id == project.id).order_by(ProductionProject.id.desc())
+    prod = (await db.execute(prod_stmt)).scalars().first()
+
+    payment_stmt = select(Payment).where(Payment.business_id == business_id).order_by(Payment.id.desc())
+    payment = (await db.execute(payment_stmt)).scalars().first()
+
+    latest_deploy = project.deployments[-1] if project.deployments else None
+    latest_spec = project.specifications[-1] if project.specifications else None
+
+    return {
+        "has_project": True,
+        "id": project.id,
+        "project_id": project.project_id,
+        "customer_slug": project.customer_slug,
+        "title": project.title,
+        "industry": project.industry,
+        "status": project.status,
+        "current_stage": project.current_stage,
+        "spec_version": latest_spec.version if latest_spec else 1,
+        "demo_url": latest_deploy.deployment_url if latest_deploy else None,
+        "proposal": {
+            "id": prop.id,
+            "proposal_id": prop.proposal_id,
+            "version": prop.version,
+            "status": prop.status,
+            "total_price_usd": prop.total_price_usd,
+            "advance_deposit_usd": prop.advance_deposit_usd,
+            "balance_due_usd": prop.balance_due_usd,
+        } if prop else None,
+        "payment": {
+            "id": payment.id,
+            "status": payment.status,
+            "reference_id": payment.reference_id,
+            "amount": payment.amount,
+            "provider": payment.provider
+        } if payment else None,
+        "production_project": {
+            "id": prod.id,
+            "status": prod.status,
+            "is_payment_verified": prod.is_payment_verified,
+            "production_slug": prod.production_slug,
+            "live_url": prod.live_url
+        } if prod else None
+    }
+
+
+@router.post("/api/projects/{project_id}/accept")
+async def accept_project_demo_endpoint(
+    project_id: int,
+    req: ProjectAcceptanceRequest = ProjectAcceptanceRequest(),
+    db: AsyncSession = Depends(get_db)
+):
+    """Customer Acceptance: Advances state to ACCEPTED and generates commercial proposal."""
+    from app.commercial.acceptance_handler import AcceptanceHandler
+    try:
+        res = await AcceptanceHandler.accept_demo(
+            session=db,
+            project_id=project_id,
+            feedback_notes=req.feedback_notes or "",
+            actor=req.actor or "CLIENT"
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/api/projects/{project_id}/request-changes")
+async def request_project_changes_endpoint(
+    project_id: int,
+    req: ProjectChangeRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Customer Feedback Loop: Creates version-incremented specification (v2, v3) and triggers rebuild."""
+    from app.commercial.acceptance_handler import AcceptanceHandler
+    try:
+        res = await AcceptanceHandler.request_changes(
+            session=db,
+            project_id=project_id,
+            change_requests=req.change_requests,
+            feedback_notes=req.feedback_notes or "",
+            actor=req.actor or "CLIENT"
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/api/projects/{project_id}/proposal")
+async def get_project_proposal_endpoint(
+    project_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves active commercial proposal for project."""
+    from app.database.models import ProjectProposal
+    stmt = select(ProjectProposal).where(
+        ProjectProposal.project_id == project_id
+    ).order_by(ProjectProposal.version.desc())
+    prop = (await db.execute(stmt)).scalars().first()
+    if not prop:
+        raise HTTPException(status_code=404, detail=f"No proposal found for project #{project_id}")
+    return {
+        "id": prop.id,
+        "proposal_id": prop.proposal_id,
+        "project_id": prop.project_id,
+        "version": prop.version,
+        "specification_version": prop.specification_version,
+        "status": prop.status,
+        "scope_summary": prop.scope_summary,
+        "deliverables": prop.deliverables,
+        "timeline_days": prop.timeline_days,
+        "total_price_usd": prop.total_price_usd,
+        "advance_deposit_usd": prop.advance_deposit_usd,
+        "balance_due_usd": prop.balance_due_usd,
+        "payment_terms": prop.payment_terms,
+        "warranty_terms": prop.warranty_terms,
+        "created_at": prop.created_at.isoformat() if prop.created_at else None
+    }
+
+
+@router.post("/api/proposals/{proposal_id}/accept")
+async def accept_commercial_proposal_endpoint(
+    proposal_id: int,
+    req: ProposalAcceptanceRequest = ProposalAcceptanceRequest(),
+    db: AsyncSession = Depends(get_db)
+):
+    """Accepts proposal and generates payment instructions (Google Pay first)."""
+    from app.payments.workflow import PaymentWorkflowCoordinator
+    try:
+        res = await PaymentWorkflowCoordinator.issue_proposal_payment_instructions(
+            session=db,
+            proposal_id=proposal_id,
+            provider_name=req.provider_name or "google_pay"
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/api/payments/{payment_id}/verify")
+async def verify_payment_endpoint(
+    payment_id: int,
+    req: PaymentVerificationRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Verifies payment with bank reference / UTR and unlocks production build."""
+    from app.payments.workflow import PaymentWorkflowCoordinator
+    try:
+        res = await PaymentWorkflowCoordinator.verify_payment(
+            session=db,
+            payment_id=payment_id,
+            verified_by=req.verified_by or "CEO_VERIFIER",
+            transaction_reference=req.transaction_reference,
+            amount_received=req.amount_received,
+            source=req.source or "CEO_VERIFICATION",
+            evidence=req.evidence
+        )
+        return res
+    except (ValueError, PermissionError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/proposal/{proposal_id}", response_class=HTMLResponse)
+async def public_view_proposal(
+    proposal_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Public customer web proposal view."""
+    from app.database.models import ProjectProposal, Business
+    from app.commercial.proposal_engine import ProposalEngine
+
+    # Check by numeric id or proposal_id string
+    prop = None
+    if proposal_id.isdigit():
+        prop = await db.get(ProjectProposal, int(proposal_id))
+    if not prop:
+        stmt = select(ProjectProposal).where(ProjectProposal.proposal_id == proposal_id)
+        prop = (await db.execute(stmt)).scalars().first()
+
+    if not prop:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    biz = await db.get(Business, prop.business_id)
+    html_content = ProposalEngine.render_proposal_html(prop, biz)
+    return HTMLResponse(
+        content=html_content,
+        headers={
+            "X-Frame-Options": "SAMEORIGIN",
+            "Content-Security-Policy": "default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;",
+            "X-Content-Type-Options": "nosniff"
+        }
+    )
+
+
+@router.post("/api/production/{production_project_id}/build")
+async def production_build_endpoint(
+    production_project_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """Compiles production build artifacts for verified production project."""
+    from app.production.pipeline import ProductionPipeline
+    try:
+        build = await ProductionPipeline.execute_production_build(session=db, production_project_id=production_project_id)
+        return {
+            "build_id": build.id,
+            "build_number": build.build_number,
+            "status": build.status,
+            "duration_ms": build.build_duration_ms,
+            "artifacts": list(build.artifacts_manifest.get("files", []))
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/api/production/{production_project_id}/qa")
+async def production_qa_endpoint(
+    production_project_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """Evaluates 10-gate production QA."""
+    from app.database.models import ProductionBuild
+    from app.production.pipeline import ProductionPipeline
+
+    stmt = select(ProductionBuild).where(
+        ProductionBuild.production_project_id == production_project_id
+    ).order_by(ProductionBuild.build_number.desc())
+    build = (await db.execute(stmt)).scalars().first()
+    if not build:
+        raise HTTPException(status_code=404, detail=f"No build found for production project #{production_project_id}")
+
+    qa = await ProductionPipeline.execute_production_qa(session=db, production_build_id=build.id)
+    return {
+        "qa_id": qa.id,
+        "overall_status": qa.overall_status,
+        "score": qa.score,
+        "gate_results": qa.gate_results,
+        "critical_violations": qa.critical_violations
+    }
+
+
+@router.post("/api/production/{production_project_id}/deploy")
+async def production_deploy_endpoint(
+    production_project_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """Deploys verified production build."""
+    from app.database.models import ProductionBuild
+    from app.production.pipeline import ProductionPipeline
+
+    stmt = select(ProductionBuild).where(
+        ProductionBuild.production_project_id == production_project_id
+    ).order_by(ProductionBuild.build_number.desc())
+    build = (await db.execute(stmt)).scalars().first()
+    if not build:
+        raise HTTPException(status_code=404, detail=f"No build found for production project #{production_project_id}")
+
+    try:
+        deploy = await ProductionPipeline.execute_production_deploy(session=db, production_build_id=build.id)
+        return {
+            "deployment_id": deploy.id,
+            "status": deploy.status,
+            "deployment_url": deploy.deployment_url,
+            "deployed_at": deploy.deployed_at.isoformat() if deploy.deployed_at else None
+        }
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+
+
+@router.post("/api/production/{production_project_id}/handover")
+async def production_handover_endpoint(
+    production_project_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """Generates customer handover package and marks deal WON."""
+    from app.production.pipeline import ProductionPipeline
+    try:
+        handover = await ProductionPipeline.generate_customer_handover(session=db, production_project_id=production_project_id)
+        return {
+            "handover_id": handover.id,
+            "production_url": handover.production_url,
+            "build_version": handover.build_version,
+            "feature_summary": handover.feature_summary,
+            "credentials_instructions": handover.credentials_instructions,
+            "support_channel": handover.support_channel,
+            "status": handover.status
+        }
+    except (ValueError, PermissionError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/production/{production_project_id}/status")
+async def production_status_endpoint(
+    production_project_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns status of production project, builds, QA, deployment, and handover."""
+    from app.database.models import ProductionProject
+    prod = await db.get(ProductionProject, production_project_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail=f"ProductionProject #{production_project_id} not found")
+
+    latest_build = prod.builds[-1] if prod.builds else None
+    latest_qa = latest_build.qa_runs[-1] if (latest_build and latest_build.qa_runs) else None
+    latest_deploy = prod.deployments[-1] if prod.deployments else None
+    latest_handover = prod.handovers[-1] if prod.handovers else None
+
+    return {
+        "production_project_id": prod.id,
+        "project_id": prod.project_id,
+        "status": prod.status,
+        "environment": prod.environment,
+        "deployment_target": prod.deployment_target,
+        "frozen_spec_version": prod.frozen_spec_version,
+        "latest_build": {
+            "build_number": latest_build.build_number,
+            "status": latest_build.status,
+            "duration_ms": latest_build.build_duration_ms
+        } if latest_build else None,
+        "latest_qa": {
+            "status": latest_qa.overall_status,
+            "score": latest_qa.score,
+            "gate_results": latest_qa.gate_results
+        } if latest_qa else None,
+        "latest_deployment": {
+            "status": latest_deploy.status,
+            "deployment_url": latest_deploy.deployment_url,
+            "deployed_at": latest_deploy.deployed_at.isoformat() if latest_deploy.deployed_at else None
+        } if latest_deploy else None,
+        "latest_handover": {
+            "status": latest_handover.status,
+            "production_url": latest_handover.production_url,
+            "build_version": latest_handover.build_version
+        } if latest_handover else None
+    }
+
+
 
 
 

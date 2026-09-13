@@ -336,9 +336,7 @@ class CanonicalSpecEngine:
         Synthesizes facts, customer requests, and AI inferences into a persisted,
         canonical ProjectSpecification record.
         """
-        biz = customer_project.business
-        if not biz:
-            biz = await session.get(Business, customer_project.business_id)
+        biz = await session.get(Business, customer_project.business_id)
 
         industry = customer_project.industry or (biz.niche if biz else "Commercial Services") or "General"
         biz_name = (biz.name if biz else None) or customer_project.title or "Client Partner"

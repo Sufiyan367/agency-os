@@ -289,9 +289,10 @@ body {
    2. MAIN CONTENT WRAPPER (FILLS REMAINING VIEWPORT WIDTH)
    ============================================================================== */
 .main-wrapper {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
-  width: calc(100% - 250px);
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -925,12 +926,13 @@ body {
   border: 1px solid var(--hud-cyan-border);
   border-radius: 8px;
   width: 100%;
-  max-width: 720px;
+  max-width: clamp(320px, 92vw, 760px);
   max-height: 88vh;
   overflow-y: auto;
   padding: 24px;
   position: relative;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .close-modal {
@@ -1952,32 +1954,28 @@ body {
 
 /* Dashboard View Body */
 .agency-dashboard-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 18px;
   padding: 0;
   width: 100%;
-  align-items: flex-start;
+  align-items: start;
 }
 .agency-dashboard-main-col {
-  flex: 1 1 72%;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 .agency-dashboard-rail {
-  flex: 0 0 28%;
-  width: 28%;
-  min-width: 300px;
-  max-width: 440px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex-shrink: 0;
 }
 .agency-prospect-layout-grid {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
   align-items: stretch;
 }
@@ -2539,19 +2537,17 @@ body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
-@media (max-width: 1180px) {
+@media (max-width: 1240px) {
   .agency-dashboard-grid {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     width: 100%;
   }
   .agency-dashboard-main-col {
     width: 100%;
-    flex: 1 1 100%;
   }
   .agency-dashboard-rail {
     width: 100%;
     max-width: 100%;
-    flex: 1 1 100%;
   }
   .agency-prospect-layout-grid {
     grid-template-columns: 1fr;
@@ -2654,8 +2650,8 @@ body {
 
 .live-ops-item {
   transition: border-color 0.12s ease;
-  word-break: normal;
-  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 
@@ -2664,8 +2660,8 @@ body {
 }
 
 .ceo-action-card, .agency-panel-card, .kpi-card, .agency-kpi-block {
-  word-break: normal;
-  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 
@@ -2683,6 +2679,7 @@ body {
   min-width: 0 !important;
   box-sizing: border-box !important;
   transition: background 0.12s ease;
+  overflow: hidden !important;
 }
 
 .corridor-row:hover {

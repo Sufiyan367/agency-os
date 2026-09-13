@@ -118,6 +118,31 @@ class DeploymentStatus(str, enum.Enum):
     DEMO_READY = "DEMO_READY"
     FAILED = "FAILED"
 
+class CustomerAcceptanceStatus(str, enum.Enum):
+    REVIEW = "CUSTOMER_REVIEW"
+    ACCEPTED = "CUSTOMER_ACCEPTED"
+    CHANGES_REQUESTED = "CUSTOMER_REQUESTED_CHANGES"
+    DECLINED = "CUSTOMER_DECLINED"
+
+class CommercialProposalStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    PROPOSAL_GENERATED = "PROPOSAL_GENERATED"
+    PROPOSAL_ACCEPTED = "PROPOSAL_ACCEPTED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+
+class ProductionProjectStatus(str, enum.Enum):
+    CREATED = "CREATED"
+    UNLOCKED = "UNLOCKED"
+    BUILDING = "BUILDING"
+    QA = "QA"
+    DEPLOYING = "DEPLOYING"
+    LIVE = "LIVE"
+    HANDOVER_READY = "HANDOVER_READY"
+    HANDOVER_DELIVERED = "HANDOVER_DELIVERED"
+    ACTIVE = "CUSTOMER_ACTIVE"
+    FAILED = "FAILED"
+
 class ChannelType(str, enum.Enum):
     EMAIL = "EMAIL"
     WHATSAPP = "WHATSAPP"
@@ -1396,6 +1421,9 @@ class CustomerProject(Base):
     builds: Mapped[List["ProjectBuild"]] = relationship("ProjectBuild", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
     deployments: Mapped[List["ProjectDeployment"]] = relationship("ProjectDeployment", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
     events: Mapped[List["ProjectEvent"]] = relationship("ProjectEvent", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    acceptances: Mapped[List["CustomerAcceptance"]] = relationship("CustomerAcceptance", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    commercial_proposals: Mapped[List["ProjectProposal"]] = relationship("ProjectProposal", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
+    production_projects: Mapped[List["ProductionProject"]] = relationship("ProductionProject", back_populates="project", cascade="all, delete-orphan", lazy="selectin")
 
 
 # 49. Project Specification (Canonical, Immutable, Versioned)
@@ -1560,6 +1588,165 @@ class ProjectEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="events", lazy="selectin")
+
+
+# 57. Customer Acceptance (Demo Acceptance & Change Feedback Loop)
+class CustomerAcceptance(Base):
+    __tablename__ = "customer_acceptances"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    decision: Mapped[str] = mapped_column(String(50), default=CustomerAcceptanceStatus.REVIEW.value, index=True)
+    status: Mapped[str] = mapped_column(String(50), default=CustomerAcceptanceStatus.REVIEW.value, index=True)
+    feedback_notes: Mapped[str] = mapped_column(Text, default="")
+    change_requests: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    actor: Mapped[str] = mapped_column(String(100), default="CLIENT")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="acceptances", lazy="selectin")
+
+
+# 58. Project Proposals (Commercial Specifications & Pricing Agreements)
+class ProjectProposal(Base):
+    __tablename__ = "project_proposals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    proposal_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    specification_version: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(50), default=CommercialProposalStatus.PROPOSAL_GENERATED.value, index=True)
+
+    scope_summary: Mapped[str] = mapped_column(Text, default="")
+    deliverables: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    timeline_days: Mapped[int] = mapped_column(Integer, default=5)
+
+    base_price_usd: Mapped[float] = mapped_column(Float, default=1000.0)
+    complexity_addon_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    total_price_usd: Mapped[float] = mapped_column(Float, default=1000.0)
+    advance_deposit_usd: Mapped[float] = mapped_column(Float, default=400.0)
+    balance_due_usd: Mapped[float] = mapped_column(Float, default=600.0)
+
+    payment_terms: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    assumptions: Mapped[List[str]] = mapped_column(JSON, default=list)
+    exclusions: Mapped[List[str]] = mapped_column(JSON, default=list)
+    warranty_terms: Mapped[str] = mapped_column(Text, default="")
+    acceptance_terms: Mapped[str] = mapped_column(Text, default="")
+
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="commercial_proposals", lazy="selectin")
+    business: Mapped["Business"] = relationship("Business", lazy="selectin")
+    production_projects: Mapped[List["ProductionProject"]] = relationship("ProductionProject", back_populates="proposal", lazy="selectin")
+
+
+# 59. Production Project (Paid Production Delivery Execution)
+class ProductionProject(Base):
+    __tablename__ = "production_projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_projects.id"), index=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    proposal_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("project_proposals.id"), nullable=True, index=True)
+    payment_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("payments.id"), nullable=True, index=True)
+
+    status: Mapped[str] = mapped_column(String(50), default=ProductionProjectStatus.CREATED.value, index=True)
+    production_slug: Mapped[str] = mapped_column(String(150), default="prod-project", index=True)
+    live_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    is_payment_verified: Mapped[bool] = mapped_column(Boolean, default=True)
+    environment: Mapped[str] = mapped_column(String(50), default="production")
+    deployment_target: Mapped[str] = mapped_column(String(200), default="customer_managed_domain")
+    frozen_spec_version: Mapped[int] = mapped_column(Integer, default=1)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    project: Mapped["CustomerProject"] = relationship("CustomerProject", back_populates="production_projects", lazy="selectin")
+    business: Mapped["Business"] = relationship("Business", lazy="selectin")
+    proposal: Mapped[Optional["ProjectProposal"]] = relationship("ProjectProposal", back_populates="production_projects", lazy="selectin")
+    payment: Mapped[Optional["Payment"]] = relationship("Payment", lazy="selectin")
+    builds: Mapped[List["ProductionBuild"]] = relationship("ProductionBuild", back_populates="production_project", cascade="all, delete-orphan", lazy="selectin")
+    deployments: Mapped[List["ProductionDeployment"]] = relationship("ProductionDeployment", back_populates="production_project", cascade="all, delete-orphan", lazy="selectin")
+    handovers: Mapped[List["HandoverRecord"]] = relationship("HandoverRecord", back_populates="production_project", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 60. Production Build (Production-Grade Multi-File Artifacts)
+class ProductionBuild(Base):
+    __tablename__ = "production_builds"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    production_project_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_projects.id"), index=True)
+    build_number: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(50), default="BUILD_PENDING", index=True)
+
+    artifacts_manifest: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    config_manifest: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    dependencies_manifest: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    build_duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    production_project: Mapped["ProductionProject"] = relationship("ProductionProject", back_populates="builds", lazy="selectin")
+    qa_runs: Mapped[List["ProductionQA"]] = relationship("ProductionQA", back_populates="build", cascade="all, delete-orphan", lazy="selectin")
+    deployments: Mapped[List["ProductionDeployment"]] = relationship("ProductionDeployment", back_populates="build", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 61. Production QA (10-Gate Production Readiness Validation)
+class ProductionQA(Base):
+    __tablename__ = "production_qas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    production_build_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_builds.id"), index=True)
+    overall_status: Mapped[str] = mapped_column(String(50), default="BLOCKED", index=True)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    gate_results: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    critical_violations: Mapped[List[str]] = mapped_column(JSON, default=list)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    build: Mapped["ProductionBuild"] = relationship("ProductionBuild", back_populates="qa_runs", lazy="selectin")
+
+
+# 62. Production Deployment (Live Production Deployment Record)
+class ProductionDeployment(Base):
+    __tablename__ = "production_deployments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    production_project_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_projects.id"), index=True)
+    production_build_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_builds.id"), index=True)
+    deployment_url: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(50), default="DEPLOYMENT_READY", index=True)
+    deployed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    rollback_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    production_project: Mapped["ProductionProject"] = relationship("ProductionProject", back_populates="deployments", lazy="selectin")
+    build: Mapped["ProductionBuild"] = relationship("ProductionBuild", back_populates="deployments", lazy="selectin")
+    handovers: Mapped[List["HandoverRecord"]] = relationship("HandoverRecord", back_populates="deployment", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 63. Handover Record (Customer Safe Package & Credential Instructions)
+class HandoverRecord(Base):
+    __tablename__ = "handover_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    production_project_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_projects.id"), index=True)
+    deployment_id: Mapped[int] = mapped_column(Integer, ForeignKey("production_deployments.id"), index=True)
+    production_url: Mapped[str] = mapped_column(String(500))
+    build_version: Mapped[str] = mapped_column(String(50), default="v1.0.0")
+    feature_summary: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    credentials_instructions: Mapped[str] = mapped_column(Text, default="")
+    support_channel: Mapped[str] = mapped_column(String(150), default="support@automatedagencyos.tech")
+    status: Mapped[str] = mapped_column(String(50), default="READY", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    production_project: Mapped["ProductionProject"] = relationship("ProductionProject", back_populates="handovers", lazy="selectin")
+    deployment: Mapped["ProductionDeployment"] = relationship("ProductionDeployment", back_populates="handovers", lazy="selectin")
 
 
 
