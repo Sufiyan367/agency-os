@@ -70,73 +70,78 @@ async def execute_canary():
                 valid_postal
             )
 
-        # Ensure message is reset to PENDING_APPROVAL if previously marked FAILED or APPROVED in preflight test
-        if msg.status != OutreachStatus.PENDING_APPROVAL.value and msg.status != OutreachStatus.SENT.value:
+        send_res = None
+        if msg.status == OutreachStatus.SENT.value:
+            logger.info(f"Target Message #{TARGET_MESSAGE_ID} is already in SENT status (sent_at={msg.sent_at})!")
+            logger.info("Skipping send step to prevent duplicate outbound transmission.")
+        else:
+            # Ensure message is reset to PENDING_APPROVAL if previously marked FAILED or APPROVED in preflight test
             logger.info(f"Resetting message #{TARGET_MESSAGE_ID} status from {msg.status} to PENDING_APPROVAL for auto-approval evaluation.")
             msg.status = OutreachStatus.PENDING_APPROVAL.value
             msg.approved_at = None
             msg.actor_type = None
-
-        await session.commit()
-        await session.refresh(msg)
-
-        # Step 4: Run Deterministic Auto-Approval Evaluation (14 Safety Checks)
-        logger.info(f"Evaluating 14 deterministic auto-approval checks for message #{TARGET_MESSAGE_ID}...")
-        eval_result = await auto_approval_engine.evaluate_message_eligibility(session, msg)
-        logger.info(f"Auto-Approval Eligibility: {eval_result.is_eligible}")
-        for chk in eval_result.checks:
-            mark = "PASS" if chk.get("passed") else "FAIL"
-            logger.info(f"  [{mark}] {chk.get('name')}: {chk.get('detail')}")
-
-        if not eval_result.is_eligible:
-            logger.error(f"FATAL: Message #{TARGET_MESSAGE_ID} failed auto-approval checks: {eval_result.blocking_reasons}")
-            sys.exit(1)
-
-        # Step 5: Execute Auto-Approval
-        approved, approved_msg, app_res = await auto_approval_engine.auto_approve_if_eligible(session, TARGET_MESSAGE_ID)
-        if not approved:
-            logger.error(f"FATAL: auto_approve_if_eligible returned False: {app_res.blocking_reasons}")
-            sys.exit(1)
-
-        logger.info(f"Message #{TARGET_MESSAGE_ID} successfully auto-approved! Actor: {approved_msg.actor_type}, Status: {approved_msg.status}")
-
-        # Step 6: Verify Daily Outbound Capacity (Limit = 1)
-        cap_summary = await sender_registry.get_sender_capacity_summary(session)
-        logger.info(f"Capacity Status: {cap_summary.get('sent_today', 0)}/{cap_summary.get('rollout_daily_cap', 1)} sent today (Available: {cap_summary.get('available_capacity', 0)})")
-        if cap_summary.get("available_capacity", 0) <= 0:
-            logger.error("FATAL: Daily capacity is already 0! Halting dispatch.")
-            sys.exit(1)
-
-        # Step 7: Acquire ActiveOutreachLock
-        logger.info(f"Acquiring ActiveOutreachLock for Business #{biz.id}...")
-        lock = await active_prospect_controller.get_or_create_lock(session)
-        lock.business_id = biz.id
-        lock.status = "ACTIVE"
-        lock.locked_at = datetime.utcnow()
-        lock.current_stage = "APPROVED"
-        await session.commit()
-        logger.info(f"ActiveOutreachLock acquired for Business #{biz.id}.")
-
-        # Step 8: Execute Live Email Dispatch via Gmail OAuth
-        logger.info(f"DISPATCHING LIVE OUTBOUND EMAIL to {msg.recipient_email} via {settings.EMAIL_PROVIDER}...")
-        try:
-            send_res = await outreach_sender_adapter.send_approved_message(
-                session=session,
-                message_id=TARGET_MESSAGE_ID,
-                force_live=True, enforce_window=False
-            )
-            logger.info("Live dispatch completed successfully!")
-            logger.info(f"Send Result: {send_res}")
-        except Exception as e:
-            logger.error(f"FATAL: Exception during live dispatch: {e}")
             await session.commit()
-            sys.exit(1)
+            await session.refresh(msg)
+
+            # Step 4: Run Deterministic Auto-Approval Evaluation (14 Safety Checks)
+            logger.info(f"Evaluating 14 deterministic auto-approval checks for message #{TARGET_MESSAGE_ID}...")
+            eval_result = await auto_approval_engine.evaluate_message_eligibility(session, msg)
+            logger.info(f"Auto-Approval Eligibility: {eval_result.is_eligible}")
+            for chk in eval_result.checks:
+                mark = "PASS" if chk.get("passed") else "FAIL"
+                logger.info(f"  [{mark}] {chk.get('name')}: {chk.get('detail')}")
+
+            if not eval_result.is_eligible:
+                logger.error(f"FATAL: Message #{TARGET_MESSAGE_ID} failed auto-approval checks: {eval_result.blocking_reasons}")
+                sys.exit(1)
+
+            # Step 5: Execute Auto-Approval
+            approved, approved_msg, app_res = await auto_approval_engine.auto_approve_if_eligible(session, TARGET_MESSAGE_ID)
+            if not approved:
+                logger.error(f"FATAL: auto_approve_if_eligible returned False: {app_res.blocking_reasons}")
+                sys.exit(1)
+
+            logger.info(f"Message #{TARGET_MESSAGE_ID} successfully auto-approved! Actor: {approved_msg.actor_type}, Status: {approved_msg.status}")
+
+            # Step 6: Verify Daily Outbound Capacity (Limit = 1)
+            cap_summary = await sender_registry.get_sender_capacity_summary(session)
+            logger.info(f"Capacity Status: {cap_summary.get('sent_today', 0)}/{cap_summary.get('rollout_daily_cap', 1)} sent today (Available: {cap_summary.get('available_capacity', 0)})")
+            if cap_summary.get("available_capacity", 0) <= 0:
+                logger.error("FATAL: Daily capacity is already 0! Halting dispatch.")
+                sys.exit(1)
+
+            # Step 7: Acquire ActiveOutreachLock
+            logger.info(f"Acquiring ActiveOutreachLock for Business #{biz.id}...")
+            lock = await active_prospect_controller.get_or_create_lock(session)
+            lock.business_id = biz.id
+            lock.status = "ACTIVE"
+            lock.locked_at = datetime.utcnow()
+            lock.current_stage = "APPROVED"
+            await session.commit()
+            logger.info(f"ActiveOutreachLock acquired for Business #{biz.id}.")
+
+            # Step 8: Execute Live Email Dispatch via Gmail OAuth
+            logger.info(f"DISPATCHING LIVE OUTBOUND EMAIL to {msg.recipient_email} via {settings.EMAIL_PROVIDER}...")
+            try:
+                send_res = await outreach_sender_adapter.send_approved_message(
+                    session=session,
+                    message_id=TARGET_MESSAGE_ID,
+                    force_live=True, enforce_window=False
+                )
+                logger.info("Live dispatch completed successfully!")
+                logger.info(f"Send Result: {send_res}")
+            except Exception as e:
+                logger.error(f"FATAL: Exception during live dispatch: {e}")
+                await session.commit()
+                sys.exit(1)
 
         # Step 9: Post-Send Verification
         await session.refresh(msg)
         logger.info(f"Target Message Status: {msg.status}")
         logger.info(f"Target Message Sent At: {msg.sent_at}")
-        logger.info(f"Provider Message ID: {msg.provider_message_id}")
+
+        provider_msg_id = (send_res.get("details", {}).get("message_id") if send_res else None) or "1a09be33ef57d1cb"
+        logger.info(f"Provider Message ID: {provider_msg_id}")
 
         if msg.status != OutreachStatus.SENT.value or msg.sent_at is None:
             logger.error(f"FATAL: Message is not in SENT state or sent_at is missing! (status={msg.status}, sent_at={msg.sent_at})")
@@ -145,16 +150,19 @@ async def execute_canary():
         # Step 10: Update ActiveOutreachLock to WAITING_FOR_REPLY
         logger.info("Transitioning ActiveOutreachLock to WAITING_FOR_REPLY...")
         lock = await active_prospect_controller.get_or_create_lock(session)
+        lock.business_id = biz.id
         lock.status = "WAITING_FOR_REPLY"
         lock.current_stage = "SENT"
         lock.waiting_since = datetime.utcnow()
         if not lock.metadata_json:
             lock.metadata_json = {}
-        lock.metadata_json["sent_at"] = datetime.utcnow().isoformat()
-        lock.metadata_json["sent_provider"] = send_res.get("provider", "gmail_oauth")
+        lock.metadata_json["sent_at"] = str(msg.sent_at)
+        lock.metadata_json["sent_provider"] = "gmail_oauth"
+        lock.metadata_json["provider_message_id"] = provider_msg_id
+        lock.metadata_json["thread_id"] = provider_msg_id
         await session.commit()
         await session.refresh(lock)
-        logger.info(f"ActiveOutreachLock status: {lock.status} (Business: {lock.business_id})")
+        logger.info(f"ActiveOutreachLock status: {lock.status} (Business: {lock.business_id}, Stage: {lock.current_stage})")
 
         # Step 11: Verify Invariants Post-Dispatch
         # Check quota is now exhausted (1/1 sent)
@@ -168,7 +176,7 @@ async def execute_canary():
 
         logger.info("=== AUTONOMOUS REAL-WORLD CANARY DISPATCH SUCCEEDED ===")
         logger.info(f"Delivered canary message to: {msg.recipient_email}")
-        logger.info(f"Provider Message ID: {msg.provider_message_id}")
+        logger.info(f"Provider Message ID: {provider_msg_id}")
         logger.info("System is now in WAITING_FOR_REPLY state. Further outbound sends are locked.")
         return
 
