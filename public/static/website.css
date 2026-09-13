@@ -208,9 +208,6 @@ a {
   color: #ffffff;
   box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
 }
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
 
 .btn-primary-header {
   font-size: 0.84rem;
@@ -1010,5 +1007,27 @@ a {
   .footer-top-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .header-actions .btn-portal,
+  .header-actions .btn-primary-header {
+    display: none !important;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .hero-section {
+    overflow: hidden;
+    max-width: 100vw;
+  }
+  .hero-glow-bg {
+    max-width: 100vw;
+    width: 320px;
   }
 }

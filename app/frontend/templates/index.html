@@ -519,22 +519,106 @@
         @media (max-width: 1024px) {
             .dashboard-split-grid, .ceo-split-grid { grid-template-columns: 1fr !important; }
             .funnel-steps-grid { grid-template-columns: repeat(4, 1fr) !important; }
-            .ceo-funnel-container { flex-wrap: wrap !important; }
+            .ceo-funnel-container, .ceo-pipeline-funnel-bar {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+                overflow-x: visible !important;
+            }
+            .ceo-funnel-arrow { display: none !important; }
+            .ceo-funnel-step {
+                min-width: 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                justify-content: center !important;
+            }
         }
         @media (max-width: 768px) {
             body { flex-direction: column !important; }
-            .sidebar { display: none !important; position: fixed !important; top: 0 !important; left: -280px !important; z-index: 1200 !important; }
-            .sidebar.open { display: flex !important; left: 0 !important; }
+            .sidebar, .agency-sidebar { display: none !important; }
             .mobile-header { display: flex !important; }
             .main-wrapper { width: 100% !important; }
+            .agency-content-area, .view-container {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                padding-bottom: 76px !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .agency-topbar {
+                padding: 0 12px !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+            }
+            .agency-search-pill {
+                max-width: 140px !important;
+                width: auto !important;
+                flex: 0 1 auto !important;
+            }
+            .agency-search-badge { display: none !important; }
+            .agency-topbar-actions {
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
+            .agency-topbar-user-status { display: none !important; }
+            #deliverability-readiness-hud-container { display: none !important; }
+
             .kpi-grid, .metrics-grid, .ceo-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .funnel-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
-            .ceo-funnel-container { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+            .ceo-funnel-container, .ceo-pipeline-funnel-bar {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px !important;
+                overflow-x: visible !important;
+            }
             .ceo-funnel-arrow { display: none !important; }
+            .ceo-funnel-step {
+                min-width: 0 !important;
+                width: 100% !important;
+                padding: 6px 4px !important;
+                font-size: 0.68rem !important;
+                box-sizing: border-box !important;
+                justify-content: center !important;
+            }
+
+            /* Corridors on mobile */
+            #ceo-campaigns-header { display: none !important; }
+            .corridor-row {
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                padding: 8px !important;
+            }
+            .corridor-zone-left {
+                flex: 1 1 auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
+            }
+            .corridor-zone-right {
+                flex: 0 0 auto !important;
+                margin-left: auto !important;
+            }
+            .corridor-zone-middle {
+                flex: 0 0 100% !important;
+                width: 100% !important;
+                padding: 2px 0 0 0 !important;
+            }
         }
         @media (max-width: 480px) {
             .kpi-grid, .metrics-grid, .ceo-kpi-grid { grid-template-columns: 1fr !important; }
-            .ceo-funnel-container { grid-template-columns: 1fr !important; }
+            .agency-search-pill { display: none !important; }
+            #ceo-simulation-badge span:last-child { display: none !important; }
+            #ceo-simulation-badge { padding: 4px 6px !important; }
+            #ceo-backend-health-text { display: none !important; }
+            #ceo-backend-health-pill { padding: 4px 6px !important; }
+            .ceo-funnel-container, .ceo-pipeline-funnel-bar {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 5px !important;
+            }
+            .ceo-funnel-step {
+                font-size: 0.62rem !important;
+                padding: 5px 3px !important;
+            }
         }
     </style>
 </head>
@@ -888,7 +972,7 @@
                         </div>
 
                         <!-- SECTION 2 — 9-STAGE VISUAL PIPELINE FUNNEL -->
-                        <div class="ceo-pipeline-funnel-bar" id="ceo-pipeline-funnel-bar">
+                        <div class="ceo-pipeline-funnel-bar ceo-funnel-container" id="ceo-pipeline-funnel-bar">
                             <div class="ceo-funnel-step active" id="funnel-step-discovery">
                                 <span>1. DISCOVERY</span>
                                 <span class="ceo-funnel-step-count" id="step-cnt-discovery">0</span>
@@ -1092,15 +1176,15 @@
 
                         <!-- SECTION 3 — LIVE OPERATIONS ACTIVITY STREAM -->
                         <div class="agency-panel-card" id="ceo-live-ops-card" style="padding:14px 16px;">
-                            <div class="agency-panel-card-header" style="margin-bottom:10px;">
+                            <div class="agency-panel-card-header" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <span class="pulse-dot" style="background:#10b981; box-shadow:0 0 6px #10b981; width:6px; height:6px;"></span>
                                     <span class="agency-panel-title" style="font-size:0.85rem; font-weight:700;">Live Operations</span>
                                     <span style="font-size:0.72rem; color:#71717a; font-weight:400;">Autonomous Execution Timeline</span>
                                 </div>
-                                <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                     <span class="badge" style="font-size:0.65rem; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">SIMULATION MODE (DRY RUN)</span>
-                                    <span style="font-size:0.72rem; color:#a1a1aa; cursor:pointer;" onclick="navToView('runs')">View History →</span>
+                                    <span style="font-size:0.72rem; color:#a1a1aa; cursor:pointer; white-space:nowrap; flex-shrink:0;" onclick="navToView('runs')">View History →</span>
                                 </div>
                             </div>
                             <div id="ceo-recent-activity-list" style="display:flex; flex-direction:column; gap:6px; min-height:120px;">
