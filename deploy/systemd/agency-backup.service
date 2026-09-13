@@ -1,0 +1,19 @@
+# /etc/systemd/system/agency-backup.service
+[Unit]
+Description=Agency OS Automated Hourly Database Backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=agency
+Group=agency
+WorkingDirectory=/opt/agency
+EnvironmentFile=/opt/agency/.env
+Environment="PYTHONPATH=/opt/agency"
+Environment="APP_ENV=production"
+
+ExecStart=/opt/agency/venv/bin/python3 /opt/agency/scripts/run_backup.py
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agency-backup

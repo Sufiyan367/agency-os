@@ -1,0 +1,14 @@
+# /etc/systemd/system/agency-backup.timer
+[Unit]
+Description=Hourly Schedule for Agency OS Database Backups (60-Minute RPO Target)
+Requires=agency-backup.service
+
+[Timer]
+# Trigger on the hour every hour: 00:00, 01:00, etc.
+OnCalendar=*-*-* *:00:00
+# Run immediately on boot/startup if last trigger was missed
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

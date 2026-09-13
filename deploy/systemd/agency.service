@@ -1,0 +1,52 @@
+# /etc/systemd/system/agency.service
+[Unit]
+Description=Autonomous B2B Lead-Gen & Sales Agency 24/7 Cloud Daemon
+After=network.target network-online.target systemd-sysctl.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agency
+Group=agency
+WorkingDirectory=/opt/agency
+EnvironmentFile=/opt/agency/.env
+Environment="PYTHONPATH=/opt/agency"
+Environment="PYTHONUNBUFFERED=1"
+Environment="APP_ENV=production"
+
+# Launch the unified server with supervisor restart handling
+ExecStart=/opt/agency/venv/bin/python -m app.service.runner
+
+# Robust Crash Recovery: Auto-restart on any failure within 5 seconds
+Restart=always
+RestartSec=5s
+
+# Graceful termination: Give FastAPI/SQLite 30s to commit in-flight transactions
+TimeoutStopSec=30s
+KillMode=mixed
+
+# Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+
+# Resource Limits & Bounded Memory Safeguards (Tuned for 2GB VPS)
+LimitNOFILE=65535
+MemoryHigh=1200M
+MemoryMax=1500M
+TasksMax=100
+
+# Logging to journald and syslog
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agency-daemon
+
+[Install]
+WantedBy=multi-user.target

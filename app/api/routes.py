@@ -416,11 +416,43 @@ async def health(db: AsyncSession = Depends(get_db)):
         "currency": getattr(settings, "RAZORPAY_CURRENCY", "USD")
     }
 
-    overall_ok = (db_status == "connected") and bool(worker_status.get("is_running", False))
+    # 5. System Resources & Backup Observability (Linux-native, lightweight)
+    import shutil
+    disk_telemetry = None
+    try:
+        total_b, used_b, free_b = shutil.disk_usage(os.path.dirname(os.path.abspath(__file__)))
+        disk_telemetry = {
+            "total_gb": round(total_b / (1024**3), 2),
+            "free_gb": round(free_b / (1024**3), 2),
+            "used_percent": round((used_b / (total_b or 1)) * 100, 1)
+        }
+    except Exception:
+        pass
+
+    backup_info = None
+    try:
+        from app.database.backup import backup_manager
+        recent = backup_manager.list_backups()
+        backup_info = {
+            "backup_count": len(recent),
+            "latest_backup_at": recent[0]["created_at"] if recent else None,
+            "rpo_target_minutes": 60,
+            "rto_target_minutes": 15
+        }
+    except Exception:
+        pass
+
+    overall_state = "HEALTHY"
+    if db_status != "connected":
+        overall_state = "UNHEALTHY"
+    elif not bool(worker_status.get("is_running", False)):
+        overall_state = "DEGRADED"
+    elif disk_telemetry and disk_telemetry.get("used_percent", 0) > 90:
+        overall_state = "DEGRADED"
 
     return {
         "status": "ok" if db_status == "connected" else "degraded",
-        "overall_state": "HEALTHY" if overall_ok else "DEGRADED",
+        "overall_state": overall_state,
         "service": settings.APP_NAME,
         "env": settings.APP_ENV,
         "database": {
@@ -438,6 +470,8 @@ async def health(db: AsyncSession = Depends(get_db)):
         "discovery": discovery_telemetry,
         "outreach": outreach_telemetry,
         "payment": payment_telemetry,
+        "resources": disk_telemetry,
+        "backups": backup_info,
         "cloud_mode": True,
         "auth_enabled": settings.AUTH_ENABLED
     }
