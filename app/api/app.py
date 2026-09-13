@@ -324,6 +324,9 @@ from app.api.support_routes import router as support_router
 app.include_router(support_router)
 from app.api.intelligence_routes import router as intelligence_router
 app.include_router(intelligence_router)
+from app.api.unified_routes import router as orchestration_router, ceo_router
+app.include_router(orchestration_router)
+app.include_router(ceo_router)
 
 
 @app.get("/setup", response_class=HTMLResponse)
