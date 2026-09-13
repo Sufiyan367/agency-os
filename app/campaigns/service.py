@@ -411,6 +411,40 @@ class CampaignService:
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
+        # Pre-query queue and pipeline breakdowns by country
+        q_queue_by_c = await session.execute(
+            select(Business.country, func.count(OutreachMessage.id))
+            .join(Business, OutreachMessage.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                OutreachMessage.status.in_([OutreachStatus.PENDING_APPROVAL.value, OutreachStatus.APPROVED.value])
+            )
+            .group_by(Business.country)
+        )
+        queue_by_country = {c: count for c, count in q_queue_by_c.all()}
+
+        q_pipe_by_c = await session.execute(
+            select(Business.country, func.sum(Offer.recommended_price))
+            .join(Business, Offer.business_id == Business.id)
+            .where(
+                Business.country.in_(me_codes),
+                Business.pipeline_stage.notin_([PipelineStage.REJECTED.value, PipelineStage.LOST.value])
+            )
+            .group_by(Business.country)
+        )
+        pipe_by_country = {c: float(val or 0.0) for c, val in q_pipe_by_c.all()}
+
+        # Country flags and strategic ranking
+        market_meta = {
+            "SA": {"flag": "🇸🇦", "rank": 1, "tier": "Tier 1 Enterprise", "focus": "Largest TAM, Vision 2030 digitisation contracts"},
+            "AE": {"flag": "🇦🇪", "rank": 2, "tier": "Tier 1 High-Velocity", "focus": "Instant WhatsApp adoption & premium agency budgets"},
+            "QA": {"flag": "🇶🇦", "rank": 3, "tier": "Tier 1 High-Margin", "focus": "Highest deal sizes & sovereign/corporate prestige"},
+            "BH": {"flag": "🇧🇭", "rank": 4, "tier": "Tier 2 Financial", "focus": "Fastest procurement cycle & regional FinTech hub"},
+            "OM": {"flag": "🇴🇲", "rank": 5, "tier": "Tier 2 Modernization", "focus": "Emerging tech investment with low competitor density"},
+            "KW": {"flag": "🇰🇼", "rank": 6, "tier": "Tier 2 High-Net-Worth", "focus": "Family office capital & luxury retail services"},
+            "JO": {"flag": "🇯🇴", "rank": 7, "tier": "Tier 3 Regional Hub", "focus": "Tech talent base & Levant commercial gateway"}
+        }
+
         # 1. Market Details
         markets = []
         for code in me_codes:
@@ -442,9 +476,11 @@ class CampaignService:
                 )
                 sent_total = (await session.execute(q_sent_total)).scalar() or 0
 
+            meta = market_meta.get(code, {"flag": "🌍", "rank": 99, "tier": "Standard", "focus": "Regional"})
             markets.append({
                 "code": code,
                 "name": c_prof.name if c_prof else code,
+                "flag": meta["flag"],
                 "currency": c_prof.currency if c_prof else "USD",
                 "timezone": camp.timezone if camp else "UTC",
                 "daily_target": 10,
@@ -453,7 +489,10 @@ class CampaignService:
                 "is_in_sending_window": in_win,
                 "local_time_formatted": local_time_str,
                 "today_sent": sent_today,
-                "total_sent": sent_total
+                "total_sent": sent_total,
+                "priority_rank": meta["rank"],
+                "tier": meta["tier"],
+                "focus": meta["focus"]
             })
 
         # 2. Qualified prospects by country
@@ -469,6 +508,13 @@ class CampaignService:
         for c_code, count in q_by_country.all():
             if c_code in qualified_by_country:
                 qualified_by_country[c_code] = count
+
+        # Attach dynamic counts to markets list
+        for m in markets:
+            m["qualified_count"] = qualified_by_country.get(m["code"], 0)
+            m["queue_count"] = queue_by_country.get(m["code"], 0)
+            m["pipeline_usd"] = pipe_by_country.get(m["code"], 0.0)
+            m["outreach_status"] = "Active Window" if m["is_in_sending_window"] else "Queued / Off-Hours"
 
         # 3. Qualified prospects by niche
         q_by_niche = await session.execute(
@@ -578,6 +624,96 @@ class CampaignService:
         )
         ceo_exceptions = q_exceptions.scalar() or 0
 
+        # 10. Additional Momentum & Opportunities telemetry
+        q_qual_today = await session.execute(
+            select(func.count(Business.id))
+            .where(
+                Business.country.in_(me_codes),
+                Business.verification_status == "VERIFIED",
+                Business.created_at >= today_start
+            )
+        )
+        qual_today = q_qual_today.scalar() or 0
+
+        q_opps = await session.execute(
+            select(func.count(Business.id))
+            .where(
+                Business.country.in_(me_codes),
+                Business.pipeline_stage.in_([PipelineStage.MEETING.value, PipelineStage.PROPOSAL.value, PipelineStage.WON.value])
+            )
+        )
+        opportunities_count = q_opps.scalar() or 0
+
+        # Categorized 4 Primary Verticals
+        total_qual = sum(qualified_by_country.values())
+        clinics_count = sum(c for k, c in qualified_by_niche.items() if any(w in k.lower() for w in ["clinic", "health", "medical", "dental"]))
+        restaurants_count = sum(c for k, c in qualified_by_niche.items() if any(w in k.lower() for w in ["restaurant", "cafe", "hospitality", "dining"]))
+        real_estate_count = sum(c for k, c in qualified_by_niche.items() if any(w in k.lower() for w in ["real estate", "property", "developer", "realty"]))
+        services_count = max(0, total_qual - (clinics_count + restaurants_count + real_estate_count))
+
+        niches_detail = [
+            {
+                "name": "Clinics & Medical",
+                "icon": "🏥",
+                "count": clinics_count,
+                "tier": "Tier 1 Priority",
+                "tag": "High Margin",
+                "desc": "Dental, aesthetic, cosmetic surgery & specialty medical centres"
+            },
+            {
+                "name": "Restaurants & Hospitality",
+                "icon": "🍽️",
+                "count": restaurants_count,
+                "tier": "Tier 1 Velocity",
+                "tag": "Fast Turnover",
+                "desc": "Fine dining, multi-unit concepts, luxury cafes & hospitality groups"
+            },
+            {
+                "name": "Real Estate & Developers",
+                "icon": "🏢",
+                "count": real_estate_count,
+                "tier": "Tier 1 Deal Size",
+                "tag": "$5k-$25k LTV",
+                "desc": "Commercial brokers, luxury agencies & property asset managers"
+            },
+            {
+                "name": "Home & Commercial Services",
+                "icon": "⚡",
+                "count": services_count,
+                "tier": "Tier 2 Scale",
+                "tag": "Contract Retainers",
+                "desc": "HVAC, commercial cleaning, logistics, fitout & engineering firms"
+            }
+        ]
+
+        momentum = {
+            "qualified_today": qual_today,
+            "target_today": 70,
+            "remaining_today": max(0, 70 - qual_today),
+            "outreach_ratio": f"{me_sent_count}/{rollout.daily_max_real_emails}",
+            "positive_signals": me_interested_count + me_replies_count,
+            "active_opportunities": opportunities_count,
+            "conversion_rate_pct": round((me_replies_count / me_sent_count * 100) if me_sent_count > 0 else 0.0, 1)
+        }
+
+        upcoming_targets = {
+            "next_discovery": "08:00 GST (+4)",
+            "next_batch": "10 Prospects / Market",
+            "next_outreach": "09:00 - 17:00 Local",
+            "next_review": "CEO Audit 18:00 GST",
+            "pipeline_target": "$105,000 / Mo"
+        }
+
+        country_priorities = [
+            {"rank": 1, "code": "SA", "name": "Saudi Arabia", "flag": "🇸🇦", "currency": "SAR", "reason": "Largest enterprise TAM & Vision 2030 budget allocation"},
+            {"rank": 2, "code": "AE", "name": "United Arab Emirates", "flag": "🇦🇪", "currency": "AED", "reason": "Dense luxury commerce, instant WhatsApp & executive response"},
+            {"rank": 3, "code": "QA", "name": "Qatar", "flag": "🇶🇦", "currency": "QAR", "reason": "Highest average deal size ($5k-$15k) & sovereign cash flow"},
+            {"rank": 4, "code": "BH", "name": "Bahrain", "flag": "🇧🇭", "currency": "BHD", "reason": "Fastest procurement approval & regional financial gateway"},
+            {"rank": 5, "code": "OM", "name": "Oman", "flag": "🇴🇲", "currency": "OMR", "reason": "Modernizing services sector with low competitor saturation"},
+            {"rank": 6, "code": "KW", "name": "Kuwait", "flag": "🇰🇼", "currency": "KWD", "reason": "High family-office purchasing power & private medical demand"},
+            {"rank": 7, "code": "JO", "name": "Jordan", "flag": "🇯🇴", "currency": "JOD", "reason": "Regional technology hub & commercial operations bridgehead"}
+        ]
+
         return {
             "region": "Middle East (Phase 1 Acquisition Focus)",
             "active_markets": markets,
@@ -586,6 +722,10 @@ class CampaignService:
             "total_daily_discovery_target": 70,
             "qualified_by_country": qualified_by_country,
             "qualified_by_niche": qualified_by_niche,
+            "niches_detail": niches_detail,
+            "momentum": momentum,
+            "upcoming_targets": upcoming_targets,
+            "country_priorities": country_priorities,
             "email_queue_count": email_queue_count,
             "whatsapp_eligible_count": whatsapp_eligible_count,
             "whatsapp_ineligible_count": whatsapp_ineligible_count,

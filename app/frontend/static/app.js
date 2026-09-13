@@ -1043,6 +1043,25 @@ const COUNTRY_FLAGS_MAP = {
     KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', JO: '🇯🇴'
 };
 
+// Middle East Phase 1 Acquisition Hub interactive filtering
+window.filterMeCountry = function(code, btn) {
+    document.querySelectorAll('.me-country-chip').forEach(el => el.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const rows = document.querySelectorAll('#me-country-table-tbody tr');
+    rows.forEach(r => {
+        if (code === 'ALL') {
+            r.style.display = '';
+            r.classList.remove('row-selected');
+        } else if (r.getAttribute('data-code') === code) {
+            r.style.display = '';
+            r.classList.add('row-selected');
+        } else {
+            r.style.display = 'none';
+            r.classList.remove('row-selected');
+        }
+    });
+};
+
 function renderCeoMiddleEastPanel(me) {
     if (!me) return;
 
@@ -1051,27 +1070,118 @@ function renderCeoMiddleEastPanel(me) {
         if (el) el.textContent = val;
     };
 
+    // 1. Core KPIs
     setElText('me-val-daily-target', `${me.total_daily_discovery_target || 70} / day`);
     setElText('me-val-email-queue', me.email_queue_count ?? 0);
-    setElText('me-val-whatsapp-eligible', `${me.whatsapp_eligible_count ?? 0} (Consent gate: 0 unsolicited)`);
+    setElText('me-val-whatsapp-eligible', `${me.whatsapp_eligible_count ?? 0}`);
 
     const cap = me.sender_capacity || {};
-    setElText('me-val-sender-cap', `${cap.available_capacity ?? 0}/${cap.daily_max_real_emails ?? 1} (Stage 1 Canary)`);
+    setElText('me-val-sender-cap', `${cap.available_capacity ?? 0}/${cap.daily_max_real_emails ?? 1} (Canary)`);
     setElText('me-val-pipeline-val', `$${Number(me.pipeline_value_usd || 0).toLocaleString()}`);
     setElText('me-val-exceptions', me.ceo_exceptions_count ?? 0);
 
-    // Country breakdown
-    const cEl = document.getElementById('me-breakdown-country');
-    if (cEl && me.qualified_by_country) {
-        const cParts = Object.entries(me.qualified_by_country).map(([c, count]) => `${c}: ${count}`);
-        cEl.textContent = cParts.join(' · ') || 'AE: 0 · SA: 0 · QA: 0 · KW: 0 · OM: 0 · BH: 0 · JO: 0';
+    // 2. Chip counts
+    const qualByCountry = me.qualified_by_country || {};
+    const totalQual = Object.values(qualByCountry).reduce((a, b) => a + b, 0);
+    setElText('me-chip-all-count', totalQual);
+    setElText('me-chip-ae-count', qualByCountry['AE'] || 0);
+    setElText('me-chip-sa-count', qualByCountry['SA'] || 0);
+    setElText('me-chip-qa-count', qualByCountry['QA'] || 0);
+    setElText('me-chip-kw-count', qualByCountry['KW'] || 0);
+    setElText('me-chip-om-count', qualByCountry['OM'] || 0);
+    setElText('me-chip-bh-count', qualByCountry['BH'] || 0);
+    setElText('me-chip-jo-count', qualByCountry['JO'] || 0);
+
+    // 3. Qualified by Country Table
+    const tbody = document.getElementById('me-country-table-tbody');
+    if (tbody && me.active_markets) {
+        // Sort markets by strategic priority rank
+        const sortedMarkets = [...me.active_markets].sort((a, b) => (a.priority_rank || 99) - (b.priority_rank || 99));
+        
+        tbody.innerHTML = sortedMarkets.map(m => {
+            const statusDotClass = m.is_in_sending_window ? 'active' : 'idle';
+            const statusLabel = m.is_in_sending_window ? 'Active Window' : 'Queued (Off-Hrs)';
+            const qCount = m.qualified_count || 0;
+            const qHighlight = qCount > 0 ? 'color:#38bdf8; font-weight:700;' : 'color:#71717a;';
+            const queueCount = m.queue_count || 0;
+            const queueHighlight = queueCount > 0 ? 'color:#fbbf24; font-weight:700;' : 'color:#71717a;';
+            const pipeFormatted = Number(m.pipeline_usd || 0).toLocaleString();
+
+            return `
+                <tr data-code="${m.code}" onclick="filterMeCountry('${m.code}', document.querySelector('.me-country-chip[data-country=\\'${m.code}\\']'))">
+                    <td style="color:#71717a; font-family:var(--font-mono);">${m.priority_rank || '—'}</td>
+                    <td>
+                        <span style="font-size:1.05rem; margin-right:4px;">${m.flag || '🌍'}</span>
+                        <strong style="color:#ffffff;">${m.name}</strong>
+                        <span style="font-size:0.68rem; color:#888888; font-family:var(--font-mono); margin-left:2px;">(${m.code})</span>
+                    </td>
+                    <td class="num-col" style="${qHighlight}">${qCount}</td>
+                    <td class="num-col" style="${queueHighlight}">${queueCount}</td>
+                    <td class="num-col" style="color:#d4d4d8;">${m.today_sent || 0} / ${m.daily_target || 10}</td>
+                    <td class="num-col" style="color:#34d399;">$${pipeFormatted} <span style="font-size:0.62rem; color:#71717a;">${m.currency}</span></td>
+                    <td style="white-space:nowrap; font-size:0.72rem;">
+                        <span class="me-status-dot ${statusDotClass}"></span>
+                        <span style="color:${m.is_in_sending_window ? '#34d399' : '#888888'};">${statusLabel}</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    // Niche breakdown
-    const nEl = document.getElementById('me-breakdown-niche');
-    if (nEl && me.qualified_by_niche) {
-        const nParts = Object.entries(me.qualified_by_niche).map(([n, count]) => `${n}: ${count}`);
-        nEl.textContent = nParts.length > 0 ? nParts.join(' · ') : '10 active commercial niches (Restaurants, Clinics, Real Estate, Salons, Auto, HVAC, Hotels, Fitness, Services, Retail)';
+    // 4. Structured Active Niches Grid
+    const nichesContainer = document.getElementById('me-niches-container');
+    if (nichesContainer && me.niches_detail) {
+        nichesContainer.innerHTML = me.niches_detail.map(n => `
+            <div class="me-niche-card">
+                <div class="me-niche-header">
+                    <div class="me-niche-name">
+                        <span style="font-size:1.05rem;">${n.icon}</span>
+                        <span>${n.name}</span>
+                    </div>
+                    <div class="me-niche-count">${n.count} qualified</div>
+                </div>
+                <div class="me-niche-desc">${n.desc}</div>
+                <div class="me-niche-badges">
+                    <span class="me-niche-tag">${n.tier}</span>
+                    <span class="me-niche-tag" style="color:#38bdf8;">${n.tag}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 5. Upcoming Targets
+    if (me.upcoming_targets) {
+        setElText('me-target-discovery', me.upcoming_targets.next_discovery || '08:00 GST (+4)');
+        setElText('me-target-batch', me.upcoming_targets.next_batch || '10 Prospects / Market');
+        setElText('me-target-outreach', me.upcoming_targets.next_outreach || '09:00 - 17:00 Local');
+        setElText('me-target-review', me.upcoming_targets.next_review || '18:00 GST Audit');
+        setElText('me-target-pipeline', me.upcoming_targets.pipeline_target || '$105,000 / Mo');
+    }
+
+    // 6. Acquisition Momentum
+    if (me.momentum) {
+        setElText('me-mom-qual-today', `${me.momentum.qualified_today ?? 0} / 70`);
+        setElText('me-mom-remaining', `${me.momentum.remaining_today ?? 70}`);
+        setElText('me-mom-outreach', `${me.momentum.outreach_ratio ?? '0 / 1'}`);
+        setElText('me-mom-signals', `${me.momentum.positive_signals ?? 0}`);
+        setElText('me-mom-opps', `${me.momentum.active_opportunities ?? 0}`);
+        setElText('me-mom-conversion', `${me.momentum.conversion_rate_pct ?? '0.0'}%`);
+    }
+
+    // 7. Country Priority Ranking
+    const prioritiesContainer = document.getElementById('me-priorities-container');
+    if (prioritiesContainer && me.country_priorities) {
+        prioritiesContainer.innerHTML = me.country_priorities.map(p => `
+            <div class="me-priority-row">
+                <div class="me-priority-left">
+                    <span class="me-priority-rank">${p.rank}</span>
+                    <span style="font-size:1rem;">${p.flag}</span>
+                    <span class="me-priority-name">${p.name}</span>
+                    <span style="font-size:0.65rem; color:#71717a; font-family:var(--font-mono);">(${p.currency})</span>
+                </div>
+                <div class="me-priority-focus" title="${p.reason}">${p.reason}</div>
+            </div>
+        `).join('');
     }
 }
 

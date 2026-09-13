@@ -1320,66 +1320,210 @@
                 </div>
 
                 <!-- SECTION 4A — MIDDLE EAST PHASE 1 ACQUISITION HUB -->
-                <div class="agency-panel-card agency-dashboard-full-width" id="ceo-middle-east-panel" style="border:1px solid rgba(245,158,11,0.25); background:linear-gradient(180deg, rgba(245,158,11,0.03) 0%, rgba(9,9,11,0.6) 100%);">
-                    <div class="agency-panel-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.1rem;">🌍</span>
-                            <span class="agency-panel-title" style="margin-bottom:0; font-size:0.85rem; font-weight:700; letter-spacing:0.02em; color:#f59e0b;">Middle East Phase 1 Acquisition Hub</span>
-                            <span class="badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-size:0.65rem; font-weight:700;">PHASE 1 PRIORITY</span>
+                <!-- SECTION 4A — MIDDLE EAST PHASE 1 ACQUISITION HUB -->
+                <div class="me-hub-panel agency-dashboard-full-width" id="ceo-middle-east-panel">
+                    <!-- 1. Header Bar -->
+                    <div class="me-hub-header">
+                        <div class="me-hub-title-group">
+                            <span class="me-hub-title"><span>🌍</span> Middle East Phase 1 Acquisition Hub</span>
+                            <span class="me-pill amber">PHASE 1 PRIORITY</span>
+                            <span class="me-pill emerald">CANARY ACTIVE · STAGE 1</span>
+                            <span class="me-pill neutral">OPT-IN CONSENT ENFORCED</span>
                         </div>
-                        <div style="font-size:0.72rem; color:#a1a1aa;">
-                            Discovery Target: <strong style="color:#fbbf24; font-weight:700;">10/country/day = 70/day total</strong>
-                        </div>
-                    </div>
-
-                    <!-- 7 Active Market Indicators -->
-                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;" id="me-markets-badges">
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇦🇪 UAE (AED)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇸🇦 Saudi Arabia (SAR)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇶🇦 Qatar (QAR)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇰🇼 Kuwait (KWD)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇴🇲 Oman (OMR)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇧🇭 Bahrain (BHD)</span>
-                        <span class="badge" style="background:rgba(255,255,255,0.05); color:#f4f4f5; font-size:0.7rem; padding:4px 8px; border:1px solid rgba(255,255,255,0.1);">🇯🇴 Jordan (JOD)</span>
-                    </div>
-
-                    <!-- Middle East Metrics Summary Grid (Standardized 6-card grid) -->
-                    <div class="me-metrics-grid">
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">Daily ME Target</div>
-                            <div class="me-metric-val" style="color:#fbbf24;" id="me-val-daily-target">70 / day</div>
-                        </div>
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">ME Email Queue</div>
-                            <div class="me-metric-val" style="color:#38bdf8;" id="me-val-email-queue">0</div>
-                        </div>
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">WhatsApp Eligible</div>
-                            <div class="me-metric-val" style="color:#a1a1aa;" id="me-val-whatsapp-eligible">0 (Opt-in req)</div>
-                        </div>
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">Sender Capacity</div>
-                            <div class="me-metric-val" style="color:#10b981;" id="me-val-sender-cap">1/day (Canary)</div>
-                        </div>
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">ME Pipeline Value</div>
-                            <div class="me-metric-val" style="color:#34d399;" id="me-val-pipeline-val">$0</div>
-                        </div>
-                        <div class="me-metric-card">
-                            <div class="me-metric-label">CEO Exceptions</div>
-                            <div class="me-metric-val" style="color:#f4f4f5;" id="me-val-exceptions">0</div>
+                        <div class="me-hub-target-summary">
+                            <span>Discovery Target:</span>
+                            <strong style="color:#ffffff; font-family:var(--font-mono); font-weight:700;">10 / country / day = 70 / day total</strong>
                         </div>
                     </div>
 
-                    <!-- Qualified Breakdown by Country & Niche -->
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.72rem;">
-                        <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
-                            <div style="color:#a1a1aa; font-weight:600; margin-bottom:6px;">Qualified by Country</div>
-                            <div id="me-breakdown-country" style="color:#71717a;">AE: 0 · SA: 0 · QA: 0 · KW: 0 · OM: 0 · BH: 0 · JO: 0</div>
+                    <!-- 2. Interactive Country Selector / Filter Bar -->
+                    <div class="me-country-chips-bar" id="me-country-chips">
+                        <button type="button" class="me-country-chip active" data-country="ALL" onclick="filterMeCountry('ALL', this)">
+                            <span>🌐</span> All 7 Markets <span class="chip-count" id="me-chip-all-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="AE" onclick="filterMeCountry('AE', this)">
+                            <span>🇦🇪</span> AE · UAE <span class="chip-count" id="me-chip-ae-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="SA" onclick="filterMeCountry('SA', this)">
+                            <span>🇸🇦</span> SA · Saudi Arabia <span class="chip-count" id="me-chip-sa-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="QA" onclick="filterMeCountry('QA', this)">
+                            <span>🇶🇦</span> QA · Qatar <span class="chip-count" id="me-chip-qa-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="KW" onclick="filterMeCountry('KW', this)">
+                            <span>🇰🇼</span> KW · Kuwait <span class="chip-count" id="me-chip-kw-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="OM" onclick="filterMeCountry('OM', this)">
+                            <span>🇴🇲</span> OM · Oman <span class="chip-count" id="me-chip-om-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="BH" onclick="filterMeCountry('BH', this)">
+                            <span>🇧🇭</span> BH · Bahrain <span class="chip-count" id="me-chip-bh-count">0</span>
+                        </button>
+                        <button type="button" class="me-country-chip" data-country="JO" onclick="filterMeCountry('JO', this)">
+                            <span>🇯🇴</span> JO · Jordan <span class="chip-count" id="me-chip-jo-count">0</span>
+                        </button>
+                    </div>
+
+                    <!-- 3. Dual-Column Operational Grid (~62% Left / ~38% Right) -->
+                    <div class="me-hub-grid">
+                        <!-- LEFT COLUMN: Core Acquisition Engine -->
+                        <div class="me-hub-left-col">
+                            <!-- 6-Tile Executive KPI Grid -->
+                            <div class="me-kpis-grid">
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">Daily ME Target</div>
+                                    <div class="me-kpi-val amber" id="me-val-daily-target">70 / day</div>
+                                    <div class="me-kpi-sub">10 qualified / country</div>
+                                </div>
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">Email Queue</div>
+                                    <div class="me-kpi-val cyan" id="me-val-email-queue">0</div>
+                                    <div class="me-kpi-sub">Pending / Approved</div>
+                                </div>
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">WhatsApp Eligible</div>
+                                    <div class="me-kpi-val" id="me-val-whatsapp-eligible">0</div>
+                                    <div class="me-kpi-sub">0 Unsolicited (Strict Gate)</div>
+                                </div>
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">Sender Capacity</div>
+                                    <div class="me-kpi-val emerald" id="me-val-sender-cap">1/day (Canary)</div>
+                                    <div class="me-kpi-sub">Stage 1 Active Sender</div>
+                                </div>
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">ME Pipeline Value</div>
+                                    <div class="me-kpi-val emerald" id="me-val-pipeline-val">$0</div>
+                                    <div class="me-kpi-sub">Recommended Offer Sum</div>
+                                </div>
+                                <div class="me-kpi-card">
+                                    <div class="me-kpi-label">CEO Exceptions</div>
+                                    <div class="me-kpi-val" id="me-val-exceptions">0</div>
+                                    <div class="me-kpi-sub">Escalations & Reviews</div>
+                                </div>
+                            </div>
+
+                            <!-- Qualified by Country — Full-Width Executive Table -->
+                            <div class="me-table-card">
+                                <div class="me-table-header-row">
+                                    <div class="me-table-title">
+                                        <span>📊</span> Qualified Prospects by Country
+                                    </div>
+                                    <div style="font-size:0.68rem; color:#888888;" id="me-table-meta">
+                                        7 Phase 1 Focus Corridors
+                                    </div>
+                                </div>
+                                <div class="me-table-scroll">
+                                    <table class="me-country-table" id="me-country-table-el">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:36px;">#</th>
+                                                <th style="width:170px;">🌍 Country</th>
+                                                <th class="num-col" style="width:90px;">Qualified</th>
+                                                <th class="num-col" style="width:80px;">Queue</th>
+                                                <th class="num-col" style="width:90px;">Outreach</th>
+                                                <th class="num-col" style="width:110px;">Pipeline</th>
+                                                <th style="width:120px;">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="me-country-table-tbody">
+                                            <!-- Dynamically populated via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Active Niches Structured Grid -->
+                            <div class="me-niches-card">
+                                <div class="me-niches-title-row">
+                                    <div class="me-table-title">
+                                        <span>🎯</span> Active Commercial Niches
+                                    </div>
+                                    <div style="font-size:0.68rem; color:#888888;">
+                                        High-Margin Regional Verticals
+                                    </div>
+                                </div>
+                                <div class="me-niches-grid" id="me-niches-container">
+                                    <!-- Dynamically populated via JS -->
+                                </div>
+                            </div>
                         </div>
-                        <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px 10px;">
-                            <div style="color:#a1a1aa; font-weight:600; margin-bottom:6px;">Active Niches</div>
-                            <div id="me-breakdown-niche" style="color:#71717a;">Restaurants, Clinics, Real Estate, Salons, Auto, HVAC, Hotels, Fitness, Services, Retail</div>
+
+                        <!-- RIGHT COLUMN: Operational Context & Momentum -->
+                        <div class="me-hub-right-col">
+                            <!-- Module A: Upcoming Targets -->
+                            <div class="me-side-card">
+                                <div class="me-side-title">
+                                    <span>🎯 Upcoming Targets</span>
+                                    <span class="me-pill neutral" style="font-size:0.6rem;">PACING</span>
+                                </div>
+                                <div class="me-target-list">
+                                    <div class="me-target-row">
+                                        <span class="me-target-label"><span>🌅</span> Next Discovery Batch</span>
+                                        <span class="me-target-val" id="me-target-discovery">08:00 GST (+4)</span>
+                                    </div>
+                                    <div class="me-target-row">
+                                        <span class="me-target-label"><span>📦</span> Target Batch Volume</span>
+                                        <span class="me-target-val" id="me-target-batch">10 Prospects / Market</span>
+                                    </div>
+                                    <div class="me-target-row">
+                                        <span class="me-target-label"><span>📤</span> Next Outreach Window</span>
+                                        <span class="me-target-val" id="me-target-outreach">09:00 - 17:00 Local</span>
+                                    </div>
+                                    <div class="me-target-row">
+                                        <span class="me-target-label"><span>📋</span> CEO Review Cadence</span>
+                                        <span class="me-target-val" id="me-target-review">18:00 GST Audit</span>
+                                    </div>
+                                    <div class="me-target-row">
+                                        <span class="me-target-label"><span>💰</span> Monthly Pipeline Target</span>
+                                        <span class="me-target-val emerald" id="me-target-pipeline">$105,000 / Mo</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Module B: Acquisition Momentum (2x3 Grid) -->
+                            <div class="me-side-card">
+                                <div class="me-side-title">
+                                    <span>📈 Acquisition Momentum</span>
+                                    <span class="me-pill neutral" style="font-size:0.6rem;">TODAY</span>
+                                </div>
+                                <div class="me-momentum-grid">
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Qualified Today</span>
+                                        <span class="me-momentum-val" id="me-mom-qual-today">0 / 70</span>
+                                    </div>
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Remaining Today</span>
+                                        <span class="me-momentum-val amber" id="me-mom-remaining">70</span>
+                                    </div>
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Outreach Sent / Cap</span>
+                                        <span class="me-momentum-val cyan" id="me-mom-outreach">0 / 1</span>
+                                    </div>
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Positive Signals</span>
+                                        <span class="me-momentum-val emerald" id="me-mom-signals">0</span>
+                                    </div>
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Active Opps</span>
+                                        <span class="me-momentum-val emerald" id="me-mom-opps">0</span>
+                                    </div>
+                                    <div class="me-momentum-tile">
+                                        <span class="me-momentum-label">Conversion Rate</span>
+                                        <span class="me-momentum-val" id="me-mom-conversion">0.0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Module C: Strategic Country Priority Ranking -->
+                            <div class="me-side-card">
+                                <div class="me-side-title">
+                                    <span>🏆 Country Priority Ranking</span>
+                                    <span class="me-pill neutral" style="font-size:0.6rem;">TIER 1 - 3</span>
+                                </div>
+                                <div class="me-priority-list" id="me-priorities-container">
+                                    <!-- Dynamically populated via JS -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -3040,3 +3040,544 @@ body {
 .badge-sev-2 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-sev-3 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
 .badge-sev-4 { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+
+/* ==============================================================================
+   MIDDLE EAST PHASE 1 ACQUISITION HUB — TRUE BLACK EXECUTIVE UI
+   Engineered for zero unused space, responsive dual-column grid, and clean telemetry
+   ============================================================================== */
+
+#ceo-middle-east-panel.me-hub-panel {
+  background: #080808 !important;
+  border: 1px solid #202020 !important;
+  border-radius: 8px !important;
+  padding: 16px 18px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  color: #f4f4f5 !important;
+}
+
+.me-hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.me-hub-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.me-hub-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.me-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.me-pill.amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.me-pill.emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.me-pill.neutral {
+  background: #121212;
+  color: #888888;
+  border: 1px solid #222222;
+}
+
+.me-hub-target-summary {
+  font-size: 0.72rem;
+  color: #888888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Country Quick Selector / Filter Bar */
+.me-country-chips-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.me-country-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: #0d0d0d;
+  border: 1px solid #1f1f1f;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #c4c4c8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+.me-country-chip:hover {
+  background: #181818;
+  border-color: #333333;
+  color: #ffffff;
+}
+.me-country-chip.active {
+  background: #151515;
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+.me-country-chip .chip-count {
+  font-size: 0.65rem;
+  background: #181818;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #888888;
+  font-family: var(--font-mono);
+}
+
+/* Master Full-Width Dual-Column Grid */
+.me-hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1.2fr);
+  gap: 16px;
+  width: 100%;
+  align-items: start;
+  box-sizing: border-box;
+}
+
+.me-hub-left-col,
+.me-hub-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* 6-Card KPI Tiles */
+.me-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.me-kpi-card {
+  background: #0d0d0d;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  transition: border-color 0.15s ease;
+}
+.me-kpi-card:hover {
+  border-color: #2e2e2e;
+}
+
+.me-kpi-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.me-kpi-val {
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  font-family: var(--font-mono, monospace);
+  line-height: 1.15;
+  margin-bottom: 2px;
+}
+.me-kpi-val.emerald { color: #34d399; }
+.me-kpi-val.amber { color: #fbbf24; }
+.me-kpi-val.cyan { color: #38bdf8; }
+
+.me-kpi-sub {
+  font-size: 0.64rem;
+  color: #666666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Full-Width Executive Country Table */
+.me-table-card {
+  background: #0b0b0b;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.me-table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1a1a1a;
+  background: #0e0e0e;
+}
+.me-table-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.me-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.me-country-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  table-layout: fixed;
+}
+
+.me-country-table th {
+  background: #090909;
+  color: #888888;
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #1c1c1c;
+  white-space: nowrap;
+}
+.me-country-table th.num-col {
+  text-align: right;
+}
+
+.me-country-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #161616;
+  color: #d4d4d8;
+  vertical-align: middle;
+}
+.me-country-table td.num-col {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.me-country-table tbody tr {
+  transition: background 0.12s ease;
+  cursor: pointer;
+}
+.me-country-table tbody tr:hover td {
+  background: #141414;
+  color: #ffffff;
+}
+.me-country-table tbody tr.row-selected td {
+  background: rgba(56, 189, 248, 0.08);
+  border-bottom-color: rgba(56, 189, 248, 0.25);
+}
+
+.me-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.me-status-dot.active { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+.me-status-dot.queued { background: #f59e0b; }
+.me-status-dot.idle { background: #6b7280; }
+
+/* Active Niches Structured Grid */
+.me-niches-card {
+  background: #0b0b0b;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  padding: 12px 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.me-niches-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.me-niches-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.me-niche-card {
+  background: #0e0e0e;
+  border: 1px solid #1c1c1c;
+  border-radius: 5px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s ease;
+}
+.me-niche-card:hover {
+  border-color: #2e2e2e;
+}
+
+.me-niche-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.me-niche-name {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.me-niche-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #38bdf8;
+}
+.me-niche-desc {
+  font-size: 0.65rem;
+  color: #777777;
+  line-height: 1.3;
+}
+.me-niche-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.me-niche-tag {
+  font-size: 0.6rem;
+  background: #141414;
+  color: #999999;
+  border: 1px solid #242424;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* Right Column Panels */
+.me-side-card {
+  background: #0b0b0b;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  padding: 12px 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.me-side-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #d4d4d8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #181818;
+}
+
+.me-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.me-target-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #0e0e0e;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+.me-target-label {
+  color: #888888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.me-target-val {
+  color: #ffffff;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* Momentum 2x3 Grid */
+.me-momentum-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.me-momentum-tile {
+  background: #0e0e0e;
+  border: 1px solid #1c1c1c;
+  border-radius: 4px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.me-momentum-label {
+  font-size: 0.63rem;
+  color: #777777;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.me-momentum-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #f4f4f5;
+}
+
+/* Country Priority Ranking List */
+.me-priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.me-priority-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #0e0e0e;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+.me-priority-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.me-priority-rank {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #777777;
+  font-family: var(--font-mono);
+  width: 14px;
+}
+.me-priority-name {
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+.me-priority-focus {
+  font-size: 0.65rem;
+  color: #666666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+/* Responsiveness Contract */
+@media (max-width: 1100px) {
+  .me-hub-grid {
+    grid-template-columns: 1fr;
+  }
+  .me-country-table {
+    table-layout: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .me-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .me-niches-grid {
+    grid-template-columns: 1fr;
+  }
+  .me-country-table th, 
+  .me-country-table td {
+    padding: 7px 8px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .me-kpis-grid {
+    grid-template-columns: 1fr;
+  }
+  .me-country-chips-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .me-country-chip {
+    flex-shrink: 0;
+  }
+  .me-momentum-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
