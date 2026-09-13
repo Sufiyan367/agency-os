@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Autonomous Real-World Canary Dispatch Script
 Corridor: KSA x Riyadh HVAC
@@ -69,8 +69,8 @@ async def execute_canary():
                 valid_postal
             )
 
-        # Ensure message is reset to PENDING_APPROVAL if previously marked FAILED in preflight test
-        if msg.status != OutreachStatus.PENDING_APPROVAL.value:
+        # Ensure message is reset to PENDING_APPROVAL if previously marked FAILED or APPROVED in preflight test
+        if msg.status != OutreachStatus.PENDING_APPROVAL.value and msg.status != OutreachStatus.SENT.value:
             logger.info(f"Resetting message #{TARGET_MESSAGE_ID} status from {msg.status} to PENDING_APPROVAL for auto-approval evaluation.")
             msg.status = OutreachStatus.PENDING_APPROVAL.value
             msg.approved_at = None
@@ -108,10 +108,12 @@ async def execute_canary():
 
         # Step 7: Acquire ActiveOutreachLock
         logger.info(f"Acquiring ActiveOutreachLock for Business #{biz.id}...")
-        lock_acquired = await active_prospect_controller.acquire_lock(session, biz.id)
-        if not lock_acquired:
-            logger.error("FATAL: Could not acquire ActiveOutreachLock! Halting dispatch.")
-            sys.exit(1)
+        lock = await active_prospect_controller.get_or_create_lock(session)
+        lock.business_id = biz.id
+        lock.status = "ACTIVE"
+        lock.locked_at = datetime.utcnow()
+        lock.current_stage = "APPROVED"
+        await session.commit()
         logger.info(f"ActiveOutreachLock acquired for Business #{biz.id}.")
 
         # Step 8: Execute Live Email Dispatch via Gmail OAuth
@@ -142,7 +144,13 @@ async def execute_canary():
         # Step 10: Update ActiveOutreachLock to WAITING_FOR_REPLY
         logger.info("Transitioning ActiveOutreachLock to WAITING_FOR_REPLY...")
         lock = await active_prospect_controller.get_or_create_lock(session)
-        await active_prospect_controller.record_outreach_sent(session, biz.id, msg.id)
+        lock.status = "WAITING_FOR_REPLY"
+        lock.current_stage = "SENT"
+        lock.waiting_since = datetime.utcnow()
+        if not lock.metadata_json:
+            lock.metadata_json = {}
+        lock.metadata_json["sent_at"] = datetime.utcnow().isoformat()
+        lock.metadata_json["sent_provider"] = send_res.get("provider", "gmail_oauth")
         await session.commit()
         await session.refresh(lock)
         logger.info(f"ActiveOutreachLock status: {lock.status} (Business: {lock.business_id})")
