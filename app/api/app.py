@@ -322,6 +322,8 @@ from app.api.campaign_routes import campaign_router
 app.include_router(campaign_router)
 from app.api.support_routes import router as support_router
 app.include_router(support_router)
+from app.api.intelligence_routes import router as intelligence_router
+app.include_router(intelligence_router)
 
 
 @app.get("/setup", response_class=HTMLResponse)

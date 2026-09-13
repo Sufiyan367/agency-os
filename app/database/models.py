@@ -1837,6 +1837,109 @@ class MaintenanceRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+# ==============================================================================
+# 68. MEGA 8: INTELLIGENCE & OPTIMIZATION ENGINE PERSISTENCE
+# ==============================================================================
+
+class IntelligenceSignalRecord(Base):
+    __tablename__ = "intelligence_signals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signal_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), index=True)  # business, customer, ticket, outreach, market
+    entity_id: Mapped[int] = mapped_column(Integer, index=True)
+    signal_type: Mapped[str] = mapped_column(String(100), index=True)  # LEAD_FIT, BUYING_INTENT, CHURN_RISK, etc.
+    epistemic_status: Mapped[str] = mapped_column(String(30), default="INFERENCE", index=True)  # OBSERVED_FACT, INFERENCE, PREDICTION, HYPOTHESIS
+    signal_value: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    confidence_band: Mapped[str] = mapped_column(String(20), default="MEDIUM")  # HIGH, MEDIUM, LOW
+    source: Mapped[str] = mapped_column(String(100), default="deterministic")
+    evidence_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    model_provider: Mapped[str] = mapped_column(String(100), default="local")
+    version: Mapped[str] = mapped_column(String(50), default="v1.0.0")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    __table_args__ = (
+        Index("ix_signals_entity_type_id", "entity_type", "entity_id"),
+        Index("ix_signals_type_created", "signal_type", "created_at"),
+    )
+
+
+class OptimizationRecommendationRecord(Base):
+    __tablename__ = "optimization_recommendations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    recommendation_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), index=True)  # business, pipeline, system, offer
+    entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    category: Mapped[str] = mapped_column(String(50), index=True)  # PIPELINE, PRICING, OUTREACH, SUPPORT, SYSTEM
+    recommendation: Mapped[str] = mapped_column(Text)
+    why: Mapped[str] = mapped_column(Text)
+    evidence: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    expected_impact: Mapped[str] = mapped_column(String(255))
+    confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    risk_level: Mapped[str] = mapped_column(String(20), default="LOW")  # LOW, MEDIUM, HIGH
+    next_action: Mapped[str] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(50), default="GENERATED", index=True)  # GENERATED, VALIDATED, ACCEPTED, REJECTED, EXECUTED, EVALUATED
+    decision_trace: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    executed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    outcome_evaluated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class DataQualityReportRecord(Base):
+    __tablename__ = "data_quality_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    report_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), index=True)  # businesses, contacts, deals, events
+    overall_score: Mapped[float] = mapped_column(Float, default=100.0)
+    duplicate_count: Mapped[int] = mapped_column(Integer, default=0)
+    stale_count: Mapped[int] = mapped_column(Integer, default=0)
+    missing_fields_count: Mapped[int] = mapped_column(Integer, default=0)
+    invalid_domains_count: Mapped[int] = mapped_column(Integer, default=0)
+    anomalies_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ModelUsageLog(Base):
+    __tablename__ = "model_usage_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    correlation_id: Mapped[str] = mapped_column(String(100), index=True)
+    entity_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    operation: Mapped[str] = mapped_column(String(100), index=True)
+    provider: Mapped[str] = mapped_column(String(50), index=True)
+    model_name: Mapped[str] = mapped_column(String(100))
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
+    estimated_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class BlastRadiusReportRecord(Base):
+    __tablename__ = "blast_radius_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    report_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    repair_ticket_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    modified_files: Mapped[List[str]] = mapped_column(JSON, default=list)
+    affected_routes: Mapped[List[str]] = mapped_column(JSON, default=list)
+    affected_services: Mapped[List[str]] = mapped_column(JSON, default=list)
+    affected_models: Mapped[List[str]] = mapped_column(JSON, default=list)
+    regression_risk: Mapped[str] = mapped_column(String(20), default="LOW", index=True)  # LOW, MEDIUM, HIGH, UNKNOWN
+    regression_score: Mapped[float] = mapped_column(Float, default=0.0)
+    rollback_reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reasoning: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+
 
 
 

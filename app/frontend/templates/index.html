@@ -1109,6 +1109,17 @@
                 <li class="agency-nav-section-label" style="margin-top:14px;">
                     <span>OPERATIONS</span>
                 </li>
+                <li class="agency-nav-item" data-view="intelligence" onclick="navToView('intelligence')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="8"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <line x1="12" y1="2" x2="12" y2="4"/>
+                        <line x1="12" y1="20" x2="12" y2="22"/>
+                        <line x1="20" y1="12" x2="22" y2="12"/>
+                        <line x1="2" y1="12" x2="4" y2="12"/>
+                    </svg>
+                    <span>Intelligence</span>
+                </li>
                 <li class="agency-nav-item" data-view="queue" onclick="navToView('queue')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"/>
@@ -3947,6 +3958,113 @@
                 </div>
             </div>
         </section>
+
+        <!-- View: Intelligence & Optimization Engine (Mega Prompt 8) -->
+        <section id="view-intelligence" class="view-container" style="display:none; padding:16px 24px;">
+            <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <h1 style="font-size:1.4rem; font-weight:700; color:#f8fafc; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+                        <span>🧠</span> Intelligence &amp; Optimization Engine
+                        <span class="badge badge-cyan" style="font-size:0.75rem;">MEGA PROMPT 8</span>
+                    </h1>
+                    <p style="color:#94a3b8; font-size:0.8rem; margin:0;">Evidence-driven prioritization, conversation intelligence, funnel analytics, and autonomous optimization recommendations.</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary" onclick="runDataQualityAudit()" style="height:34px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                        <span>🔍</span> <span>Audit Data Quality</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadIntelligenceView()" style="height:34px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                        <span>🔄</span> <span>Refresh Telemetry</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top 4 KPI Metrics -->
+            <div class="kpi-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:20px;">
+                <div class="kpi-card" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <span class="kpi-label" style="font-size:0.7rem; color:#71717a; text-transform:uppercase; font-weight:700;">Expected Pipeline Revenue</span>
+                    <div id="intel-expected-revenue" style="font-size:1.4rem; font-weight:800; color:#10b981; font-family:var(--font-mono); margin-top:4px;">$0.00</div>
+                    <span style="font-size:0.68rem; color:#64748b;">Calibrated P(win) × Deal Value</span>
+                </div>
+                <div class="kpi-card" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <span class="kpi-label" style="font-size:0.7rem; color:#71717a; text-transform:uppercase; font-weight:700;">Lead Data Quality</span>
+                    <div id="intel-data-quality" style="font-size:1.4rem; font-weight:800; color:#38bdf8; font-family:var(--font-mono); margin-top:4px;">100.0/100</div>
+                    <span style="font-size:0.68rem; color:#64748b;">Zero low-quality signal leakage</span>
+                </div>
+                <div class="kpi-card" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <span class="kpi-label" style="font-size:0.7rem; color:#71717a; text-transform:uppercase; font-weight:700;">Host Headroom Forecast</span>
+                    <div id="intel-host-health" style="font-size:1.4rem; font-weight:800; color:#22c55e; font-family:var(--font-mono); margin-top:4px;">HEALTHY</div>
+                    <span style="font-size:0.68rem; color:#64748b;">Disk, DB latency &amp; SSL headroom</span>
+                </div>
+                <div class="kpi-card" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <span class="kpi-label" style="font-size:0.7rem; color:#71717a; text-transform:uppercase; font-weight:700;">Deterministic Savings</span>
+                    <div id="intel-ai-savings" style="font-size:1.4rem; font-weight:800; color:#eab308; font-family:var(--font-mono); margin-top:4px;">98.5%</div>
+                    <span style="font-size:0.68rem; color:#64748b;">Sub-cent local AST &amp; rules vs LLM</span>
+                </div>
+            </div>
+
+            <!-- Two-Column Primary Grid -->
+            <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px; margin-bottom:20px;">
+                <!-- Left: Top Priority Opportunities & Next Best Action -->
+                <div class="dashboard-panel" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #1a1a1a; padding-bottom:10px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:6px;">
+                            <span>🎯</span> Top Priority Opportunities (Expected Value Ranking)
+                        </span>
+                        <span class="badge badge-cyan" style="font-size:0.68rem;">DETERMINISTIC RANKER</span>
+                    </div>
+                    <div id="intel-priority-list" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:0.78rem; color:#71717a; text-align:center; padding:16px;">Loading prioritized prospects...</div>
+                    </div>
+                </div>
+
+                <!-- Right: Active System Recommendations -->
+                <div class="dashboard-panel" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #1a1a1a; padding-bottom:10px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:6px;">
+                            <span>⚡</span> Ranked Optimization Recommendations
+                        </span>
+                        <span class="badge badge-emerald" style="font-size:0.68rem;">POLICY VETTED</span>
+                    </div>
+                    <div id="intel-recommendations-list" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:0.78rem; color:#71717a; text-align:center; padding:16px;">Synthesizing cross-system recommendations...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Three-Column Grid -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+                <!-- Col 1: Funnel Bottleneck Radar -->
+                <div class="dashboard-panel" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <div style="font-size:0.8rem; font-weight:700; color:#ffffff; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <span>📊</span> Conversion Bottlenecks
+                    </div>
+                    <div id="intel-bottlenecks-list" style="font-size:0.75rem; color:#a1a1aa; display:flex; flex-direction:column; gap:8px;">
+                        <div>Auditing conversion velocities...</div>
+                    </div>
+                </div>
+
+                <!-- Col 2: Code Intelligence Benchmarks -->
+                <div class="dashboard-panel" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <div style="font-size:0.8rem; font-weight:700; color:#ffffff; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <span>🔬</span> Code Intelligence Benchmark
+                    </div>
+                    <div id="intel-benchmarks-list" style="font-size:0.75rem; color:#a1a1aa; display:flex; flex-direction:column; gap:6px;">
+                        <div>Benchmarking providers...</div>
+                    </div>
+                </div>
+
+                <!-- Col 3: Predictive Maintenance Alerts -->
+                <div class="dashboard-panel" style="background:#09090b; border:1px solid #1f1f1f; border-radius:8px; padding:14px;">
+                    <div style="font-size:0.8rem; font-weight:700; color:#ffffff; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <span>🛡️</span> Predictive Maintenance Headroom
+                    </div>
+                    <div id="intel-maintenance-list" style="font-size:0.75rem; color:#a1a1aa; display:flex; flex-direction:column; gap:6px;">
+                        <div>Monitoring host headroom...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Lead Detail Modal -->
@@ -4237,6 +4355,6 @@
 
     <script type="module" src="/static/deliverability_hud.js"></script>
     <script type="module" src="/static/project_pipeline_hud.js"></script>
-    <script src="/static/app.js?v=3.5.0"></script>
+    <script src="/static/app.js?v=3.6.0"></script>
 </body>
 </html>
