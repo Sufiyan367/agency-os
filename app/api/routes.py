@@ -2760,8 +2760,28 @@ async def get_client_portal_data_endpoint(
             "is_mock": pay.is_mock
         })
 
+    # Fetch support tickets strictly isolated by customer_id
+    ticket_res = await db.execute(
+        select(SupportTicket).where(SupportTicket.customer_id == customer.id).order_by(desc(SupportTicket.created_at))
+    )
+    support_tickets = ticket_res.scalars().all()
+    ticket_list = [
+        {
+            "id": t.id,
+            "ticket_number": t.ticket_number,
+            "subject": t.subject,
+            "status": t.status,
+            "severity": t.severity,
+            "customer_notification": t.customer_notification,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "resolved_at": t.resolved_at.isoformat() if t.resolved_at else None
+        }
+        for t in support_tickets
+    ]
+
     return {
         "has_account": True,
+        "customer_id": customer.id,
         "client_name": username,
         "company_name": customer.company_name,
         "contact_email": customer.contact_email,
@@ -2778,6 +2798,7 @@ async def get_client_portal_data_endpoint(
         "deliverables": deliverables,
         "tasks": tasks,
         "payments": payment_list,
+        "support_tickets": ticket_list,
         "support_email": getattr(settings, "SUPPORT_EMAIL", "support@agency.internal"),
         "agency_name": settings.APP_NAME
     }

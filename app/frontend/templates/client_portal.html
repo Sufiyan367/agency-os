@@ -301,21 +301,48 @@
         <!-- Agency Support & Contact -->
         <div class="card">
           <div class="card-title">
-            <span>Dedicated Support</span>
+            <span>Customer Support &amp; Maintenance</span>
+            <button class="portal-btn-logout" onclick="openSupportModal()" style="font-size:12px; padding:4px 10px; color:#38bdf8; border-color:rgba(56,189,248,0.3);">Report An Issue +</button>
+          </div>
+          <div id="client-support-tickets" style="margin-bottom:14px;">
+            <!-- Dynamically loaded tickets -->
           </div>
           <div class="support-box">
-            <div style="font-weight: 600; margin-bottom: 6px; color: #fff;">Need assistance with your project?</div>
-            <p style="margin: 0 0 12px; color: var(--cp-text-muted);">
-              Your dedicated agency team is available for technical questions, milestone updates, or custom requests.
+            <div style="font-weight: 600; margin-bottom: 6px; color: #fff;">Autonomous Operations Supervision</div>
+            <p style="margin: 0 0 10px; color: var(--cp-text-muted);">
+              Your systems are monitored 24/7 by our autonomous reliability engine. Technical requests are automatically diagnosed and resolved within minutes.
             </p>
-            <div style="font-size: 12px; color: var(--cp-text-muted); margin-bottom: 4px;">Direct Support Email:</div>
-            <a id="support-email-link" href="mailto:support@agency.internal" style="color: #60a5fa; font-weight: 500; text-decoration: none; word-break: break-all;">support@agency.internal</a>
-            <div style="font-size: 11px; color: #71717a; margin-top: 8px;">Guaranteed response within 4 business hours.</div>
+            <div style="font-size: 11px; color: #71717a;">Guaranteed high-priority response &bull; Direct email: <a id="support-email-link" href="mailto:support@automatedagencyos.tech" style="color:#60a5fa; text-decoration:none;">support@automatedagencyos.tech</a></div>
           </div>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- Support Modal -->
+  <div id="client-support-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:100; align-items:center; justify-content:center;">
+    <div style="background:#09090b; border:1px solid rgba(255,255,255,0.12); border-radius:10px; width:90%; max-width:480px; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
+        <h3 style="margin:0; font-size:16px; font-weight:600; color:#fff;">Submit Support Request</h3>
+        <span onclick="closeSupportModal()" style="font-size:20px; cursor:pointer; color:#71717a;">&times;</span>
+      </div>
+      <form id="client-support-form" onsubmit="submitClientTicket(event)">
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; color:var(--cp-text-muted); margin-bottom:4px;">Issue Summary</label>
+          <input type="text" id="cust-ticket-subject" placeholder="e.g., Contact form webhook timeout on mobile" required style="width:100%; background:#121214; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 10px; color:#fff; font-size:13px; box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12px; color:var(--cp-text-muted); margin-bottom:4px;">Description / Observable Behavior</label>
+          <textarea id="cust-ticket-description" rows="4" placeholder="Describe the symptom or requested adjustment..." required style="width:100%; background:#121214; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 10px; color:#fff; font-size:13px; box-sizing:border-box;"></textarea>
+        </div>
+        <div id="cust-ticket-status" style="display:none; font-size:12px; margin-bottom:12px;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" onclick="closeSupportModal()" class="portal-btn-logout">Cancel</button>
+          <button type="submit" id="btn-submit-ticket" style="background:#38bdf8; border:none; color:#000; font-weight:600; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px;">Submit Ticket &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="/static/client_portal.js"></script>
 </body>

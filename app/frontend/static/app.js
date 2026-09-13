@@ -260,7 +260,10 @@ const VIEW_ALIASES = {
     'system': 'runs',
     'logs': 'runs',
     'system-logs': 'runs',
-    'infrastructure': 'infra'
+    'infrastructure': 'infra',
+    'support': 'support-ops',
+    'support-ops': 'support-ops',
+    'maintenance': 'support-ops'
 };
 
 function switchView(viewName) {
@@ -302,6 +305,7 @@ function switchView(viewName) {
     if (canonicalView === 'real-prospects') loadRealProspectsView();
     if (canonicalView === 'decision-analytics') loadDecisionAnalytics();
     if (canonicalView === 'infra') loadInfrastructureView();
+    if (canonicalView === 'support-ops') loadSupportOperationsView();
     if (canonicalView === 'settings') loadSettings();
     if (canonicalView === 'demos') { if (window.pipelineHUD) window.pipelineHUD.refresh(); }
 }
@@ -7594,6 +7598,169 @@ async function runProductionDeliverySequence(prodProjectId) {
             badge.className = 'badge badge-amber';
             badge.textContent = 'FAILED';
         }
+    }
+}
+
+// ==============================================================================
+// Mega Prompt 7 — Autonomous Customer Support & Maintenance UI Handlers
+// ==============================================================================
+async function loadSupportOperationsView() {
+    try {
+        const [ticketsRes, incidentsRes, memoryRes] = await Promise.all([
+            fetch('/api/support/tickets?limit=20'),
+            fetch('/api/support/incidents?limit=20'),
+            fetch('/api/support/memory/search?category=APPLICATION')
+        ]);
+
+        const ticketsData = await ticketsRes.json();
+        const incidentsData = await incidentsRes.json();
+        const memoryData = await memoryRes.json();
+
+        const tickets = ticketsData.tickets || [];
+        const incidents = incidentsData.incidents || [];
+        const memories = memoryData.memories || [];
+
+        // Update KPIs
+        const openTickets = tickets.filter(t => t.status !== 'RESOLVED' && t.status !== 'CLOSED');
+        const activeIncidents = incidents.filter(i => !i.is_resolved);
+
+        const incEl = document.getElementById('supp-val-incidents');
+        if (incEl) incEl.textContent = activeIncidents.length;
+
+        const tckEl = document.getElementById('supp-val-open-tickets');
+        if (tckEl) tckEl.textContent = openTickets.length;
+
+        const badgeEl = document.getElementById('supp-ticket-count-badge');
+        if (badgeEl) badgeEl.textContent = `${tickets.length} TICKETS`;
+
+        // Render Table
+        const tbody = document.getElementById('supp-tickets-tbody');
+        if (tbody) {
+            if (tickets.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">
+                            No support tickets recorded. All delivered customer systems operating at 100% availability.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = tickets.map(t => {
+                    let sevClass = 'badge-sev-3';
+                    if (t.severity === 'SEV-1') sevClass = 'badge-sev-1';
+                    else if (t.severity === 'SEV-2') sevClass = 'badge-sev-2';
+                    else if (t.severity === 'SEV-4') sevClass = 'badge-sev-4';
+
+                    let actions = '';
+                    if (t.status === 'TICKET_CREATED' || t.status === 'TRIAGED' || t.status === 'NEW') {
+                        actions = `<button class="btn btn-secondary btn-sm" onclick="diagnoseSupportTicketFromUI(${t.id})" style="padding:3px 8px; font-size:0.72rem;">Diagnose</button>`;
+                    } else if (t.status === 'FIX_AUTHORIZED' || t.status === 'DIAGNOSED') {
+                        actions = `<button class="btn btn-primary btn-sm" onclick="remediateSupportTicketFromUI(${t.id})" style="padding:3px 8px; font-size:0.72rem; background:#10b981; border:none; color:#000;">Auto-Fix</button>`;
+                    } else if (t.status === 'REMEDIATION_PLANNED' || t.status === 'FIX_PENDING_APPROVAL') {
+                        actions = `<button class="btn btn-sm" onclick="approveSupportTicketFromUI(${t.id})" style="padding:3px 8px; font-size:0.72rem; background:#f59e0b; border:none; color:#000; font-weight:700;">Authorize Fix</button>`;
+                    } else if (t.status === 'RESOLVED') {
+                        actions = `<span style="color:#34d399; font-size:0.72rem; font-weight:600;">✓ Resolved</span>`;
+                    } else {
+                        actions = `<span style="color:#38bdf8; font-size:0.72rem;">${escapeHtml(t.status)}</span>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td>
+                                <strong style="font-family:var(--font-mono); color:#f4f4f5;">${escapeHtml(t.ticket_number)}</strong>
+                            </td>
+                            <td>Customer #${t.customer_id}</td>
+                            <td><span class="badge-sev ${sevClass}">${escapeHtml(t.severity)}</span></td>
+                            <td style="max-width:280px;">
+                                <div style="font-weight:600; color:#f4f4f5; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtml(t.subject)}</div>
+                                <div style="font-size:0.72rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtml(t.description)}</div>
+                            </td>
+                            <td><span class="badge" style="font-size:0.7rem; background:rgba(255,255,255,0.06);">${escapeHtml(t.status)}</span></td>
+                            <td>
+                                <span style="font-size:0.72rem; color:${t.sla_report?.overall_sla_status === 'BREACHED' ? '#f87171' : '#34d399'}; font-weight:600;">
+                                    ${t.sla_report?.overall_sla_status || 'COMPLIANT'}
+                                </span>
+                            </td>
+                            <td>${actions}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Memory Knowledge Base
+        const memList = document.getElementById('supp-memory-list');
+        if (memList) {
+            if (memories.length === 0) {
+                memList.innerHTML = `<div style="font-size:0.78rem; color:var(--text-muted); text-align:center; padding:16px;">Operational memory indexed and ready for new resolutions.</div>`;
+            } else {
+                memList.innerHTML = memories.map(m => `
+                    <div style="background:#09090b; border:1px solid var(--border-subtle); border-radius:6px; padding:10px; font-size:0.75rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <strong style="color:#38bdf8;">${escapeHtml(m.signature)}</strong>
+                            <span style="color:var(--text-muted); font-size:0.68rem;">Applied ${m.occurrence_count}x</span>
+                        </div>
+                        <div style="color:#f4f4f5; margin-bottom:2px;">Root Cause: ${escapeHtml(m.root_cause)}</div>
+                        <div style="color:#34d399;">Remediation: ${escapeHtml(m.remediation_pattern)}</div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        console.error('Error loading support operations:', err);
+    }
+}
+
+async function runProactiveMaintenanceAudit() {
+    const list = document.getElementById('supp-maintenance-list');
+    if (list) list.innerHTML = `<div style="font-size:0.78rem; color:#38bdf8; text-align:center; padding:16px;">Running multi-domain host maintenance probe...</div>`;
+
+    try {
+        const res = await fetch('/api/support/maintenance/run', { method: 'POST' });
+        const data = await res.json();
+        const checks = data.checks || [];
+
+        if (list) {
+            list.innerHTML = checks.map(c => `
+                <div style="background:#09090b; border:1px solid var(--border-subtle); border-radius:6px; padding:10px; font-size:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="color:#f4f4f5;">${escapeHtml(c.policy_name)}</strong>
+                        <div style="color:var(--text-muted); font-size:0.7rem;">${escapeHtml(c.execution_result || 'Check passed.')}</div>
+                    </div>
+                    <span class="badge ${c.status === 'SUCCESS' ? 'badge-emerald' : 'badge-cyan'}" style="font-size:0.68rem;">${escapeHtml(c.status)}</span>
+                </div>
+            `).join('');
+        }
+    } catch (err) {
+        if (list) list.innerHTML = `<div style="font-size:0.78rem; color:#f87171; text-align:center; padding:16px;">Maintenance check failed: ${escapeHtml(err.message)}</div>`;
+    }
+}
+
+async function diagnoseSupportTicketFromUI(ticketId) {
+    try {
+        await fetch(`/api/support/tickets/${ticketId}/diagnose`, { method: 'POST' });
+        loadSupportOperationsView();
+    } catch (err) {
+        alert('Diagnostic error: ' + err.message);
+    }
+}
+
+async function remediateSupportTicketFromUI(ticketId) {
+    try {
+        await fetch(`/api/support/tickets/${ticketId}/remediate`, { method: 'POST' });
+        loadSupportOperationsView();
+    } catch (err) {
+        alert('Remediation error: ' + err.message);
+    }
+}
+
+async function approveSupportTicketFromUI(ticketId) {
+    if (!confirm('Authorize high-impact remediation plan for this customer system?')) return;
+    try {
+        await fetch(`/api/support/tickets/${ticketId}/approve`, { method: 'POST' });
+        loadSupportOperationsView();
+    } catch (err) {
+        alert('Approval error: ' + err.message);
     }
 }
 

@@ -219,6 +219,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
                         normalized_path.startswith("/api/client/")
                         or normalized_path.startswith("/api/auth/")
                         or normalized_path in ("/api/health", "/api/contact")
+                        or normalized_path.startswith("/api/support/portal/")
                     )
                     if not is_allowed_client_api:
                         return JSONResponse(
@@ -319,6 +320,8 @@ from app.api.autonomous_routes import router as autonomous_router
 app.include_router(autonomous_router)
 from app.api.campaign_routes import campaign_router
 app.include_router(campaign_router)
+from app.api.support_routes import router as support_router
+app.include_router(support_router)
 
 
 @app.get("/setup", response_class=HTMLResponse)

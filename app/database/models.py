@@ -1339,6 +1339,11 @@ class SupportTicket(Base):
     root_cause: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     fix_plan: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_high_impact: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[str] = mapped_column(String(50), default="MEDIUM")
+    assigned_agent: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    resolution: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    customer_visible_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     operator_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -1347,6 +1352,10 @@ class SupportTicket(Base):
     rollback_info: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     customer_notification: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
+    response_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    first_action_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sla_breached: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -1365,19 +1374,34 @@ class CustomerIncident(Base):
     customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
     ticket_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("support_tickets.id"), nullable=True, index=True)
+    project_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customer_projects.id"), nullable=True, index=True)
     
     title: Mapped[str] = mapped_column(String(255))
-    severity: Mapped[str] = mapped_column(String(50), default="CUSTOMER_IMPACTING")  # INFO, WARNING, RECOVERABLE, CUSTOMER_IMPACTING, CRITICAL
+    severity: Mapped[str] = mapped_column(String(50), default="SEV-3")  # SEV-1, SEV-2, SEV-3, SEV-4
+    category: Mapped[str] = mapped_column(String(100), default="APPLICATION")  # APPLICATION, SYSTEM, DATABASE, COMMUNICATION, DELIVERY, PAYMENT
     affected_service: Mapped[str] = mapped_column(String(100), default="Website Turnaround")
+    affected_component: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="DETECTED", index=True)  # DETECTED, TRIAGED, DIAGNOSING, REMEDIATING, VERIFYING, RESOLVED, CLOSED
+    
     telemetry_snapshot: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    diagnostic_summary: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    root_cause: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    impact: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    remediation_plan: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    fix_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    deployment_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("production_deployments.id"), nullable=True, index=True)
+    verification_result: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    postmortem_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     
+    reported_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     detected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="incidents", lazy="selectin")
     business: Mapped[Optional["Business"]] = relationship("Business", back_populates="incidents", lazy="selectin")
     ticket: Mapped[Optional["SupportTicket"]] = relationship("SupportTicket", back_populates="incidents", lazy="selectin")
+    events: Mapped[List["IncidentEvent"]] = relationship("IncidentEvent", back_populates="incident", cascade="all, delete-orphan", lazy="selectin")
 
 
 # 47. Customer Health Metrics (Phase 11 Production Monitoring & Telemetry)
@@ -1747,6 +1771,71 @@ class HandoverRecord(Base):
 
     production_project: Mapped["ProductionProject"] = relationship("ProductionProject", back_populates="handovers", lazy="selectin")
     deployment: Mapped["ProductionDeployment"] = relationship("ProductionDeployment", back_populates="handovers", lazy="selectin")
+
+
+# 64. Incident Events (Append-Only Audit Ledger)
+class IncidentEvent(Base):
+    __tablename__ = "incident_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    incident_id: Mapped[int] = mapped_column(Integer, ForeignKey("customer_incidents.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    from_status: Mapped[str] = mapped_column(String(50), default="")
+    to_status: Mapped[str] = mapped_column(String(50), default="")
+    agent_role: Mapped[str] = mapped_column(String(100), default="SYSTEM")
+    details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    incident: Mapped["CustomerIncident"] = relationship("CustomerIncident", back_populates="events", lazy="selectin")
+
+
+# 65. Incident Memory (Operational Post-Incident Knowledge Base)
+class IncidentMemory(Base):
+    __tablename__ = "incident_memories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    signature: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    category: Mapped[str] = mapped_column(String(100), index=True)
+    component: Mapped[str] = mapped_column(String(100), index=True)
+    error_pattern: Mapped[str] = mapped_column(Text)
+    root_cause: Mapped[str] = mapped_column(Text)
+    remediation_pattern: Mapped[str] = mapped_column(Text)
+    verified_fix: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    prevention_guidance: Mapped[str] = mapped_column(Text, default="")
+    occurrence_count: Mapped[int] = mapped_column(Integer, default=1)
+    last_applied_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# 66. Maintenance Policies (Proactive Self-Healing Rules)
+class MaintenancePolicy(Base):
+    __tablename__ = "maintenance_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    policy_name: Mapped[str] = mapped_column(String(150), unique=True, index=True)
+    check_type: Mapped[str] = mapped_column(String(100), index=True)  # DISK, DB_INTEGRITY, SSL, HEALTH, QUEUE, WEBHOOK
+    frequency_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    risk_classification: Mapped[str] = mapped_column(String(50), default="SAFE_AUTO")  # SAFE_AUTO, REQUIRE_APPROVAL
+    thresholds: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    remediation_action: Mapped[str] = mapped_column(String(100), default="NONE")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# 67. Maintenance Records (Telemetry & Execution History)
+class MaintenanceRecord(Base):
+    __tablename__ = "maintenance_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    policy_name: Mapped[str] = mapped_column(String(150), index=True)
+    check_type: Mapped[str] = mapped_column(String(100), index=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="SUCCESS")  # SUCCESS, WARNING, ACTION_TAKEN, APPROVAL_PENDING, FAILED
+    observations: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    action_executed: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    execution_result: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 
 

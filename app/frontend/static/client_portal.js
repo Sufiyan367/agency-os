@@ -162,6 +162,106 @@ function renderPortal(data) {
     supportLink.href = `mailto:${data.support_email}`;
     supportLink.textContent = data.support_email;
   }
+
+  // Support Tickets Render
+  window.currentCustomerId = data.customer_id;
+  const ticketsContainer = document.getElementById('client-support-tickets');
+  if (ticketsContainer) {
+    const tickets = data.support_tickets || [];
+    if (tickets.length === 0) {
+      ticketsContainer.innerHTML = `<p style="color: var(--cp-text-muted); font-size: 13px; margin: 0 0 10px;">All systems operational. No active support inquiries or incident tickets.</p>`;
+    } else {
+      ticketsContainer.innerHTML = tickets.map(t => {
+        const isResolved = t.status === 'RESOLVED' || t.status === 'CLOSED';
+        return `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--cp-card-border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:600; font-size:13px; color:#fff;">${escapeHtml(t.ticket_number)} &bull; ${escapeHtml(t.subject)}</span>
+              <span class="status-pill ${isResolved ? 'success' : 'progress'}" style="font-size:10px; padding:2px 8px;">${escapeHtml(t.status)}</span>
+            </div>
+            ${t.customer_notification ? `<div style="font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.4;">${escapeHtml(t.customer_notification)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
+function openSupportModal() {
+  const modal = document.getElementById('client-support-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeSupportModal() {
+  const modal = document.getElementById('client-support-modal');
+  if (modal) modal.style.display = 'none';
+  const status = document.getElementById('cust-ticket-status');
+  if (status) status.style.display = 'none';
+}
+
+async function submitClientTicket(event) {
+  event.preventDefault();
+  const subjectInput = document.getElementById('cust-ticket-subject');
+  const descInput = document.getElementById('cust-ticket-description');
+  const statusDiv = document.getElementById('cust-ticket-status');
+  const submitBtn = document.getElementById('btn-submit-ticket');
+
+  if (!window.currentCustomerId) {
+    if (statusDiv) {
+      statusDiv.style.display = 'block';
+      statusDiv.style.color = '#ef4444';
+      statusDiv.textContent = 'Account profile not active or customer ID not found.';
+    }
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+  }
+
+  try {
+    const res = await fetch('/api/support/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_id: window.currentCustomerId,
+        subject: subjectInput.value.trim(),
+        description: descInput.value.trim(),
+        source: 'CUSTOMER_PORTAL'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Failed to submit ticket');
+    }
+
+    if (statusDiv) {
+      statusDiv.style.display = 'block';
+      statusDiv.style.color = '#10b981';
+      statusDiv.textContent = `Ticket ${data.ticket_number} created successfully. Autonomous triage initiated.`;
+    }
+
+    subjectInput.value = '';
+    descInput.value = '';
+
+    setTimeout(() => {
+      closeSupportModal();
+      loadPortalData();
+    }, 1200);
+  } catch (err) {
+    if (statusDiv) {
+      statusDiv.style.display = 'block';
+      statusDiv.style.color = '#ef4444';
+      statusDiv.textContent = `Error: ${err.message}`;
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Ticket →';
+    }
+  }
 }
 
 async function handleLogout() {

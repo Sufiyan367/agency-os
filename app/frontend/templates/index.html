@@ -746,6 +746,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
                         <span>Infrastructure</span>
                     </li>
+                    <li class="agency-nav-item" data-view="support-ops" onclick="navToView('support-ops')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        <span>Support &amp; Maintenance</span>
+                    </li>
                     <li class="agency-nav-item" data-view="settings" onclick="navToView('settings')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         <span>Settings</span>
@@ -3262,6 +3266,116 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: Autonomous Customer Support & Self-Healing Operations Center (Mega Prompt 7) -->
+        <section id="view-support-ops" class="view-container">
+            <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <h1 style="font-size:1.4rem; font-weight:700; color:#f8fafc; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+                        <span>🛡️</span> Autonomous Support &amp; Maintenance Operations
+                        <span class="badge badge-cyan" style="font-size:0.75rem;">MEGA PROMPT 7</span>
+                    </h1>
+                    <p style="color:#94a3b8; font-size:0.8rem; margin:0;">Post-sale autonomous self-healing, multi-domain diagnostics, approval-gated remediation, and SLA tracking.</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary" onclick="runProactiveMaintenanceAudit()" style="height:34px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                        <span>🔍</span> <span>Run Host Audit</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadSupportOperationsView()" style="height:34px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                        <span>🔄</span> <span>Refresh</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top 4 KPI Cards (Strict Canonical Geometry) -->
+            <div class="support-kpi-grid">
+                <div class="support-card" style="margin-bottom:0;">
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:6px;">Active Incidents</div>
+                    <div id="supp-val-incidents" style="font-size:1.6rem; font-weight:800; color:#f87171; font-family:var(--font-mono);">0</div>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">0 Critical (SEV-1) • 0 Major (SEV-2)</div>
+                </div>
+                <div class="support-card" style="margin-bottom:0;">
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:6px;">Open Support Tickets</div>
+                    <div id="supp-val-open-tickets" style="font-size:1.6rem; font-weight:800; color:#38bdf8; font-family:var(--font-mono);">0</div>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">All channels normalized</div>
+                </div>
+                <div class="support-card" style="margin-bottom:0;">
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:6px;">Mean Time To Remediate</div>
+                    <div id="supp-val-mttr" style="font-size:1.6rem; font-weight:800; color:#34d399; font-family:var(--font-mono);">&lt; 30s</div>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">Autonomous bounded self-healing</div>
+                </div>
+                <div class="support-card" style="margin-bottom:0;">
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:6px;">SLA Compliance Rate</div>
+                    <div id="supp-val-sla" style="font-size:1.6rem; font-weight:800; color:#34d399; font-family:var(--font-mono);">100%</div>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">0 contractual breaches</div>
+                </div>
+            </div>
+
+            <!-- Active Tickets & Incidents Queue -->
+            <div class="support-card">
+                <div class="support-card-header">
+                    <div class="support-card-title">
+                        <span>📋</span> Live Customer Support Tickets &amp; Incidents
+                    </div>
+                    <span class="panel-tag" id="supp-ticket-count-badge">0 TICKETS</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="support-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket / Incident</th>
+                                <th>Customer</th>
+                                <th>Severity</th>
+                                <th>Subject &amp; Issue</th>
+                                <th>Status</th>
+                                <th>SLA</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supp-tickets-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                    Loading support tickets and incident queue...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bottom Split Grid: Proactive Maintenance & Operational Incident Memory -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--column-gap, 16px);">
+                <!-- Card 1: Proactive Host Telemetry & Self-Healing Audit -->
+                <div class="support-card">
+                    <div class="support-card-header">
+                        <div class="support-card-title">
+                            <span>🩺</span> Proactive Host Telemetry &amp; Preventive Rules
+                        </div>
+                        <span class="panel-tag badge-emerald">AUTOMATIC PROBES ACTIVE</span>
+                    </div>
+                    <div id="supp-maintenance-list" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:0.78rem; color:var(--text-muted); text-align:center; padding:16px;">
+                            Running diagnostic telemetry audit...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Operational Incident Memory (Post-Mortem Library) -->
+                <div class="support-card">
+                    <div class="support-card-header">
+                        <div class="support-card-title">
+                            <span>🧠</span> Operational Incident Memory &amp; Historical Fixes
+                        </div>
+                        <span class="panel-tag" style="background:rgba(56,189,248,0.15); color:#38bdf8;">SEARCHABLE KB</span>
+                    </div>
+                    <div id="supp-memory-list" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:0.78rem; color:var(--text-muted); text-align:center; padding:16px;">
+                            Indexing post-incident memory base...
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
