@@ -1143,23 +1143,51 @@ async def approve_outreach(
     try:
         appr = await outreach_approval_queue.approve_message(db, message_id, actor_type=actual_actor)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Approval failed: {str(e)}")
+        return {"status": "blocked", "message_id": message_id, "reason": f"Approval failed: {str(e)}", "actor": actual_actor}
 
     send_result = None
     if actual_auto_send:
         try:
             send_result = await outreach_sender_adapter.send_approved_message(db, message_id, force_live=actual_force_live)
-        except (ValueError, RuntimeError) as e:
+        except ValueError as e:
             safe_err = str(e)
             for s in [getattr(settings, "TITAN_SMTP_PASSWORD", None), getattr(settings, "SMTP_PASSWORD", None), getattr(settings, "GMAIL_CLIENT_SECRET", None)]:
                 if s and len(s) > 2 and s in safe_err:
                     safe_err = safe_err.replace(s, "[REDACTED]")
-            raise HTTPException(status_code=400, detail=f"Live send authorization blocked / failed: {safe_err}")
+            return {
+                "status": "blocked",
+                "message_id": message_id,
+                "reason": safe_err,
+                "actor": actual_actor
+            }
+        except RuntimeError as e:
+            safe_err = str(e)
+            for s in [getattr(settings, "TITAN_SMTP_PASSWORD", None), getattr(settings, "SMTP_PASSWORD", None), getattr(settings, "GMAIL_CLIENT_SECRET", None)]:
+                if s and len(s) > 2 and s in safe_err:
+                    safe_err = safe_err.replace(s, "[REDACTED]")
+            return {
+                "status": "send_failed",
+                "message_id": message_id,
+                "reason": safe_err,
+                "actor": actual_actor
+            }
         except Exception as e:
             logger.error(f"[LIVE_SEND_FAILURE] Unexpected error approving message #{message_id}: {e}")
-            raise HTTPException(status_code=500, detail="Unexpected error during message transmission.")
+            return {
+                "status": "send_failed",
+                "message_id": message_id,
+                "reason": "Unexpected error during message transmission.",
+                "actor": actual_actor
+            }
 
-    return {"status": "APPROVED", "message_id": appr.id, "actor": actual_actor, "send_result": send_result}
+        return {
+            "status": "sent",
+            "message_id": appr.id,
+            "actor": actual_actor,
+            "send_result": send_result
+        }
+
+    return {"status": "APPROVED", "message_id": appr.id, "actor": actual_actor, "send_result": None}
 
 @router.post("/api/queue/{message_id}/reject")
 async def reject_outreach(message_id: int, db: AsyncSession = Depends(get_db)):
@@ -4211,8 +4239,32 @@ async def get_ml_model_health(
     active scoring engine, fallback status, drift report, and data quality.
     """
     user_info = get_current_user_info(request)
-    from app.ml.health_service import model_health_service
-    health_data = await model_health_service.get_model_health(db)
+    try:
+        from app.ml.health_service import model_health_service
+        health_data = await model_health_service.get_model_health(db)
+    except ModuleNotFoundError as e:
+        dep_name = e.name or str(e) or "ML Dependency"
+        logger.warning(f"ML Health telemetry degraded: missing dependency '{dep_name}'. Operating in heuristic fallback mode.")
+        health_data = {
+            "composite_health_score": 50.0,
+            "status": "DEGRADED",
+            "active_scoring_engine": "HEURISTIC_RULE_FALLBACK",
+            "fallback_active": True,
+            "missing_dependency": dep_name,
+            "message": f"ML engine dependency '{dep_name}' is not installed in runtime environment. Operating in heuristic fallback mode.",
+            "data_quality": {"status": "UNAVAILABLE"},
+            "drift_report": {"status": "UNAVAILABLE"},
+            "evaluation": {"status": "UNAVAILABLE"}
+        }
+    except Exception as e:
+        logger.error(f"Error computing ML model health: {e}")
+        health_data = {
+            "composite_health_score": 50.0,
+            "status": "DEGRADED",
+            "active_scoring_engine": "HEURISTIC_RULE_FALLBACK",
+            "fallback_active": True,
+            "error": str(e)
+        }
 
     # If degraded, log an alert event with deduplication
     if health_data.get("status") == "DEGRADED":
@@ -4233,7 +4285,7 @@ async def get_ml_model_health(
                 result="FALLBACK_ACTIVATED",
                 details={
                     "health_score": health_data.get("composite_health_score"),
-                    "reasons": health_data.get("reasons"),
+                    "reasons": health_data.get("reasons") or [health_data.get("message", "Degraded ML state")],
                     "active_engine": health_data.get("active_scoring_engine")
                 }
             )

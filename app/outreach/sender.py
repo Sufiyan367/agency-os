@@ -38,14 +38,26 @@ class OutreachSenderAdapter:
         if msg.status != OutreachStatus.APPROVED.value:
             raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED).")
 
-        # Phase 7 Outbound Safety Lock: Live outbound transmission requires explicit human CEO authorization
+        # Deterministic Outbound Authorization & Policy Gates
         is_live_send = force_live or (not getattr(settings, "EMAIL_DRY_RUN", True) and not getattr(settings, "DRY_RUN", True))
-        if not getattr(settings, "EMAIL_DRY_RUN", True) and not force_live:
-            raise ValueError("Live email transmission blocked: Explicit human CEO approval required.")
+        if is_live_send:
+            is_authorized = (
+                force_live
+                or msg.actor_type == "HUMAN"
+                or (msg.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
+            )
+            if not is_authorized:
+                raise ValueError("Live email transmission blocked: Explicit human CEO approval or autonomous auto-approval policy required.")
 
-        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail)
+        # Comprehensive 14-Point Pre-Send Safety Evaluation
+        from app.outreach.auto_approval import auto_approval_engine
+        send_eval = await auto_approval_engine.evaluate_send_authorization(session, msg, force_live=force_live)
+        if not send_eval.is_eligible:
+            raise ValueError(f"Outbound dispatch blocked by safety policy: {'; '.join(send_eval.blocking_reasons)}")
+
+        # 1. Execution via modular email provider (DryRun, Resend, SendGrid, SMTP, Gmail, Titan)
         provider_name = (settings.EMAIL_PROVIDER or "").lower().strip()
-        if force_live:
+        if is_live_send:
             if provider_name in ("gmail", "gmail_oauth"):
                 if not getattr(settings, "GMAIL_CLIENT_ID", None) or not getattr(settings, "GMAIL_REFRESH_TOKEN", None) or not getattr(settings, "GMAIL_CLIENT_SECRET", None):
                     raise ValueError("Cannot send live: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN is not configured in .env")
@@ -77,6 +89,7 @@ class OutreachSenderAdapter:
                 raise ValueError("Cannot send live: No live email credentials configured in .env (configure GMAIL OAuth, TITAN, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
+
 
         # Stage 1 Canary Outbound Governance: Strictly capacity-governed by daily rollout cap
         if is_live_send:
