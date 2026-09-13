@@ -342,7 +342,7 @@ class OutreachMessage(Base):
     business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
     offer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("offers.id"), nullable=True)
     campaign_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=True, index=True)
-    recipient_email: Mapped[str] = mapped_column(String(255))
+    recipient_email: Mapped[str] = mapped_column(String(255), index=True)
     subject: Mapped[str] = mapped_column(String(255))
     body: Mapped[str] = mapped_column(Text)
     variant_name: Mapped[str] = mapped_column(String(50), default="Value-First")
@@ -359,6 +359,7 @@ class OutreachMessage(Base):
 
     __table_args__ = (
         Index("ix_outreach_messages_status_created", "status", "created_at"),
+        Index("ix_outreach_messages_recipient_status", "recipient_email", "status"),
     )
 
     business: Mapped["Business"] = relationship("Business", back_populates="outreach_messages", lazy="selectin")
@@ -373,9 +374,13 @@ class OutreachEvent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     outreach_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("outreach_messages.id"), index=True)
-    event_type: Mapped[str] = mapped_column(String(50))
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
     details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_outreach_events_type_created", "event_type", "created_at"),
+    )
 
     outreach_message: Mapped["OutreachMessage"] = relationship("OutreachMessage", back_populates="events", lazy="selectin")
 
