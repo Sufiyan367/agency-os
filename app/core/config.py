@@ -80,6 +80,7 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "dry_run"  # 'dry_run', 'resend', 'sendgrid', 'smtp'
     EMAIL_DRY_RUN: bool = True
     VOICE_DRY_RUN: bool = os.getenv("VOICE_DRY_RUN", "true").lower() in ("true", "1", "yes")
+    VOICE_CALLING_ENABLED: bool = os.getenv("VOICE_CALLING_ENABLED", "false").lower() in ("true", "1", "yes")
     VOICE_PROVIDER: str = os.getenv("VOICE_PROVIDER", "dry_run")  # 'dry_run', 'twilio', 'bland'
     VOICE_CALLER_ID: str = os.getenv("VOICE_CALLER_ID", "+15125550100")
     VOICE_RECORDING_ENABLED: bool = os.getenv("VOICE_RECORDING_ENABLED", "true").lower() in ("true", "1", "yes")
@@ -87,6 +88,20 @@ class Settings(BaseSettings):
     VOICE_MAX_CALL_DURATION_MINUTES: int = int(os.getenv("VOICE_MAX_CALL_DURATION_MINUTES", "15"))
     TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
     TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER: Optional[str] = os.getenv("TWILIO_PHONE_NUMBER", os.getenv("VOICE_CALLER_ID", "+15125550100"))
+    VOICEBOX_API_URL: Optional[str] = os.getenv("VOICEBOX_API_URL")
+    VOICEBOX_API_KEY: Optional[str] = os.getenv("VOICEBOX_API_KEY")
+
+    # WhatsApp Business Platform (Cloud API)
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+    WHATSAPP_ACCESS_TOKEN: Optional[str] = os.getenv("WHATSAPP_ACCESS_TOKEN")
+    WHATSAPP_BUSINESS_ACCOUNT_ID: Optional[str] = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID")
+    WHATSAPP_APP_SECRET: Optional[str] = os.getenv("WHATSAPP_APP_SECRET")
+    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "agency_os_wa_verify_token")
+    WHATSAPP_DRY_RUN: bool = os.getenv("WHATSAPP_DRY_RUN", "true").lower() in ("true", "1", "yes")
+    WHATSAPP_API_VERSION: str = os.getenv("WHATSAPP_API_VERSION", "v18.0")
+    WHATSAPP_DEFAULT_TEMPLATE: str = os.getenv("WHATSAPP_DEFAULT_TEMPLATE", "agency_diagnostic_intro")
+
     BLAND_API_KEY: Optional[str] = os.getenv("BLAND_API_KEY")
     AUTONOMOUS_OUTREACH: bool = os.getenv("AUTONOMOUS_OUTREACH", "true").lower() in ("true", "1", "yes")
     AUTONOMOUS_AGENT_ENABLED: bool = os.getenv("AUTONOMOUS_AGENT_ENABLED", "true").lower() in ("true", "1", "yes")

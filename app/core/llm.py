@@ -161,11 +161,32 @@ class LLMClient:
         """Provides rich structured fallback data tailored to domain prompts."""
         lower = prompt.lower()
         if "classify" in lower or "reply" in lower:
+            # Extract reply text from prompt if possible
+            reply_match = re.search(r'reply text:\s*"([^"]+)"', lower)
+            target_text = reply_match.group(1) if reply_match else lower
+
+            pos_words = ["interested", "sounds good", "send", "demo", "sure", "yes", "call", "schedule", "meet", "definitely"]
+            neg_words = ["not interested", "no thanks", "stop", "unsubscribe", "remove", "pass", "never"]
+            q_words = ["how", "what", "why", "when", "cost", "price", "explain"]
+
+            if any(w in target_text for w in pos_words):
+                cat = "POSITIVE"
+                conf = 0.88
+            elif any(w in target_text for w in neg_words):
+                cat = "NEGATIVE"
+                conf = 0.88
+            elif any(w in target_text for w in q_words):
+                cat = "QUESTION"
+                conf = 0.85
+            else:
+                cat = "UNKNOWN"
+                conf = 0.50
+
             return {
-                "classification": "INTERESTED",
-                "confidence": 0.88,
-                "reasoning": "Prospect indicated openness to review audit suggestions.",
-                "suggested_reply": "Thank you for getting back to us. Would Thursday at 10 AM or 2 PM work for a brief 10-minute screenshare?"
+                "classification": cat,
+                "confidence": conf,
+                "reasoning": f"Heuristic classification fallback: {cat}.",
+                "suggested_response": "Thank you for getting back to us. Let me follow up with the requested information."
             }
         elif "offer" in lower:
             return {

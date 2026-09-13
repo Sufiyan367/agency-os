@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 class ChannelType(str, Enum):
     EMAIL = "EMAIL"
+    WHATSAPP = "WHATSAPP"
     VOICE = "VOICE"
     NONE = "NONE"
 

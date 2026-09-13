@@ -29,6 +29,9 @@ class PipelineStage(str, enum.Enum):
     WON = "WON"
     LOST = "LOST"
     REJECTED = "REJECTED"
+    DEMO_READY = "DEMO_READY"
+    COLD = "COLD"
+    DEAD = "DEAD"
 
 class LeadPriority(str, enum.Enum):
     A = "A"        # 90-100
@@ -59,8 +62,10 @@ class OutreachStatus(str, enum.Enum):
 
 class ReplyClassification(str, enum.Enum):
     INTERESTED = "INTERESTED"
+    POSITIVE = "POSITIVE"
     QUESTION = "QUESTION"
     NOT_INTERESTED = "NOT_INTERESTED"
+    NEGATIVE = "NEGATIVE"
     LATER = "LATER"
     PRICE_REQUEST = "PRICE_REQUEST"
     MEETING_REQUEST = "MEETING_REQUEST"
@@ -69,7 +74,33 @@ class ReplyClassification(str, enum.Enum):
     UNSUBSCRIBE = "UNSUBSCRIBE"
     BOUNCE = "BOUNCE"
     OBJECTION = "OBJECTION"
+    NEEDS_HUMAN = "NEEDS_HUMAN"
     UNKNOWN = "UNKNOWN"
+    UNCLEAR = "UNCLEAR"
+
+class ChannelType(str, enum.Enum):
+    EMAIL = "EMAIL"
+    WHATSAPP = "WHATSAPP"
+    VOICE = "VOICE"
+
+class EventDirection(str, enum.Enum):
+    INBOUND = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+
+class ConversationEventType(str, enum.Enum):
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    BOUNCED = "BOUNCED"
+    FAILED = "FAILED"
+    REPLIED = "REPLIED"
+    READ = "READ"
+    RECEIVED = "RECEIVED"
+    CALL_INITIATED = "CALL_INITIATED"
+    RINGING = "RINGING"
+    ANSWERED = "ANSWERED"
+    COMPLETED = "COMPLETED"
+    VOICEMAIL = "VOICEMAIL"
+    TRANSCRIPT_READY = "TRANSCRIPT_READY"
 
 class FollowupStatus(str, enum.Enum):
     SCHEDULED = "SCHEDULED"
@@ -168,6 +199,8 @@ class Business(Base):
     research_status: Mapped[str] = mapped_column(String(50), default="RESEARCH_REQUIRED", index=True)
     prospect_score: Mapped[float] = mapped_column(Float, default=0.0)
     whatsapp_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    whatsapp_consent_status: Mapped[str] = mapped_column(String(50), default="INELIGIBLE_NO_CONSENT")
+    whatsapp_status_reason: Mapped[Optional[str]] = mapped_column(String(255), default="Public phone without opt-in consent")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -190,6 +223,7 @@ class Business(Base):
     artifacts: Mapped[List["Artifact"]] = relationship("Artifact", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     activity_events: Mapped[List["AgentActivityEvent"]] = relationship("AgentActivityEvent", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     evidence_items: Mapped[List["ProspectEvidence"]] = relationship("ProspectEvidence", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
+    conversation_events: Mapped[List["ConversationEvent"]] = relationship("ConversationEvent", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
 
 
 # 5. Contacts
@@ -1169,6 +1203,32 @@ class CampaignEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="events", lazy="selectin")
+
+
+# 44. Conversation Events (Multi-Channel Timeline: Email, WhatsApp, Voice)
+class ConversationEvent(Base):
+    __tablename__ = "conversation_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(20), index=True)  # EMAIL, WHATSAPP, VOICE
+    direction: Mapped[str] = mapped_column(String(20), index=True)  # INBOUND, OUTBOUND
+    provider: Mapped[str] = mapped_column(String(50), index=True)
+    provider_event_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("provider", "idempotency_key", name="uq_conv_provider_idempotency"),
+        Index("ix_conversation_events_biz_channel", "business_id", "channel"),
+        Index("ix_conversation_events_created", "created_at"),
+    )
+
+    business: Mapped[Optional["Business"]] = relationship("Business", back_populates="conversation_events", lazy="selectin")
+
 
 
 

@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database.models import (
     OutreachMessage, OutreachStatus, OutreachEvent,
-    FollowupSequence, FollowupStatus, Business, PipelineStage, PipelineEvent
+    FollowupSequence, FollowupStatus, Business, PipelineStage, PipelineEvent,
+    ConversationEvent, ChannelType, EventDirection, ConversationEventType
 )
 from app.core.config import settings
 from app.core.logging import logger
@@ -178,6 +179,26 @@ class OutreachSenderAdapter:
             details=details
         )
         session.add(event_log)
+
+        conv_event = ConversationEvent(
+            business_id=msg.business_id,
+            channel=ChannelType.EMAIL.value,
+            direction=EventDirection.OUTBOUND.value,
+            provider=provider.__class__.__name__,
+            provider_event_id=str(delivery_res.get("message_id") or f"outreach_{msg.id}"),
+            event_type=ConversationEventType.SENT.value,
+            content=f"Subject: {msg.subject}\n\n{msg.body}",
+            idempotency_key=f"email_send_{msg.id}_{delivery_res.get('message_id') or int(datetime.utcnow().timestamp())}",
+            metadata_json={
+                "outreach_message_id": msg.id,
+                "recipient_email": msg.recipient_email,
+                "subject": msg.subject,
+                "provider": provider.__class__.__name__,
+                "is_live_send": is_live_send,
+                "delivery_res": delivery_res
+            }
+        )
+        session.add(conv_event)
 
         # 3. Schedule 3-step follow-up sequence
         followup_templates = [

@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database.models import (
     Business, OutreachMessage, Reply, ReplyClassification,
-    PipelineStage, PipelineEvent, FollowupStatus, Proposal, Offer, AuditRun, ProspectMemory
+    PipelineStage, PipelineEvent, FollowupStatus, Proposal, Offer, AuditRun, ProspectMemory,
+    ConversationEvent, ChannelType, EventDirection, ConversationEventType
 )
 from app.core.llm import llm_client
 from app.core.logging import logger
@@ -33,7 +34,8 @@ class ReplyClassifier:
                 "classification": ReplyClassification.UNSUBSCRIBE.value,
                 "confidence": 0.99,
                 "reasoning": "Explicit unsubscribe/opt-out keyword detected.",
-                "suggested_response": "Understood. You have been removed from our list."
+                "suggested_response": "Understood. You have been removed from our list.",
+                "classifier_provider": "deterministic_rules"
             }
 
         if re.search(r"\b(delivery failure|mailer-daemon|undeliverable|address not found|550 user)\b", lower):
@@ -41,7 +43,8 @@ class ReplyClassifier:
                 "classification": ReplyClassification.BOUNCE.value,
                 "confidence": 0.99,
                 "reasoning": "Automated mail server bounce notification.",
-                "suggested_response": ""
+                "suggested_response": "",
+                "classifier_provider": "deterministic_rules"
             }
 
         if re.search(r"\b(out of the office|on leave|vacation|auto[- ]?reply|maternity leave)\b", lower):
@@ -49,15 +52,26 @@ class ReplyClassifier:
                 "classification": ReplyClassification.OUT_OF_OFFICE.value,
                 "confidence": 0.95,
                 "reasoning": "Automated out-of-office autoreply.",
-                "suggested_response": "No immediate action required until return date."
+                "suggested_response": "No immediate action required until return date.",
+                "classifier_provider": "deterministic_rules"
             }
 
-        if any(w in lower for w in ["not interested", "no thanks", "we're good", "already have", "pass", "not for us", "uninterested"]):
+        if re.search(r"\b(legal|lawyer|attorney|lawsuit|sue|complaint|dispute|speak to human|talk to human|real person|human agent|operator)\b", lower):
             return {
-                "classification": ReplyClassification.NOT_INTERESTED.value,
+                "classification": ReplyClassification.NEEDS_HUMAN.value,
+                "confidence": 0.95,
+                "reasoning": "Human escalation keyword or legal inquiry detected.",
+                "suggested_response": "Routing immediately to senior management.",
+                "classifier_provider": "deterministic_rules"
+            }
+
+        if any(w in lower for w in ["not interested", "no thanks", "we're good", "already have", "pass", "not for us", "uninterested", "never contact", "wrong person"]):
+            return {
+                "classification": ReplyClassification.NEGATIVE.value,
                 "confidence": 0.92,
-                "reasoning": "Polite or direct decline.",
-                "suggested_response": "Thank you for the reply and consideration. Wishing you and the team continued success!"
+                "reasoning": "Direct negative decline.",
+                "suggested_response": "Thank you for the reply and consideration. Wishing you and the team continued success!",
+                "classifier_provider": "deterministic_rules"
             }
 
         if re.search(r"\b(schedule|call|calendar|calendly|meet|zoom|thursday|monday|tuesday|wednesday|friday|tomorrow)\b", lower) and \
@@ -66,7 +80,8 @@ class ReplyClassifier:
                 "classification": ReplyClassification.MEETING_REQUEST.value,
                 "confidence": 0.95,
                 "reasoning": "Prospect requested or proposed a discussion/meeting time.",
-                "suggested_response": "Thank you! I can do Thursday at 10:00 AM or 2:30 PM. Would either time work for a 10-minute screenshare?"
+                "suggested_response": "Thank you! I can do Thursday at 10:00 AM or 2:30 PM. Would either time work for a 10-minute screenshare?",
+                "classifier_provider": "deterministic_rules"
             }
 
         if re.search(r"\b(cost|pricing|price|how much|fee|quote|rates|estimate)\b", lower):
@@ -74,36 +89,49 @@ class ReplyClassifier:
                 "classification": ReplyClassification.PRICE_REQUEST.value,
                 "confidence": 0.92,
                 "reasoning": "Prospect inquired about commercial fee or pricing structure.",
-                "suggested_response": "Our turnkey remediation packages range from $500 to $1,200 depending on scope. Would you like me to send the itemized breakdown?"
+                "suggested_response": "Our turnkey remediation packages range from $500 to $1,200 depending on scope. Would you like me to send the itemized breakdown?",
+                "classifier_provider": "deterministic_rules"
             }
 
-        if any(w in lower for w in ["interested", "sounds good", "send more", "send video", "send audit", "sure", "love to see", "yes please"]):
+        if any(w in lower for w in ["how does it work", "can you explain", "what is", "how do you", "could you clarify", "what does this mean", "tell me more", "how much time", "details"]):
             return {
-                "classification": ReplyClassification.INTERESTED.value,
+                "classification": ReplyClassification.QUESTION.value,
                 "confidence": 0.90,
-                "reasoning": "Positive sentiment indicating interest in reviewing diagnostic audit.",
-                "suggested_response": "Great to hear from you! Here is the link to your audit report summary. Would you like to review the implementation steps together?"
+                "reasoning": "Prospect asked an explanatory question regarding the service.",
+                "suggested_response": "Thank you for asking! Let me clarify how this works for your business.",
+                "classifier_provider": "deterministic_rules"
+            }
+
+        if any(w in lower for w in ["interested", "sounds good", "send more", "send video", "send audit", "send demo", "sure", "love to see", "yes please", "would love to see", "show me", "definitely"]):
+            return {
+                "classification": ReplyClassification.POSITIVE.value,
+                "confidence": 0.92,
+                "reasoning": "Positive sentiment indicating interest in reviewing diagnostic audit/demo.",
+                "suggested_response": "Great to hear from you! We have prepared an interactive preview for your website.",
+                "classifier_provider": "deterministic_rules"
             }
 
         # 2. LLM Evaluation for nuanced replies
         prompt = (
             f"Classify this B2B prospect reply into one category: "
-            f"[INTERESTED, QUESTION, NOT_INTERESTED, LATER, PRICE_REQUEST, MEETING_REQUEST, REFERRAL, OUT_OF_OFFICE, UNSUBSCRIBE, BOUNCE, UNKNOWN].\n"
+            f"[POSITIVE, NEGATIVE, QUESTION, NEEDS_HUMAN, UNSUBSCRIBE, OUT_OF_OFFICE, UNKNOWN].\n"
             f"Reply Text: \"{text}\"\n\n"
             f"Return a JSON object with: classification, confidence (0.0 to 1.0), reasoning, suggested_response."
         )
         try:
             llm_result = await llm_client.generate_json(prompt)
             if "classification" in llm_result:
+                llm_result["classifier_provider"] = "llm_client"
                 return llm_result
         except Exception as e:
             logger.warning(f"LLM reply classification error: {e}")
 
         return {
-            "classification": ReplyClassification.QUESTION.value,
-            "confidence": 0.75,
-            "reasoning": "General inquiry requiring human review.",
-            "suggested_response": "Thank you for your response. Let me clarify that point for you."
+            "classification": ReplyClassification.UNKNOWN.value,
+            "confidence": 0.50,
+            "reasoning": "General inquiry or ambiguous response requiring human operator review.",
+            "suggested_response": "Thank you for your response. Let me follow up with the requested information.",
+            "classifier_provider": "fallback"
         }
 
     async def process_incoming_reply(
@@ -115,7 +143,7 @@ class ReplyClassifier:
         message_id: int | None = None
     ) -> Reply:
         classification_data = await self.classify_text(raw_body)
-        cat = classification_data.get("classification", ReplyClassification.UNKNOWN.value)
+        cat = classification_data.get("classification", ReplyClassification.UNCLEAR.value)
         conf = classification_data.get("confidence", 0.85)
         reason = classification_data.get("reasoning", "")
         suggested = classification_data.get("suggested_response", "")
@@ -131,11 +159,31 @@ class ReplyClassifier:
         )
         session.add(reply)
 
+        conv_event = ConversationEvent(
+            business_id=business_id,
+            channel=ChannelType.EMAIL.value,
+            direction=EventDirection.INBOUND.value,
+            provider="inbound_email",
+            provider_event_id=str(message_id or f"inbound_{business_id}_{int(datetime.utcnow().timestamp())}"),
+            event_type=ConversationEventType.REPLIED.value,
+            content=raw_body,
+            idempotency_key=f"email_reply_{business_id}_{message_id or int(datetime.utcnow().timestamp())}",
+            metadata_json={
+                "classification": cat,
+                "confidence": conf,
+                "reasoning": reason,
+                "suggested_response": suggested,
+                "sender_email": sender_email
+            }
+        )
+        session.add(conv_event)
+
         biz = await session.get(Business, business_id)
 
         # Handle Unsubscribes and Bounces: Immediately add to suppression list
-        if cat == ReplyClassification.UNSUBSCRIBE.value:
-            await compliance_guard.add_to_suppression(session, sender_email, reason="UNSUBSCRIBE")
+        if cat in (ReplyClassification.UNSUBSCRIBE.value, ReplyClassification.NOT_INTERESTED.value, ReplyClassification.NEGATIVE.value):
+            if cat == ReplyClassification.UNSUBSCRIBE.value:
+                await compliance_guard.add_to_suppression(session, sender_email, reason="UNSUBSCRIBE")
             await followup_engine.cancel_pending_followups(session, business_id, FollowupStatus.CANCELLED_UNSUB)
             if biz:
                 biz.pipeline_stage = PipelineStage.LOST.value
@@ -143,7 +191,10 @@ class ReplyClassifier:
             await compliance_guard.add_to_suppression(session, sender_email, reason="BOUNCE")
             await followup_engine.cancel_pending_followups(session, business_id, FollowupStatus.CANCELLED_UNSUB)
             if biz:
-                biz.pipeline_stage = PipelineStage.LOST.value
+                biz.pipeline_stage = PipelineStage.DEAD.value
+        elif cat == ReplyClassification.OUT_OF_OFFICE.value:
+            # Reschedule followup without advancing pipeline stage
+            pass
         else:
             # Stop pending follow-ups since lead replied
             await followup_engine.cancel_pending_followups(session, business_id, FollowupStatus.CANCELLED_REPLY)
@@ -151,10 +202,17 @@ class ReplyClassifier:
             # Advance CRM stage based on intent
             if biz:
                 old_stage = biz.pipeline_stage
-                if cat in (ReplyClassification.INTERESTED.value, ReplyClassification.MEETING_REQUEST.value, ReplyClassification.PRICE_REQUEST.value):
+                is_positive = cat in (
+                    ReplyClassification.INTERESTED.value,
+                    ReplyClassification.POSITIVE.value,
+                    ReplyClassification.MEETING_REQUEST.value,
+                    ReplyClassification.PRICE_REQUEST.value
+                )
+
+                if is_positive:
                     new_stage = PipelineStage.QUALIFIED_REPLY.value
-                elif cat == ReplyClassification.NOT_INTERESTED.value:
-                    new_stage = PipelineStage.LOST.value
+                elif cat == ReplyClassification.QUESTION.value:
+                    new_stage = PipelineStage.REPLIED.value
                 else:
                     new_stage = PipelineStage.REPLIED.value
 
@@ -167,9 +225,20 @@ class ReplyClassifier:
                     note=f"Reply received from {sender_email}. Classified as {cat} ({conf*100:.0f}% confidence): {reason}"
                 )
                 session.add(event)
+                await session.commit()
 
-                # Autonomous proposal & payment link preparation for commercial intent
-                if cat in (ReplyClassification.INTERESTED.value, ReplyClassification.MEETING_REQUEST.value, ReplyClassification.PRICE_REQUEST.value):
+                # For positive replies, trigger autonomous demo generation
+                if is_positive:
+                    try:
+                        from app.acquisition.autonomous_controller import autonomous_acquisition_controller
+                        await autonomous_acquisition_controller._step_process_reply(
+                            session=session,
+                            business_id=biz.id,
+                            reply_category=cat,
+                            reply_body=raw_body
+                        )
+                    except Exception as demo_err:
+                        logger.error(f"[ReplyClassifier] Failed to trigger demo generation for {biz.domain}: {demo_err}")
                     try:
                         q_prop = select(Proposal).where(Proposal.business_id == business_id).order_by(Proposal.created_at.desc())
                         existing_prop = (await session.execute(q_prop)).scalars().first()

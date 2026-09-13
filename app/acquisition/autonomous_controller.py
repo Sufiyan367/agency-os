@@ -374,7 +374,7 @@ class AutonomousAcquisitionController:
             raise ValueError(f"Business {business_id} not found.")
 
         # Non-interested categories delegate to existing autonomous reply handler
-        if reply_category.upper() not in ("INTERESTED", "WANTS_PROPOSAL", "WANTS_MEETING", "QUALIFIED"):
+        if reply_category.upper() not in ("INTERESTED", "POSITIVE", "WANTS_PROPOSAL", "WANTS_MEETING", "QUALIFIED"):
             if reply_body:
                 handler_res = await autonomous_reply_handler.handle_reply(
                     session=session,
@@ -416,13 +416,30 @@ class AutonomousAcquisitionController:
         # 2. Requirements Synthesis via RequirementsEngine
         # -------------------------------------------------------------
         self.current_action = f"Synthesizing requirements packet for {biz.domain}"
-        packet = await requirements_engine.build_requirements_packet(session, biz.id)
+        try:
+            packet = await requirements_engine.build_requirements_packet(session, biz.id)
+        except Exception as req_err:
+            logger.error(f"[AutonomousController] Failed to build requirements packet for {biz.domain}: {req_err}")
+            return {"status": "REQUIREMENTS_FAILED", "business_id": biz.id, "error": str(req_err)}
 
         # -------------------------------------------------------------
         # 3. Turnkey Demo Generation via DemoFactory
         # -------------------------------------------------------------
         self.current_action = f"Generating turnkey demo package for {biz.domain}"
-        demo_result = await demo_factory.generate_demo_package(session, biz.id, packet)
+        try:
+            demo_result = await demo_factory.generate_demo_package(session, biz.id, packet)
+        except Exception as demo_err:
+            logger.error(f"[AutonomousController] DemoFactory generation failed for {biz.domain}: {demo_err}")
+            error_event = PipelineEvent(
+                business_id=biz.id,
+                from_stage=PipelineStage.QUALIFIED_REPLY.value,
+                to_stage=PipelineStage.QUALIFIED_REPLY.value,
+                deal_value=0.0,
+                note=f"[OPERATOR ATTENTION] Demo generation failed for {biz.name}: {demo_err}. Manual intervention required."
+            )
+            session.add(error_event)
+            await session.commit()
+            return {"status": "DEMO_GENERATION_FAILED", "business_id": biz.id, "error": str(demo_err)}
 
         # -------------------------------------------------------------
         # 4. Automated Deterministic Quality Assurance via DemoQAEngine
@@ -471,10 +488,25 @@ class AutonomousAcquisitionController:
             }
 
         # -------------------------------------------------------------
-        # 5. Commercial Proposal Creation (Only after QA passes!)
+        # 5. Advance to DEMO_READY & Commercial Proposal Creation
         # -------------------------------------------------------------
-        self.current_action = f"Preparing commercial proposal for {biz.domain}"
-        biz.pipeline_stage = PipelineStage.PROPOSAL.value
+        import re
+        clean_slug = re.sub(r'[^a-z0-9\-]+', '-', (biz.domain or biz.name).lower()).strip('-')
+        biz.pipeline_stage = PipelineStage.DEMO_READY.value
+        await session.commit()
+
+        demo_ready_event = PipelineEvent(
+            business_id=biz.id,
+            from_stage=PipelineStage.QUALIFIED_REPLY.value,
+            to_stage=PipelineStage.DEMO_READY.value,
+            deal_value=float(offer.recommended_price) if offer and offer.recommended_price else 1000.0,
+            note=f"[CEO ALERT] Demo ready for {biz.name}: /demo/{clean_slug}. Operator follow-up required (no auto-send)."
+        )
+        session.add(demo_ready_event)
+        await session.commit()
+
+        self.current_action = f"Preparing draft commercial proposal for {biz.domain}"
+        # Keep pipeline stage at DEMO_READY until sales follow-up leads to proposal request
         await session.commit()
 
         proposal_title = offer.title if offer else packet.service_title

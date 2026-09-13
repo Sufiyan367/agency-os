@@ -523,10 +523,10 @@ class AutonomousCycleOrchestrator:
                     status="INFO"
                 )
 
-                auto_dispatch = getattr(settings, "AUTONOMOUS_OUTREACH", False)
                 msg = None
                 try:
-                    msg = await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=auto_dispatch)
+                    # Cold outreach strictly requires human approval (auto_approve=False)
+                    msg = await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=False)
                     drafted_count += 1
                 except Exception as e:
                     logger.warning(f"[Prospect {biz.domain}] Outreach drafting failed: {e}")
@@ -536,7 +536,7 @@ class AutonomousCycleOrchestrator:
                     session=session,
                     run_id=run_id,
                     event_type=AgentEventType.OUTREACH_DRAFTED.value,
-                    message=f"Outreach message drafted for {biz.name}: '{msg.subject}'. Status: {msg.status}.",
+                    message=f"Outreach message drafted for {biz.name}: '{msg.subject}'. Status: PENDING_APPROVAL.",
                     business_id=biz.id,
                     domain=biz.domain,
                     status="SUCCESS",
@@ -556,82 +556,24 @@ class AutonomousCycleOrchestrator:
                     }
                 )
 
-                if auto_dispatch:
-                    # 2i. Autonomous Outreach Execution (Direct dispatch when AUTONOMOUS_OUTREACH=True)
-                    from app.campaigns.sender_registry import sender_registry
-                    capacity_info = await sender_registry.get_sender_capacity_summary(session)
-                    if capacity_info.get("capacity_exhausted", False):
-                        logger.info(
-                            f"[Prospect {biz.domain}] Dispatch safely deferred: Daily capacity cap reached "
-                            f"(Sent today: {capacity_info['sent_today']}, Cap: {capacity_info['rollout_daily_cap']}). "
-                            f"Message {msg.id} remains queued in APPROVED status."
-                        )
-                        await activity_broadcaster.record_event(
-                            session=session,
-                            run_id=run_id,
-                            event_type="DISPATCH_QUEUED",
-                            message=f"Outreach message queued in APPROVED status for {biz.name}. Daily outbound capacity cap reached ({capacity_info['sent_today']} sent today).",
-                            business_id=biz.id,
-                            domain=biz.domain,
-                            status="INFO",
-                            metadata_json={"message_id": msg.id, "capacity_info": capacity_info}
-                        )
-                    else:
-                        logger.info(f"[Prospect {biz.domain}] Dispatching autonomous outreach message...")
-                        try:
-                            from app.agents.revenue_agent import revenue_agent_orchestrator
-                            revenue_agent_orchestrator.current_operation = f"Dispatching outreach email for {biz.domain} (SIMULATED DRY RUN)"
-                            revenue_agent_orchestrator.current_pipeline_stage = PipelineStage.CONTACTED.value
-                        except Exception:
-                            pass
-
-                        await activity_broadcaster.record_event(
-                            session=session,
-                            run_id=run_id,
-                            event_type=AgentEventType.OUTREACH_DISPATCH_STARTED.value,
-                            message=f"Initiating autonomous dispatch to {msg.recipient_email} (DRY RUN SAFE)...",
-                            business_id=biz.id,
-                            domain=biz.domain,
-                            status="INFO"
-                        )
-
-                        try:
-                            await outreach_sender_adapter.send_approved_message(session, msg.id)
-                            sent_count += 1
-                        except Exception as e:
-                            logger.error(f"[Prospect {biz.domain}] Send failed: {e}")
-                            failed_count += 1
-                            await activity_broadcaster.record_event(
-                                session=session,
-                                run_id=run_id,
-                                event_type=AgentEventType.OUTREACH_FAILED.value,
-                                message=f"Outreach dispatch failed for {biz.domain}: {e}",
-                                business_id=biz.id,
-                                domain=biz.domain,
-                                status="FAILED",
-                                error=str(e)
-                            )
-                            continue
-
-                else:
-                    logger.info(f"[Prospect {biz.domain}] Outreach message created in PENDING_APPROVAL status. Queued for human CEO review (AUTONOMOUS_OUTREACH=False).")
+                logger.info(
+                    f"[Prospect {biz.domain}] Outreach message #{msg.id} placed in PENDING_APPROVAL queue. "
+                    f"Awaiting human operator review before dispatch."
+                )
 
                 await activity_broadcaster.record_event(
                     session=session,
                     run_id=run_id,
-                    event_type=AgentEventType.OUTREACH_DISPATCHED.value,
-                    message=f"Outreach dispatched for {biz.domain} — SIMULATED (DRY RUN).",
+                    event_type="OUTREACH_PENDING_APPROVAL",
+                    message=f"Outreach message #{msg.id} queued in PENDING_APPROVAL for {biz.name}. Awaiting human review.",
                     business_id=biz.id,
                     domain=biz.domain,
-                    status="SUCCESS",
+                    status="INFO",
                     metadata_json={
                         "message_id": msg.id,
                         "recipient": msg.recipient_email,
                         "subject": msg.subject,
-                        "body": msg.body,
-                        "channel": "EMAIL",
-                        "dry_run": getattr(settings, "EMAIL_DRY_RUN", True),
-                        "status_note": "SIMULATED — NO EXTERNAL TRANSMISSION (DRY RUN)"
+                        "status": "PENDING_APPROVAL"
                     }
                 )
 

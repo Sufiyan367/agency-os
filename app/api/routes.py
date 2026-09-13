@@ -2886,6 +2886,185 @@ async def inbound_email_webhook(data: InboundEmailWebhook, db: AsyncSession = De
         "suggested_response": reply.suggested_response
     }
 
+
+# --- WhatsApp Webhooks ---
+
+@router.get("/api/webhooks/whatsapp")
+async def whatsapp_webhook_verification(request: Request):
+    """
+    Handles Meta WhatsApp Cloud API webhook verification challenge handshake.
+    Query parameters:
+    - hub.mode: 'subscribe'
+    - hub.verify_token: must match WHATSAPP_VERIFY_TOKEN
+    - hub.challenge: numeric challenge string to echo back
+    """
+    from fastapi.responses import PlainTextResponse
+    from app.communications.whatsapp_adapter import whatsapp_adapter
+
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    verified_challenge = whatsapp_adapter.verify_webhook(mode=mode, token=token, challenge=challenge)
+    if verified_challenge is not None:
+        return PlainTextResponse(content=verified_challenge, status_code=200)
+
+    raise HTTPException(status_code=403, detail="WhatsApp webhook verification failed: Invalid verify token or mode.")
+
+
+@router.post("/api/webhooks/whatsapp")
+async def whatsapp_webhook_receiver(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Receives and processes incoming WhatsApp Cloud API events:
+    - Delivery status updates (sent, delivered, read, failed)
+    - Incoming messages (text, interactive replies)
+    - Opt-out detection (STOP, UNSUBSCRIBE)
+    Validates X-Hub-Signature-256 header when WHATSAPP_APP_SECRET is configured.
+    Normalizes events and records them idempotently into ConversationEvent.
+    """
+    from app.communications.whatsapp_adapter import whatsapp_adapter
+    from app.communications.normalizer import conversation_normalizer
+    from app.database.models import Business
+
+    raw_body = await request.body()
+    signature_header = request.headers.get("X-Hub-Signature-256")
+
+    # Validate HMAC signature if app secret configured
+    if not whatsapp_adapter.verify_signature(raw_body, signature_header):
+        raise HTTPException(status_code=401, detail="Invalid X-Hub-Signature-256 signature")
+
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    is_valid, err_msg = whatsapp_adapter.validate_webhook_payload(payload)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"Malformed webhook payload: {err_msg}")
+
+    normalized_events = whatsapp_adapter.parse_webhook_payload(payload)
+    processed_count = 0
+
+    for evt_data in normalized_events:
+        phone_to_match = evt_data.get("sender") or evt_data.get("recipient") or ""
+        clean_phone = phone_to_match.replace("+", "").strip()
+
+        # Resolve business by phone if known
+        biz_id = None
+        if clean_phone and len(clean_phone) >= 6:
+            stmt = select(Business).where(Business.phone.ilike(f"%{clean_phone[-7:]}%"))
+            biz = (await db.execute(stmt)).scalars().first()
+            if biz:
+                biz_id = biz.id
+
+        if not biz_id:
+            stmt_first = select(Business.id).order_by(Business.id.asc()).limit(1)
+            first_id = (await db.execute(stmt_first)).scalar()
+            biz_id = first_id or 1
+
+        await conversation_normalizer.ingest_event(
+            session=db,
+            business_id=biz_id,
+            normalized_payload=evt_data
+        )
+        processed_count += 1
+
+    return {"status": "ok", "events_processed": processed_count}
+
+
+# --- Voice & Telephony Webhooks ---
+
+@router.post("/api/webhooks/voice/status")
+async def voice_status_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Receives Twilio telephony status callbacks (ringing, answered, completed, failed, voicemail).
+    Normalizes and ingests into ConversationEvent idempotently.
+    """
+    from app.communications.voice_adapter import voice_adapter
+    from app.communications.normalizer import conversation_normalizer
+    from app.database.models import Business
+
+    content_type = request.headers.get("content-type", "")
+    raw_body = await request.body()
+    body_str = raw_body.decode("utf-8", errors="replace")
+
+    if "application/x-www-form-urlencoded" in content_type:
+        import urllib.parse
+        parsed = urllib.parse.parse_qs(body_str)
+        payload = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+    else:
+        try:
+            import json
+            payload = json.loads(body_str) if body_str else {}
+        except Exception:
+            payload = {}
+
+    evt_data = voice_adapter.parse_telephony_webhook(payload)
+    to_phone = evt_data.get("to_number", "").replace("+", "").strip()
+
+    biz_id = None
+    if to_phone and len(to_phone) >= 6:
+        stmt = select(Business).where(Business.phone.ilike(f"%{to_phone[-7:]}%"))
+        biz = (await db.execute(stmt)).scalars().first()
+        if biz:
+            biz_id = biz.id
+
+    if not biz_id:
+        stmt_first = select(Business.id).order_by(Business.id.asc()).limit(1)
+        biz_id = (await db.execute(stmt_first)).scalar() or 1
+
+    await conversation_normalizer.ingest_event(
+        session=db,
+        business_id=biz_id,
+        normalized_payload=evt_data
+    )
+    return {"status": "ok", "call_sid": evt_data.get("provider_event_id")}
+
+
+@router.post("/api/webhooks/voice/transcript")
+async def voice_transcript_webhook_unified(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Receives Twilio or STT transcription webhooks.
+    Normalizes transcript text into ConversationEvent and triggers response classification.
+    """
+    from app.communications.voice_adapter import voice_adapter
+    from app.communications.normalizer import conversation_normalizer
+    from app.database.models import Business, ConversationEvent
+
+    content_type = request.headers.get("content-type", "")
+    raw_body = await request.body()
+    body_str = raw_body.decode("utf-8", errors="replace")
+
+    if "application/x-www-form-urlencoded" in content_type:
+        import urllib.parse
+        parsed = urllib.parse.parse_qs(body_str)
+        payload = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+    else:
+        try:
+            import json
+            payload = json.loads(body_str) if body_str else {}
+        except Exception:
+            payload = {}
+
+    evt_data = voice_adapter.parse_transcription_webhook(payload)
+    call_sid = evt_data.get("metadata_json", {}).get("call_sid", "")
+
+    # Look up business from previous call_initiated event
+    stmt = select(ConversationEvent).where(
+        ConversationEvent.channel == "VOICE",
+        ConversationEvent.provider_event_id == call_sid
+    ).limit(1)
+    prev_evt = (await db.execute(stmt)).scalars().first()
+    biz_id = prev_evt.business_id if prev_evt else 1
+
+    await conversation_normalizer.ingest_event(
+        session=db,
+        business_id=biz_id,
+        normalized_payload=evt_data
+    )
+    return {"status": "ok", "transcript_length": len(evt_data.get("content", ""))}
+
+
 # --- Replies Management ---
 
 @router.get("/api/replies")

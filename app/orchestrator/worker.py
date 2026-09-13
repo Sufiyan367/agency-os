@@ -6,11 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database.connection import AsyncSessionLocal
-from app.database.models import SystemRun, Business, PipelineStage, OutreachMessage, OutreachStatus
+from app.database.models import (
+    SystemRun, Business, PipelineStage, OutreachMessage, OutreachStatus,
+    Reply, ReplyClassification, FollowupStatus
+)
 from app.crm.inbox_poller import inbox_poller
 from app.crm.attention_engine import attention_engine
 from app.campaigns.sender_registry import sender_registry
 from app.outreach.sender import outreach_sender_adapter
+from app.outreach.personalization import outreach_personalizer
+from app.auditing.engine import website_audit_engine
+from app.scoring.engine import lead_scoring_engine
+from app.offers.generator import offer_engine
 from app.followups.engine import followup_engine
 from app.payments.provider import stripe_payment_provider, get_active_payment_provider
 from app.payments.service import payment_service
@@ -93,28 +100,55 @@ class PersistentAgencyWorker:
             await session.commit()
 
             try:
-                # Job 1: Inbound Reply Polling (CONTINUOUS) & CRM (AUTOMATIC)
+                # Job 1: Inbound Reply Polling (CONTINUOUS) & Response Loop Processing
                 replies = await inbox_poller.poll_inbox(session)
                 summary["inbox_replies_processed"] = len(replies)
 
-                # Route newly received INTERESTED replies to AutonomousController pipeline
-                for reply in replies:
-                    if reply and getattr(reply, "classification", "") == "INTERESTED":
-                        try:
+                # Process all unhandled replies in the database
+                unhandled_stmt = select(Reply).where(Reply.is_handled == False).order_by(Reply.received_at.asc())
+                unhandled_replies = (await session.execute(unhandled_stmt)).scalars().all()
+                for reply in unhandled_replies:
+                    try:
+                        cat = getattr(reply, "classification", "") or "UNCLEAR"
+                        cat_upper = cat.upper()
+
+                        if cat_upper in ("INTERESTED", "POSITIVE", "MEETING_REQUEST", "PRICE_REQUEST"):
                             from app.acquisition.autonomous_controller import autonomous_acquisition_controller
                             await autonomous_acquisition_controller._step_process_reply(
                                 session=session,
                                 business_id=reply.business_id,
-                                reply_category=reply.classification,
+                                reply_category=cat,
                                 reply_body=reply.raw_body
                             )
                             logger.info(
-                                f"[PersistentWorker] Advanced AutonomousController for INTERESTED reply from biz {reply.business_id}"
+                                f"[PersistentWorker] Advanced pipeline & triggered demo for {cat_upper} reply from biz #{reply.business_id}"
                             )
-                        except Exception as ac_err:
-                            logger.error(
-                                f"[PersistentWorker] Failed to advance AutonomousController for reply #{getattr(reply, 'id', None)}: {ac_err}"
-                            )
+                        elif cat_upper in ("NOT_INTERESTED", "NEGATIVE", "UNSUBSCRIBE"):
+                            await followup_engine.cancel_pending_followups(session, reply.business_id, FollowupStatus.CANCELLED_UNSUB)
+                            biz = await session.get(Business, reply.business_id)
+                            if biz:
+                                biz.pipeline_stage = PipelineStage.LOST.value
+                            logger.info(f"[PersistentWorker] Marked biz #{reply.business_id} as LOST for {cat_upper} reply.")
+                        elif cat_upper == "BOUNCE":
+                            await followup_engine.cancel_pending_followups(session, reply.business_id, FollowupStatus.CANCELLED_UNSUB)
+                            biz = await session.get(Business, reply.business_id)
+                            if biz:
+                                biz.pipeline_stage = PipelineStage.DEAD.value
+                            logger.info(f"[PersistentWorker] Marked biz #{reply.business_id} as DEAD for BOUNCE.")
+                        elif cat_upper == "QUESTION":
+                            await followup_engine.cancel_pending_followups(session, reply.business_id, FollowupStatus.CANCELLED_REPLY)
+                            biz = await session.get(Business, reply.business_id)
+                            if biz:
+                                biz.pipeline_stage = PipelineStage.REPLIED.value
+                            logger.info(f"[PersistentWorker] Marked biz #{reply.business_id} as REPLIED for QUESTION (awaiting human response).")
+
+                        reply.is_handled = True
+                        await session.commit()
+                    except Exception as rep_err:
+                        logger.error(
+                            f"[PersistentWorker] Failed to process reply #{getattr(reply, 'id', None)}: {rep_err}"
+                        )
+                        await session.rollback()
 
                 # Job 1b: Capacity-Governed Approved Queue Processing (DISPATCH)
                 summary["approved_queue_processed"] = 0
@@ -170,6 +204,14 @@ class PersistentAgencyWorker:
                         logger.info(f"[PersistentWorker] Automatic payment detected and client onboarded: Ref {pmt.get('reference_id')}")
                     except Exception as pe:
                         logger.error(f"[PersistentWorker] Automatic delivery failed for payment {pmt.get('reference_id')}: {pe}")
+
+                # Job 3b: Modular Pipeline Backlog Drainage (Per-Item Isolated Execution)
+                audited_n = await self.drain_audit_backlog(session, limit=10)
+                scored_n = await self.drain_scoring_backlog(session, limit=10)
+                drafted_n = await self.drain_drafting_backlog(session, limit=10)
+                summary["audited_backlog"] = audited_n
+                summary["scored_backlog"] = scored_n
+                summary["drafted_backlog"] = drafted_n
 
                 # Job 4: Lead Discovery (CONTINUOUS WORKER) & Audit/Scoring (AUTOMATIC) & Outreach (QUEUE + APPROVAL)
                 cycle_interval_mins = settings.WORKER_CYCLE_INTERVAL_MINUTES
@@ -230,6 +272,88 @@ class PersistentAgencyWorker:
         self.last_tick_at = datetime.utcnow()
         self.ticks_executed += 1
         return summary
+
+    async def drain_audit_backlog(self, session: AsyncSession, limit: int = 10) -> int:
+        """Audits discovered/verified businesses that lack an audit report with per-item isolation."""
+        stmt = (
+            select(Business)
+            .where(
+                Business.pipeline_stage.in_([PipelineStage.DISCOVERED.value, PipelineStage.VERIFIED.value]),
+                ~Business.audits.any()
+            )
+            .order_by(Business.created_at.asc())
+            .limit(limit)
+        )
+        prospects = (await session.execute(stmt)).scalars().all()
+        audited_count = 0
+        for biz in prospects:
+            try:
+                await website_audit_engine.audit_business(session, biz)
+                biz.pipeline_stage = PipelineStage.AUDITED.value
+                await session.commit()
+                audited_count += 1
+                logger.info(f"[PersistentWorker:Audit] Successfully audited {biz.name} ({biz.domain})")
+            except Exception as e:
+                logger.error(f"[PersistentWorker:Audit] Failed to audit {biz.domain}: {e}")
+                await session.rollback()
+        return audited_count
+
+    async def drain_scoring_backlog(self, session: AsyncSession, limit: int = 10) -> int:
+        """Scores audited businesses and generates commercial packages with per-item isolation."""
+        stmt = (
+            select(Business)
+            .where(
+                Business.pipeline_stage == PipelineStage.AUDITED.value,
+                ~Business.lead_score.has()
+            )
+            .order_by(Business.created_at.asc())
+            .limit(limit)
+        )
+        prospects = (await session.execute(stmt)).scalars().all()
+        scored_count = 0
+        commercial_floor = getattr(settings, "MINIMUM_SERVICE_VALUE_USD", 500.0)
+        for biz in prospects:
+            try:
+                score = await lead_scoring_engine.score_business(session, biz)
+                offer = await offer_engine.generate_offer_for_business(session, biz)
+                price = getattr(offer, "recommended_price", 0.0) or 0.0
+                if price >= commercial_floor:
+                    biz.pipeline_stage = PipelineStage.QUALIFIED.value
+                else:
+                    biz.pipeline_stage = PipelineStage.REJECTED.value
+                await session.commit()
+                scored_count += 1
+                logger.info(f"[PersistentWorker:Score] Scored {biz.domain} -> {biz.pipeline_stage} (${price:.0f})")
+            except Exception as e:
+                logger.error(f"[PersistentWorker:Score] Failed to score {biz.domain}: {e}")
+                await session.rollback()
+        return scored_count
+
+    async def drain_drafting_backlog(self, session: AsyncSession, limit: int = 10) -> int:
+        """Drafts hyper-personalized outreach for qualified leads into PENDING_APPROVAL with per-item isolation."""
+        stmt = (
+            select(Business)
+            .where(
+                Business.pipeline_stage == PipelineStage.QUALIFIED.value,
+                ~Business.outreach_messages.any()
+            )
+            .order_by(Business.created_at.asc())
+            .limit(limit)
+        )
+        prospects = (await session.execute(stmt)).scalars().all()
+        drafted_count = 0
+        for biz in prospects:
+            try:
+                # Cold outreach strictly requires human approval (auto_approve=False)
+                msg = await outreach_personalizer.prepare_outreach_for_business(session, biz, auto_approve=False)
+                biz.pipeline_stage = PipelineStage.APPROVAL.value
+                await session.commit()
+                drafted_count += 1
+                logger.info(f"[PersistentWorker:Draft] Outreach draft #{msg.id} staged in PENDING_APPROVAL for {biz.domain}")
+            except Exception as e:
+                logger.error(f"[PersistentWorker:Draft] Failed to draft outreach for {biz.domain}: {e}")
+                await session.rollback()
+        return drafted_count
 
     def get_status(self) -> Dict[str, Any]:
         """Returns the live worker operational status."""
