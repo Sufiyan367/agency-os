@@ -7922,23 +7922,31 @@ async function loadIntelligenceView() {
             if (prospects.length === 0) {
                 pList.innerHTML = `<div style="font-size:0.78rem; color:#71717a; text-align:center; padding:16px;">No qualified prospects queued for ranking.</div>`;
             } else {
-                pList.innerHTML = prospects.slice(0, 7).map(p => `
+                pList.innerHTML = prospects.slice(0, 7).map(p => {
+                    const pName = p.business_name || p.name || 'Prospect #' + p.business_id;
+                    const pCountry = p.country_code || p.country || 'GCC';
+                    const pFit = Math.round((p.service_fit_ratio != null ? p.service_fit_ratio : 0.85) * 100);
+                    const pWin = Math.round((p.p_conversion != null ? p.p_conversion : 0.5) * 100);
+                    const pAct = p.recommended_action || 'AUDIT';
+                    const pEv = Math.round(p.expected_value_usd || 0);
+                    return `
                     <div style="background:#0c0c0e; border:1px solid #1a1a1a; border-radius:6px; padding:10px; display:flex; justify-content:space-between; align-items:center;">
                         <div style="max-width:65%;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <strong style="color:#f4f4f5; font-size:0.8rem;">${escapeHtml(p.company_name || p.name || 'Prospect #' + p.business_id)}</strong>
-                                <span class="badge badge-cyan" style="font-size:0.65rem;">${escapeHtml(p.market_code || 'GCC')}</span>
+                                <strong style="color:#f4f4f5; font-size:0.8rem;">${escapeHtml(pName)}</strong>
+                                <span class="badge badge-cyan" style="font-size:0.65rem;">${escapeHtml(pCountry)}</span>
                             </div>
                             <div style="font-size:0.7rem; color:#a1a1aa; margin-top:2px;">
-                                Fit: <strong>${(p.service_fit_score * 100).toFixed(0)}%</strong> • P(win): <strong>${(p.p_win * 100).toFixed(0)}%</strong> • Rec: <span style="color:#38bdf8;">${escapeHtml(p.recommended_action || 'AUDIT')}</span>
+                                Fit: <strong>${pFit}%</strong> • P(win): <strong>${pWin}%</strong> • Rec: <span style="color:#38bdf8;">${escapeHtml(pAct)}</span>
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size:0.9rem; font-weight:800; color:#10b981; font-family:var(--font-mono);">$${(p.expected_value_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                            <div style="font-size:0.9rem; font-weight:800; color:#10b981; font-family:var(--font-mono);">$${pEv.toLocaleString()}</div>
                             <span style="font-size:0.65rem; color:#71717a;">Expected Value</span>
                         </div>
                     </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 
@@ -7949,19 +7957,31 @@ async function loadIntelligenceView() {
             if (recs.length === 0) {
                 recList.innerHTML = `<div style="font-size:0.78rem; color:#71717a; text-align:center; padding:16px;">All operational funnels within optimal efficiency bounds.</div>`;
             } else {
-                recList.innerHTML = recs.map(r => `
+                recList.innerHTML = recs.map(r => {
+                    const rTitle = r.recommendation || r.title || 'Optimization Action';
+                    const rCat = r.category || r.recommendation_type || 'SYSTEM';
+                    const rWhy = r.why || r.description || '';
+                    const rLift = r.expected_impact || r.expected_lift || 'MEDIUM';
+                    let rEv = 'Empirical telemetry';
+                    if (Array.isArray(r.evidence) && r.evidence.length > 0) {
+                        rEv = typeof r.evidence[0] === 'string' ? r.evidence[0] : (r.evidence[0].quote || r.evidence[0].claim || 'Verified evidence');
+                    } else if (r.evidence_summary) {
+                        rEv = r.evidence_summary;
+                    }
+                    return `
                     <div style="background:#0c0c0e; border:1px solid #1a1a1a; border-radius:6px; padding:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                            <strong style="color:#f4f4f5; font-size:0.78rem;">${escapeHtml(r.title)}</strong>
-                            <span class="badge ${r.expected_lift === 'HIGH' ? 'badge-emerald' : 'badge-amber'}" style="font-size:0.65rem;">${escapeHtml(r.recommendation_type)}</span>
+                            <strong style="color:#f4f4f5; font-size:0.78rem;">${escapeHtml(rTitle)}</strong>
+                            <span class="badge ${rLift.includes('HIGH') ? 'badge-emerald' : 'badge-amber'}" style="font-size:0.65rem;">${escapeHtml(rCat)}</span>
                         </div>
-                        <p style="font-size:0.72rem; color:#94a3b8; margin:0 0 6px;">${escapeHtml(r.description)}</p>
+                        <p style="font-size:0.72rem; color:#94a3b8; margin:0 0 6px;">${escapeHtml(rWhy)}</p>
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.68rem; color:#71717a;">
-                            <span>Evidence: <strong style="color:#a1a1aa;">${escapeHtml(r.evidence_summary || 'Empirical telemetry')}</strong></span>
-                            <span style="color:#10b981; font-weight:600;">Lift: ${escapeHtml(r.expected_lift)}</span>
+                            <span>Evidence: <strong style="color:#a1a1aa;">${escapeHtml(rEv.slice(0, 50))}</strong></span>
+                            <span style="color:#10b981; font-weight:600;">Lift: ${escapeHtml(rLift)}</span>
                         </div>
                     </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 
