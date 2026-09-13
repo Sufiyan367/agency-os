@@ -1,6 +1,6 @@
 /* ==========================================================================
-   AGENCY OS — 3D CINEMATIC SCROLL EXPERIENCE SCRIPT
-   GPU Kinetic Canvas, Interactive Simulator, Modals & Narrative Telemetry
+   AGENCY OS — THREE.JS 3D CINEMATIC MOTION & SCROLL ENGINE
+   WebGL Perspective Scene, GSAP ScrollTrigger Choreography & Live Workflows
    ========================================================================== */
 
 (function() {
@@ -8,6 +8,18 @@
 
   // Check prefers-reduced-motion
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Global Engine Reference for diagnostics and tests
+  window.agencyLanding3D = {
+    initialized: false,
+    threeLoaded: false,
+    gsapLoaded: false,
+    frameCount: 0,
+    activeWorkflow: 'missed_call',
+    nodes: {},
+    sceneState: 'HERO',
+    scrollProgress: 0
+  };
 
   // Simulator Scenarios Data Model
   const SIM_SCENARIOS = {
@@ -161,7 +173,7 @@
     }
   };
 
-  // Wait for DOM to be ready
+  // Wait for DOM
   document.addEventListener('DOMContentLoaded', () => {
     initHeaderScroll();
     initMobileNav();
@@ -169,12 +181,9 @@
     initContactForm();
     initSimulator();
     initSmoothAnchors();
-    initNarrativeObserver();
 
-    // 3D Kinetic Canvas Backdrop
-    if (!prefersReducedMotion) {
-      initKineticCanvas3D();
-    }
+    // Initialize Real Three.js WebGL 3D Motion Engine
+    initThreeJsLandingScene();
   });
 
   /* --------------------------------------------------------------------------
@@ -234,13 +243,11 @@
       backdrop.addEventListener('click', closeDrawer);
     }
 
-    // Close on any nav link click inside drawer
     const links = drawer.querySelectorAll('a, button');
     links.forEach(link => {
       link.addEventListener('click', closeDrawer);
     });
 
-    // Close on ESC
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && drawer.classList.contains('open')) {
         closeDrawer();
@@ -298,8 +305,7 @@
         const name = (document.getElementById('modalName') || {}).value || '';
         const email = (document.getElementById('modalEmail') || {}).value || '';
         const company = (document.getElementById('modalCompany') || {}).value || '';
-        const service = (document.getElementById('modalService') || {}).value || '';
-        const message = (document.getElementById('modalMessage') || {}).value || '';
+        const service = (document.getElementById('modalGoal') || {}).value || '';
 
         if (!name || !email || !company) {
           showAlert(alertBox, 'Please complete all required fields.', 'error');
@@ -315,7 +321,7 @@
           const resp = await fetch('/api/contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, company, service, message })
+            body: JSON.stringify({ name, email, company, service, message: `Consultation Modal: ${service}` })
           });
 
           if (resp.ok) {
@@ -332,7 +338,7 @@
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Confirm Consultation Request';
+            submitBtn.textContent = 'Confirm Strategy Call Request';
           }
         }
       });
@@ -415,6 +421,7 @@
 
     function renderStage(scenarioKey) {
       const data = SIM_SCENARIOS[scenarioKey] || SIM_SCENARIOS.missed_call;
+      window.agencyLanding3D.activeWorkflow = scenarioKey;
 
       renderColumn(colInput, data.step1);
       renderColumn(colReasoning, data.step2);
@@ -431,6 +438,11 @@
           setTimeout(() => col.classList.remove('pulsing'), 600);
         }, idx * 120);
       });
+
+      // Trigger Three.js WebGL reactive pulse across the 3D scene
+      if (typeof window.triggerLanding3DPulse === 'function') {
+        window.triggerLanding3DPulse(scenarioKey);
+      }
     }
 
     function renderColumn(targetEl, stepData) {
@@ -466,7 +478,6 @@
       });
     });
 
-    // Initial render
     renderStage('missed_call');
   }
 
@@ -496,198 +507,479 @@
   }
 
   /* --------------------------------------------------------------------------
-     7. Narrative Scroll Observer & Stage Satellite Coordination
+     7. THREE.JS 3D CINEMATIC WEBGL MOTION ENGINE
      -------------------------------------------------------------------------- */
-  function initNarrativeObserver() {
-    const steps = document.querySelectorAll('.scroll-step');
-    const satellites = document.querySelectorAll('.orbit-satellite');
-    const heroWidget = document.getElementById('hero-core-widget');
-
-    if (!steps.length) return;
-
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            steps.forEach(s => s.classList.remove('active-step'));
-            entry.target.classList.add('active-step');
-            const stepNum = entry.target.getAttribute('data-step');
-            
-            // Coordinate with hero satellite highlight if in view
-            satellites.forEach(sat => sat.style.borderColor = '');
-            const targetSat = document.querySelector(`.sat-${stepNum}`);
-            if (targetSat) {
-              targetSat.style.borderColor = '#00d4ef';
-            }
-          }
-        });
-      }, { threshold: 0.4 });
-
-      steps.forEach(step => observer.observe(step));
-    }
-
-    // Hero Widget Interactive Parallax Tilt
-    if (heroWidget && !prefersReducedMotion) {
-      window.addEventListener('mousemove', (e) => {
-        const { clientX, clientY } = e;
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-        const rotY = ((clientX - cx) / cx) * 12;
-        const rotX = -((clientY - cy) / cy) * 12;
-        heroWidget.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
-      }, { passive: true });
-    }
-  }
-
-  /* --------------------------------------------------------------------------
-     8. High-Performance 3D Kinetic Automation Engine (Canvas)
-     -------------------------------------------------------------------------- */
-  function initKineticCanvas3D() {
+  function initThreeJsLandingScene() {
     const canvas = document.getElementById('bg-canvas-3d');
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (typeof THREE === 'undefined') {
+      console.warn('[Landing3D] Three.js not loaded, deferring initialization.');
+      return;
+    }
 
-    let width = 0;
-    let height = 0;
-    let dpr = 1;
-    let animFrameId = null;
+    window.agencyLanding3D.threeLoaded = true;
 
-    // Orbital parameters
-    const rings = [
-      { radius: 180, tiltX: 1.1, tiltY: 0.3, speed: 0.003, rot: 0, color: 'rgba(0, 212, 239, 0.22)' },
-      { radius: 300, tiltX: 0.9, tiltY: -0.4, speed: -0.002, rot: Math.PI / 4, color: 'rgba(99, 102, 241, 0.2)' },
-      { radius: 440, tiltX: 0.7, tiltY: 0.5, speed: 0.0015, rot: Math.PI / 2, color: 'rgba(0, 212, 239, 0.15)' }
+    // 1. Renderer Setup
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    const isMobile = width <= 768;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: !isMobile,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
+    renderer.setSize(width, height);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    // 2. Scene & Camera Setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 1, 2500);
+    camera.position.set(0, 0, 850);
+
+    window.agencyLanding3D.renderer = renderer;
+    window.agencyLanding3D.scene = scene;
+    window.agencyLanding3D.camera = camera;
+
+    // 3. Controlled Lighting
+    const ambientLight = new THREE.AmbientLight(0x0a101d, 2.5);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0x00d4ef, 2.2);
+    keyLight.position.set(300, 400, 500);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x6366f1, 2.8);
+    rimLight.position.set(-300, -200, 300);
+    scene.add(rimLight);
+
+    const pointLight = new THREE.PointLight(0x00d4ef, 3.0, 600);
+    pointLight.position.set(0, 0, 0);
+    scene.add(pointLight);
+
+    // 4. Main 3D System Hierarchy Group
+    const systemGroup = new THREE.Group();
+    scene.add(systemGroup);
+
+    // Initial desktop placement offset towards right side of hero text
+    const targetBaseX = isMobile ? 0 : 200;
+    systemGroup.position.set(targetBaseX, 0, 0);
+
+    // 5. Central Nucleus (AI AUTOMATION CORE)
+    const nucleusGeo = new THREE.IcosahedronGeometry(isMobile ? 38 : 50, 1);
+    const nucleusMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      emissive: 0x00d4ef,
+      emissiveIntensity: 0.6,
+      roughness: 0.2,
+      metalness: 0.8,
+      wireframe: false
+    });
+    const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat);
+    systemGroup.add(nucleusMesh);
+
+    // Wireframe Outer Cage for Nucleus
+    const cageGeo = new THREE.IcosahedronGeometry(isMobile ? 46 : 60, 1);
+    const cageMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.45
+    });
+    const cageMesh = new THREE.Mesh(cageGeo, cageMat);
+    systemGroup.add(cageMesh);
+
+    // 6. Orbital Concentric Rings
+    const orbitalRings = [];
+    const ringSpecs = [
+      { r: isMobile ? 100 : 135, tube: 0.8, tiltX: Math.PI / 3, tiltY: 0.2, color: 0x00d4ef, speed: 0.004 },
+      { r: isMobile ? 160 : 210, tube: 0.7, tiltX: Math.PI / 4, tiltY: -0.3, color: 0x6366f1, speed: -0.003 },
+      { r: isMobile ? 220 : 290, tube: 0.6, tiltX: Math.PI / 2.5, tiltY: 0.4, color: 0x00d4ef, speed: 0.002 }
     ];
 
-    // Starfield / Depth Particles
-    const PARTICLE_COUNT = 85;
-    const particles = [];
-
-    function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.scale(dpr, dpr);
-    }
-
-    function initParticles() {
-      particles.length = 0;
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push({
-          x: (Math.random() - 0.5) * 1600,
-          y: (Math.random() - 0.5) * 1200,
-          z: Math.random() * 800 + 100,
-          radius: Math.random() * 1.5 + 0.8,
-          alpha: Math.random() * 0.6 + 0.2,
-          speedZ: Math.random() * 0.4 + 0.1
-        });
-      }
-    }
-
-    let scrollYOffset = 0;
-    window.addEventListener('scroll', () => {
-      scrollYOffset = window.scrollY * 0.0008;
-    }, { passive: true });
-
-    let mouseX = 0;
-    let mouseY = 0;
-    window.addEventListener('mousemove', (e) => {
-      mouseX = (e.clientX - width / 2) * 0.0004;
-      mouseY = (e.clientY - height / 2) * 0.0004;
-    }, { passive: true });
-
-    function render() {
-      ctx.clearRect(0, 0, width, height);
-
-      const centerX = width * 0.65; // Positioned behind right-side hero visual on desktop
-      const centerY = Math.min(height * 0.45, 420);
-
-      // Draw background 3D particles
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.z -= p.speedZ;
-        if (p.z <= 20) p.z = 900;
-
-        const fov = 400;
-        const scale = fov / (fov + p.z);
-        const px = (width / 2) + p.x * scale + mouseX * 200;
-        const py = (height / 2) + p.y * scale + mouseY * 200;
-
-        if (px >= 0 && px <= width && py >= 0 && py <= height) {
-          ctx.beginPath();
-          ctx.arc(px, py, p.radius * scale, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(165, 180, 252, ${p.alpha * scale})`;
-          ctx.fill();
-        }
-      }
-
-      // Draw Concentric Orbital Rings in 3D Perspective
-      rings.forEach((ring, rIdx) => {
-        ring.rot += ring.speed + scrollYOffset * 0.01;
-
-        ctx.save();
-        ctx.beginPath();
-        const steps = 64;
-        for (let s = 0; s <= steps; s++) {
-          const theta = (s / steps) * Math.PI * 2;
-          // 3D coordinates on inclined orbital plane
-          const rawX = Math.cos(theta + ring.rot) * ring.radius;
-          const rawY = Math.sin(theta + ring.rot) * ring.radius * ring.tiltX;
-          const rawZ = Math.sin(theta) * ring.radius * ring.tiltY;
-
-          // Projection
-          const fov = 600;
-          const scale = fov / (fov + rawZ + 150);
-          const projX = centerX + rawX * scale + mouseX * 100;
-          const projY = centerY + rawY * scale + mouseY * 100;
-
-          if (s === 0) {
-            ctx.moveTo(projX, projY);
-          } else {
-            ctx.lineTo(projX, projY);
-          }
-        }
-        ctx.closePath();
-        ctx.strokeStyle = ring.color;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Draw an orbiting data node on each ring
-        const nodeAngle = ring.rot * 2 + rIdx;
-        const nX = Math.cos(nodeAngle) * ring.radius;
-        const nY = Math.sin(nodeAngle) * ring.radius * ring.tiltX;
-        const nZ = Math.sin(nodeAngle) * ring.radius * ring.tiltY;
-        const nScale = 600 / (600 + nZ + 150);
-        const nodePx = centerX + nX * nScale + mouseX * 100;
-        const nodePy = centerY + nY * nScale + mouseY * 100;
-
-        // Node Glow
-        ctx.beginPath();
-        ctx.arc(nodePx, nodePy, 4 * nScale, 0, Math.PI * 2);
-        ctx.fillStyle = rIdx % 2 === 0 ? '#00d4ef' : '#818cf8';
-        ctx.shadowColor = rIdx % 2 === 0 ? '#00d4ef' : '#818cf8';
-        ctx.shadowBlur = 12;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        ctx.restore();
+    ringSpecs.forEach(spec => {
+      const ringGeo = new THREE.TorusGeometry(spec.r, spec.tube, 8, isMobile ? 48 : 80);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: spec.color,
+        transparent: true,
+        opacity: 0.35
       });
-
-      animFrameId = requestAnimationFrame(render);
-    }
-
-    window.addEventListener('resize', () => {
-      resize();
-      initParticles();
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = spec.tiltX;
+      ringMesh.rotation.y = spec.tiltY;
+      systemGroup.add(ringMesh);
+      orbitalRings.push({ mesh: ringMesh, speed: spec.speed });
     });
 
-    resize();
-    initParticles();
-    render();
+    // 7. Core Conceptual 3D Nodes
+    // Concept:
+    //         AI AUTOMATION CORE (Center 0,0,0)
+    //         /        |         \
+    //      LEADS      AI      WORKFLOWS
+    //         \        |         /
+    //            SELL / BUILD
+    //                 |
+    //               DEPLOY
+    //                 |
+    //               GROW
+    const nodeDefs = [
+      { id: 'leads', name: 'LEADS', pos: [-130, 80, 40], color: 0x00d4ef, size: 14 },
+      { id: 'ai', name: 'AI', pos: [0, 110, -20], color: 0x38bdf8, size: 16 },
+      { id: 'workflows', name: 'WORKFLOWS', pos: [130, 80, 30], color: 0x6366f1, size: 14 },
+      { id: 'sell_build', name: 'SELL / BUILD', pos: [85, -70, 50], color: 0x10b981, size: 15 },
+      { id: 'deploy', name: 'DEPLOY', pos: [-85, -80, -30], color: 0x8b5cf6, size: 13 },
+      { id: 'grow', name: 'GROW', pos: [0, -145, 20], color: 0x00d4ef, size: 16 }
+    ];
+
+    const nodesMap = {};
+    const nodeMaterials = [];
+
+    nodeDefs.forEach(def => {
+      const nGroup = new THREE.Group();
+      nGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
+
+      const nGeo = new THREE.SphereGeometry(def.size, 16, 16);
+      const nMat = new THREE.MeshStandardMaterial({
+        color: def.color,
+        emissive: def.color,
+        emissiveIntensity: 0.55,
+        roughness: 0.3,
+        metalness: 0.7
+      });
+      const nMesh = new THREE.Mesh(nGeo, nMat);
+      nGroup.add(nMesh);
+
+      // Halo ring around node
+      const haloGeo = new THREE.RingGeometry(def.size * 1.3, def.size * 1.6, 24);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: def.color,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.4
+      });
+      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+      nGroup.add(haloMesh);
+
+      systemGroup.add(nGroup);
+
+      nodesMap[def.id] = {
+        group: nGroup,
+        mesh: nMesh,
+        material: nMat,
+        halo: haloMesh,
+        basePos: new THREE.Vector3(...def.pos),
+        baseScale: 1
+      };
+      nodeMaterials.push(nMat);
+    });
+
+    window.agencyLanding3D.nodes = nodesMap;
+
+    // 8. 3D Cybernetic Connector Lines
+    const connections = [
+      ['leads', 'ai'],
+      ['ai', 'workflows'],
+      ['workflows', 'sell_build'],
+      ['sell_build', 'deploy'],
+      ['deploy', 'grow'],
+      ['leads', 'sell_build'],
+      ['grow', 'leads']
+    ];
+
+    const lineObjects = [];
+    connections.forEach(([fromId, toId]) => {
+      const fromNode = nodesMap[fromId];
+      const toNode = nodesMap[toId];
+      if (!fromNode || !toNode) return;
+
+      const curve = new THREE.CatmullRomCurve3([
+        fromNode.basePos,
+        new THREE.Vector3().addVectors(fromNode.basePos, toNode.basePos).multiplyScalar(0.5).add(new THREE.Vector3(0, 15, 20)),
+        toNode.basePos
+      ]);
+
+      const points = curve.getPoints(32);
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.25,
+        linewidth: 1
+      });
+      const lineMesh = new THREE.Line(lineGeo, lineMat);
+      systemGroup.add(lineMesh);
+
+      lineObjects.push({ line: lineMesh, curve, material: lineMat });
+    });
+
+    // 9. Floating 3D Spline Pulse Particles (Data Flow)
+    const pulseCount = 12;
+    const pulseGeo = new THREE.SphereGeometry(3, 8, 8);
+    const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+    const pulses = [];
+
+    for (let i = 0; i < pulseCount; i++) {
+      const pMesh = new THREE.Mesh(pulseGeo, pulseMat);
+      systemGroup.add(pMesh);
+      pulses.push({
+        mesh: pMesh,
+        connIndex: i % lineObjects.length,
+        progress: (i / pulseCount)
+      });
+    }
+
+    // 10. Ambient 3D Particle Constellation (Telemetry Dust)
+    const particleTotal = isMobile ? 80 : 200;
+    const partGeo = new THREE.BufferGeometry();
+    const partPositions = new Float32Array(particleTotal * 3);
+
+    for (let i = 0; i < particleTotal * 3; i += 3) {
+      partPositions[i] = (Math.random() - 0.5) * 1600;
+      partPositions[i + 1] = (Math.random() - 0.5) * 1200;
+      partPositions[i + 2] = (Math.random() - 0.5) * 900;
+    }
+
+    partGeo.setAttribute('position', new THREE.BufferAttribute(partPositions, 3));
+    const partMat = new THREE.PointsMaterial({
+      color: 0xa5b4fc,
+      size: 2.2,
+      transparent: true,
+      opacity: 0.45
+    });
+    const particleCloud = new THREE.Points(partGeo, partMat);
+    scene.add(particleCloud);
+
+    // 11. Mouse Parallax (Smooth Lerp)
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+    let currentMouseX = 0;
+    let currentMouseY = 0;
+
+    if (!prefersReducedMotion && !isMobile) {
+      window.addEventListener('mousemove', (e) => {
+        targetMouseX = (e.clientX - width / 2) * 0.15;
+        targetMouseY = (e.clientY - height / 2) * 0.15;
+      }, { passive: true });
+    }
+
+    // 12. Interactive Pulse Wave Trigger from Simulator
+    window.triggerLanding3DPulse = function(workflowKey) {
+      const targetColors = {
+        missed_call: 0x00d4ef,
+        web_enquiry: 0x38bdf8,
+        lead_form: 0x10b981,
+        support_request: 0xf59e0b
+      };
+      const activeColor = targetColors[workflowKey] || 0x00d4ef;
+
+      // Pulse nucleus
+      pointLight.color.setHex(activeColor);
+      pointLight.intensity = 5.0;
+
+      // Animate nucleus expansion
+      if (typeof gsap !== 'undefined') {
+        gsap.to(nucleusMesh.scale, { x: 1.25, y: 1.25, z: 1.25, duration: 0.35, yoyo: true, repeat: 1, ease: 'power2.out' });
+        gsap.to(cageMesh.scale, { x: 1.2, y: 1.2, z: 1.2, duration: 0.45, yoyo: true, repeat: 1, ease: 'power2.out' });
+        
+        // Highlight active node
+        const keyNode = nodesMap.leads;
+        if (keyNode) {
+          gsap.to(keyNode.group.scale, { x: 1.6, y: 1.6, z: 1.6, duration: 0.4, yoyo: true, repeat: 1 });
+        }
+      } else {
+        nucleusMesh.scale.set(1.2, 1.2, 1.2);
+        setTimeout(() => nucleusMesh.scale.set(1, 1, 1), 500);
+      }
+    };
+
+    // 13. GSAP ScrollTrigger 3D Choreography
+    function initScrollTriggerChoreography() {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined' || prefersReducedMotion) {
+        // Fallback: standard scroll handler
+        window.addEventListener('scroll', () => {
+          const scrollY = window.scrollY;
+          const maxScroll = document.documentElement.scrollHeight - window.innerHeight || 1;
+          const p = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+          window.agencyLanding3D.scrollProgress = p;
+
+          camera.position.z = 850 - p * 300;
+          camera.position.y = -p * 150;
+          systemGroup.rotation.y = p * Math.PI * 1.5;
+        }, { passive: true });
+        return;
+      }
+
+      window.agencyLanding3D.gsapLoaded = true;
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Section 1: Hero to Discover
+      ScrollTrigger.create({
+        trigger: '#hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1,
+        onUpdate: (self) => {
+          const p = self.progress;
+          window.agencyLanding3D.scrollProgress = p * 0.2;
+          camera.position.z = 850 - p * 120;
+          systemGroup.rotation.y = p * 0.8;
+          systemGroup.position.x = targetBaseX - p * (isMobile ? 0 : 80);
+        }
+      });
+
+      // Section 2: Operating Lifecycle (Discover -> Audit -> Persuade -> Sell -> Build -> Deploy -> Maintain -> Grow)
+      ScrollTrigger.create({
+        trigger: '#how-it-works',
+        start: 'top center',
+        end: 'bottom center',
+        scrub: 1.2,
+        onUpdate: (self) => {
+          const p = self.progress;
+          window.agencyLanding3D.scrollProgress = 0.2 + p * 0.4;
+          camera.position.z = 730 - p * 80;
+          camera.position.y = -p * 100;
+          systemGroup.rotation.y = 0.8 + p * 1.4;
+          systemGroup.rotation.x = p * 0.2;
+
+          // Sequential node scaling highlights based on scroll milestone
+          if (nodesMap.leads) nodesMap.leads.group.scale.setScalar(1 + (p < 0.2 ? 0.3 : 0));
+          if (nodesMap.ai) nodesMap.ai.group.scale.setScalar(1 + (p >= 0.2 && p < 0.4 ? 0.35 : 0));
+          if (nodesMap.workflows) nodesMap.workflows.group.scale.setScalar(1 + (p >= 0.4 && p < 0.6 ? 0.35 : 0));
+          if (nodesMap.sell_build) nodesMap.sell_build.group.scale.setScalar(1 + (p >= 0.6 && p < 0.8 ? 0.35 : 0));
+          if (nodesMap.deploy) nodesMap.deploy.group.scale.setScalar(1 + (p >= 0.8 && p < 0.95 ? 0.35 : 0));
+          if (nodesMap.grow) nodesMap.grow.group.scale.setScalar(1 + (p >= 0.95 ? 0.4 : 0));
+        }
+      });
+
+      // Section 3: Interactive Demo & Services
+      ScrollTrigger.create({
+        trigger: '#interactive-demo',
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 1,
+        onUpdate: (self) => {
+          const p = self.progress;
+          window.agencyLanding3D.scrollProgress = 0.6 + p * 0.2;
+          camera.position.z = 650 + Math.sin(p * Math.PI) * 50;
+          systemGroup.position.x = (isMobile ? 0 : 120);
+        }
+      });
+
+      // Section 4: Final CTA
+      ScrollTrigger.create({
+        trigger: '#contact',
+        start: 'top bottom',
+        end: 'bottom bottom',
+        scrub: 1,
+        onUpdate: (self) => {
+          const p = self.progress;
+          window.agencyLanding3D.scrollProgress = 0.8 + p * 0.2;
+          camera.position.z = 700 - p * 100;
+          systemGroup.position.x = 0; // Center behind CTA card
+          systemGroup.position.y = -60;
+        }
+      });
+    }
+
+    initScrollTriggerChoreography();
+
+    // 14. Main Animation Loop (Optimized RAF)
+    let isVisible = true;
+    let animId = null;
+
+    function renderLoop() {
+      animId = requestAnimationFrame(renderLoop);
+      window.agencyLanding3D.frameCount++;
+
+      if (!isVisible) return;
+
+      const time = performance.now() * 0.001;
+
+      // Mouse Parallax Lerp
+      currentMouseX += (targetMouseX - currentMouseX) * 0.05;
+      currentMouseY += (targetMouseY - currentMouseY) * 0.05;
+
+      camera.position.x = currentMouseX;
+      camera.position.y = -currentMouseY + (window.agencyLanding3D.scrollProgress ? -window.agencyLanding3D.scrollProgress * 80 : 0);
+      camera.lookAt(systemGroup.position.x * 0.3, systemGroup.position.y * 0.3, 0);
+
+      // Controlled Continuous Rotations
+      if (!prefersReducedMotion) {
+        nucleusMesh.rotation.y += 0.006;
+        nucleusMesh.rotation.x += 0.003;
+        cageMesh.rotation.y -= 0.004;
+        cageMesh.rotation.z += 0.002;
+
+        orbitalRings.forEach(r => {
+          r.mesh.rotation.z += r.speed;
+        });
+
+        // Orbit satellite nodes gently
+        nodeDefs.forEach((def, idx) => {
+          const node = nodesMap[def.id];
+          if (!node) return;
+          const wobble = Math.sin(time * 1.5 + idx) * 3.5;
+          node.group.position.y = node.basePos.y + wobble;
+          node.halo.rotation.z += 0.01;
+        });
+
+        // Pulse Particles moving along curves
+        pulses.forEach(p => {
+          p.progress = (p.progress + 0.004) % 1.0;
+          const conn = lineObjects[p.connIndex];
+          if (conn && conn.curve) {
+            const pt = conn.curve.getPoint(p.progress);
+            p.mesh.position.copy(pt);
+          }
+        });
+
+        // Subtle particle cloud drift
+        particleCloud.rotation.y = time * 0.015;
+        particleCloud.rotation.x = Math.sin(time * 0.01) * 0.05;
+
+        // Point light breathing
+        pointLight.intensity = 2.4 + Math.sin(time * 2.0) * 0.5;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Pause rendering when tab is hidden or canvas is not visible
+    document.addEventListener('visibilitychange', () => {
+      isVisible = !document.hidden;
+    });
+
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isVisible = entry.isIntersecting;
+        });
+      }, { threshold: 0.05 });
+      obs.observe(canvas);
+    }
+
+    // Responsive Resize Handler
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const mob = width <= 768;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mob ? 1.5 : 2));
+
+      systemGroup.position.x = mob ? 0 : 200;
+    }, { passive: true });
+
+    renderLoop();
+    window.agencyLanding3D.initialized = true;
+    console.log('[Landing3D] Real Three.js WebGL Motion Engine active.');
   }
 
 })();

@@ -978,8 +978,9 @@
                     </div>
 
                     <!-- 3D Central Operating Core Visual Object -->
-                    <div class="ceo-core-stage" aria-label="Autonomous 3D Operating Core">
-                        <div class="agency-os-3d-core">
+                    <div class="ceo-core-stage" id="ceo-core-stage" aria-label="Autonomous 3D Operating Core">
+                        <canvas id="dashboard-3d-canvas" class="dashboard-3d-canvas" style="width:100%; height:100%; display:block;"></canvas>
+                        <div class="agency-os-3d-core" id="agency-os-core-fallback" style="display:none;">
                             <div class="core-center-nucleus" title="Agency OS Autonomous Core">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
@@ -987,13 +988,6 @@
                                     <polyline points="2 12 12 17 22 12"></polyline>
                                 </svg>
                             </div>
-                            <div class="core-ring core-ring-1"></div>
-                            <div class="core-ring core-ring-2"></div>
-                            <div class="core-domain-node node-acq">ACQUISITION</div>
-                            <div class="core-domain-node node-sales">SALES</div>
-                            <div class="core-domain-node node-delivery">DELIVERY</div>
-                            <div class="core-domain-node node-support">SUPPORT</div>
-                            <div class="core-domain-node node-intel">INTELLIGENCE</div>
                         </div>
                     </div>
                 </div>
@@ -4168,6 +4162,7 @@
         </div>
     </aside>
 
+    <script src="/static/vendor/three.min.js"></script>
     <script type="module" src="/static/deliverability_hud.js"></script>
     <script type="module" src="/static/project_pipeline_hud.js"></script>
     <script type="module" src="/static/notification_center.js"></script>
