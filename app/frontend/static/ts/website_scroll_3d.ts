@@ -1,22 +1,33 @@
 /**
- * Agency OS: Autonomous Business Operating System — Cinematic 3D Engine
- * Language: TypeScript
- * Description: Real Three.js WebGL scene and GSAP ScrollTrigger narrative
- *              choreography for the public marketing experience.
+ * OSAI — AI Automation For Modern Businesses
+ * Realistic Digital Business Workflow 3D Engine
+ * 
+ * Flow: Customer Ingress -> AI Reasoning Matrix -> Commercial Outcomes (Calendar, CRM, Dispatch)
  */
 
-// Declare ambient libraries loaded via static vendor bundles
 declare var THREE: any;
 declare var gsap: any;
 declare var ScrollTrigger: any;
 
-interface NodeDefinition {
+interface WorkflowDefinition {
+  key: string;
+  name: string;
+  terminals: string[];
+  color: number;
+  accentHex: string;
+}
+
+interface BusinessNode {
   id: string;
   name: string;
+  group: any;
+  mesh: any;
+  beacon: any;
+  halo: any;
+  baseScale: number;
+  targetScale: number;
   pos: [number, number, number];
   color: number;
-  emissive: number;
-  description: string;
 }
 
 interface ConduitData {
@@ -28,33 +39,26 @@ interface ConduitData {
   endPos: any;
 }
 
-interface SimulatorWorkflow {
-  key: string;
-  nodeIds: string[];
-  color: number;
-  accentHex: string;
-}
-
 interface Landing3DState {
   initialized: boolean;
   threeLoaded: boolean;
   gsapLoaded: boolean;
   frameCount: number;
   scrollProgress: number;
-  activeWorkflow: string | null;
+  activeWorkflow: string;
   camera: any;
   scene: any;
   renderer: any;
-  nodes: Record<string, any>;
+  nodes: Record<string, BusinessNode>;
   conduits: ConduitData[];
-  triggerPulse: (workflowKey: string) => void;
+  triggerPulse: (key: string) => void;
+  selectSolution: (key: string) => void;
   dispose: () => void;
 }
 
 (function () {
   'use strict';
 
-  // System State
   const state: Landing3DState = {
     initialized: false,
     threeLoaded: false,
@@ -68,6 +72,7 @@ interface Landing3DState {
     nodes: {},
     conduits: [],
     triggerPulse: () => {},
+    selectSolution: () => {},
     dispose: () => {}
   };
 
@@ -75,28 +80,28 @@ interface Landing3DState {
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function initLanding3DEngine(): void {
+  function initDigitalWorkflow3D(): void {
     const canvas = document.getElementById('bg-canvas-3d') as HTMLCanvasElement | null;
     if (!canvas) return;
 
     if (typeof THREE === 'undefined') {
-      console.warn('[AgencyOS 3D] Three.js vendor library not ready.');
+      console.warn('[OSAI 3D] Three.js library not loaded yet.');
       return;
     }
     state.threeLoaded = true;
 
-    // 1. Scene & Camera Setup
+    // 1. Scene & Atmosphere Setup
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070d, 0.00065);
+    scene.fog = new THREE.FogExp2(0x05070d, 0.0007);
     state.scene = scene;
 
     const aspect = window.innerWidth / window.innerHeight;
     const camera = new THREE.PerspectiveCamera(45, aspect, 1, 3000);
-    camera.position.set(0, 0, 850);
+    camera.position.set(0, 0, 840);
     camera.lookAt(0, 0, 0);
     state.camera = camera;
 
-    // 2. WebGL Renderer with High Precision & Smooth Shading
+    // 2. WebGL Renderer
     let renderer: any;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -109,198 +114,331 @@ interface Landing3DState {
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.25;
+      renderer.toneMappingExposure = 1.2;
       state.renderer = renderer;
     } catch (err) {
-      console.error('[AgencyOS 3D] Failed to acquire WebGL context:', err);
+      console.error('[OSAI 3D] Failed to create WebGL context:', err);
       return;
     }
 
-    // 3. Dynamic Lighting Architecture
-    const ambientLight = new THREE.AmbientLight(0x0d1527, 2.2);
+    // 3. Dynamic Technical Lighting
+    const ambientLight = new THREE.AmbientLight(0x0b1324, 2.4);
     scene.add(ambientLight);
 
-    const primaryLight = new THREE.DirectionalLight(0x00d4ef, 2.0);
+    const primaryLight = new THREE.DirectionalLight(0x00d4ef, 2.2);
     primaryLight.position.set(300, 400, 500);
     scene.add(primaryLight);
 
-    const secondaryLight = new THREE.DirectionalLight(0x8b5cf6, 1.4);
-    secondaryLight.position.set(-400, -200, 300);
+    const secondaryLight = new THREE.DirectionalLight(0x10b981, 1.6);
+    secondaryLight.position.set(-350, -250, 400);
     scene.add(secondaryLight);
 
-    const coreLight = new THREE.PointLight(0x00d4ef, 3.5, 900);
-    coreLight.position.set(0, 0, 0);
+    const coreLight = new THREE.PointLight(0x00d4ef, 3.8, 850);
+    coreLight.position.set(0, 20, 40);
     scene.add(coreLight);
 
-    // 4. Central Kinetic Entity: AUTONOMOUS CORE
-    const coreGroup = new THREE.Group();
-    scene.add(coreGroup);
+    // =========================================================================
+    // 4. ENTITY 1: CUSTOMER INGRESS TERMINAL (Inbound Call / Web Message)
+    // =========================================================================
+    const ingressGroup = new THREE.Group();
+    ingressGroup.position.set(-340, 110, -40);
+    scene.add(ingressGroup);
 
-    // Faceted Geodesic Nucleus
-    const nucleusGeo = new THREE.IcosahedronGeometry(36, 1);
-    const nucleusMat = new THREE.MeshStandardMaterial({
-      color: 0x050a14,
+    // Ingress Device Slab (Sleek Phone/Terminal tablet)
+    const tabletGeo = new THREE.BoxGeometry(46, 68, 8);
+    const tabletMat = new THREE.MeshStandardMaterial({
+      color: 0x09101d,
       emissive: 0x00d4ef,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: 0.35,
       metalness: 0.9,
-      roughness: 0.15,
-      wireframe: false,
-      flatShading: true
+      roughness: 0.2,
+      wireframe: false
     });
-    const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
-    coreGroup.add(nucleus);
+    const tablet = new THREE.Mesh(tabletGeo, tabletMat);
+    ingressGroup.add(tablet);
 
-    // Outer Armor Wireframe Cage
-    const cageGeo = new THREE.IcosahedronGeometry(48, 1);
-    const cageMat = new THREE.MeshBasicMaterial({
+    // Screen Wireframe & Outline
+    const screenGeo = new THREE.BoxGeometry(40, 60, 8.5);
+    const screenMat = new THREE.MeshBasicMaterial({
       color: 0x00d4ef,
       wireframe: true,
       transparent: true,
-      opacity: 0.4
+      opacity: 0.5
     });
-    const cage = new THREE.Mesh(cageGeo, cageMat);
-    coreGroup.add(cage);
+    const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+    ingressGroup.add(screenMesh);
 
-    // 3 Concentric Gyro Rings
-    const ring1Geo = new THREE.TorusGeometry(72, 0.75, 12, 64);
-    const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.35 });
-    const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
-    ring1.rotation.x = Math.PI / 3;
-    coreGroup.add(ring1);
+    // Expanding Radio / Signal Transmission Rings
+    const signalWaveGroup = new THREE.Group();
+    ingressGroup.add(signalWaveGroup);
 
-    const ring2Geo = new THREE.TorusGeometry(95, 0.65, 12, 64);
-    const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.28 });
-    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-    ring2.rotation.y = Math.PI / 4;
-    ring2.rotation.z = Math.PI / 6;
-    coreGroup.add(ring2);
+    const signalRings: any[] = [];
+    for (let r = 0; r < 3; r++) {
+      const ringGeo = new THREE.RingGeometry(25 + r * 14, 26 + r * 14, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00d4ef,
+        transparent: true,
+        opacity: 0.35 - r * 0.1,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      signalWaveGroup.add(ring);
+      signalRings.push(ring);
+    }
 
-    const ring3Geo = new THREE.TorusGeometry(120, 0.55, 12, 64);
-    const ring3Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.22 });
-    const ring3 = new THREE.Mesh(ring3Geo, ring3Mat);
-    ring3.rotation.x = -Math.PI / 4;
-    coreGroup.add(ring3);
+    // Ingress Beacon
+    const ingressBeaconGeo = new THREE.SphereGeometry(4.5, 16, 16);
+    const ingressBeaconMat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.9 });
+    const ingressBeacon = new THREE.Mesh(ingressBeaconGeo, ingressBeaconMat);
+    ingressBeacon.position.set(0, 38, 0);
+    ingressGroup.add(ingressBeacon);
 
-    // 5. Nine Conceptual System Nodes (Operating Constellation)
-    const nodeDefs: NodeDefinition[] = [
-      { id: 'DISCOVER', name: 'Discover', pos: [-340, 180, -60], color: 0x00d4ef, emissive: 0x00d4ef, description: 'Signal convergence & opportunity detection' },
-      { id: 'AUDIT', name: 'Audit', pos: [340, 180, -60], color: 0x8b5cf6, emissive: 0x8b5cf6, description: 'Empirical multi-layer diagnostics' },
-      { id: 'PERSUADE', name: 'Persuade', pos: [-400, 30, -30], color: 0x38bdf8, emissive: 0x38bdf8, description: 'Email, Chat, & Voice synthesis' },
-      { id: 'SELL', name: 'Sell', pos: [400, 30, -30], color: 0x10b981, emissive: 0x10b981, description: 'Proposal generation & commercial close' },
-      { id: 'PAY', name: 'Pay', pos: [-240, -140, 30], color: 0xa855f7, emissive: 0xa855f7, description: 'Automated invoice & settlement conduits' },
-      { id: 'BUILD', name: 'Build', pos: [240, -140, 30], color: 0x2563eb, emissive: 0x2563eb, description: 'Production architecture assembly' },
-      { id: 'DEPLOY', name: 'Deploy', pos: [-320, -280, 50], color: 0x6366f1, emissive: 0x6366f1, description: 'Edge containers & automated deployment' },
-      { id: 'MAINTAIN', name: 'Maintain', pos: [0, -320, 60], color: 0xf59e0b, emissive: 0xf59e0b, description: 'Self-healing mesh & telemetry monitoring' },
-      { id: 'LEARN', name: 'Learn', pos: [320, -280, 50], color: 0xf43f5e, emissive: 0xf43f5e, description: 'Outcome feedback loop to neural core' }
-    ];
+    // =========================================================================
+    // 5. ENTITY 2: CENTRAL AI PROCESSING & QUALIFICATION MATRIX
+    // =========================================================================
+    const aiMatrixGroup = new THREE.Group();
+    aiMatrixGroup.position.set(0, 20, 0);
+    scene.add(aiMatrixGroup);
 
+    // Core Processor Prism (Dual Hexagonal Matrix Plate)
+    const procGeo = new THREE.CylinderGeometry(44, 44, 14, 6);
+    const procMat = new THREE.MeshStandardMaterial({
+      color: 0x071120,
+      emissive: 0x00d4ef,
+      emissiveIntensity: 0.6,
+      metalness: 0.95,
+      roughness: 0.15,
+      flatShading: true
+    });
+    const procMesh = new THREE.Mesh(procGeo, procMat);
+    procMesh.rotation.x = Math.PI / 6;
+    aiMatrixGroup.add(procMesh);
+
+    // Outer Diagnostic Scanner Cage
+    const procCageGeo = new THREE.CylinderGeometry(54, 54, 18, 6);
+    const procCageMat = new THREE.MeshBasicMaterial({
+      color: 0x00d4ef,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.45
+    });
+    const procCage = new THREE.Mesh(procCageGeo, procCageMat);
+    procCage.rotation.x = Math.PI / 6;
+    aiMatrixGroup.add(procCage);
+
+    // Rotating Neural Reasoning Orbit Rings
+    const orbitRing1Geo = new THREE.TorusGeometry(75, 0.8, 12, 64);
+    const orbitRing1Mat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.4 });
+    const orbitRing1 = new THREE.Mesh(orbitRing1Geo, orbitRing1Mat);
+    orbitRing1.rotation.x = Math.PI / 3;
+    aiMatrixGroup.add(orbitRing1);
+
+    const orbitRing2Geo = new THREE.TorusGeometry(98, 0.7, 12, 64);
+    const orbitRing2Mat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35 });
+    const orbitRing2 = new THREE.Mesh(orbitRing2Geo, orbitRing2Mat);
+    orbitRing2.rotation.y = Math.PI / 4;
+    orbitRing2.rotation.z = Math.PI / 5;
+    aiMatrixGroup.add(orbitRing2);
+
+    // Matrix Central Pulsar
+    const pulsarGeo = new THREE.OctahedronGeometry(16, 0);
+    const pulsarMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+    const pulsar = new THREE.Mesh(pulsarGeo, pulsarMat);
+    aiMatrixGroup.add(pulsar);
+
+    // =========================================================================
+    // 6. ENTITY 3: THREE BUSINESS OUTCOME TERMINALS
+    // =========================================================================
     const nodesGroup = new THREE.Group();
     scene.add(nodesGroup);
 
-    const nodes: Record<string, any> = {};
+    const businessNodes: Record<string, BusinessNode> = {};
 
-    nodeDefs.forEach(def => {
-      const nodeGroup = new THREE.Group();
-      nodeGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
+    // 6A. Calendar Appointment Terminal (Green)
+    const calGroup = new THREE.Group();
+    calGroup.position.set(340, 160, -20);
+    nodesGroup.add(calGroup);
 
-      // Faceted Node Geometry
-      const geom = new THREE.OctahedronGeometry(15, 0);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0x0b1329,
-        emissive: def.emissive,
-        emissiveIntensity: 0.6,
-        metalness: 0.85,
-        roughness: 0.25,
-        flatShading: true
-      });
-      const mesh = new THREE.Mesh(geom, mat);
-      nodeGroup.add(mesh);
-
-      // Node Wireframe Halo
-      const haloGeo = new THREE.OctahedronGeometry(20, 0);
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: def.color,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.4
-      });
-      const halo = new THREE.Mesh(haloGeo, haloMat);
-      nodeGroup.add(halo);
-
-      // Node Glow Beacon
-      const beaconGeo = new THREE.SphereGeometry(4, 16, 16);
-      const beaconMat = new THREE.MeshBasicMaterial({
-        color: def.color,
-        transparent: true,
-        opacity: 0.85
-      });
-      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-      nodeGroup.add(beacon);
-
-      nodesGroup.add(nodeGroup);
-
-      nodes[def.id] = {
-        def,
-        group: nodeGroup,
-        mesh,
-        halo,
-        beacon,
-        baseScale: 1,
-        targetScale: 1
-      };
+    const calSlabGeo = new THREE.BoxGeometry(42, 42, 10);
+    const calSlabMat = new THREE.MeshStandardMaterial({
+      color: 0x081a14,
+      emissive: 0x10b981,
+      emissiveIntensity: 0.55,
+      metalness: 0.85,
+      roughness: 0.25,
+      flatShading: true
     });
+    const calSlab = new THREE.Mesh(calSlabGeo, calSlabMat);
+    calGroup.add(calSlab);
 
-    state.nodes = nodes;
+    const calWireGeo = new THREE.BoxGeometry(46, 46, 12);
+    const calWireMat = new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true, transparent: true, opacity: 0.5 });
+    const calWire = new THREE.Mesh(calWireGeo, calWireMat);
+    calGroup.add(calWire);
 
-    // 6. 3D Spline Conduits with Data Flow Packets
+    const calBeaconGeo = new THREE.SphereGeometry(5, 16, 16);
+    const calBeaconMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.95 });
+    const calBeacon = new THREE.Mesh(calBeaconGeo, calBeaconMat);
+    calBeacon.position.set(0, 28, 0);
+    calGroup.add(calBeacon);
+
+    businessNodes['CALENDAR'] = {
+      id: 'CALENDAR',
+      name: 'Calendar Appointment',
+      group: calGroup,
+      mesh: calSlab,
+      beacon: calBeacon,
+      halo: calWire,
+      baseScale: 1,
+      targetScale: 1,
+      pos: [340, 160, -20],
+      color: 0x10b981
+    };
+
+    // 6B. CRM & Lead Record Terminal (Cyan / Violet)
+    const crmGroup = new THREE.Group();
+    crmGroup.position.set(380, -10, 0);
+    nodesGroup.add(crmGroup);
+
+    const crmTowerGeo = new THREE.BoxGeometry(36, 64, 12);
+    const crmTowerMat = new THREE.MeshStandardMaterial({
+      color: 0x0a1424,
+      emissive: 0x00d4ef,
+      emissiveIntensity: 0.5,
+      metalness: 0.9,
+      roughness: 0.2
+    });
+    const crmTower = new THREE.Mesh(crmTowerGeo, crmTowerMat);
+    crmGroup.add(crmTower);
+
+    const crmWireGeo = new THREE.BoxGeometry(40, 68, 14);
+    const crmWireMat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, wireframe: true, transparent: true, opacity: 0.45 });
+    const crmWire = new THREE.Mesh(crmWireGeo, crmWireMat);
+    crmGroup.add(crmWire);
+
+    const crmBeaconGeo = new THREE.SphereGeometry(5, 16, 16);
+    const crmBeaconMat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.95 });
+    const crmBeacon = new THREE.Mesh(crmBeaconGeo, crmBeaconMat);
+    crmBeacon.position.set(0, 40, 0);
+    crmGroup.add(crmBeacon);
+
+    businessNodes['CRM'] = {
+      id: 'CRM',
+      name: 'CRM Deal Pipeline',
+      group: crmGroup,
+      mesh: crmTower,
+      beacon: crmBeacon,
+      halo: crmWire,
+      baseScale: 1,
+      targetScale: 1,
+      pos: [380, -10, 0],
+      color: 0x00d4ef
+    };
+
+    // 6C. Multi-Channel Dispatch Terminal (Amber / Emerald)
+    const dispatchGroup = new THREE.Group();
+    dispatchGroup.position.set(330, -180, -30);
+    nodesGroup.add(dispatchGroup);
+
+    const dispatchGeo = new THREE.OctahedronGeometry(22, 0);
+    const dispatchMat = new THREE.MeshStandardMaterial({
+      color: 0x181005,
+      emissive: 0xf59e0b,
+      emissiveIntensity: 0.6,
+      metalness: 0.85,
+      roughness: 0.2,
+      flatShading: true
+    });
+    const dispatchMesh = new THREE.Mesh(dispatchGeo, dispatchMat);
+    dispatchGroup.add(dispatchMesh);
+
+    const dispatchHaloGeo = new THREE.OctahedronGeometry(28, 0);
+    const dispatchHaloMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.45 });
+    const dispatchHalo = new THREE.Mesh(dispatchHaloGeo, dispatchHaloMat);
+    dispatchGroup.add(dispatchHalo);
+
+    const dispatchBeaconGeo = new THREE.SphereGeometry(5, 16, 16);
+    const dispatchBeaconMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.95 });
+    const dispatchBeacon = new THREE.Mesh(dispatchBeaconGeo, dispatchBeaconMat);
+    dispatchBeacon.position.set(0, 30, 0);
+    dispatchGroup.add(dispatchBeacon);
+
+    businessNodes['DISPATCH'] = {
+      id: 'DISPATCH',
+      name: 'Instant Dispatch',
+      group: dispatchGroup,
+      mesh: dispatchMesh,
+      beacon: dispatchBeacon,
+      halo: dispatchHalo,
+      baseScale: 1,
+      targetScale: 1,
+      pos: [330, -180, -30],
+      color: 0xf59e0b
+    };
+
+    state.nodes = businessNodes;
+
+    // =========================================================================
+    // 7. CONDUITS & FLOWING PHOTON PACKETS
+    // =========================================================================
     const conduitsGroup = new THREE.Group();
     scene.add(conduitsGroup);
     const conduits: ConduitData[] = [];
 
-    nodeDefs.forEach(def => {
-      const start = new THREE.Vector3(0, 0, 0);
-      const end = new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]);
+    const conduitConfigs = [
+      // Ingress -> AI Matrix
+      { id: 'INGRESS_TO_AI', start: ingressGroup.position, end: aiMatrixGroup.position, color: 0x00d4ef },
+      // AI Matrix -> Calendar
+      { id: 'AI_TO_CALENDAR', start: aiMatrixGroup.position, end: calGroup.position, color: 0x10b981 },
+      // AI Matrix -> CRM
+      { id: 'AI_TO_CRM', start: aiMatrixGroup.position, end: crmGroup.position, color: 0x00d4ef },
+      // AI Matrix -> Dispatch
+      { id: 'AI_TO_DISPATCH', start: aiMatrixGroup.position, end: dispatchGroup.position, color: 0xf59e0b }
+    ];
 
-      // Create an organic curved spline
+    conduitConfigs.forEach(cfg => {
+      const start = new THREE.Vector3().copy(cfg.start);
+      const end = new THREE.Vector3().copy(cfg.end);
       const mid = new THREE.Vector3(
-        (start.x + end.x) * 0.5 + (Math.random() - 0.5) * 40,
-        (start.y + end.y) * 0.5 + (Math.random() - 0.5) * 40,
-        (start.z + end.z) * 0.5 + 40
+        (start.x + end.x) * 0.5 + (Math.random() - 0.5) * 30,
+        (start.y + end.y) * 0.5 + 40,
+        (start.z + end.z) * 0.5 + 20
       );
 
       const curve = new THREE.CatmullRomCurve3([start, mid, end]);
-      const tubeGeo = new THREE.TubeGeometry(curve, 32, 1.2, 8, false);
+      const tubeGeo = new THREE.TubeGeometry(curve, 32, 1.4, 8, false);
       const tubeMat = new THREE.MeshBasicMaterial({
-        color: def.color,
+        color: cfg.color,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.28,
         wireframe: true
       });
       const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
       conduitsGroup.add(tubeMesh);
 
-      // Animated Photon Packets traversing the conduit
+      // Traveling Photon Packets
       const pulseParticles: any[] = [];
       const packetCount = 4;
-      const packetGeo = new THREE.SphereGeometry(2.5, 8, 8);
+      const packetGeo = new THREE.SphereGeometry(2.6, 8, 8);
       const packetMat = new THREE.MeshBasicMaterial({
-        color: def.color,
+        color: cfg.color,
         transparent: true,
         opacity: 0.95
       });
 
       for (let i = 0; i < packetCount; i++) {
-        const packetMesh = new THREE.Mesh(packetGeo, packetMat);
-        conduitsGroup.add(packetMesh);
+        const pMesh = new THREE.Mesh(packetGeo, packetMat);
+        conduitsGroup.add(pMesh);
         pulseParticles.push({
-          mesh: packetMesh,
-          progress: (i / packetCount),
-          speed: 0.0035 + Math.random() * 0.002
+          mesh: pMesh,
+          progress: i / packetCount,
+          speed: 0.004 + Math.random() * 0.002
         });
       }
 
       conduits.push({
-        id: def.id,
+        id: cfg.id,
         curve,
         mesh: tubeMesh,
         pulseParticles,
@@ -311,60 +449,67 @@ interface Landing3DState {
 
     state.conduits = conduits;
 
-    // 7. Starfield Ambient Particle Constellation
-    const particleCount = 450;
+    // =========================================================================
+    // 8. AMBIENT TELEMETRY PARTICLE GRID
+    // =========================================================================
+    const particleCount = 420;
     const particleGeo = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
-      particlePositions[idx] = (Math.random() - 0.5) * 1600;
-      particlePositions[idx + 1] = (Math.random() - 0.5) * 1600;
-      particlePositions[idx + 2] = (Math.random() - 0.5) * 1200 - 100;
+      particlePositions[idx] = (Math.random() - 0.5) * 1500;
+      particlePositions[idx + 1] = (Math.random() - 0.5) * 1400;
+      particlePositions[idx + 2] = (Math.random() - 0.5) * 1000 - 80;
 
-      // Electric cyan / cool muted slate gradient
-      const isCyan = Math.random() > 0.4;
-      particleColors[idx] = isCyan ? 0.0 : 0.4;
-      particleColors[idx + 1] = isCyan ? 0.83 : 0.55;
-      particleColors[idx + 2] = isCyan ? 0.94 : 0.85;
+      const isCyan = Math.random() > 0.45;
+      particleColors[idx] = isCyan ? 0.0 : 0.06;
+      particleColors[idx + 1] = isCyan ? 0.83 : 0.72;
+      particleColors[idx + 2] = isCyan ? 0.94 : 0.5;
     }
 
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
     particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: 3.5,
+      size: 3.2,
       vertexColors: true,
       transparent: true,
-      opacity: 0.55
+      opacity: 0.5
     });
     const particleField = new THREE.Points(particleGeo, particleMat);
     scene.add(particleField);
 
-    // 8. Interactive Simulator Pulse Trigger
-    const simulatorWorkflows: Record<string, SimulatorWorkflow> = {
+    // =========================================================================
+    // 9. INTERACTIVE SIMULATOR & SOLUTION SELECTOR
+    // =========================================================================
+    const workflows: Record<string, WorkflowDefinition> = {
       missed_call: {
         key: 'missed_call',
-        nodeIds: ['DISCOVER', 'AUDIT', 'PERSUADE', 'SELL'],
+        name: 'Missed Call Recovery',
+        terminals: ['CALENDAR', 'DISPATCH'],
         color: 0x00d4ef,
         accentHex: '#00d4ef'
       },
       web_enquiry: {
         key: 'web_enquiry',
-        nodeIds: ['AUDIT', 'PERSUADE', 'SELL', 'PAY'],
+        name: 'Web Enquiry Conversion',
+        terminals: ['CRM', 'CALENDAR'],
         color: 0x38bdf8,
         accentHex: '#38bdf8'
       },
       lead_form: {
         key: 'lead_form',
-        nodeIds: ['DISCOVER', 'PERSUADE', 'SELL', 'BUILD', 'PAY'],
+        name: 'Lead Generation & Qualification',
+        terminals: ['CRM', 'DISPATCH', 'CALENDAR'],
         color: 0x10b981,
         accentHex: '#10b981'
       },
-      customer_question: {
-        key: 'customer_question',
-        nodeIds: ['AUDIT', 'PERSUADE', 'MAINTAIN', 'LEARN'],
+      support_request: {
+        key: 'support_request',
+        name: '24/7 Customer Support',
+        terminals: ['DISPATCH', 'CRM'],
         color: 0xf59e0b,
         accentHex: '#f59e0b'
       }
@@ -372,67 +517,79 @@ interface Landing3DState {
 
     function triggerPulse(workflowKey: string): void {
       state.activeWorkflow = workflowKey;
-      const wf = simulatorWorkflows[workflowKey] || simulatorWorkflows.missed_call;
+      const wf = workflows[workflowKey] || workflows.missed_call;
 
-      // Animate core flare
-      coreLight.intensity = 7.0;
-      nucleus.material.emissiveIntensity = 1.2;
+      // Ingress flare
+      ingressBeacon.scale.set(2, 2, 2);
+      tablet.material.emissiveIntensity = 0.9;
 
-      // Surge particles and scale targeted nodes
-      nodeDefs.forEach(def => {
-        const node = nodes[def.id];
-        const isTarget = wf.nodeIds.includes(def.id);
+      // Core processor surge
+      coreLight.intensity = 6.5;
+      procMesh.material.emissiveIntensity = 1.1;
+
+      // Target node highlights
+      Object.keys(businessNodes).forEach(k => {
+        const node = businessNodes[k];
+        const isTarget = wf.terminals.includes(k);
         if (isTarget) {
           node.targetScale = 1.45;
           node.mesh.material.emissiveIntensity = 1.0;
           node.halo.material.opacity = 0.85;
+          node.beacon.scale.set(1.8, 1.8, 1.8);
         } else {
           node.targetScale = 0.85;
           node.mesh.material.emissiveIntensity = 0.25;
           node.halo.material.opacity = 0.2;
+          node.beacon.scale.set(0.9, 0.9, 0.9);
         }
       });
 
-      // Accelerate conduit pulse particles
+      // Accelerate conduits
       conduits.forEach(c => {
-        const isTarget = wf.nodeIds.includes(c.id);
-        c.mesh.material.opacity = isTarget ? 0.75 : 0.15;
+        c.mesh.material.opacity = 0.75;
         c.pulseParticles.forEach(p => {
-          p.speed = isTarget ? 0.015 : 0.002;
+          p.speed = 0.016;
         });
       });
 
-      // Decay back to equilibrium after pulse
+      // Settle back to equilibrium
       setTimeout(() => {
-        coreLight.intensity = 3.5;
-        nucleus.material.emissiveIntensity = 0.55;
-        nodeDefs.forEach(def => {
-          const node = nodes[def.id];
+        ingressBeacon.scale.set(1, 1, 1);
+        tablet.material.emissiveIntensity = 0.35;
+        coreLight.intensity = 3.8;
+        procMesh.material.emissiveIntensity = 0.6;
+
+        Object.keys(businessNodes).forEach(k => {
+          const node = businessNodes[k];
           node.targetScale = 1.0;
-          node.mesh.material.emissiveIntensity = 0.6;
-          node.halo.material.opacity = 0.4;
+          node.mesh.material.emissiveIntensity = 0.55;
+          node.halo.material.opacity = 0.45;
+          node.beacon.scale.set(1, 1, 1);
         });
+
         conduits.forEach(c => {
-          c.mesh.material.opacity = 0.22;
+          c.mesh.material.opacity = 0.28;
           c.pulseParticles.forEach(p => {
-            p.speed = 0.0035 + Math.random() * 0.002;
+            p.speed = 0.004 + Math.random() * 0.002;
           });
         });
       }, 1600);
     }
 
     state.triggerPulse = triggerPulse;
+    state.selectSolution = triggerPulse;
     (window as any).triggerLanding3DPulse = triggerPulse;
 
-    // 9. GSAP ScrollTrigger Narrative Choreography (9 Chapters)
-    let camTargetPos = { x: 0, y: 0, z: 850 };
+    // =========================================================================
+    // 10. GSAP SCROLL CHOREOGRAPHY
+    // =========================================================================
+    let camTargetPos = { x: 0, y: 0, z: 840 };
     let camLookTarget = { x: 0, y: 0, z: 0 };
 
     if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
       state.gsapLoaded = true;
       gsap.registerPlugin(ScrollTrigger);
 
-      // Global Scroll Progress Mapping
       ScrollTrigger.create({
         start: 'top top',
         end: 'bottom bottom',
@@ -441,40 +598,38 @@ interface Landing3DState {
         }
       });
 
-      // Chapter-specific camera choreography
-      const chapters = [
-        { trigger: '#hero', cam: { x: 0, y: 0, z: 850 }, look: { x: 0, y: 0, z: 0 } },
-        { trigger: '#discover', cam: { x: -80, y: 40, z: 780 }, look: { x: -40, y: 20, z: 0 } },
-        { trigger: '#audit', cam: { x: 90, y: 30, z: 750 }, look: { x: 40, y: 15, z: 0 } },
-        { trigger: '#persuade', cam: { x: -110, y: -20, z: 720 }, look: { x: -50, y: -10, z: 0 } },
-        { trigger: '#sell', cam: { x: 100, y: -40, z: 690 }, look: { x: 50, y: -20, z: 0 } },
-        { trigger: '#build', cam: { x: 60, y: -70, z: 670 }, look: { x: 30, y: -30, z: 0 } },
-        { trigger: '#deploy', cam: { x: -80, y: -90, z: 650 }, look: { x: -40, y: -40, z: 0 } },
-        { trigger: '#maintain', cam: { x: 0, y: -110, z: 640 }, look: { x: 0, y: -50, z: 0 } },
-        { trigger: '#grow', cam: { x: 0, y: 0, z: 890 }, look: { x: 0, y: 0, z: 0 } }
+      const sectionPositions = [
+        { trigger: '#hero', cam: { x: 0, y: 0, z: 840 }, look: { x: 0, y: 0, z: 0 } },
+        { trigger: '#solutions', cam: { x: 40, y: 30, z: 740 }, look: { x: 20, y: 10, z: 0 } },
+        { trigger: '#how-it-works', cam: { x: -60, y: -20, z: 720 }, look: { x: -20, y: -10, z: 0 } },
+        { trigger: '#services', cam: { x: 80, y: -40, z: 680 }, look: { x: 30, y: -20, z: 0 } },
+        { trigger: '#industries', cam: { x: -40, y: -60, z: 660 }, look: { x: -20, y: -30, z: 0 } },
+        { trigger: '#contact', cam: { x: 0, y: 0, z: 860 }, look: { x: 0, y: 0, z: 0 } }
       ];
 
-      chapters.forEach(ch => {
-        const el = document.querySelector(ch.trigger);
+      sectionPositions.forEach(sp => {
+        const el = document.querySelector(sp.trigger);
         if (el) {
           ScrollTrigger.create({
             trigger: el,
-            start: 'top 70%',
-            end: 'bottom 30%',
+            start: 'top 75%',
+            end: 'bottom 25%',
             onEnter: () => {
-              gsap.to(camTargetPos, { ...ch.cam, duration: 1.6, ease: 'power2.out' });
-              gsap.to(camLookTarget, { ...ch.look, duration: 1.6, ease: 'power2.out' });
+              gsap.to(camTargetPos, { ...sp.cam, duration: 1.6, ease: 'power2.out' });
+              gsap.to(camLookTarget, { ...sp.look, duration: 1.6, ease: 'power2.out' });
             },
             onEnterBack: () => {
-              gsap.to(camTargetPos, { ...ch.cam, duration: 1.6, ease: 'power2.out' });
-              gsap.to(camLookTarget, { ...ch.look, duration: 1.6, ease: 'power2.out' });
+              gsap.to(camTargetPos, { ...sp.cam, duration: 1.6, ease: 'power2.out' });
+              gsap.to(camLookTarget, { ...sp.look, duration: 1.6, ease: 'power2.out' });
             }
           });
         }
       });
     }
 
-    // 10. Mouse Pointer Parallax with Spring Damping
+    // =========================================================================
+    // 11. MOUSE PARALLAX & RESIZING
+    // =========================================================================
     let mouseX = 0;
     let mouseY = 0;
     let targetMouseX = 0;
@@ -482,12 +637,11 @@ interface Landing3DState {
 
     if (!prefersReducedMotion) {
       window.addEventListener('mousemove', (e: MouseEvent) => {
-        targetMouseX = (e.clientX / window.innerWidth - 0.5) * 55;
-        targetMouseY = (e.clientY / window.innerHeight - 0.5) * -55;
+        targetMouseX = (e.clientX / window.innerWidth - 0.5) * 50;
+        targetMouseY = (e.clientY / window.innerHeight - 0.5) * -50;
       }, { passive: true });
     }
 
-    // 11. Window Resize Handling
     function handleResize(): void {
       if (!camera || !renderer) return;
       const width = window.innerWidth;
@@ -500,7 +654,9 @@ interface Landing3DState {
 
     window.addEventListener('resize', handleResize, { passive: true });
 
-    // 12. Main 60FPS RAF Render Loop
+    // =========================================================================
+    // 12. 60FPS RAF RENDER LOOP
+    // =========================================================================
     let animId: number;
     let isHidden = false;
 
@@ -516,43 +672,46 @@ interface Landing3DState {
 
       if (isHidden) return;
 
-      const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Smooth mouse parallax lerp
+      // Mouse lerp
       mouseX += (targetMouseX - mouseX) * 0.05;
       mouseY += (targetMouseY - mouseY) * 0.05;
 
-      // Update camera position
+      // Smooth camera motion
       camera.position.x = camTargetPos.x + mouseX;
       camera.position.y = camTargetPos.y + mouseY;
       camera.position.z += (camTargetPos.z - camera.position.z) * 0.06;
       camera.lookAt(camLookTarget.x, camLookTarget.y, camLookTarget.z);
 
-      // Rotate kinetic core
-      coreGroup.rotation.y = elapsed * 0.22;
-      coreGroup.rotation.x = Math.sin(elapsed * 0.15) * 0.1;
-      ring1.rotation.z = elapsed * 0.35;
-      ring2.rotation.x = -elapsed * 0.28;
-      ring3.rotation.y = elapsed * 0.18;
+      // Ingress tablet floating & signal pulses
+      ingressGroup.position.y = 110 + Math.sin(elapsed * 1.6) * 6;
+      ingressGroup.rotation.y = Math.sin(elapsed * 0.8) * 0.1;
 
-      // Animate constellation nodes
-      nodeDefs.forEach((def, i) => {
-        const node = nodes[def.id];
-        if (node) {
-          // Bobbing wave
-          node.group.position.y = def.pos[1] + Math.sin(elapsed * 1.5 + i * 0.7) * 8;
-          node.mesh.rotation.x = elapsed * 0.4 + i;
-          node.mesh.rotation.y = elapsed * 0.5 + i;
-          node.halo.rotation.z = -elapsed * 0.3;
-
-          // Scale lerp
-          node.baseScale += (node.targetScale - node.baseScale) * 0.08;
-          node.group.scale.set(node.baseScale, node.baseScale, node.baseScale);
-        }
+      signalRings.forEach((ring, idx) => {
+        const scaleVal = 1 + (Math.sin(elapsed * 2.5 + idx * 0.8) * 0.15);
+        ring.scale.set(scaleVal, scaleVal, scaleVal);
       });
 
-      // Animate conduit photon particles
+      // AI Reasoning Matrix rotation & oscillation
+      aiMatrixGroup.rotation.y = elapsed * 0.25;
+      aiMatrixGroup.rotation.z = Math.sin(elapsed * 0.3) * 0.08;
+      orbitRing1.rotation.z = elapsed * 0.38;
+      orbitRing2.rotation.x = -elapsed * 0.25;
+      pulsar.rotation.y = -elapsed * 0.5;
+
+      // Business Outcome Nodes bobbing & scale lerp
+      Object.keys(businessNodes).forEach((k, idx) => {
+        const node = businessNodes[k];
+        node.group.position.y = node.pos[1] + Math.sin(elapsed * 1.8 + idx * 1.2) * 6;
+        node.mesh.rotation.y = elapsed * 0.35 + idx;
+        node.halo.rotation.z = -elapsed * 0.25;
+
+        node.baseScale += (node.targetScale - node.baseScale) * 0.08;
+        node.group.scale.set(node.baseScale, node.baseScale, node.baseScale);
+      });
+
+      // Flowing conduit photon particles
       conduits.forEach(conduit => {
         conduit.pulseParticles.forEach(p => {
           p.progress += p.speed;
@@ -562,8 +721,8 @@ interface Landing3DState {
         });
       });
 
-      // Ambient particle field slow rotation
-      particleField.rotation.y = elapsed * 0.02;
+      // Ambient dust rotation
+      particleField.rotation.y = elapsed * 0.018;
 
       renderer.render(scene, camera);
     }
@@ -579,10 +738,10 @@ interface Landing3DState {
     };
   }
 
-  // Auto-boot on DOM ready
+  // Boot on DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLanding3DEngine);
+    document.addEventListener('DOMContentLoaded', initDigitalWorkflow3D);
   } else {
-    initLanding3DEngine();
+    initDigitalWorkflow3D();
   }
 })();

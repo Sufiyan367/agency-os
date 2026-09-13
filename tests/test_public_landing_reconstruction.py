@@ -69,15 +69,15 @@ async def test_public_landing_required_sections():
         # Hero
         assert 'id="hero"' in html
         assert 'id="hero-core-widget"' in html
-        # Solutions / Narrative
+        # Solutions / Delivery Journey
         assert 'id="how-it-works"' in html
         assert 'id="solutions"' in html
-        assert '01 // DISCOVER' in html
-        assert '02 // AUDIT' in html
-        assert '03 // PERSUADE' in html
-        assert '04 // SELL' in html
-        assert '05 // BUILD &amp; DEPLOY' in html or '05 // BUILD & DEPLOY' in html
-        assert '06 // MAINTAIN' in html
+        assert '01 // AUDIT' in html
+        assert '02 // DESIGN' in html
+        assert '03 // BUILD' in html
+        assert '04 // TEST' in html
+        assert '05 // DEPLOY' in html
+        assert '06 // IMPROVE' in html
         # Interactive Simulator
         assert 'id="interactive-demo"' in html
         assert 'data-sim="missed_call"' in html

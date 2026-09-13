@@ -1490,3 +1490,362 @@ body {
     transform: rotate(90deg);
   }
 }
+
+/* ==========================================================================
+   SOLUTIONS STUDIO: WHAT CAN WE AUTOMATE FOR YOU?
+   ========================================================================== */
+.solutions-studio-section {
+  padding: 100px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.solutions-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+}
+
+.solution-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s var(--ease-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.solution-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.solution-card:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 212, 239, 0.1);
+}
+
+.solution-card:hover::before {
+  opacity: 1;
+}
+
+.sol-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.sol-num {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.sol-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(0, 212, 239, 0.1);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 212, 239, 0.25);
+}
+
+.sol-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.sol-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.sol-benefits {
+  list-style: none;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.sol-benefits li {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  position: relative;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+.sol-benefits li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent-cyan);
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.sol-cta {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-sol-trigger {
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: gap 0.2s ease, color 0.2s ease;
+  padding: 0;
+}
+
+.btn-sol-trigger:hover {
+  color: var(--accent-blue);
+  gap: 10px;
+}
+
+/* ==========================================================================
+   BEFORE VS AFTER COMPARISON
+   ========================================================================== */
+.comparison-section {
+  padding: 90px 0;
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(9, 13, 24, 0.4);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 48px;
+}
+
+.comp-col {
+  border-radius: 12px;
+  padding: 36px 32px;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.comp-before {
+  border-left: 3px solid #ef4444;
+}
+
+.comp-after {
+  border-left: 3px solid #10b981;
+}
+
+.comp-header {
+  margin-bottom: 28px;
+}
+
+.comp-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.comp-badge.bad {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.comp-badge.good {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.comp-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.comp-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.comp-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.comp-x {
+  color: #ef4444;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.comp-check {
+  color: #10b981;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.comp-list li strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin-bottom: 3px;
+}
+
+.comp-list li p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   DELIVERY JOURNEY: HOW WE WORK (01 AUDIT -> 06 IMPROVE)
+   ========================================================================== */
+.delivery-journey-wrapper {
+  margin-top: 80px;
+  padding-top: 60px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.delivery-journey-header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 40px auto;
+}
+
+.delivery-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.delivery-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+
+.delivery-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.delivery-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.delivery-step-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px 20px;
+  transition: all 0.3s ease;
+}
+
+.delivery-step-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.delivery-step-card .step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-bottom: 8px;
+}
+
+.delivery-step-card .step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.delivery-step-card .step-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Responsive updates for new sections */
+@media (max-width: 1024px) {
+  .solutions-showcase-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  .delivery-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .solutions-showcase-grid {
+    grid-template-columns: 1fr;
+  }
+  .delivery-steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
