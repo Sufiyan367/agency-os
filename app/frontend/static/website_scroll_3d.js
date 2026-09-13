@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Agency OS: Autonomous Business Operating System — Cinematic 3D Engine
  * Language: TypeScript
@@ -468,4 +469,3 @@
         initLanding3DEngine();
     }
 })();
-export {};

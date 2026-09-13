@@ -6,11 +6,11 @@
  */
 
 // Declare ambient libraries loaded via static vendor bundles
-declare const THREE: any;
-declare const gsap: any;
-declare const ScrollTrigger: any;
+declare var THREE: any;
+declare var gsap: any;
+declare var ScrollTrigger: any;
 
-export interface NodeDefinition {
+interface NodeDefinition {
   id: string;
   name: string;
   pos: [number, number, number];
@@ -19,7 +19,7 @@ export interface NodeDefinition {
   description: string;
 }
 
-export interface ConduitData {
+interface ConduitData {
   id: string;
   curve: any;
   mesh: any;
@@ -28,14 +28,14 @@ export interface ConduitData {
   endPos: any;
 }
 
-export interface SimulatorWorkflow {
+interface SimulatorWorkflow {
   key: string;
   nodeIds: string[];
   color: number;
   accentHex: string;
 }
 
-export interface Landing3DState {
+interface Landing3DState {
   initialized: boolean;
   threeLoaded: boolean;
   gsapLoaded: boolean;
@@ -49,14 +49,6 @@ export interface Landing3DState {
   conduits: ConduitData[];
   triggerPulse: (workflowKey: string) => void;
   dispose: () => void;
-}
-
-// Attach globally for DOM integration and automated audits
-declare global {
-  interface Window {
-    agencyLanding3D: Landing3DState;
-    triggerLanding3DPulse: (workflowKey: string) => void;
-  }
 }
 
 (function () {
@@ -79,7 +71,7 @@ declare global {
     dispose: () => {}
   };
 
-  window.agencyLanding3D = state;
+  (window as any).agencyLanding3D = state;
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -430,7 +422,7 @@ declare global {
     }
 
     state.triggerPulse = triggerPulse;
-    window.triggerLanding3DPulse = triggerPulse;
+    (window as any).triggerLanding3DPulse = triggerPulse;
 
     // 9. GSAP ScrollTrigger Narrative Choreography (9 Chapters)
     let camTargetPos = { x: 0, y: 0, z: 850 };

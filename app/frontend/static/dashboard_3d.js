@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Agency OS: Mission Control CEO Dashboard — 3D Tactical Core Engine
  * Language: TypeScript
@@ -341,4 +342,3 @@
         initDashboard3DCore();
     }
 })();
-export {};

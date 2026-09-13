@@ -5,9 +5,9 @@
  *              dynamic module focus, and zero fabricated telemetry.
  */
 
-declare const THREE: any;
+declare var THREE: any;
 
-export interface SubsystemNodeDef {
+interface SubsystemNodeDef {
   id: string;
   name: string;
   pos: [number, number, number];
@@ -15,14 +15,14 @@ export interface SubsystemNodeDef {
   views: string[];
 }
 
-export interface DashboardConduitData {
+interface DashboardConduitData {
   id: string;
   curve: any;
   mesh: any;
   pulseParticles: any[];
 }
 
-export interface Dashboard3DState {
+interface Dashboard3DState {
   initialized: boolean;
   threeLoaded: boolean;
   frameCount: number;
@@ -35,13 +35,6 @@ export interface Dashboard3DState {
   highlightSubsystem: (subsystemId: string | null) => void;
   triggerEventAnimation: (eventType: string) => void;
   dispose: () => void;
-}
-
-declare global {
-  interface Window {
-    agencyDashboard3D: Dashboard3DState;
-    navToView?: (viewName: string) => void;
-  }
 }
 
 (function () {
@@ -62,7 +55,7 @@ declare global {
     dispose: () => {}
   };
 
-  window.agencyDashboard3D = state;
+  (window as any).agencyDashboard3D = state;
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -312,8 +305,8 @@ declare global {
     state.highlightSubsystem = highlightSubsystem;
 
     // Hook cleanly into window.navToView
-    const origNavToView = window.navToView;
-    window.navToView = function (viewName: string) {
+    const origNavToView = (window as any).navToView;
+    (window as any).navToView = function (viewName: string) {
       if (typeof origNavToView === 'function') {
         origNavToView(viewName);
       }
