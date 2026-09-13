@@ -288,6 +288,7 @@ export class NotificationCenterController {
     const backdrop = document.getElementById('notification-drawer-backdrop');
     if (drawer) {
       drawer.classList.add('open');
+      drawer.style.transform = 'translateX(0%)';
       drawer.setAttribute('aria-hidden', 'false');
     }
     if (backdrop) {
@@ -303,6 +304,7 @@ export class NotificationCenterController {
     const backdrop = document.getElementById('notification-drawer-backdrop');
     if (drawer) {
       drawer.classList.remove('open');
+      drawer.style.transform = 'translateX(100%)';
       drawer.setAttribute('aria-hidden', 'true');
     }
     if (backdrop) {
@@ -578,7 +580,15 @@ declare global {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  window.notificationCenter = new NotificationCenterController();
-  window.toggleNotificationCenter = () => window.notificationCenter.toggleDrawer();
-});
+function initNotificationCenter() {
+  if (!window.notificationCenter) {
+    window.notificationCenter = new NotificationCenterController();
+    window.toggleNotificationCenter = () => window.notificationCenter.toggleDrawer();
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initNotificationCenter);
+} else {
+  initNotificationCenter();
+}
