@@ -228,14 +228,14 @@ class DeterministicAutoApprovalEngine:
 
         # 12. ActiveOutreachLock Check
         lock = await active_prospect_controller.get_or_create_lock(session)
-        lock_available = lock.status in ("IDLE", "RELEASED")
+        lock_available = lock.status in ("IDLE", "RELEASED") or (lock.business_id == message.business_id)
         checks.append({
             "name": "OUTREACH_LOCK_AVAILABLE",
             "passed": lock_available,
-            "detail": f"Lock status is {lock.status}" if lock_available else f"Outreach lock is currently held by active process (status: {lock.status})"
+            "detail": f"Lock status is {lock.status} (business #{lock.business_id})" if lock_available else f"Outreach lock is currently held by active process (status: {lock.status})"
         })
         if not lock_available:
-            blocking_reasons.append(f"ActiveOutreachLock is currently held by an active process ({lock.status}).")
+            blocking_reasons.append(f"ActiveOutreachLock is currently held by another process ({lock.status}).")
 
         # 13. Message currently in PENDING_APPROVAL
         in_pending_state = message.status == OutreachStatus.PENDING_APPROVAL.value
@@ -441,14 +441,14 @@ class DeterministicAutoApprovalEngine:
 
         # 12. ActiveOutreachLock Check
         lock = await active_prospect_controller.get_or_create_lock(session)
-        lock_available = lock.status in ("IDLE", "RELEASED")
+        lock_available = lock.status in ("IDLE", "RELEASED") or (lock.business_id == message.business_id)
         checks.append({
             "name": "OUTREACH_LOCK_AVAILABLE",
             "passed": lock_available,
-            "detail": f"Lock status is {lock.status}" if lock_available else f"Outreach lock is currently held by active process (status: {lock.status})"
+            "detail": f"Lock status is {lock.status} (business #{lock.business_id})" if lock_available else f"Outreach lock is currently held by active process (status: {lock.status})"
         })
         if not lock_available:
-            blocking_reasons.append(f"ActiveOutreachLock is currently held by an active process ({lock.status}).")
+            blocking_reasons.append(f"ActiveOutreachLock is currently held by another process ({lock.status}).")
 
         # 13. Deterministic Authorization Policy Check
         is_authorized = (
