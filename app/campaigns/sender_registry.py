@@ -10,7 +10,7 @@ class SenderRegistry:
     Strictly forbids inventing personas or using unauthenticated domains.
     """
 
-    DEFAULT_POSTAL_ADDRESS = "Agency OS Digital Services, 100 Congress Ave, Suite 2000, Austin, TX 78701, USA"
+    DEFAULT_POSTAL_ADDRESS = "Digital Strategy Advisory, Level 14, Al Faisaliah Tower, King Fahd Rd, Riyadh 12212, Saudi Arabia"
 
     def resolve_sender(
         self,
@@ -30,7 +30,12 @@ class SenderRegistry:
             from_name = (campaign.sender_name if campaign and campaign.sender_name else None) or settings.OUTREACH_FROM_NAME
             reply_to = (campaign.reply_to if campaign and campaign.reply_to else None) or settings.EMAIL_REPLY_TO or from_email
 
-        postal_addr = (campaign.postal_address if campaign and campaign.postal_address else None) or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or self.DEFAULT_POSTAL_ADDRESS
+        camp_addr = campaign.postal_address if campaign and campaign.postal_address else None
+        KNOWN_PH = ["100 innovation way", "100 congress ave", "wilmington, de", "austin, tx"]
+        if camp_addr and any(p in camp_addr.lower() for p in KNOWN_PH):
+            camp_addr = None
+
+        postal_addr = camp_addr or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or self.DEFAULT_POSTAL_ADDRESS
 
         return {
             "from_email": from_email,
