@@ -48,6 +48,11 @@ class CampaignConfigLoader:
     FIRST_CLIENT_VALIDATION_ACTIVE: bool = True
 
     def __init__(self, config_path: str = "config/international_campaigns.yaml"):
+        if not os.path.exists(config_path) and not os.path.isabs(config_path):
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            candidate = os.path.join(base_dir, config_path)
+            if os.path.exists(candidate):
+                config_path = candidate
         self.config_path = config_path
         self._current_rollout_level: int = 0
         self._load_config()
