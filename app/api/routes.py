@@ -15,7 +15,7 @@ from app.database.models import (
     Payment, Reply, Project, Proposal, Deal, DealAuditTrail,
     AgentActivityEvent, Artifact, ProspectMemory, Country, Niche, ModelPrediction,
     PaymentWebhookEvent, SecurityAuditLog, ProspectEvidence, ClientIntelligenceRecord, PipelineEvent,
-    User
+    User, SupportTicket, CustomerIncident, CustomerHealthMetric
 )
 from app.services.audit_service import AuditService, sanitize_audit_payload
 from app.ml import (
@@ -1856,6 +1856,14 @@ async def get_ceo_control_center_overview(
         select(func.count(Payment.id)).where(Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"]))
     )).scalar() or 0
 
+    active_projects = (await db.execute(select(func.count(Project.id)))).scalar() or 0
+    open_support_tickets = (await db.execute(
+        select(func.count(SupportTicket.id)).where(SupportTicket.status.in_(["NEW", "CLASSIFIED", "DIAGNOSED", "FIX_PENDING_APPROVAL", "REMEDIATING"]))
+    )).scalar() or 0
+    open_incidents = (await db.execute(
+        select(func.count(CustomerIncident.id)).where(CustomerIncident.is_resolved == False)
+    )).scalar() or 0
+
     # Real Outreach Dispatched: Lifetime vs Today vs Queued
     q_sent_lifetime = select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value)
     total_outreach_sent = (await db.execute(q_sent_lifetime)).scalar() or 0
@@ -1891,6 +1899,9 @@ async def get_ceo_control_center_overview(
         "active_demos": active_demos,
         "proposals_awaiting_action": proposals_awaiting_action,
         "payments_awaiting_authorization": payments_awaiting_authorization,
+        "active_projects": active_projects,
+        "open_support_tickets": open_support_tickets,
+        "open_incidents": open_incidents,
         "revenue_collected": revenue_collected,
         "revenue_label": revenue_label
     }
@@ -2042,6 +2053,32 @@ async def get_ceo_control_center_overview(
             "company": b_name,
             "actions": [
                 {"label": "Review Billing", "action": "view_lead", "style": "secondary"}
+            ]
+        })
+
+    # F. High-impact support remediation approvals
+    pending_tickets = (await db.execute(
+        select(SupportTicket).where(
+            SupportTicket.status == "FIX_PENDING_APPROVAL"
+        ).order_by(desc(SupportTicket.created_at)).limit(5)
+    )).scalars().all()
+    for tck in pending_tickets:
+        c = await db.get(Customer, tck.customer_id) if tck.customer_id else None
+        c_name = c.company_name if c else f"Ticket #{tck.ticket_number}"
+        actions_required.append({
+            "id": f"ticket_{tck.id}",
+            "type": "SUPPORT_REMEDIATION_APPROVAL",
+            "severity": "CRITICAL",
+            "title": f"High-Impact Fix Approval: {tck.ticket_number} ({c_name})",
+            "description": f"Subject: {tck.subject} — Fix Plan: {tck.fix_plan or 'High-impact system change'} requires sign-off.",
+            "entity_id": tck.id,
+            "item_id": tck.id,
+            "customer_id": tck.customer_id,
+            "business_id": tck.business_id,
+            "company": c_name,
+            "actions": [
+                {"label": "Approve Fix", "action": "approve_support_fix", "style": "danger"},
+                {"label": "Review Ticket", "action": "view_ticket", "style": "secondary"}
             ]
         })
 
@@ -4275,6 +4312,141 @@ async def submit_contact_inquiry(
             "received_at": datetime.utcnow().isoformat()
         }
     }
+
+
+# =====================================================================
+# Support & Telemetry Endpoints (Phase 11 & Phase 12)
+# =====================================================================
+from app.support.service import support_service
+from app.monitoring.service import customer_monitoring_service
+
+class CreateTicketRequest(BaseModel):
+    customer_id: int
+    subject: str
+    description: str
+    severity: str = "WARNING"
+    source: str = "API"
+
+@router.get("/api/support/tickets")
+async def list_support_tickets(
+    status: Optional[str] = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(SupportTicket)
+    if status:
+        stmt = stmt.where(SupportTicket.status == status)
+    stmt = stmt.order_by(desc(SupportTicket.created_at)).limit(limit)
+    tickets = (await db.execute(stmt)).scalars().all()
+    return {
+        "count": len(tickets),
+        "tickets": [
+            {
+                "id": t.id,
+                "ticket_number": t.ticket_number,
+                "customer_id": t.customer_id,
+                "business_id": t.business_id,
+                "subject": t.subject,
+                "description": t.description,
+                "severity": t.severity,
+                "status": t.status,
+                "diagnosis": t.diagnosis,
+                "root_cause": t.root_cause,
+                "fix_plan": t.fix_plan,
+                "is_high_impact": t.is_high_impact,
+                "action_taken": t.action_taken,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "resolved_at": t.resolved_at.isoformat() if t.resolved_at else None
+            }
+            for t in tickets
+        ]
+    }
+
+@router.post("/api/support/tickets")
+async def create_support_ticket(
+    req: CreateTicketRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    ticket = await support_service.create_ticket(
+        session=db,
+        customer_id=req.customer_id,
+        subject=req.subject,
+        description=req.description,
+        source=req.source,
+        severity=req.severity
+    )
+    return {
+        "success": True,
+        "ticket_id": ticket.id,
+        "ticket_number": ticket.ticket_number,
+        "status": ticket.status
+    }
+
+@router.post("/api/support/tickets/{ticket_id}/diagnose")
+async def diagnose_support_ticket(
+    ticket_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    diag = await support_service.diagnose_ticket(db, ticket_id)
+    return diag.dict()
+
+@router.post("/api/support/tickets/{ticket_id}/remediate")
+async def remediate_support_ticket(
+    ticket_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        res = await support_service.execute_remediation(db, ticket_id, operator_approved=False)
+        return res.dict()
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@router.post("/api/support/tickets/{ticket_id}/approve")
+async def approve_support_ticket(
+    ticket_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    res = await support_service.execute_remediation(
+        session=db,
+        ticket_id=ticket_id,
+        operator_approved=True,
+        approved_by=user_info.get("username", "CEO")
+    )
+    return res.dict()
+
+@router.get("/api/monitoring/customers")
+async def get_customer_monitoring_telemetry(
+    db: AsyncSession = Depends(get_db)
+):
+    summary = await customer_monitoring_service.get_monitoring_summary(db)
+    metrics_q = select(CustomerHealthMetric).order_by(desc(CustomerHealthMetric.last_checked_at)).limit(20)
+    metrics = (await db.execute(metrics_q)).scalars().all()
+    return {
+        "summary": summary,
+        "recent_checks": [
+            {
+                "id": m.id,
+                "customer_id": m.customer_id,
+                "business_id": m.business_id,
+                "uptime_pct": m.uptime_pct,
+                "latency_ms": m.latency_ms,
+                "error_count_24h": m.error_count_24h,
+                "health_status": m.health_status,
+                "last_checked_at": m.last_checked_at.isoformat() if m.last_checked_at else None
+            }
+            for m in metrics
+        ]
+    }
+
+@router.post("/api/monitoring/check/{customer_id}")
+async def run_customer_health_check(
+    customer_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    res = await customer_monitoring_service.run_customer_health_check(db, customer_id)
+    return res.dict()
+
 
 
 

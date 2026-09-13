@@ -411,4 +411,17 @@ async def init_db():
                 except Exception:
                     pass
 
+            # projects (Phase 10 Production Delivery Engine)
+            for col, col_type in [
+                ("delivery_stage", "VARCHAR(50) DEFAULT 'ONBOARDING'"),
+                ("version", "VARCHAR(20) DEFAULT '1.0.0'"),
+                ("deployment_url", "VARCHAR(500)"),
+                ("rollback_checkpoint", "JSON DEFAULT '{}'"),
+                ("deployed_at", "TIMESTAMP")
+            ]:
+                try:
+                    await conn.execute(text(f"ALTER TABLE projects ADD COLUMN {col} {col_type}"))
+                except Exception:
+                    pass
+
 

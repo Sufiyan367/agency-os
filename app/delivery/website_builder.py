@@ -120,7 +120,7 @@ class WebsiteBuilder:
             name=f"{biz_name} — High-Speed Turnaround Website",
             version="1.0.0",
             status="READY",
-            path=rel_path,
+            path=artifact_file_path,
             preview_url="",  # will be set after ID is assigned
             metadata_json={
                 "domain": dom,

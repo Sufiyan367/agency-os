@@ -96,7 +96,7 @@ class ObjectionDetector:
         (
             ObjectionCategory.PRICE_HIGH,
             [
-                r"\b(too expensive|price is too high|can't afford that|rates are steep|out of our budget|cheaper|discount|reduce price|cost too much|ridiculous price)\b"
+                r"\b(too expensive|price is too high|quote is too high|too high|can't afford that|rates are steep|out of our budget|cheaper|discount|reduce price|cost too much|ridiculous price)\b"
             ]
         ),
         (

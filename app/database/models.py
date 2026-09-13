@@ -224,6 +224,9 @@ class Business(Base):
     activity_events: Mapped[List["AgentActivityEvent"]] = relationship("AgentActivityEvent", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     evidence_items: Mapped[List["ProspectEvidence"]] = relationship("ProspectEvidence", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
     conversation_events: Mapped[List["ConversationEvent"]] = relationship("ConversationEvent", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
+    support_tickets: Mapped[List["SupportTicket"]] = relationship("SupportTicket", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
+    incidents: Mapped[List["CustomerIncident"]] = relationship("CustomerIncident", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
+    health_metrics: Mapped[List["CustomerHealthMetric"]] = relationship("CustomerHealthMetric", back_populates="business", cascade="all, delete-orphan", lazy="selectin")
 
 
 # 5. Contacts
@@ -438,6 +441,9 @@ class Customer(Base):
 
     business: Mapped["Business"] = relationship("Business", back_populates="customer", lazy="selectin")
     projects: Mapped[List["Project"]] = relationship("Project", back_populates="customer", lazy="selectin")
+    support_tickets: Mapped[List["SupportTicket"]] = relationship("SupportTicket", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
+    incidents: Mapped[List["CustomerIncident"]] = relationship("CustomerIncident", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
+    health_metrics: Mapped[List["CustomerHealthMetric"]] = relationship("CustomerHealthMetric", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
 
 # 16. Projects
 class Project(Base):
@@ -448,6 +454,11 @@ class Project(Base):
     title: Mapped[str] = mapped_column(String(255))
     service_type: Mapped[str] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(50), default="IN_PROGRESS")
+    delivery_stage: Mapped[str] = mapped_column(String(50), default="ONBOARDING", index=True)
+    version: Mapped[str] = mapped_column(String(20), default="1.0.0")
+    deployment_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    rollback_checkpoint: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    deployed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     tasks: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
     audit_report_path: Mapped[Optional[str]] = mapped_column(String(500), default=None)
     qa_checklist: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -1228,6 +1239,86 @@ class ConversationEvent(Base):
     )
 
     business: Mapped[Optional["Business"]] = relationship("Business", back_populates="conversation_events", lazy="selectin")
+
+
+# 45. Support Tickets (Phase 12 Autonomous Support & Maintenance Loop)
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticket_number: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    
+    subject: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(50), default="CUSTOMER_PORTAL")  # CUSTOMER_PORTAL, EMAIL, MONITORING_ALERT, API
+    severity: Mapped[str] = mapped_column(String(50), default="WARNING")  # INFO, WARNING, RECOVERABLE, CUSTOMER_IMPACTING, CRITICAL
+    status: Mapped[str] = mapped_column(String(50), default="NEW", index=True)  # NEW, CLASSIFIED, DIAGNOSED, FIX_PENDING_APPROVAL, REMEDIATING, RESOLVED, CLOSED
+    
+    diagnosis: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    root_cause: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    fix_plan: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_high_impact: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    operator_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    action_taken: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    remediation_result: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rollback_info: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    customer_notification: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="support_tickets", lazy="selectin")
+    business: Mapped[Optional["Business"]] = relationship("Business", back_populates="support_tickets", lazy="selectin")
+    incidents: Mapped[List["CustomerIncident"]] = relationship("CustomerIncident", back_populates="ticket", cascade="all, delete-orphan", lazy="selectin")
+
+
+# 46. Customer Incidents (Telemetry & Failure Tracking)
+class CustomerIncident(Base):
+    __tablename__ = "customer_incidents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    incident_number: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    ticket_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("support_tickets.id"), nullable=True, index=True)
+    
+    title: Mapped[str] = mapped_column(String(255))
+    severity: Mapped[str] = mapped_column(String(50), default="CUSTOMER_IMPACTING")  # INFO, WARNING, RECOVERABLE, CUSTOMER_IMPACTING, CRITICAL
+    affected_service: Mapped[str] = mapped_column(String(100), default="Website Turnaround")
+    telemetry_snapshot: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    detected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="incidents", lazy="selectin")
+    business: Mapped[Optional["Business"]] = relationship("Business", back_populates="incidents", lazy="selectin")
+    ticket: Mapped[Optional["SupportTicket"]] = relationship("SupportTicket", back_populates="incidents", lazy="selectin")
+
+
+# 47. Customer Health Metrics (Phase 11 Production Monitoring & Telemetry)
+class CustomerHealthMetric(Base):
+    __tablename__ = "customer_health_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    customer_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    business_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    
+    uptime_pct: Mapped[float] = mapped_column(Float, default=99.9)
+    latency_ms: Mapped[float] = mapped_column(Float, default=120.0)
+    error_count_24h: Mapped[int] = mapped_column(Integer, default=0)
+    health_status: Mapped[str] = mapped_column(String(50), default="HEALTHY")  # HEALTHY, DEGRADED, DOWN, UNKNOWN
+    last_checked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    customer: Mapped[Optional["Customer"]] = relationship("Customer", back_populates="health_metrics", lazy="selectin")
+    business: Mapped[Optional["Business"]] = relationship("Business", back_populates="health_metrics", lazy="selectin")
+
 
 
 

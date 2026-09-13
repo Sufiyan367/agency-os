@@ -29,6 +29,16 @@ class DemoQAResult(BaseModel):
     qa_signature: str
     error_summary: Optional[str] = None
 
+    @property
+    def is_valid(self) -> bool:
+        return self.overall_passed
+
+    @property
+    def errors(self) -> List[str]:
+        if self.error_summary:
+            return [e.strip() for e in self.error_summary.split(";") if e.strip()]
+        return []
+
 
 class DemoQAEngine:
     """
@@ -174,6 +184,79 @@ class DemoQAEngine:
             "leak_count": len(leaks),
             "leaks": leaks
         }
+
+    @classmethod
+    async def validate_artifact(cls, session, artifact_id: int) -> DemoQAResult:
+        """Validates any registered Artifact from the database."""
+        from app.database.models import Artifact
+        art = await session.get(Artifact, artifact_id)
+        if not art:
+            return DemoQAResult(
+                demo_id=f"ART-{artifact_id}",
+                overall_passed=False,
+                total_checks=1,
+                passed_checks=0,
+                failed_checks=1,
+                checks=[QACheckItem(name="ARTIFACT_EXISTS", passed=False, details=f"Artifact {artifact_id} not found.")],
+                qa_signature="QA-FAIL",
+                error_summary=f"Artifact {artifact_id} not found."
+            )
+
+        checks: List[QACheckItem] = []
+        target_path = art.path
+        if target_path and not os.path.isabs(target_path):
+            possible_roots = [
+                os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "artifacts")),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+                os.getcwd()
+            ]
+            for root in possible_roots:
+                candidate = os.path.join(root, target_path)
+                if os.path.exists(candidate):
+                    target_path = candidate
+                    break
+
+        file_exists = os.path.exists(target_path) if target_path else False
+        checks.append(QACheckItem(
+            name="FILE_EXISTENCE",
+            passed=file_exists,
+            details=f"Artifact file '{target_path or art.path}' exists." if file_exists else "File missing."
+        ))
+
+        html_content = ""
+        if file_exists:
+            with open(target_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
+
+        leak_res = cls.verify_zero_internal_leakage(html_content)
+        checks.append(QACheckItem(
+            name="ZERO_INTERNAL_LEAKAGE",
+            passed=leak_res["passed"],
+            details="Zero internal leakage verified." if leak_res["passed"] else f"Leaks detected: {leak_res['leaks']}"
+        ))
+
+        has_doctype = "<!DOCTYPE html>" in html_content or "<!doctype html>" in html_content
+        checks.append(QACheckItem(
+            name="HTML5_DOCTYPE",
+            passed=has_doctype,
+            details="HTML5 doctype present." if has_doctype else "Missing HTML5 doctype."
+        ))
+
+        passed_count = sum(1 for c in checks if c.passed)
+        failed_count = len(checks) - passed_count
+        overall = failed_count == 0
+
+        return DemoQAResult(
+            demo_id=f"ART-{art.id}",
+            overall_passed=overall,
+            total_checks=len(checks),
+            passed_checks=passed_count,
+            failed_checks=failed_count,
+            checks=checks,
+            qa_signature=f"QA-PASS-ART-{art.id}" if overall else "QA-FAIL",
+            error_summary="; ".join(c.details for c in checks if not c.passed) if not overall else None
+        )
+
 
 
 demo_qa_engine = DemoQAEngine()
