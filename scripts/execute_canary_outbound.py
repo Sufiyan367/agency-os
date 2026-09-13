@@ -17,6 +17,7 @@ import sys
 import os
 import asyncio
 import logging
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("canary_dispatcher")
