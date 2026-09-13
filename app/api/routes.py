@@ -1113,18 +1113,127 @@ async def preview_outreach_for_ceo_review(message_id: int, db: AsyncSession = De
         "dry_run": getattr(settings, "EMAIL_DRY_RUN", True)
     }
 
+class ApproveOutreachRequest(BaseModel):
+    auto_send: bool = True
+    force_live: bool = False
+    actor: str = "HUMAN"
+
 @router.post("/api/queue/{message_id}/approve")
-async def approve_outreach(message_id: int, auto_send: bool = True, force_live: bool = False, db: AsyncSession = Depends(get_db)):
-    appr = await outreach_approval_queue.approve_message(db, message_id)
+async def approve_outreach(
+    message_id: int,
+    auto_send: Optional[bool] = None,
+    force_live: Optional[bool] = None,
+    req: Optional[ApproveOutreachRequest] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    actual_auto_send = True
+    actual_force_live = False
+    actual_actor = "HUMAN"
+
+    if req is not None:
+        actual_auto_send = req.auto_send
+        actual_force_live = req.force_live
+        actual_actor = req.actor
+
+    if auto_send is not None:
+        actual_auto_send = auto_send
+    if force_live is not None:
+        actual_force_live = force_live
+
+    try:
+        appr = await outreach_approval_queue.approve_message(db, message_id, actor_type=actual_actor)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Approval failed: {str(e)}")
+
     send_result = None
-    if auto_send:
-        send_result = await outreach_sender_adapter.send_approved_message(db, message_id, force_live=force_live)
-    return {"status": "APPROVED", "message_id": appr.id, "send_result": send_result}
+    if actual_auto_send:
+        try:
+            send_result = await outreach_sender_adapter.send_approved_message(db, message_id, force_live=actual_force_live)
+        except (ValueError, RuntimeError) as e:
+            safe_err = str(e)
+            for s in [getattr(settings, "TITAN_SMTP_PASSWORD", None), getattr(settings, "SMTP_PASSWORD", None), getattr(settings, "GMAIL_CLIENT_SECRET", None)]:
+                if s and len(s) > 2 and s in safe_err:
+                    safe_err = safe_err.replace(s, "[REDACTED]")
+            raise HTTPException(status_code=400, detail=f"Live send authorization blocked / failed: {safe_err}")
+        except Exception as e:
+            logger.error(f"[LIVE_SEND_FAILURE] Unexpected error approving message #{message_id}: {e}")
+            raise HTTPException(status_code=500, detail="Unexpected error during message transmission.")
+
+    return {"status": "APPROVED", "message_id": appr.id, "actor": actual_actor, "send_result": send_result}
 
 @router.post("/api/queue/{message_id}/reject")
 async def reject_outreach(message_id: int, db: AsyncSession = Depends(get_db)):
     rej = await outreach_approval_queue.reject_message(db, message_id)
     return {"status": "REJECTED", "message_id": rej.id}
+
+@router.post("/api/outreach/auto-approve")
+async def trigger_auto_approval(db: AsyncSession = Depends(get_db)):
+    """Triggers deterministic 14-point auto-approval for all eligible pending outreach drafts."""
+    from app.outreach.auto_approval import auto_approval_engine
+    summary = await auto_approval_engine.scan_and_auto_approve_pending(db)
+    return summary
+
+@router.get("/api/queue/{message_id}/eligibility")
+async def check_message_eligibility(message_id: int, db: AsyncSession = Depends(get_db)):
+    """Evaluates the 14-point deterministic eligibility criteria for a specific message."""
+    from app.outreach.auto_approval import auto_approval_engine
+    msg = await db.get(OutreachMessage, message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail=f"OutreachMessage {message_id} not found.")
+    res = await auto_approval_engine.evaluate_message_eligibility(db, msg)
+    return res.to_dict()
+
+@router.get("/api/email/deliverability-readiness")
+async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
+    """Comprehensive readiness report for SPF, DKIM, DMARC, SMTP, IMAP, compliance, and daily capacity."""
+    from app.acquisition.controller import active_prospect_controller
+    from app.infrastructure.production_activation import production_activation
+    from app.campaigns.sender_registry import sender_registry
+
+    prov_state = production_activation.get_email_readiness_checklist()
+    cap_summary = await sender_registry.get_sender_capacity_summary(db)
+    lock = await active_prospect_controller.get_or_create_lock(db)
+    lock_status = "IDLE" if lock.status in ("IDLE", "RELEASED") else lock.status
+
+    titan_smtp_health = {"status": "NOT_CHECKED"}
+    titan_imap_health = {"status": "NOT_CHECKED"}
+    if settings.EMAIL_PROVIDER in ("titan", "titan_smtp") or getattr(settings, "TITAN_SMTP_USER", None):
+        from app.outreach.providers.titan_provider import TitanEmailProvider
+        tp = TitanEmailProvider()
+        titan_smtp_health = tp.check_auth_health()
+        titan_imap_health = tp.check_imap_health()
+
+    gmail_health = {"status": "NOT_CHECKED"}
+    if settings.EMAIL_PROVIDER in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None):
+        try:
+            from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
+            gp = GmailOAuthEmailProvider()
+            gmail_health = gp.check_auth_health()
+        except Exception as e:
+            gmail_health = {"status": "ERROR", "healthy": False, "error": str(e)}
+
+    return {
+        "sender": prov_state.get("sender_identity", {}).get("value") or settings.EMAIL_FROM,
+        "reply_to": prov_state.get("reply_to", {}).get("value") or settings.EMAIL_REPLY_TO,
+        "active_provider": settings.EMAIL_PROVIDER,
+        "dry_run": getattr(settings, "EMAIL_DRY_RUN", True),
+        "smtp_readiness": "CONFIGURED" if prov_state.get("overall_status") == "READY FOR CONTROLLED TEST" else "BLOCKED",
+        "titan_smtp": titan_smtp_health,
+        "titan_imap": titan_imap_health,
+        "gmail_oauth": gmail_health,
+        "spf": prov_state.get("spf", {}),
+        "dkim": prov_state.get("dkim", {}),
+        "dmarc": prov_state.get("dmarc", {}),
+        "compliance": {
+            "can_spam_footer_active": True,
+            "opt_out_rule_active": settings.OPT_OUT_STOP_RULE,
+            "bounce_rule_active": settings.BOUNCE_STOP_RULE,
+            "reply_rule_active": settings.REPLY_STOP_RULE
+        },
+        "daily_cap": cap_summary,
+        "outreach_lock": lock_status,
+        "overall_readiness": prov_state.get("overall_status", "UNKNOWN")
+    }
 
 class EditMessageRequest(BaseModel):
     subject: str

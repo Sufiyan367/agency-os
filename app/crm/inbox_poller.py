@@ -109,21 +109,34 @@ class InboxPoller:
         Fails safely on network or provider errors without crashing the caller.
         """
         try:
-            # 1. Prefer Gmail OAuth if configured
+            # 1. Check for Gmail OAuth if configured
             is_gmail = (settings.EMAIL_PROVIDER or "").lower().strip() in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None)
             if is_gmail and getattr(settings, "GMAIL_CLIENT_ID", None) and getattr(settings, "GMAIL_REFRESH_TOKEN", None):
                 return await self.poll_gmail(session)
 
-            # 2. Fall back to IMAP
-            if settings.DRY_RUN or not settings.IMAP_HOST or not settings.IMAP_USER:
+            # 2. Resolve IMAP settings (Titan business email or standard IMAP)
+            is_titan = (settings.EMAIL_PROVIDER or "").lower().strip() in ("titan", "titan_smtp") or getattr(settings, "TITAN_IMAP_USER", None)
+            imap_host = getattr(settings, "TITAN_IMAP_HOST", None) if is_titan else getattr(settings, "IMAP_HOST", None)
+            imap_port = getattr(settings, "TITAN_IMAP_PORT", 993) if is_titan else getattr(settings, "IMAP_PORT", 993)
+            imap_user = getattr(settings, "TITAN_IMAP_USER", None) if is_titan else getattr(settings, "IMAP_USER", None)
+            imap_password = getattr(settings, "TITAN_IMAP_PASSWORD", None) if is_titan else getattr(settings, "IMAP_PASSWORD", None)
+
+            if not imap_host:
+                imap_host = getattr(settings, "IMAP_HOST", None)
+            if not imap_user:
+                imap_user = getattr(settings, "IMAP_USER", None)
+            if not imap_password:
+                imap_password = getattr(settings, "IMAP_PASSWORD", None)
+
+            if settings.DRY_RUN or not imap_host or not imap_user:
                 logger.debug("[InboxPoller] Inbox polling skipped (unconfigured or DRY_RUN active).")
                 return []
 
             def _sync_fetch_unseen() -> List[Dict[str, str]]:
                 messages = []
                 try:
-                    mail = imaplib.IMAP4_SSL(settings.IMAP_HOST, settings.IMAP_PORT, timeout=10)
-                    mail.login(settings.IMAP_USER, settings.IMAP_PASSWORD or "")
+                    mail = imaplib.IMAP4_SSL(imap_host, int(imap_port), timeout=10)
+                    mail.login(imap_user, imap_password or "")
                     mail.select("INBOX")
                     status, search_data = mail.search(None, "UNSEEN")
                     if status != "OK" or not search_data or not search_data[0]:

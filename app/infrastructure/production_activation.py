@@ -102,6 +102,13 @@ class ProductionActivationManager:
                 blockers.append("SendGrid API key is missing.")
             elif not key.startswith("SG."):
                 blockers.append("SendGrid API key format invalid (must begin with 'SG.').")
+        elif prov in ("titan", "titan_smtp"):
+            titan_user = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None)
+            titan_pass = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
+            if not titan_user:
+                blockers.append("Titan SMTP user is missing.")
+            if not titan_pass:
+                blockers.append("Titan SMTP password is missing.")
         elif prov == "smtp":
             if not getattr(settings, "SMTP_HOST", None):
                 blockers.append("SMTP host is missing.")
@@ -113,6 +120,8 @@ class ProductionActivationManager:
         # 3. Sender identity & domain syntax
         if prov in ("gmail", "gmail_oauth"):
             sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", "")
+        elif prov in ("titan", "titan_smtp"):
+            sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "")
         else:
             sender = getattr(settings, "EMAIL_FROM", "")
         reply_to = getattr(settings, "EMAIL_REPLY_TO", "") or sender
@@ -669,3 +678,4 @@ class ProductionActivationManager:
 
 
 production_activation_manager = ProductionActivationManager()
+production_activation = production_activation_manager

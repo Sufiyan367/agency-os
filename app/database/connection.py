@@ -309,10 +309,23 @@ async def init_db():
                 ("provider", "VARCHAR(50)"),
                 ("provider_message_id", "VARCHAR(100)"),
                 ("reply_to", "VARCHAR(255)"),
-                ("evidence_used", "JSON DEFAULT '{}'")
+                ("evidence_used", "JSON DEFAULT '{}'"),
+                ("actor_type", "VARCHAR(50) DEFAULT 'HUMAN'"),
+                ("auto_approval_eligibility", "JSON DEFAULT '{}'")
             ]:
                 try:
                     await conn.execute(text(f"ALTER TABLE outreach_messages ADD COLUMN {col} {col_type}"))
+                except Exception:
+                    pass
+
+            # Performance indexes for high-cadence queue & conversation lookups
+            for idx_name, idx_sql in [
+                ("ix_outreach_messages_status_created", "CREATE INDEX IF NOT EXISTS ix_outreach_messages_status_created ON outreach_messages (status, created_at)"),
+                ("ix_conversation_events_biz_created", "CREATE INDEX IF NOT EXISTS ix_conversation_events_biz_created ON conversation_events (business_id, created_at)"),
+                ("ix_replies_biz_received", "CREATE INDEX IF NOT EXISTS ix_replies_biz_received ON replies (business_id, received_at)")
+            ]:
+                try:
+                    await conn.execute(text(idx_sql))
                 except Exception:
                     pass
 

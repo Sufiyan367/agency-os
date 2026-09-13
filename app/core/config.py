@@ -156,6 +156,19 @@ class Settings(BaseSettings):
     GMAIL_SENDER_EMAIL: Optional[str] = os.getenv("GMAIL_SENDER_EMAIL")
     GMAIL_DAILY_CAPACITY: int = int(os.getenv("GMAIL_DAILY_CAPACITY", "20"))
 
+    # Titan Business Email Configuration
+    TITAN_SMTP_HOST: str = os.getenv("TITAN_SMTP_HOST", "smtp.titan.email")
+    TITAN_SMTP_PORT: int = int(os.getenv("TITAN_SMTP_PORT", "465"))
+    TITAN_SMTP_USER: Optional[str] = os.getenv("TITAN_SMTP_USER")
+    TITAN_SMTP_PASSWORD: Optional[str] = os.getenv("TITAN_SMTP_PASSWORD")
+    TITAN_IMAP_HOST: str = os.getenv("TITAN_IMAP_HOST", "imap.titan.email")
+    TITAN_IMAP_PORT: int = int(os.getenv("TITAN_IMAP_PORT", "993"))
+    TITAN_IMAP_USER: Optional[str] = os.getenv("TITAN_IMAP_USER")
+    TITAN_IMAP_PASSWORD: Optional[str] = os.getenv("TITAN_IMAP_PASSWORD")
+
+    # Autonomous Outbound Approval
+    AUTO_APPROVAL_ENABLED: bool = os.getenv("AUTO_APPROVAL_ENABLED", "true").lower() in ("true", "1", "yes")
+
     # Payment Architecture & Provider Strategy
     PREFERRED_PAYMENT_METHOD: str = os.getenv("PREFERRED_PAYMENT_METHOD", "google_pay")
     GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", "agencyos@okhdfcbank")

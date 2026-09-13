@@ -17,13 +17,14 @@ class OutreachApprovalQueue:
         ).order_by(OutreachMessage.created_at.desc())
         return list((await session.execute(q)).scalars().all())
 
-    async def approve_message(self, session: AsyncSession, message_id: int) -> OutreachMessage:
+    async def approve_message(self, session: AsyncSession, message_id: int, actor_type: str = "HUMAN") -> OutreachMessage:
         msg = await session.get(OutreachMessage, message_id)
         if not msg:
             raise ValueError(f"OutreachMessage {message_id} not found.")
 
         msg.status = OutreachStatus.APPROVED.value
         msg.approved_at = datetime.utcnow()
+        msg.actor_type = actor_type
 
         # Update business pipeline stage to APPROVAL / OUTREACH_READY
         biz = await session.get(Business, msg.business_id)
@@ -34,12 +35,12 @@ class OutreachApprovalQueue:
                 from_stage=PipelineStage.QUALIFIED.value,
                 to_stage=PipelineStage.APPROVAL.value,
                 deal_value=0.0,
-                note="Outreach draft approved by human operator."
+                note=f"Outreach draft approved by {actor_type}."
             )
             session.add(event)
 
         await session.commit()
-        logger.info(f"Approved message {message_id} for recipient {msg.recipient_email}")
+        logger.info(f"Approved message {message_id} for recipient {msg.recipient_email} (actor={actor_type})")
         return msg
 
     async def reject_message(self, session: AsyncSession, message_id: int, reason: str = "") -> OutreachMessage:

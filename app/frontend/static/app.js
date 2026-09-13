@@ -694,10 +694,10 @@ async function authorizeRealSend(msgId) {
     if (!confirmed) return;
 
     try {
-        const res = await fetch(`/api/queue/${msgId}/approve`, {
+        const res = await fetch(`/api/queue/${msgId}/approve?force_live=true&auto_send=true`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ force_live: true })
+            body: JSON.stringify({ force_live: true, auto_send: true, actor: 'HUMAN' })
         });
         const data = await res.json();
         if (res.ok) {
@@ -710,6 +710,22 @@ async function authorizeRealSend(msgId) {
         }
     } catch (e) {
         alert("Network or server error during live send authorization: " + e);
+    }
+}
+
+async function triggerAutoApproval() {
+    try {
+        const res = await fetch('/api/outreach/auto-approve', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`Auto-Approval Evaluation Complete!\\n• Scanned: ${data.total_pending_scanned}\\n• Auto-Approved: ${data.auto_approved_count}\\n• Blocked/Pending Review: ${data.blocked_count}`);
+            if (typeof loadQueue === 'function') await loadQueue();
+            if (typeof loadCeoControlCenter === 'function') await loadCeoControlCenter();
+        } else {
+            alert("Auto-approval failed: " + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert("Error running auto-approval: " + e);
     }
 }
 

@@ -4,6 +4,7 @@ from app.outreach.providers.resend_provider import ResendEmailProvider
 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
 from app.outreach.providers.smtp_provider import SMTPEmailProvider
 from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
+from app.outreach.providers.titan_provider import TitanEmailProvider
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -24,6 +25,8 @@ def get_email_provider() -> BaseEmailProvider:
         return ResendEmailProvider()
     elif provider_name == "sendgrid":
         return SendGridEmailProvider()
+    elif provider_name in ("titan", "titan_smtp"):
+        return TitanEmailProvider()
     elif provider_name == "smtp":
         return SMTPEmailProvider()
     elif provider_name in ("gmail", "gmail_oauth"):
