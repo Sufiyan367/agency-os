@@ -426,17 +426,101 @@
    ========================================================================== */
 .ceo-command-hero {
   position: relative !important;
-  background: linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-base) 100%) !important;
+  background: linear-gradient(180deg, #090d18 0%, #06090e 100%) !important;
   border: 1px solid var(--border-default) !important;
   border-radius: var(--radius-lg) !important;
   padding: 20px 24px !important;
   margin-bottom: var(--section-gap) !important;
-  box-shadow: var(--depth-shadow-1) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45) !important;
   overflow: hidden !important;
-  display: grid !important;
-  grid-template-columns: 1.4fr 1fr !important;
-  gap: 24px !important;
+}
+
+.ceo-hero-topline {
+  display: flex !important;
   align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 20px !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+
+.ceo-core-matrix {
+  display: grid !important;
+  grid-template-columns: 240px 1fr 240px !important;
+  gap: 20px !important;
+  align-items: center !important;
+}
+
+.core-satellite-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.core-satellite-card {
+  background: rgba(13, 18, 34, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.core-satellite-card:hover {
+  border-color: rgba(0, 212, 239, 0.35) !important;
+  background: rgba(18, 25, 46, 0.88) !important;
+}
+
+.satellite-tag {
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--cyan, #00d4ef) !important;
+  margin-bottom: 4px !important;
+}
+
+.satellite-val-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 4px !important;
+}
+
+.satellite-big-val {
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+}
+
+.satellite-badge {
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 0.64rem !important;
+  font-weight: 700 !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+}
+
+.satellite-badge.active {
+  background: rgba(0, 212, 239, 0.12) !important;
+  color: #00d4ef !important;
+  border: 1px solid rgba(0, 212, 239, 0.3) !important;
+}
+
+.satellite-badge.success {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.satellite-trend {
+  font-size: 0.72rem !important;
+  color: #94a3b8 !important;
+}
+
+.satellite-subtext {
+  font-size: 0.72rem !important;
+  color: #64748b !important;
 }
 
 .ceo-command-hero::before {
@@ -464,7 +548,7 @@
 .ceo-operating-sub {
   font-size: 0.84rem !important;
   color: var(--text-secondary) !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 0 !important;
 }
 
 .ceo-hero-status-row {
@@ -477,9 +561,8 @@
 /* 3D AGENCY OS CORE VISUAL OBJECT */
 .ceo-core-stage {
   position: relative !important;
-  width: 320px !important;
-  max-width: 100% !important;
-  height: 140px !important;
+  width: 100% !important;
+  height: 200px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

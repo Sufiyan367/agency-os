@@ -501,6 +501,9 @@ async function loadCeoControlCenter() {
 
         setElText('ceo-val-revenue-dryrun', metrics.revenue_label || '$0.00 (Dry Run)');
         setElText('ceo-val-revenue', metrics.revenue_label || '$0.00 (Dry Run)');
+        setElText('ceo-core-active-work', (metrics.outreach_awaiting_approval ?? 0) + (metrics.interested_leads ?? 0));
+        setElText('ceo-core-pipeline-val', metrics.qualified_prospects ?? metrics.total_prospects ?? 0);
+        setElText('ceo-core-revenue-val', metrics.revenue_label || '$0.00');
 
         // 2. Action Required Section
         renderCeoActionsRequired(data.action_required || []);

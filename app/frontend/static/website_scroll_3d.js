@@ -1,985 +1,471 @@
-/* ==========================================================================
-   AGENCY OS — THREE.JS 3D CINEMATIC MOTION & SCROLL ENGINE
-   WebGL Perspective Scene, GSAP ScrollTrigger Choreography & Live Workflows
-   ========================================================================== */
-
-(function() {
-  'use strict';
-
-  // Check prefers-reduced-motion
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Global Engine Reference for diagnostics and tests
-  window.agencyLanding3D = {
-    initialized: false,
-    threeLoaded: false,
-    gsapLoaded: false,
-    frameCount: 0,
-    activeWorkflow: 'missed_call',
-    nodes: {},
-    sceneState: 'HERO',
-    scrollProgress: 0
-  };
-
-  // Simulator Scenarios Data Model
-  const SIM_SCENARIOS = {
-    missed_call: {
-      step1: {
-        tag: 'TRIGGER // 20:42 EST',
-        title: 'Missed After-Hours Call',
-        body: 'Homeowner calls with AC breakdown outside office hours. Call rings out and disconnects after 4 rings.',
-        status: 'Trigger Received',
-        statusType: 'active'
-      },
-      step2: {
-        tag: 'INGEST // 380ms',
-        title: 'Caller Intelligence',
-        body: 'Ingests caller ID, resolves local service territory, and checks CRM for existing customer history.',
-        status: 'Context Grounded',
-        statusType: 'active'
-      },
-      step3: {
-        tag: 'REASONING // 620ms',
-        title: 'Priority 1 Routing',
-        body: 'Classified as urgent emergency repair. Rules engine triggers immediate autonomous follow-up protocol.',
-        status: 'Decision Locked',
-        statusType: 'active'
-      },
-      step4: {
-        tag: 'ACTION // 1.2s',
-        title: 'Conversational SMS',
-        body: 'Dispatches instant personalized text with priority slot reservation link. Holds morning 08:30 AM dispatch.',
-        status: 'Action Dispatched',
-        statusType: 'active'
-      },
-      step5: {
-        tag: 'OUTCOME // Confirmed',
-        title: 'Opportunity Saved',
-        body: 'Customer books technician slot in 45s before calling competitor. $850 emergency job secured automatically.',
-        status: 'Contract Secured',
-        statusType: 'complete'
-      }
-    },
-    web_enquiry: {
-      step1: {
-        tag: 'TRIGGER // 14:15 EST',
-        title: 'Commercial Inbound',
-        body: 'Clinic group submits website inquiry: "Need multi-clinic patient booking and automated reminder sync."',
-        status: 'Trigger Received',
-        statusType: 'active'
-      },
-      step2: {
-        tag: 'INGEST // 240ms',
-        title: 'Domain & Fit Audit',
-        body: 'Parses business registry, verifies 4 operating practice locations, and checks software compatibility.',
-        status: 'Profile Enriched',
-        statusType: 'active'
-      },
-      step3: {
-        tag: 'REASONING // 510ms',
-        title: 'Enterprise Architecture',
-        body: 'Identifies high-value enterprise opportunity. Assembles customized multi-location architecture proposal.',
-        status: 'Scoping Complete',
-        statusType: 'active'
-      },
-      step4: {
-        tag: 'ACTION // 850ms',
-        title: 'Interactive Dossier',
-        body: 'Emails managing partner an interactive proposal preview with calendar link to speak directly with an architect.',
-        status: 'Proposal Sent',
-        statusType: 'active'
-      },
-      step5: {
-        tag: 'OUTCOME // Confirmed',
-        title: 'Strategy Call Booked',
-        body: 'Managing partner reserves consultation call with pre-compiled technical dossier. Zero manual sales legwork.',
-        status: 'Pipeline Added',
-        statusType: 'complete'
-      }
-    },
-    lead_form: {
-      step1: {
-        tag: 'TRIGGER // 11:05 EST',
-        title: 'Fleet Service Scope',
-        body: 'Logistics manager submits 12-vehicle service manifest requesting commercial preventative maintenance quote.',
-        status: 'Trigger Received',
-        statusType: 'active'
-      },
-      step2: {
-        tag: 'INGEST // 410ms',
-        title: 'Fleet VIN Analysis',
-        body: 'Extracts VIN numbers, mileage thresholds, and OEM maintenance schedules from attached fleet schedule.',
-        status: 'Fleet Grounded',
-        statusType: 'active'
-      },
-      step3: {
-        tag: 'REASONING // 780ms',
-        title: 'Automated Estimating',
-        body: 'Calculates labor hours, parts procurement pricing, and generates tiered multi-tier SLA contract options.',
-        status: 'Quote Generated',
-        statusType: 'active'
-      },
-      step4: {
-        tag: 'ACTION // 1.4s',
-        title: 'Web-Native Proposal',
-        body: 'Deploys interactive web proposal with cryptographic e-sign and upfront retainer payment gateway.',
-        status: 'Delivered Instantly',
-        statusType: 'active'
-      },
-      step5: {
-        tag: 'OUTCOME // Confirmed',
-        title: 'Retainer Cleared',
-        body: 'Logistics director approves proposal and pays $3,600 initial deposit online within 90 minutes.',
-        status: 'Revenue Collected',
-        statusType: 'complete'
-      }
-    },
-    support_request: {
-      step1: {
-        tag: 'TRIGGER // 03:12 EST',
-        title: 'Carrier Latency Spike',
-        body: 'Automated telemetry watcher detects upstream carrier SIP latency spiking to 420ms on primary trunk.',
-        status: 'Anomaly Detected',
-        statusType: 'active'
-      },
-      step2: {
-        tag: 'INGEST // 50ms',
-        title: 'Health Diagnostics',
-        body: 'Health check probe confirms packet loss on primary route. Secondary redundant carrier routes healthy.',
-        status: 'Diagnostics Clear',
-        statusType: 'active'
-      },
-      step3: {
-        tag: 'REASONING // 90ms',
-        title: 'Failover Trigger',
-        body: 'Circuit breaker protocol engages. Initiates zero-downtime hot-swap to secondary low-latency SIP carrier.',
-        status: 'Failover Armed',
-        statusType: 'active'
-      },
-      step4: {
-        tag: 'ACTION // 120ms',
-        title: 'Route Redirection',
-        body: 'Swaps DNS routes and telephony gateways; dispatches incident summary to CEO notification feed.',
-        status: 'Traffic Rerouted',
-        statusType: 'active'
-      },
-      step5: {
-        tag: 'OUTCOME // Confirmed',
-        title: 'Zero Dropped Calls',
-        body: '99.98% platform uptime preserved seamlessly. Zero missed customer calls during carrier outage.',
-        status: 'Self-Healed',
-        statusType: 'complete'
-      }
-    }
-  };
-
-  // Wait for DOM
-  document.addEventListener('DOMContentLoaded', () => {
-    initHeaderScroll();
-    initMobileNav();
-    initConsultationModals();
-    initContactForm();
-    initSimulator();
-    initSmoothAnchors();
-
-    // Initialize Real Three.js WebGL 3D Motion Engine
-    initThreeJsLandingScene();
-  });
-
-  /* --------------------------------------------------------------------------
-     1. Header Scroll Blur & Sticky Transition
-     -------------------------------------------------------------------------- */
-  function initHeaderScroll() {
-    const header = document.querySelector('.site-header');
-    if (!header) return;
-
-    function handleScroll() {
-      if (window.scrollY > 40) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-  }
-
-  /* --------------------------------------------------------------------------
-     2. Mobile Navigation Drawer
-     -------------------------------------------------------------------------- */
-  function initMobileNav() {
-    const toggleBtn = document.getElementById('mobileToggle');
-    const drawer = document.getElementById('mobileDrawer');
-    const backdrop = document.getElementById('mobileDrawerBackdrop');
-    if (!toggleBtn || !drawer) return;
-
-    function openDrawer() {
-      drawer.classList.add('open');
-      drawer.setAttribute('aria-hidden', 'false');
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      if (backdrop) backdrop.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeDrawer() {
-      drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden', 'true');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-      if (backdrop) backdrop.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (drawer.classList.contains('open')) {
-        closeDrawer();
-      } else {
-        openDrawer();
-      }
-    });
-
-    if (backdrop) {
-      backdrop.addEventListener('click', closeDrawer);
-    }
-
-    const links = drawer.querySelectorAll('a, button');
-    links.forEach(link => {
-      link.addEventListener('click', closeDrawer);
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && drawer.classList.contains('open')) {
-        closeDrawer();
-      }
-    });
-  }
-
-  /* --------------------------------------------------------------------------
-     3. Consultation Modal Dialog & Submission
-     -------------------------------------------------------------------------- */
-  function initConsultationModals() {
-    const modal = document.getElementById('consultationModal');
-    const closeBtn = document.getElementById('closeConsultationModal');
-    const triggerBtns = document.querySelectorAll('[data-action="open-consultation-modal"]');
-    const form = document.getElementById('modalForm');
-    const alertBox = document.getElementById('modalAlert');
-    const submitBtn = document.getElementById('btnSubmitModal');
-
-    if (!modal) return;
-
-    function openModal() {
-      modal.classList.add('open');
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      const firstInput = modal.querySelector('input');
-      if (firstInput) firstInput.focus();
-    }
-
-    function closeModal() {
-      modal.classList.remove('open');
-      modal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-      if (alertBox) {
-        alertBox.textContent = '';
-        alertBox.style.display = 'none';
-      }
-    }
-
-    triggerBtns.forEach(btn => btn.addEventListener('click', openModal));
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('open')) {
-        closeModal();
-      }
-    });
-
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = (document.getElementById('modalName') || {}).value || '';
-        const email = (document.getElementById('modalEmail') || {}).value || '';
-        const company = (document.getElementById('modalCompany') || {}).value || '';
-        const service = (document.getElementById('modalGoal') || {}).value || '';
-
-        if (!name || !email || !company) {
-          showAlert(alertBox, 'Please complete all required fields.', 'error');
-          return;
-        }
-
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Submitting Request...';
-        }
-
-        try {
-          const resp = await fetch('/api/contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, company, service, message: `Consultation Modal: ${service}` })
-          });
-
-          if (resp.ok) {
-            showAlert(alertBox, 'Request received. An automation architect will review your bottlenecks and reach out within 2 hours.', 'success');
-            form.reset();
-            setTimeout(() => {
-              closeModal();
-            }, 3500);
-          } else {
-            showAlert(alertBox, 'Submission error. Please try again or reach out directly at contact@automatedagencyos.tech', 'error');
-          }
-        } catch (err) {
-          showAlert(alertBox, 'Network issue. Please try again in a few moments.', 'error');
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Confirm Strategy Call Request';
-          }
-        }
-      });
-    }
-  }
-
-  /* --------------------------------------------------------------------------
-     4. Main Contact Consultation Form Submission
-     -------------------------------------------------------------------------- */
-  function initContactForm() {
-    const form = document.getElementById('contactForm');
-    const alertBox = document.getElementById('contactAlert');
-    const submitBtn = document.getElementById('btnSubmitContact');
-    const submitText = document.getElementById('btnSubmitText');
-
-    if (!form) return;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const name = (document.getElementById('contactName') || {}).value || '';
-      const email = (document.getElementById('contactEmail') || {}).value || '';
-      const company = (document.getElementById('contactCompany') || {}).value || '';
-      const service = (document.getElementById('contactService') || {}).value || '';
-      const message = (document.getElementById('contactMessage') || {}).value || '';
-
-      if (!name || !email || !company || !message) {
-        showAlert(alertBox, 'Please fill in all required fields.', 'error');
-        return;
-      }
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        if (submitText) submitText.textContent = 'Transmitting Request...';
-      }
-
-      try {
-        const resp = await fetch('/api/contact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, company, service, message })
-        });
-
-        if (resp.ok) {
-          showAlert(alertBox, 'Thank you. Your consultation request has been logged. An automation engineer will prepare a tailored audit and reach out shortly.', 'success');
-          form.reset();
-        } else {
-          showAlert(alertBox, 'Unable to submit right now. Please email us at contact@automatedagencyos.tech.', 'error');
-        }
-      } catch (err) {
-        showAlert(alertBox, 'Network failure. Please verify connection and try again.', 'error');
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          if (submitText) submitText.textContent = 'Request Strategy Call';
-        }
-      }
-    });
-  }
-
-  function showAlert(alertEl, msg, type) {
-    if (!alertEl) return;
-    alertEl.textContent = msg;
-    alertEl.className = 'contact-alert ' + type;
-    alertEl.style.display = 'block';
-  }
-
-  /* --------------------------------------------------------------------------
-     5. Real Interactive Simulator ("See How The System Works")
-     -------------------------------------------------------------------------- */
-  function initSimulator() {
-    const tabs = document.querySelectorAll('.sim-tab');
-    if (!tabs.length) return;
-
-    const colInput = document.getElementById('sim-content-input');
-    const colReasoning = document.getElementById('sim-content-reasoning');
-    const colDecision = document.getElementById('sim-content-decision');
-    const colAction = document.getElementById('sim-content-action');
-    const colOutcome = document.getElementById('sim-content-outcome');
-
-    function renderStage(scenarioKey) {
-      const data = SIM_SCENARIOS[scenarioKey] || SIM_SCENARIOS.missed_call;
-      window.agencyLanding3D.activeWorkflow = scenarioKey;
-
-      renderColumn(colInput, data.step1);
-      renderColumn(colReasoning, data.step2);
-      renderColumn(colDecision, data.step3);
-      renderColumn(colAction, data.step4);
-      renderColumn(colOutcome, data.step5);
-
-      // Pulse columns sequentially
-      const cols = document.querySelectorAll('.sim-stage-col');
-      cols.forEach((col, idx) => {
-        col.classList.remove('pulsing');
-        setTimeout(() => {
-          col.classList.add('pulsing');
-          setTimeout(() => col.classList.remove('pulsing'), 600);
-        }, idx * 120);
-      });
-
-      // Trigger Three.js WebGL reactive pulse across the 3D scene
-      if (typeof window.triggerLanding3DPulse === 'function') {
-        window.triggerLanding3DPulse(scenarioKey);
-      }
-    }
-
-    function renderColumn(targetEl, stepData) {
-      if (!targetEl || !stepData) return;
-      targetEl.innerHTML = `
-        <span class="sim-node-tag">${escapeHtml(stepData.tag)}</span>
-        <div class="sim-highlight-text">${escapeHtml(stepData.title)}</div>
-        <p>${escapeHtml(stepData.body)}</p>
-        <span class="sim-status-badge ${stepData.statusType === 'complete' ? 'complete' : 'active'}">
-          ● ${escapeHtml(stepData.status)}
-        </span>
-      `;
-    }
-
-    function escapeHtml(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        const scenario = tab.getAttribute('data-sim');
-        renderStage(scenario);
-      });
-    });
-
-    renderStage('missed_call');
-  }
-
-  /* --------------------------------------------------------------------------
-     6. Smooth Anchors with Fixed Header Offset
-     -------------------------------------------------------------------------- */
-  function initSmoothAnchors() {
-    const anchorLinks = document.querySelectorAll('a[href^="#"]');
-    const headerHeight = 80;
-
-    anchorLinks.forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        const targetId = this.getAttribute('href');
-        if (!targetId || targetId === '#') return;
-
-        const targetEl = document.querySelector(targetId);
-        if (targetEl) {
-          e.preventDefault();
-          const targetPosition = targetEl.getBoundingClientRect().top + window.scrollY - headerHeight;
-          window.scrollTo({
-            top: targetPosition,
-            behavior: 'smooth'
-          });
-        }
-      });
-    });
-  }
-
-  /* --------------------------------------------------------------------------
-     7. THREE.JS 3D CINEMATIC WEBGL MOTION ENGINE
-     -------------------------------------------------------------------------- */
-  function initThreeJsLandingScene() {
-    const canvas = document.getElementById('bg-canvas-3d');
-    if (!canvas) return;
-
-    if (typeof THREE === 'undefined') {
-      console.warn('[Landing3D] Three.js not loaded, deferring initialization.');
-      return;
-    }
-
-    window.agencyLanding3D.threeLoaded = true;
-
-    // 1. Renderer Setup
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    const isMobile = width <= 768;
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-      alpha: true,
-      antialias: !isMobile,
-      powerPreference: 'high-performance'
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
-    renderer.setSize(width, height);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-
-    // 2. Scene & Camera Setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 1, 2500);
-    camera.position.set(0, 0, 850);
-
-    window.agencyLanding3D.renderer = renderer;
-    window.agencyLanding3D.scene = scene;
-    window.agencyLanding3D.camera = camera;
-
-    // 3. Controlled Lighting
-    const ambientLight = new THREE.AmbientLight(0x0a101d, 2.5);
-    scene.add(ambientLight);
-
-    const keyLight = new THREE.DirectionalLight(0x00d4ef, 2.2);
-    keyLight.position.set(300, 400, 500);
-    scene.add(keyLight);
-
-    const rimLight = new THREE.DirectionalLight(0x6366f1, 2.8);
-    rimLight.position.set(-300, -200, 300);
-    scene.add(rimLight);
-
-    const pointLight = new THREE.PointLight(0x00d4ef, 3.0, 600);
-    pointLight.position.set(0, 0, 0);
-    scene.add(pointLight);
-
-    // 4. Main 3D System Hierarchy Group
-    const systemGroup = new THREE.Group();
-    scene.add(systemGroup);
-
-    // Initial desktop placement offset towards right side of hero text
-    const targetBaseX = isMobile ? 0 : 200;
-    systemGroup.position.set(targetBaseX, 0, 0);
-
-    // 5. Central Nucleus (AI AUTOMATION CORE)
-    const nucleusGeo = new THREE.IcosahedronGeometry(isMobile ? 38 : 50, 1);
-    const nucleusMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
-      emissive: 0x00d4ef,
-      emissiveIntensity: 0.6,
-      roughness: 0.2,
-      metalness: 0.8,
-      wireframe: false
-    });
-    const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat);
-    systemGroup.add(nucleusMesh);
-
-    // Wireframe Outer Cage for Nucleus
-    const cageGeo = new THREE.IcosahedronGeometry(isMobile ? 46 : 60, 1);
-    const cageMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.45
-    });
-    const cageMesh = new THREE.Mesh(cageGeo, cageMat);
-    systemGroup.add(cageMesh);
-
-    // 6. Orbital Concentric Rings
-    const orbitalRings = [];
-    const ringSpecs = [
-      { r: isMobile ? 100 : 135, tube: 0.8, tiltX: Math.PI / 3, tiltY: 0.2, color: 0x00d4ef, speed: 0.004 },
-      { r: isMobile ? 160 : 210, tube: 0.7, tiltX: Math.PI / 4, tiltY: -0.3, color: 0x6366f1, speed: -0.003 },
-      { r: isMobile ? 220 : 290, tube: 0.6, tiltX: Math.PI / 2.5, tiltY: 0.4, color: 0x00d4ef, speed: 0.002 }
-    ];
-
-    ringSpecs.forEach(spec => {
-      const ringGeo = new THREE.TorusGeometry(spec.r, spec.tube, 8, isMobile ? 48 : 80);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: spec.color,
-        transparent: true,
-        opacity: 0.35
-      });
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = spec.tiltX;
-      ringMesh.rotation.y = spec.tiltY;
-      systemGroup.add(ringMesh);
-      orbitalRings.push({ mesh: ringMesh, speed: spec.speed });
-    });
-
-    // 7. Core Conceptual 3D Nodes
-    // Concept:
-    //         AI AUTOMATION CORE (Center 0,0,0)
-    //         /        |         \
-    //      LEADS      AI      WORKFLOWS
-    //         \        |         /
-    //            SELL / BUILD
-    //                 |
-    //               DEPLOY
-    //                 |
-    //               GROW
-    const nodeDefs = [
-      { id: 'leads', name: 'LEADS', pos: [-130, 80, 40], color: 0x00d4ef, size: 14 },
-      { id: 'ai', name: 'AI', pos: [0, 110, -20], color: 0x38bdf8, size: 16 },
-      { id: 'workflows', name: 'WORKFLOWS', pos: [130, 80, 30], color: 0x6366f1, size: 14 },
-      { id: 'sell_build', name: 'SELL / BUILD', pos: [85, -70, 50], color: 0x10b981, size: 15 },
-      { id: 'deploy', name: 'DEPLOY', pos: [-85, -80, -30], color: 0x8b5cf6, size: 13 },
-      { id: 'grow', name: 'GROW', pos: [0, -145, 20], color: 0x00d4ef, size: 16 }
-    ];
-
-    const nodesMap = {};
-    const nodeMaterials = [];
-
-    nodeDefs.forEach(def => {
-      const nGroup = new THREE.Group();
-      nGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
-
-      const nGeo = new THREE.SphereGeometry(def.size, 16, 16);
-      const nMat = new THREE.MeshStandardMaterial({
-        color: def.color,
-        emissive: def.color,
-        emissiveIntensity: 0.55,
-        roughness: 0.3,
-        metalness: 0.7
-      });
-      const nMesh = new THREE.Mesh(nGeo, nMat);
-      nGroup.add(nMesh);
-
-      // Halo ring around node
-      const haloGeo = new THREE.RingGeometry(def.size * 1.3, def.size * 1.6, 24);
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: def.color,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.4
-      });
-      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
-      nGroup.add(haloMesh);
-
-      systemGroup.add(nGroup);
-
-      nodesMap[def.id] = {
-        group: nGroup,
-        mesh: nMesh,
-        material: nMat,
-        halo: haloMesh,
-        basePos: new THREE.Vector3(...def.pos),
-        baseScale: 1
-      };
-      nodeMaterials.push(nMat);
-    });
-
-    window.agencyLanding3D.nodes = nodesMap;
-
-    // 8. 3D Cybernetic Connector Lines
-    const connections = [
-      ['leads', 'ai'],
-      ['ai', 'workflows'],
-      ['workflows', 'sell_build'],
-      ['sell_build', 'deploy'],
-      ['deploy', 'grow'],
-      ['leads', 'sell_build'],
-      ['grow', 'leads']
-    ];
-
-    const lineObjects = [];
-    connections.forEach(([fromId, toId]) => {
-      const fromNode = nodesMap[fromId];
-      const toNode = nodesMap[toId];
-      if (!fromNode || !toNode) return;
-
-      const curve = new THREE.CatmullRomCurve3([
-        fromNode.basePos,
-        new THREE.Vector3().addVectors(fromNode.basePos, toNode.basePos).multiplyScalar(0.5).add(new THREE.Vector3(0, 15, 20)),
-        toNode.basePos
-      ]);
-
-      const points = curve.getPoints(32);
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.25,
-        linewidth: 1
-      });
-      const lineMesh = new THREE.Line(lineGeo, lineMat);
-      systemGroup.add(lineMesh);
-
-      lineObjects.push({ line: lineMesh, curve, material: lineMat });
-    });
-
-    // 9. Floating 3D Spline Pulse Particles (Data Flow)
-    const pulseCount = 12;
-    const pulseGeo = new THREE.SphereGeometry(3, 8, 8);
-    const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
-    const pulses = [];
-
-    for (let i = 0; i < pulseCount; i++) {
-      const pMesh = new THREE.Mesh(pulseGeo, pulseMat);
-      systemGroup.add(pMesh);
-      pulses.push({
-        mesh: pMesh,
-        connIndex: i % lineObjects.length,
-        progress: (i / pulseCount)
-      });
-    }
-
-    // 10. Ambient 3D Particle Constellation (Telemetry Dust)
-    const particleTotal = isMobile ? 80 : 200;
-    const partGeo = new THREE.BufferGeometry();
-    const partPositions = new Float32Array(particleTotal * 3);
-
-    for (let i = 0; i < particleTotal * 3; i += 3) {
-      partPositions[i] = (Math.random() - 0.5) * 1600;
-      partPositions[i + 1] = (Math.random() - 0.5) * 1200;
-      partPositions[i + 2] = (Math.random() - 0.5) * 900;
-    }
-
-    partGeo.setAttribute('position', new THREE.BufferAttribute(partPositions, 3));
-    const partMat = new THREE.PointsMaterial({
-      color: 0xa5b4fc,
-      size: 2.2,
-      transparent: true,
-      opacity: 0.45
-    });
-    const particleCloud = new THREE.Points(partGeo, partMat);
-    scene.add(particleCloud);
-
-    // 11. Mouse Parallax (Smooth Lerp)
-    let targetMouseX = 0;
-    let targetMouseY = 0;
-    let currentMouseX = 0;
-    let currentMouseY = 0;
-
-    if (!prefersReducedMotion && !isMobile) {
-      window.addEventListener('mousemove', (e) => {
-        targetMouseX = (e.clientX - width / 2) * 0.15;
-        targetMouseY = (e.clientY - height / 2) * 0.15;
-      }, { passive: true });
-    }
-
-    // 12. Interactive Pulse Wave Trigger from Simulator
-    window.triggerLanding3DPulse = function(workflowKey) {
-      const targetColors = {
-        missed_call: 0x00d4ef,
-        web_enquiry: 0x38bdf8,
-        lead_form: 0x10b981,
-        support_request: 0xf59e0b
-      };
-      const activeColor = targetColors[workflowKey] || 0x00d4ef;
-
-      // Pulse nucleus
-      pointLight.color.setHex(activeColor);
-      pointLight.intensity = 5.0;
-
-      // Animate nucleus expansion
-      if (typeof gsap !== 'undefined') {
-        gsap.to(nucleusMesh.scale, { x: 1.25, y: 1.25, z: 1.25, duration: 0.35, yoyo: true, repeat: 1, ease: 'power2.out' });
-        gsap.to(cageMesh.scale, { x: 1.2, y: 1.2, z: 1.2, duration: 0.45, yoyo: true, repeat: 1, ease: 'power2.out' });
-        
-        // Highlight active node
-        const keyNode = nodesMap.leads;
-        if (keyNode) {
-          gsap.to(keyNode.group.scale, { x: 1.6, y: 1.6, z: 1.6, duration: 0.4, yoyo: true, repeat: 1 });
-        }
-      } else {
-        nucleusMesh.scale.set(1.2, 1.2, 1.2);
-        setTimeout(() => nucleusMesh.scale.set(1, 1, 1), 500);
-      }
+/**
+ * Agency OS: Autonomous Business Operating System — Cinematic 3D Engine
+ * Language: TypeScript
+ * Description: Real Three.js WebGL scene and GSAP ScrollTrigger narrative
+ *              choreography for the public marketing experience.
+ */
+(function () {
+    'use strict';
+    // System State
+    const state = {
+        initialized: false,
+        threeLoaded: false,
+        gsapLoaded: false,
+        frameCount: 0,
+        scrollProgress: 0,
+        activeWorkflow: 'missed_call',
+        camera: null,
+        scene: null,
+        renderer: null,
+        nodes: {},
+        conduits: [],
+        triggerPulse: () => { },
+        dispose: () => { }
     };
-
-    // 13. GSAP ScrollTrigger 3D Choreography
-    function initScrollTriggerChoreography() {
-      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined' || prefersReducedMotion) {
-        // Fallback: standard scroll handler
-        window.addEventListener('scroll', () => {
-          const scrollY = window.scrollY;
-          const maxScroll = document.documentElement.scrollHeight - window.innerHeight || 1;
-          const p = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-          window.agencyLanding3D.scrollProgress = p;
-
-          camera.position.z = 850 - p * 300;
-          camera.position.y = -p * 150;
-          systemGroup.rotation.y = p * Math.PI * 1.5;
-        }, { passive: true });
-        return;
-      }
-
-      window.agencyLanding3D.gsapLoaded = true;
-      gsap.registerPlugin(ScrollTrigger);
-
-      // Section 1: Hero to Discover
-      ScrollTrigger.create({
-        trigger: '#hero',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const p = self.progress;
-          window.agencyLanding3D.scrollProgress = p * 0.2;
-          camera.position.z = 850 - p * 120;
-          systemGroup.rotation.y = p * 0.8;
-          systemGroup.position.x = targetBaseX - p * (isMobile ? 0 : 80);
+    window.agencyLanding3D = state;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function initLanding3DEngine() {
+        const canvas = document.getElementById('bg-canvas-3d');
+        if (!canvas)
+            return;
+        if (typeof THREE === 'undefined') {
+            console.warn('[AgencyOS 3D] Three.js vendor library not ready.');
+            return;
         }
-      });
-
-      // Section 2: Operating Lifecycle (Discover -> Audit -> Persuade -> Sell -> Build -> Deploy -> Maintain -> Grow)
-      ScrollTrigger.create({
-        trigger: '#how-it-works',
-        start: 'top center',
-        end: 'bottom center',
-        scrub: 1.2,
-        onUpdate: (self) => {
-          const p = self.progress;
-          window.agencyLanding3D.scrollProgress = 0.2 + p * 0.4;
-          camera.position.z = 730 - p * 80;
-          camera.position.y = -p * 100;
-          systemGroup.rotation.y = 0.8 + p * 1.4;
-          systemGroup.rotation.x = p * 0.2;
-
-          // Sequential node scaling highlights based on scroll milestone
-          if (nodesMap.leads) nodesMap.leads.group.scale.setScalar(1 + (p < 0.2 ? 0.3 : 0));
-          if (nodesMap.ai) nodesMap.ai.group.scale.setScalar(1 + (p >= 0.2 && p < 0.4 ? 0.35 : 0));
-          if (nodesMap.workflows) nodesMap.workflows.group.scale.setScalar(1 + (p >= 0.4 && p < 0.6 ? 0.35 : 0));
-          if (nodesMap.sell_build) nodesMap.sell_build.group.scale.setScalar(1 + (p >= 0.6 && p < 0.8 ? 0.35 : 0));
-          if (nodesMap.deploy) nodesMap.deploy.group.scale.setScalar(1 + (p >= 0.8 && p < 0.95 ? 0.35 : 0));
-          if (nodesMap.grow) nodesMap.grow.group.scale.setScalar(1 + (p >= 0.95 ? 0.4 : 0));
+        state.threeLoaded = true;
+        // 1. Scene & Camera Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05070d, 0.00065);
+        state.scene = scene;
+        const aspect = window.innerWidth / window.innerHeight;
+        const camera = new THREE.PerspectiveCamera(45, aspect, 1, 3000);
+        camera.position.set(0, 0, 850);
+        camera.lookAt(0, 0, 0);
+        state.camera = camera;
+        // 2. WebGL Renderer with High Precision & Smooth Shading
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: window.devicePixelRatio < 2,
+                powerPreference: 'high-performance',
+                precision: 'mediump'
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
+            state.renderer = renderer;
         }
-      });
-
-      // Section 3: Interactive Demo & Services
-      ScrollTrigger.create({
-        trigger: '#interactive-demo',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const p = self.progress;
-          window.agencyLanding3D.scrollProgress = 0.6 + p * 0.2;
-          camera.position.z = 650 + Math.sin(p * Math.PI) * 50;
-          systemGroup.position.x = (isMobile ? 0 : 120);
+        catch (err) {
+            console.error('[AgencyOS 3D] Failed to acquire WebGL context:', err);
+            return;
         }
-      });
-
-      // Section 4: Final CTA
-      ScrollTrigger.create({
-        trigger: '#contact',
-        start: 'top bottom',
-        end: 'bottom bottom',
-        scrub: 1,
-        onUpdate: (self) => {
-          const p = self.progress;
-          window.agencyLanding3D.scrollProgress = 0.8 + p * 0.2;
-          camera.position.z = 700 - p * 100;
-          systemGroup.position.x = 0; // Center behind CTA card
-          systemGroup.position.y = -60;
+        // 3. Dynamic Lighting Architecture
+        const ambientLight = new THREE.AmbientLight(0x0d1527, 2.2);
+        scene.add(ambientLight);
+        const primaryLight = new THREE.DirectionalLight(0x00d4ef, 2.0);
+        primaryLight.position.set(300, 400, 500);
+        scene.add(primaryLight);
+        const secondaryLight = new THREE.DirectionalLight(0x8b5cf6, 1.4);
+        secondaryLight.position.set(-400, -200, 300);
+        scene.add(secondaryLight);
+        const coreLight = new THREE.PointLight(0x00d4ef, 3.5, 900);
+        coreLight.position.set(0, 0, 0);
+        scene.add(coreLight);
+        // 4. Central Kinetic Entity: AUTONOMOUS CORE
+        const coreGroup = new THREE.Group();
+        scene.add(coreGroup);
+        // Faceted Geodesic Nucleus
+        const nucleusGeo = new THREE.IcosahedronGeometry(36, 1);
+        const nucleusMat = new THREE.MeshStandardMaterial({
+            color: 0x050a14,
+            emissive: 0x00d4ef,
+            emissiveIntensity: 0.55,
+            metalness: 0.9,
+            roughness: 0.15,
+            wireframe: false,
+            flatShading: true
+        });
+        const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
+        coreGroup.add(nucleus);
+        // Outer Armor Wireframe Cage
+        const cageGeo = new THREE.IcosahedronGeometry(48, 1);
+        const cageMat = new THREE.MeshBasicMaterial({
+            color: 0x00d4ef,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.4
+        });
+        const cage = new THREE.Mesh(cageGeo, cageMat);
+        coreGroup.add(cage);
+        // 3 Concentric Gyro Rings
+        const ring1Geo = new THREE.TorusGeometry(72, 0.75, 12, 64);
+        const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.35 });
+        const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+        ring1.rotation.x = Math.PI / 3;
+        coreGroup.add(ring1);
+        const ring2Geo = new THREE.TorusGeometry(95, 0.65, 12, 64);
+        const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.28 });
+        const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+        ring2.rotation.y = Math.PI / 4;
+        ring2.rotation.z = Math.PI / 6;
+        coreGroup.add(ring2);
+        const ring3Geo = new THREE.TorusGeometry(120, 0.55, 12, 64);
+        const ring3Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.22 });
+        const ring3 = new THREE.Mesh(ring3Geo, ring3Mat);
+        ring3.rotation.x = -Math.PI / 4;
+        coreGroup.add(ring3);
+        // 5. Nine Conceptual System Nodes (Operating Constellation)
+        const nodeDefs = [
+            { id: 'DISCOVER', name: 'Discover', pos: [-340, 180, -60], color: 0x00d4ef, emissive: 0x00d4ef, description: 'Signal convergence & opportunity detection' },
+            { id: 'AUDIT', name: 'Audit', pos: [340, 180, -60], color: 0x8b5cf6, emissive: 0x8b5cf6, description: 'Empirical multi-layer diagnostics' },
+            { id: 'PERSUADE', name: 'Persuade', pos: [-400, 30, -30], color: 0x38bdf8, emissive: 0x38bdf8, description: 'Email, Chat, & Voice synthesis' },
+            { id: 'SELL', name: 'Sell', pos: [400, 30, -30], color: 0x10b981, emissive: 0x10b981, description: 'Proposal generation & commercial close' },
+            { id: 'PAY', name: 'Pay', pos: [-240, -140, 30], color: 0xa855f7, emissive: 0xa855f7, description: 'Automated invoice & settlement conduits' },
+            { id: 'BUILD', name: 'Build', pos: [240, -140, 30], color: 0x2563eb, emissive: 0x2563eb, description: 'Production architecture assembly' },
+            { id: 'DEPLOY', name: 'Deploy', pos: [-320, -280, 50], color: 0x6366f1, emissive: 0x6366f1, description: 'Edge containers & automated deployment' },
+            { id: 'MAINTAIN', name: 'Maintain', pos: [0, -320, 60], color: 0xf59e0b, emissive: 0xf59e0b, description: 'Self-healing mesh & telemetry monitoring' },
+            { id: 'LEARN', name: 'Learn', pos: [320, -280, 50], color: 0xf43f5e, emissive: 0xf43f5e, description: 'Outcome feedback loop to neural core' }
+        ];
+        const nodesGroup = new THREE.Group();
+        scene.add(nodesGroup);
+        const nodes = {};
+        nodeDefs.forEach(def => {
+            const nodeGroup = new THREE.Group();
+            nodeGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
+            // Faceted Node Geometry
+            const geom = new THREE.OctahedronGeometry(15, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x0b1329,
+                emissive: def.emissive,
+                emissiveIntensity: 0.6,
+                metalness: 0.85,
+                roughness: 0.25,
+                flatShading: true
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            nodeGroup.add(mesh);
+            // Node Wireframe Halo
+            const haloGeo = new THREE.OctahedronGeometry(20, 0);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: def.color,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.4
+            });
+            const halo = new THREE.Mesh(haloGeo, haloMat);
+            nodeGroup.add(halo);
+            // Node Glow Beacon
+            const beaconGeo = new THREE.SphereGeometry(4, 16, 16);
+            const beaconMat = new THREE.MeshBasicMaterial({
+                color: def.color,
+                transparent: true,
+                opacity: 0.85
+            });
+            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            nodeGroup.add(beacon);
+            nodesGroup.add(nodeGroup);
+            nodes[def.id] = {
+                def,
+                group: nodeGroup,
+                mesh,
+                halo,
+                beacon,
+                baseScale: 1,
+                targetScale: 1
+            };
+        });
+        state.nodes = nodes;
+        // 6. 3D Spline Conduits with Data Flow Packets
+        const conduitsGroup = new THREE.Group();
+        scene.add(conduitsGroup);
+        const conduits = [];
+        nodeDefs.forEach(def => {
+            const start = new THREE.Vector3(0, 0, 0);
+            const end = new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]);
+            // Create an organic curved spline
+            const mid = new THREE.Vector3((start.x + end.x) * 0.5 + (Math.random() - 0.5) * 40, (start.y + end.y) * 0.5 + (Math.random() - 0.5) * 40, (start.z + end.z) * 0.5 + 40);
+            const curve = new THREE.CatmullRomCurve3([start, mid, end]);
+            const tubeGeo = new THREE.TubeGeometry(curve, 32, 1.2, 8, false);
+            const tubeMat = new THREE.MeshBasicMaterial({
+                color: def.color,
+                transparent: true,
+                opacity: 0.22,
+                wireframe: true
+            });
+            const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+            conduitsGroup.add(tubeMesh);
+            // Animated Photon Packets traversing the conduit
+            const pulseParticles = [];
+            const packetCount = 4;
+            const packetGeo = new THREE.SphereGeometry(2.5, 8, 8);
+            const packetMat = new THREE.MeshBasicMaterial({
+                color: def.color,
+                transparent: true,
+                opacity: 0.95
+            });
+            for (let i = 0; i < packetCount; i++) {
+                const packetMesh = new THREE.Mesh(packetGeo, packetMat);
+                conduitsGroup.add(packetMesh);
+                pulseParticles.push({
+                    mesh: packetMesh,
+                    progress: (i / packetCount),
+                    speed: 0.0035 + Math.random() * 0.002
+                });
+            }
+            conduits.push({
+                id: def.id,
+                curve,
+                mesh: tubeMesh,
+                pulseParticles,
+                startPos: start,
+                endPos: end
+            });
+        });
+        state.conduits = conduits;
+        // 7. Starfield Ambient Particle Constellation
+        const particleCount = 450;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleColors = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            const idx = i * 3;
+            particlePositions[idx] = (Math.random() - 0.5) * 1600;
+            particlePositions[idx + 1] = (Math.random() - 0.5) * 1600;
+            particlePositions[idx + 2] = (Math.random() - 0.5) * 1200 - 100;
+            // Electric cyan / cool muted slate gradient
+            const isCyan = Math.random() > 0.4;
+            particleColors[idx] = isCyan ? 0.0 : 0.4;
+            particleColors[idx + 1] = isCyan ? 0.83 : 0.55;
+            particleColors[idx + 2] = isCyan ? 0.94 : 0.85;
         }
-      });
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+        const particleMat = new THREE.PointsMaterial({
+            size: 3.5,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.55
+        });
+        const particleField = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleField);
+        // 8. Interactive Simulator Pulse Trigger
+        const simulatorWorkflows = {
+            missed_call: {
+                key: 'missed_call',
+                nodeIds: ['DISCOVER', 'AUDIT', 'PERSUADE', 'SELL'],
+                color: 0x00d4ef,
+                accentHex: '#00d4ef'
+            },
+            web_enquiry: {
+                key: 'web_enquiry',
+                nodeIds: ['AUDIT', 'PERSUADE', 'SELL', 'PAY'],
+                color: 0x38bdf8,
+                accentHex: '#38bdf8'
+            },
+            lead_form: {
+                key: 'lead_form',
+                nodeIds: ['DISCOVER', 'PERSUADE', 'SELL', 'BUILD', 'PAY'],
+                color: 0x10b981,
+                accentHex: '#10b981'
+            },
+            customer_question: {
+                key: 'customer_question',
+                nodeIds: ['AUDIT', 'PERSUADE', 'MAINTAIN', 'LEARN'],
+                color: 0xf59e0b,
+                accentHex: '#f59e0b'
+            }
+        };
+        function triggerPulse(workflowKey) {
+            state.activeWorkflow = workflowKey;
+            const wf = simulatorWorkflows[workflowKey] || simulatorWorkflows.missed_call;
+            // Animate core flare
+            coreLight.intensity = 7.0;
+            nucleus.material.emissiveIntensity = 1.2;
+            // Surge particles and scale targeted nodes
+            nodeDefs.forEach(def => {
+                const node = nodes[def.id];
+                const isTarget = wf.nodeIds.includes(def.id);
+                if (isTarget) {
+                    node.targetScale = 1.45;
+                    node.mesh.material.emissiveIntensity = 1.0;
+                    node.halo.material.opacity = 0.85;
+                }
+                else {
+                    node.targetScale = 0.85;
+                    node.mesh.material.emissiveIntensity = 0.25;
+                    node.halo.material.opacity = 0.2;
+                }
+            });
+            // Accelerate conduit pulse particles
+            conduits.forEach(c => {
+                const isTarget = wf.nodeIds.includes(c.id);
+                c.mesh.material.opacity = isTarget ? 0.75 : 0.15;
+                c.pulseParticles.forEach(p => {
+                    p.speed = isTarget ? 0.015 : 0.002;
+                });
+            });
+            // Decay back to equilibrium after pulse
+            setTimeout(() => {
+                coreLight.intensity = 3.5;
+                nucleus.material.emissiveIntensity = 0.55;
+                nodeDefs.forEach(def => {
+                    const node = nodes[def.id];
+                    node.targetScale = 1.0;
+                    node.mesh.material.emissiveIntensity = 0.6;
+                    node.halo.material.opacity = 0.4;
+                });
+                conduits.forEach(c => {
+                    c.mesh.material.opacity = 0.22;
+                    c.pulseParticles.forEach(p => {
+                        p.speed = 0.0035 + Math.random() * 0.002;
+                    });
+                });
+            }, 1600);
+        }
+        state.triggerPulse = triggerPulse;
+        window.triggerLanding3DPulse = triggerPulse;
+        // 9. GSAP ScrollTrigger Narrative Choreography (9 Chapters)
+        let camTargetPos = { x: 0, y: 0, z: 850 };
+        let camLookTarget = { x: 0, y: 0, z: 0 };
+        if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+            state.gsapLoaded = true;
+            gsap.registerPlugin(ScrollTrigger);
+            // Global Scroll Progress Mapping
+            ScrollTrigger.create({
+                start: 'top top',
+                end: 'bottom bottom',
+                onUpdate: (self) => {
+                    state.scrollProgress = self.progress;
+                }
+            });
+            // Chapter-specific camera choreography
+            const chapters = [
+                { trigger: '#hero', cam: { x: 0, y: 0, z: 850 }, look: { x: 0, y: 0, z: 0 } },
+                { trigger: '#discover', cam: { x: -80, y: 40, z: 780 }, look: { x: -40, y: 20, z: 0 } },
+                { trigger: '#audit', cam: { x: 90, y: 30, z: 750 }, look: { x: 40, y: 15, z: 0 } },
+                { trigger: '#persuade', cam: { x: -110, y: -20, z: 720 }, look: { x: -50, y: -10, z: 0 } },
+                { trigger: '#sell', cam: { x: 100, y: -40, z: 690 }, look: { x: 50, y: -20, z: 0 } },
+                { trigger: '#build', cam: { x: 60, y: -70, z: 670 }, look: { x: 30, y: -30, z: 0 } },
+                { trigger: '#deploy', cam: { x: -80, y: -90, z: 650 }, look: { x: -40, y: -40, z: 0 } },
+                { trigger: '#maintain', cam: { x: 0, y: -110, z: 640 }, look: { x: 0, y: -50, z: 0 } },
+                { trigger: '#grow', cam: { x: 0, y: 0, z: 890 }, look: { x: 0, y: 0, z: 0 } }
+            ];
+            chapters.forEach(ch => {
+                const el = document.querySelector(ch.trigger);
+                if (el) {
+                    ScrollTrigger.create({
+                        trigger: el,
+                        start: 'top 70%',
+                        end: 'bottom 30%',
+                        onEnter: () => {
+                            gsap.to(camTargetPos, { ...ch.cam, duration: 1.6, ease: 'power2.out' });
+                            gsap.to(camLookTarget, { ...ch.look, duration: 1.6, ease: 'power2.out' });
+                        },
+                        onEnterBack: () => {
+                            gsap.to(camTargetPos, { ...ch.cam, duration: 1.6, ease: 'power2.out' });
+                            gsap.to(camLookTarget, { ...ch.look, duration: 1.6, ease: 'power2.out' });
+                        }
+                    });
+                }
+            });
+        }
+        // 10. Mouse Pointer Parallax with Spring Damping
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetMouseX = 0;
+        let targetMouseY = 0;
+        if (!prefersReducedMotion) {
+            window.addEventListener('mousemove', (e) => {
+                targetMouseX = (e.clientX / window.innerWidth - 0.5) * 55;
+                targetMouseY = (e.clientY / window.innerHeight - 0.5) * -55;
+            }, { passive: true });
+        }
+        // 11. Window Resize Handling
+        function handleResize() {
+            if (!camera || !renderer)
+                return;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        }
+        window.addEventListener('resize', handleResize, { passive: true });
+        // 12. Main 60FPS RAF Render Loop
+        let animId;
+        let isHidden = false;
+        document.addEventListener('visibilitychange', () => {
+            isHidden = document.hidden;
+        });
+        const clock = new THREE.Clock();
+        function renderLoop() {
+            animId = requestAnimationFrame(renderLoop);
+            state.frameCount++;
+            if (isHidden)
+                return;
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+            // Smooth mouse parallax lerp
+            mouseX += (targetMouseX - mouseX) * 0.05;
+            mouseY += (targetMouseY - mouseY) * 0.05;
+            // Update camera position
+            camera.position.x = camTargetPos.x + mouseX;
+            camera.position.y = camTargetPos.y + mouseY;
+            camera.position.z += (camTargetPos.z - camera.position.z) * 0.06;
+            camera.lookAt(camLookTarget.x, camLookTarget.y, camLookTarget.z);
+            // Rotate kinetic core
+            coreGroup.rotation.y = elapsed * 0.22;
+            coreGroup.rotation.x = Math.sin(elapsed * 0.15) * 0.1;
+            ring1.rotation.z = elapsed * 0.35;
+            ring2.rotation.x = -elapsed * 0.28;
+            ring3.rotation.y = elapsed * 0.18;
+            // Animate constellation nodes
+            nodeDefs.forEach((def, i) => {
+                const node = nodes[def.id];
+                if (node) {
+                    // Bobbing wave
+                    node.group.position.y = def.pos[1] + Math.sin(elapsed * 1.5 + i * 0.7) * 8;
+                    node.mesh.rotation.x = elapsed * 0.4 + i;
+                    node.mesh.rotation.y = elapsed * 0.5 + i;
+                    node.halo.rotation.z = -elapsed * 0.3;
+                    // Scale lerp
+                    node.baseScale += (node.targetScale - node.baseScale) * 0.08;
+                    node.group.scale.set(node.baseScale, node.baseScale, node.baseScale);
+                }
+            });
+            // Animate conduit photon particles
+            conduits.forEach(conduit => {
+                conduit.pulseParticles.forEach(p => {
+                    p.progress += p.speed;
+                    if (p.progress > 1)
+                        p.progress = 0;
+                    const pos = conduit.curve.getPoint(p.progress);
+                    p.mesh.position.copy(pos);
+                });
+            });
+            // Ambient particle field slow rotation
+            particleField.rotation.y = elapsed * 0.02;
+            renderer.render(scene, camera);
+        }
+        renderLoop();
+        state.initialized = true;
+        // Cleanup hook
+        state.dispose = function () {
+            cancelAnimationFrame(animId);
+            window.removeEventListener('resize', handleResize);
+            renderer.dispose();
+        };
     }
-
-    initScrollTriggerChoreography();
-
-    // 14. Main Animation Loop (Optimized RAF)
-    let isVisible = true;
-    let animId = null;
-
-    function renderLoop() {
-      animId = requestAnimationFrame(renderLoop);
-      window.agencyLanding3D.frameCount++;
-
-      if (!isVisible) return;
-
-      const time = performance.now() * 0.001;
-
-      // Mouse Parallax Lerp
-      currentMouseX += (targetMouseX - currentMouseX) * 0.05;
-      currentMouseY += (targetMouseY - currentMouseY) * 0.05;
-
-      camera.position.x = currentMouseX;
-      camera.position.y = -currentMouseY + (window.agencyLanding3D.scrollProgress ? -window.agencyLanding3D.scrollProgress * 80 : 0);
-      camera.lookAt(systemGroup.position.x * 0.3, systemGroup.position.y * 0.3, 0);
-
-      // Controlled Continuous Rotations
-      if (!prefersReducedMotion) {
-        nucleusMesh.rotation.y += 0.006;
-        nucleusMesh.rotation.x += 0.003;
-        cageMesh.rotation.y -= 0.004;
-        cageMesh.rotation.z += 0.002;
-
-        orbitalRings.forEach(r => {
-          r.mesh.rotation.z += r.speed;
-        });
-
-        // Orbit satellite nodes gently
-        nodeDefs.forEach((def, idx) => {
-          const node = nodesMap[def.id];
-          if (!node) return;
-          const wobble = Math.sin(time * 1.5 + idx) * 3.5;
-          node.group.position.y = node.basePos.y + wobble;
-          node.halo.rotation.z += 0.01;
-        });
-
-        // Pulse Particles moving along curves
-        pulses.forEach(p => {
-          p.progress = (p.progress + 0.004) % 1.0;
-          const conn = lineObjects[p.connIndex];
-          if (conn && conn.curve) {
-            const pt = conn.curve.getPoint(p.progress);
-            p.mesh.position.copy(pt);
-          }
-        });
-
-        // Subtle particle cloud drift
-        particleCloud.rotation.y = time * 0.015;
-        particleCloud.rotation.x = Math.sin(time * 0.01) * 0.05;
-
-        // Point light breathing
-        pointLight.intensity = 2.4 + Math.sin(time * 2.0) * 0.5;
-      }
-
-      renderer.render(scene, camera);
+    // Auto-boot on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLanding3DEngine);
     }
-
-    // Pause rendering when tab is hidden or canvas is not visible
-    document.addEventListener('visibilitychange', () => {
-      isVisible = !document.hidden;
-    });
-
-    if ('IntersectionObserver' in window) {
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          isVisible = entry.isIntersecting;
-        });
-      }, { threshold: 0.05 });
-      obs.observe(canvas);
+    else {
+        initLanding3DEngine();
     }
-
-    // Responsive Resize Handler
-    window.addEventListener('resize', () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      const mob = width <= 768;
-
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mob ? 1.5 : 2));
-
-      systemGroup.position.x = mob ? 0 : 200;
-    }, { passive: true });
-
-    renderLoop();
-    window.agencyLanding3D.initialized = true;
-    console.log('[Landing3D] Real Three.js WebGL Motion Engine active.');
-  }
-
 })();
+export {};

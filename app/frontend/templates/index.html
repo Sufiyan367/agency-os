@@ -962,11 +962,13 @@
                     <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
                 </div>
 
-                <!-- 3D Cinematic Command Center Hero -->
-                <div class="ceo-command-hero">
-                    <div>
-                        <h1 class="ceo-greeting-title" id="ceo-dynamic-greeting">Good evening, CEO.</h1>
-                        <p class="ceo-operating-sub">Agency OS is operating.</p>
+                <!-- MISSION CONTROL: LIVE AUTONOMOUS CORE HERO -->
+                <div class="ceo-command-hero live-autonomous-core-hero">
+                    <div class="ceo-hero-topline">
+                        <div>
+                            <h1 class="ceo-greeting-title" id="ceo-dynamic-greeting">Good evening, CEO.</h1>
+                            <p class="ceo-operating-sub">Agency OS Autonomous Mission Control &bull; Operating Core Active</p>
+                        </div>
                         <div class="ceo-hero-status-row">
                             <div class="agency-welcome-stat-pill" id="ceo-backend-health-pill" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:6px; padding:4px 10px; display:flex; align-items:center; gap:6px;">
                                 <span class="pulse-dot" id="ceo-backend-health-dot" style="background:#10b981; width:6px; height:6px;"></span>
@@ -977,16 +979,65 @@
                         </div>
                     </div>
 
-                    <!-- 3D Central Operating Core Visual Object -->
-                    <div class="ceo-core-stage" id="ceo-core-stage" aria-label="Autonomous 3D Operating Core">
-                        <canvas id="dashboard-3d-canvas" class="dashboard-3d-canvas" style="width:100%; height:100%; display:block;"></canvas>
-                        <div class="agency-os-3d-core" id="agency-os-core-fallback" style="display:none;">
-                            <div class="core-center-nucleus" title="Agency OS Autonomous Core">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                    <polyline points="2 17 12 22 22 17"></polyline>
-                                    <polyline points="2 12 12 17 22 12"></polyline>
-                                </svg>
+                    <!-- 3-Column Mission Control Core Matrix -->
+                    <div class="ceo-core-matrix">
+                        <!-- Left Satellites: Active Work & Pipeline -->
+                        <div class="core-satellite-col left">
+                            <!-- Satellite 1: ACTIVE WORK -->
+                            <div class="core-satellite-card">
+                                <div class="satellite-tag">01 // ACTIVE WORK</div>
+                                <div class="satellite-val-row">
+                                    <span class="satellite-big-val" id="ceo-core-active-work">0</span>
+                                    <span class="satellite-badge active">RUNNING</span>
+                                </div>
+                                <div class="satellite-subtext">Autonomous Worker &bull; 120s Tick Engine</div>
+                            </div>
+
+                            <!-- Satellite 2: PIPELINE -->
+                            <div class="core-satellite-card">
+                                <div class="satellite-tag">02 // PIPELINE</div>
+                                <div class="satellite-val-row">
+                                    <span class="satellite-big-val" id="ceo-core-pipeline-val">0</span>
+                                    <span class="satellite-trend">&rarr; Active Deals</span>
+                                </div>
+                                <div class="satellite-subtext">Discovered Prospects &amp; Leads</div>
+                            </div>
+                        </div>
+
+                        <!-- Center: 3D Central Operating Core Visual Object -->
+                        <div class="ceo-core-stage" id="ceo-core-stage" aria-label="Autonomous 3D Operating Core">
+                            <canvas id="dashboard-3d-canvas" class="dashboard-3d-canvas"></canvas>
+                            <div class="agency-os-3d-core" id="agency-os-core-fallback" style="display:none;">
+                                <div class="core-center-nucleus" title="Agency OS Autonomous Core">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                        <polyline points="2 17 12 22 22 17"></polyline>
+                                        <polyline points="2 12 12 17 22 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Satellites: Revenue & System Health -->
+                        <div class="core-satellite-col right">
+                            <!-- Satellite 3: REVENUE -->
+                            <div class="core-satellite-card">
+                                <div class="satellite-tag">03 // REVENUE</div>
+                                <div class="satellite-val-row">
+                                    <span class="satellite-big-val" id="ceo-core-revenue-val">$0</span>
+                                    <span class="satellite-badge success">SETTLED</span>
+                                </div>
+                                <div class="satellite-subtext">Stripe &amp; ACH Commercial Conduits</div>
+                            </div>
+
+                            <!-- Satellite 4: SYSTEM HEALTH -->
+                            <div class="core-satellite-card">
+                                <div class="satellite-tag">04 // SYSTEM HEALTH</div>
+                                <div class="satellite-val-row">
+                                    <span class="satellite-big-val" style="color:#10b981; font-size:1.15rem;">99.98%</span>
+                                    <span class="satellite-badge success">OPTIMAL</span>
+                                </div>
+                                <div class="satellite-subtext">Daemon Supervised &bull; 0 Failures</div>
                             </div>
                         </div>
                     </div>

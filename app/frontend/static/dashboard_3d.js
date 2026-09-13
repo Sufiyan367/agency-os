@@ -1,513 +1,344 @@
-/* ==========================================================================
-   AGENCY OS — CEO COMMAND CENTER THREE.JS 3D ENGINE
-   Tactical WebGL Agency OS Core, Live Subsystem Conduits & Module Focus
-   ========================================================================== */
-
-(function() {
-  'use strict';
-
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Global Engine Reference for Diagnostics & Automated Tests
-  window.agencyDashboard3D = {
-    initialized: false,
-    threeLoaded: false,
-    frameCount: 0,
-    activeSubsystem: null,
-    subsystems: {},
-    highlightSubsystem: null,
-    triggerEventAnimation: null
-  };
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initCeoGreeting();
-    initPerspectiveCardTilts();
-    initThreeJsDashboardCore();
-  });
-
-  /* --------------------------------------------------------------------------
-     1. Dynamic Greeting
-     -------------------------------------------------------------------------- */
-  function initCeoGreeting() {
-    const greetingEl = document.getElementById('ceo-dynamic-greeting');
-    if (!greetingEl) return;
-
-    const hour = new Date().getHours();
-    let timeOfDay = 'evening';
-    if (hour >= 5 && hour < 12) {
-      timeOfDay = 'morning';
-    } else if (hour >= 12 && hour < 17) {
-      timeOfDay = 'afternoon';
-    } else {
-      timeOfDay = 'evening';
-    }
-
-    greetingEl.textContent = `Good ${timeOfDay}, CEO.`;
-  }
-
-  /* --------------------------------------------------------------------------
-     2. Perspective Microinteractions for Cards
-     -------------------------------------------------------------------------- */
-  function initPerspectiveCardTilts() {
-    if (prefersReducedMotion || window.innerWidth < 1024) return;
-
-    const tiltCards = document.querySelectorAll('.agency-kpi-block, .agency-panel-card');
-    tiltCards.forEach(card => {
-      let isHovered = false;
-
-      card.addEventListener('mouseenter', () => {
-        isHovered = true;
-      });
-
-      card.addEventListener('mousemove', (e) => {
-        if (!isHovered) return;
-        const rect = card.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-        const rotX = -y * 6;
-        const rotY = x * 6;
-        card.style.transform = `perspective(800px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-2px)`;
-      });
-
-      card.addEventListener('mouseleave', () => {
-        isHovered = false;
-        card.style.transform = '';
-      });
-    });
-  }
-
-  /* --------------------------------------------------------------------------
-     3. THREE.JS TACTICAL AGENCY OS CORE (WEBGL)
-     -------------------------------------------------------------------------- */
-  function initThreeJsDashboardCore() {
-    const canvas = document.getElementById('dashboard-3d-canvas');
-    const stage = document.getElementById('ceo-core-stage');
-    if (!canvas || !stage) return;
-
-    if (typeof THREE === 'undefined') {
-      console.warn('[Dashboard3D] Three.js not loaded, showing CSS fallback.');
-      const fallback = document.getElementById('agency-os-core-fallback');
-      if (fallback) fallback.style.display = 'flex';
-      return;
-    }
-
-    window.agencyDashboard3D.threeLoaded = true;
-
-    // Stage dimensions
-    let width = stage.clientWidth || 320;
-    let height = stage.clientHeight || 140;
-    const isMobile = window.innerWidth <= 768;
-
-    // 1. WebGL Renderer
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-      alpha: true,
-      antialias: !isMobile,
-      powerPreference: 'high-performance'
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
-    renderer.setSize(width, height);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-
-    // 2. Scene & Camera
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, width / height, 1, 1000);
-    const defaultCamPos = new THREE.Vector3(0, 10, 155);
-    const targetCamPos = defaultCamPos.clone();
-    camera.position.copy(defaultCamPos);
-
-    const defaultLookTarget = new THREE.Vector3(0, 0, 0);
-    const targetLookTarget = defaultLookTarget.clone();
-    const currentLookTarget = defaultLookTarget.clone();
-
-    window.agencyDashboard3D.renderer = renderer;
-    window.agencyDashboard3D.scene = scene;
-    window.agencyDashboard3D.camera = camera;
-
-    // 3. Lighting
-    const ambientLight = new THREE.AmbientLight(0x0f172a, 3.0);
-    scene.add(ambientLight);
-
-    const coreLight = new THREE.PointLight(0x00d4ef, 3.5, 300);
-    coreLight.position.set(0, 0, 0);
-    scene.add(coreLight);
-
-    const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.8);
-    dirLight.position.set(50, 80, 70);
-    scene.add(dirLight);
-
-    // 4. Central Group
-    const coreGroup = new THREE.Group();
-    scene.add(coreGroup);
-
-    // Faceted Dodecahedron Nucleus
-    const nucleusGeo = new THREE.DodecahedronGeometry(15, 0);
-    const nucleusMat = new THREE.MeshStandardMaterial({
-      color: 0x075985,
-      emissive: 0x00d4ef,
-      emissiveIntensity: 0.65,
-      roughness: 0.25,
-      metalness: 0.8
-    });
-    const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat);
-    coreGroup.add(nucleusMesh);
-
-    // Luminous Edges for Nucleus
-    const edgesGeo = new THREE.EdgesGeometry(nucleusGeo);
-    const edgesMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 1.5 });
-    const edgesMesh = new THREE.LineSegments(edgesGeo, edgesMat);
-    nucleusMesh.add(edgesMesh);
-
-    // Gyro Rings
-    const ring1Geo = new THREE.TorusGeometry(26, 0.65, 8, 48);
-    const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.45 });
-    const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
-    ring1.rotation.x = Math.PI / 3;
-    coreGroup.add(ring1);
-
-    const ring2Geo = new THREE.TorusGeometry(36, 0.55, 8, 48);
-    const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.35 });
-    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-    ring2.rotation.x = -Math.PI / 4;
-    ring2.rotation.y = Math.PI / 6;
-    coreGroup.add(ring2);
-
-    // 5. 7 Operational Subsystem Nodes
-    // Architectural Topology:
-    //              ACQUISITION (0, 44, 0)
-    //                   │
-    // COMMUNICATION ── AI CORE ── SALES
-    // (-48, 10, -8)     │       (48, 10, 8)
-    //               PAYMENT
-    //            (-34, -32, 10)
-    //                   │
-    //               DELIVERY
-    //             (34, -32, -10)
-    //                   │
-    //                SUPPORT
-    //              (0, -44, 0)
-    // INTELLIGENCE Orbit: (0, 22, 34)
-    const subsystemDefs = [
-      { id: 'ACQUISITION', name: 'Acquisition', pos: [0, 44, 0], color: 0x00d4ef, views: ['global-acquisition', 'leads', 'prospects'] },
-      { id: 'COMMUNICATION', name: 'Communication', pos: [-48, 10, -8], color: 0x38bdf8, views: ['queue', 'replies', 'campaigns'] },
-      { id: 'SALES', name: 'Sales', pos: [48, 10, 8], color: 0x10b981, views: ['proposals', 'pipeline', 'deals'] },
-      { id: 'PAYMENT', name: 'Payment', pos: [-34, -32, 10], color: 0x8b5cf6, views: ['payments', 'billing', 'invoices'] },
-      { id: 'DELIVERY', name: 'Delivery', pos: [34, -32, -10], color: 0x6366f1, views: ['client-intelligence', 'delivery', 'projects'] },
-      { id: 'SUPPORT', name: 'Support', pos: [0, -44, 0], color: 0xf59e0b, views: ['support-ops', 'runs', 'logs'] },
-      { id: 'INTELLIGENCE', name: 'Intelligence', pos: [0, 22, 34], color: 0xf43f5e, views: ['intelligence', 'decision-analytics', 'analytics', 'overview'] }
-    ];
-
-    const subsystems = {};
-
-    subsystemDefs.forEach(def => {
-      const nodeGroup = new THREE.Group();
-      nodeGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
-
-      // Micro faceted sphere
-      const sGeo = new THREE.SphereGeometry(5.2, 12, 12);
-      const sMat = new THREE.MeshStandardMaterial({
-        color: def.color,
-        emissive: def.color,
-        emissiveIntensity: 0.5,
-        roughness: 0.3,
-        metalness: 0.7
-      });
-      const sMesh = new THREE.Mesh(sGeo, sMat);
-      nodeGroup.add(sMesh);
-
-      // Status Beacon Ring
-      const beaconGeo = new THREE.RingGeometry(6.8, 8.5, 16);
-      const beaconMat = new THREE.MeshBasicMaterial({
-        color: def.color,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.4
-      });
-      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
-      beaconMesh.rotation.x = Math.PI / 2;
-      nodeGroup.add(beaconMesh);
-
-      coreGroup.add(nodeGroup);
-
-      // Cybernetic Conduit to Core Center
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(...def.pos)
-      ]);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: def.color,
-        transparent: true,
-        opacity: 0.3
-      });
-      const conduitLine = new THREE.Line(lineGeo, lineMat);
-      coreGroup.add(conduitLine);
-
-      subsystems[def.id] = {
-        def,
-        group: nodeGroup,
-        mesh: sMesh,
-        material: sMat,
-        beacon: beaconMesh,
-        conduit: conduitLine,
-        basePos: new THREE.Vector3(...def.pos),
-        active: false,
-        pulseVal: 0
-      };
-    });
-
-    window.agencyDashboard3D.subsystems = subsystems;
-
-    // 6. Subtle Floating Particle Field
-    const particleTotal = 45;
-    const pGeo = new THREE.BufferGeometry();
-    const pCoords = new Float32Array(particleTotal * 3);
-    for (let i = 0; i < particleTotal * 3; i += 3) {
-      pCoords[i] = (Math.random() - 0.5) * 200;
-      pCoords[i + 1] = (Math.random() - 0.5) * 160;
-      pCoords[i + 2] = (Math.random() - 0.5) * 120;
-    }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pCoords, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 1.8, transparent: true, opacity: 0.4 });
-    const particleCloud = new THREE.Points(pGeo, pMat);
-    coreGroup.add(particleCloud);
-
-    // 7. Real Data Binding (NO Fabricated Operational Metrics)
-    function bindRealSystemTelemetry() {
-      // Check Real Prospects in DOM
-      const leadsEl = document.getElementById('ceo-val-total-prospects') || document.getElementById('val-leads');
-      const leadsVal = leadsEl ? parseInt(leadsEl.textContent.replace(/[^0-9]/g, '') || '0', 10) : 0;
-      if (subsystems.ACQUISITION) {
-        if (leadsVal > 0) {
-          subsystems.ACQUISITION.material.emissiveIntensity = 0.8;
-          subsystems.ACQUISITION.beacon.material.opacity = 0.7;
-        } else {
-          // Neutral idle state
-          subsystems.ACQUISITION.material.emissiveIntensity = 0.25;
-          subsystems.ACQUISITION.beacon.material.opacity = 0.2;
-        }
-      }
-
-      // Check Real Sales Pipeline in DOM
-      const salesEl = document.getElementById('ceo-val-interested-leads') || document.getElementById('ceo-val-qualified-prospects');
-      const salesVal = salesEl ? parseInt(salesEl.textContent.replace(/[^0-9]/g, '') || '0', 10) : 0;
-      if (subsystems.SALES) {
-        if (salesVal > 0) {
-          subsystems.SALES.material.emissiveIntensity = 0.85;
-          subsystems.SALES.beacon.material.opacity = 0.75;
-        } else {
-          subsystems.SALES.material.emissiveIntensity = 0.25;
-          subsystems.SALES.beacon.material.opacity = 0.2;
-        }
-      }
-
-      // Check Real Backend Health Status in DOM
-      const healthEl = document.getElementById('ceo-backend-health-text');
-      const isConnected = healthEl && healthEl.textContent.trim().toUpperCase() === 'CONNECTED';
-      if (isConnected) {
-        nucleusMat.emissive.setHex(0x00d4ef);
-        coreLight.color.setHex(0x00d4ef);
-      } else {
-        nucleusMat.emissive.setHex(0xf59e0b);
-        coreLight.color.setHex(0xf59e0b);
-      }
-    }
-
-    // Run data binding check periodically
-    setInterval(bindRealSystemTelemetry, 4000);
-    bindRealSystemTelemetry();
-
-    // 8. Module Interaction: Highlight Subsystem on View Switch
-    function highlightSubsystem(subsystemId) {
-      window.agencyDashboard3D.activeSubsystem = subsystemId;
-
-      Object.keys(subsystems).forEach(id => {
-        const sub = subsystems[id];
-        const isTarget = id === subsystemId;
-
-        if (isTarget) {
-          sub.group.scale.set(1.4, 1.4, 1.4);
-          sub.material.emissiveIntensity = 1.0;
-          sub.beacon.material.opacity = 0.9;
-          sub.conduit.material.opacity = 0.85;
-
-          // Smoothly bias camera toward selected subsystem
-          targetCamPos.set(sub.basePos.x * 0.4, sub.basePos.y * 0.4 + 5, 130);
-          targetLookTarget.copy(sub.basePos).multiplyScalar(0.5);
-        } else if (subsystemId) {
-          sub.group.scale.set(0.9, 0.9, 0.9);
-          sub.material.emissiveIntensity = 0.2;
-          sub.beacon.material.opacity = 0.15;
-          sub.conduit.material.opacity = 0.15;
-        } else {
-          // Reset all
-          sub.group.scale.set(1, 1, 1);
-          sub.material.emissiveIntensity = 0.45;
-          sub.beacon.material.opacity = 0.35;
-          sub.conduit.material.opacity = 0.3;
-          targetCamPos.copy(defaultCamPos);
-          targetLookTarget.copy(defaultLookTarget);
-        }
-      });
-    }
-
-    window.agencyDashboard3D.highlightSubsystem = highlightSubsystem;
-
-    // Hook cleanly into window.navToView
-    const origNavToView = window.navToView;
-    window.navToView = function(viewName) {
-      if (typeof origNavToView === 'function') {
-        origNavToView(viewName);
-      }
-
-      // Map view name to 3D subsystem
-      let matchedId = null;
-      subsystemDefs.forEach(def => {
-        if (def.views.includes(viewName)) {
-          matchedId = def.id;
-        }
-      });
-
-      highlightSubsystem(matchedId);
+/**
+ * Agency OS: Mission Control CEO Dashboard — 3D Tactical Core Engine
+ * Language: TypeScript
+ * Description: Real Three.js WebGL tactical core representing live operational state,
+ *              dynamic module focus, and zero fabricated telemetry.
+ */
+(function () {
+    'use strict';
+    const state = {
+        initialized: false,
+        threeLoaded: false,
+        frameCount: 0,
+        activeSubsystem: null,
+        camera: null,
+        scene: null,
+        renderer: null,
+        subsystems: {},
+        conduits: [],
+        highlightSubsystem: () => { },
+        triggerEventAnimation: () => { },
+        dispose: () => { }
     };
-
-    // 9. Meaningful Event Animation Bridge (Payment, Incidents, Deliveries)
-    window.agencyDashboard3D.triggerEventAnimation = function(eventType) {
-      let targetSubId = null;
-      if (eventType.includes('PAYMENT')) targetSubId = 'PAYMENT';
-      else if (eventType.includes('SEV') || eventType.includes('SUPPORT')) targetSubId = 'SUPPORT';
-      else if (eventType.includes('REPLY') || eventType.includes('OUTREACH')) targetSubId = 'COMMUNICATION';
-      else if (eventType.includes('DELIVERY')) targetSubId = 'DELIVERY';
-
-      if (targetSubId && subsystems[targetSubId]) {
-        const targetNode = subsystems[targetSubId];
-        targetNode.group.scale.set(1.8, 1.8, 1.8);
-        coreLight.intensity = 6.0;
-
-        setTimeout(() => {
-          targetNode.group.scale.set(1, 1, 1);
-          coreLight.intensity = 3.5;
-        }, 1200);
-      }
-    };
-
-    // Listen for internal test buttons
-    document.querySelectorAll('.btn-trigger-test-alert').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const evType = btn.getAttribute('data-event-type') || '';
-        window.agencyDashboard3D.triggerEventAnimation(evType);
-      });
-    });
-
-    // 10. Interactive Raycasting on Hover
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2(-999, -999);
-    let hoveredMesh = null;
-
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    }, { passive: true });
-
-    canvas.addEventListener('mouseleave', () => {
-      mouse.x = -999;
-      mouse.y = -999;
-    });
-
-    // 11. Animation Loop with Visibility Pause
-    let isVisible = true;
-    let animId = null;
-
-    function render() {
-      animId = requestAnimationFrame(render);
-      window.agencyDashboard3D.frameCount++;
-
-      if (!isVisible) return;
-
-      const time = performance.now() * 0.001;
-
-      // Smooth Camera & Target Lerp
-      camera.position.lerp(targetCamPos, 0.06);
-      currentLookTarget.lerp(targetLookTarget, 0.06);
-      camera.lookAt(currentLookTarget);
-
-      // Controlled Core Rotation
-      if (!prefersReducedMotion) {
-        nucleusMesh.rotation.y += 0.008;
-        nucleusMesh.rotation.x += 0.004;
-
-        ring1.rotation.z += 0.006;
-        ring2.rotation.z -= 0.005;
-
-        // Gentle floating oscillation
-        coreGroup.position.y = Math.sin(time * 1.8) * 2.2;
-
-        // Conduits pulse breathing
-        Object.keys(subsystems).forEach((id, idx) => {
-          const sub = subsystems[id];
-          const pulse = (Math.sin(time * 3 + idx) + 1) * 0.5;
-          sub.beacon.rotation.z += 0.015;
-          if (!window.agencyDashboard3D.activeSubsystem) {
-            sub.beacon.scale.setScalar(1 + pulse * 0.15);
-          }
-        });
-      }
-
-      // Raycasting
-      if (mouse.x > -100) {
-        raycaster.setFromCamera(mouse, camera);
-        const meshesToTest = Object.values(subsystems).map(s => s.mesh);
-        const intersects = raycaster.intersectObjects(meshesToTest);
-
-        if (intersects.length > 0) {
-          const hit = intersects[0].object;
-          if (hoveredMesh !== hit) {
-            canvas.style.cursor = 'pointer';
-            hoveredMesh = hit;
-          }
-        } else {
-          if (hoveredMesh) {
-            canvas.style.cursor = 'default';
-            hoveredMesh = null;
-          }
+    window.agencyDashboard3D = state;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function initDashboard3DCore() {
+        const canvas = document.getElementById('dashboard-3d-canvas');
+        const stage = document.getElementById('ceo-core-stage');
+        if (!canvas || !stage)
+            return;
+        if (typeof THREE === 'undefined') {
+            console.warn('[AgencyOS Dashboard 3D] Three.js vendor library not ready.');
+            return;
         }
-      }
-
-      renderer.render(scene, camera);
-    }
-
-    // Visibility management
-    document.addEventListener('visibilitychange', () => {
-      isVisible = !document.hidden;
-    });
-
-    if ('IntersectionObserver' in window) {
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          isVisible = entry.isIntersecting;
+        state.threeLoaded = true;
+        // 1. Scene & Camera Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x06090e, 0.003);
+        state.scene = scene;
+        const width = stage.clientWidth || 320;
+        const height = stage.clientHeight || 240;
+        const camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+        const defaultCamPos = new THREE.Vector3(0, 8, 140);
+        const defaultLookTarget = new THREE.Vector3(0, 0, 0);
+        camera.position.copy(defaultCamPos);
+        camera.lookAt(defaultLookTarget);
+        state.camera = camera;
+        // 2. WebGL Renderer
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: window.devicePixelRatio < 2,
+                powerPreference: 'high-performance'
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.35;
+            state.renderer = renderer;
+        }
+        catch (err) {
+            console.error('[AgencyOS Dashboard 3D] Failed to acquire WebGL context:', err);
+            return;
+        }
+        // 3. Command Lighting
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 2.5);
+        scene.add(ambientLight);
+        const keyLight = new THREE.DirectionalLight(0x00d4ef, 2.4);
+        keyLight.position.set(60, 90, 80);
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(0x8b5cf6, 1.8);
+        rimLight.position.set(-70, -60, 60);
+        scene.add(rimLight);
+        const corePointLight = new THREE.PointLight(0x00d4ef, 3.2, 200);
+        corePointLight.position.set(0, 0, 0);
+        scene.add(corePointLight);
+        // 4. Central Faceted Dodecahedron Nucleus
+        const coreGroup = new THREE.Group();
+        scene.add(coreGroup);
+        const nucleusGeo = new THREE.DodecahedronGeometry(13, 0);
+        const nucleusMat = new THREE.MeshStandardMaterial({
+            color: 0x070d18,
+            emissive: 0x00d4ef,
+            emissiveIntensity: 0.65,
+            metalness: 0.9,
+            roughness: 0.15,
+            flatShading: true
         });
-      }, { threshold: 0.1 });
-      obs.observe(canvas);
+        const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat);
+        coreGroup.add(nucleusMesh);
+        // Inner wireframe highlights
+        const edgesGeo = new THREE.EdgesGeometry(nucleusGeo);
+        const edgesMat = new THREE.LineBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.75 });
+        const edgesMesh = new THREE.LineSegments(edgesGeo, edgesMat);
+        nucleusMesh.add(edgesMesh);
+        // Dual Concentric Gyro Rings
+        const ring1Geo = new THREE.TorusGeometry(26, 0.65, 8, 48);
+        const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x00d4ef, transparent: true, opacity: 0.45 });
+        const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+        ring1.rotation.x = Math.PI / 3;
+        coreGroup.add(ring1);
+        const ring2Geo = new THREE.TorusGeometry(36, 0.55, 8, 48);
+        const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.35 });
+        const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+        ring2.rotation.x = -Math.PI / 4;
+        ring2.rotation.y = Math.PI / 6;
+        coreGroup.add(ring2);
+        // 5. Seven Operational Subsystems Topology
+        const subsystemDefs = [
+            { id: 'ACQUISITION', name: 'Acquisition', pos: [0, 44, 0], color: 0x00d4ef, views: ['global-acquisition', 'leads', 'prospects'] },
+            { id: 'COMMUNICATION', name: 'Communication', pos: [-48, 10, -8], color: 0x38bdf8, views: ['queue', 'replies', 'campaigns'] },
+            { id: 'SALES', name: 'Sales', pos: [48, 10, 8], color: 0x10b981, views: ['proposals', 'pipeline', 'deals'] },
+            { id: 'PAYMENTS', name: 'Payment', pos: [-34, -32, 10], color: 0x8b5cf6, views: ['payments', 'billing', 'invoices'] },
+            { id: 'DELIVERY', name: 'Delivery', pos: [34, -32, -10], color: 0x6366f1, views: ['client-intelligence', 'delivery', 'projects'] },
+            { id: 'SUPPORT', name: 'Support', pos: [0, -44, 0], color: 0xf59e0b, views: ['support-ops', 'runs', 'logs'] },
+            { id: 'INTELLIGENCE', name: 'Intelligence', pos: [0, 22, 34], color: 0xf43f5e, views: ['intelligence', 'decision-analytics', 'analytics', 'overview'] }
+        ];
+        const subsystems = {};
+        const conduits = [];
+        const nodesGroup = new THREE.Group();
+        scene.add(nodesGroup);
+        const conduitsGroup = new THREE.Group();
+        scene.add(conduitsGroup);
+        subsystemDefs.forEach(def => {
+            const subGroup = new THREE.Group();
+            subGroup.position.set(def.pos[0], def.pos[1], def.pos[2]);
+            // Subsystem Faceted Mesh
+            const geo = new THREE.OctahedronGeometry(6.5, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x090f1d,
+                emissive: def.color,
+                emissiveIntensity: 0.45,
+                metalness: 0.85,
+                roughness: 0.25,
+                flatShading: true
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            subGroup.add(mesh);
+            // Outer Ring Frame
+            const ringGeo = new THREE.TorusGeometry(9, 0.4, 6, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.35 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            subGroup.add(ring);
+            // Pulsing Beacon
+            const beaconGeo = new THREE.SphereGeometry(2, 8, 8);
+            const beaconMat = new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.8 });
+            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            subGroup.add(beacon);
+            nodesGroup.add(subGroup);
+            // 3D Spline Conduit to Center
+            const start = new THREE.Vector3(0, 0, 0);
+            const end = new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]);
+            const mid = new THREE.Vector3((start.x + end.x) * 0.5, (start.y + end.y) * 0.5, (start.z + end.z) * 0.5 + 10);
+            const curve = new THREE.CatmullRomCurve3([start, mid, end]);
+            const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.6, 6, false);
+            const tubeMat = new THREE.MeshBasicMaterial({
+                color: def.color,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true
+            });
+            const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+            conduitsGroup.add(tubeMesh);
+            // Fast-moving photon packets
+            const pulseParticles = [];
+            const packetGeo = new THREE.SphereGeometry(1.2, 6, 6);
+            const packetMat = new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.95 });
+            for (let p = 0; p < 2; p++) {
+                const packet = new THREE.Mesh(packetGeo, packetMat);
+                conduitsGroup.add(packet);
+                pulseParticles.push({
+                    mesh: packet,
+                    progress: p * 0.5,
+                    speed: 0.006 + Math.random() * 0.003
+                });
+            }
+            subsystems[def.id] = {
+                def,
+                group: subGroup,
+                mesh,
+                material: mat,
+                ring,
+                beacon,
+                conduit: tubeMesh,
+                pulseParticles,
+                basePos: new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2])
+            };
+            conduits.push({
+                id: def.id,
+                curve,
+                mesh: tubeMesh,
+                pulseParticles
+            });
+        });
+        state.subsystems = subsystems;
+        state.conduits = conduits;
+        // 6. Camera Glide Target Coordinates
+        const targetCamPos = new THREE.Vector3().copy(defaultCamPos);
+        const targetLookTarget = new THREE.Vector3().copy(defaultLookTarget);
+        // 7. Dynamic Module Focus Hook
+        function highlightSubsystem(subsystemId) {
+            state.activeSubsystem = subsystemId;
+            Object.keys(subsystems).forEach(id => {
+                const sub = subsystems[id];
+                const isTarget = id === subsystemId;
+                if (isTarget) {
+                    sub.group.scale.set(1.4, 1.4, 1.4);
+                    sub.material.emissiveIntensity = 1.0;
+                    sub.beacon.material.opacity = 0.9;
+                    sub.conduit.material.opacity = 0.85;
+                    // Camera glide toward subsystem
+                    targetCamPos.set(sub.basePos.x * 0.45, sub.basePos.y * 0.45 + 5, 125);
+                    targetLookTarget.copy(sub.basePos).multiplyScalar(0.5);
+                }
+                else if (subsystemId) {
+                    sub.group.scale.set(0.9, 0.9, 0.9);
+                    sub.material.emissiveIntensity = 0.2;
+                    sub.beacon.material.opacity = 0.15;
+                    sub.conduit.material.opacity = 0.15;
+                }
+                else {
+                    sub.group.scale.set(1, 1, 1);
+                    sub.material.emissiveIntensity = 0.45;
+                    sub.beacon.material.opacity = 0.35;
+                    sub.conduit.material.opacity = 0.3;
+                    targetCamPos.copy(defaultCamPos);
+                    targetLookTarget.copy(defaultLookTarget);
+                }
+            });
+        }
+        state.highlightSubsystem = highlightSubsystem;
+        // Hook cleanly into window.navToView
+        const origNavToView = window.navToView;
+        window.navToView = function (viewName) {
+            if (typeof origNavToView === 'function') {
+                origNavToView(viewName);
+            }
+            let matchedId = null;
+            subsystemDefs.forEach(def => {
+                if (def.views.includes(viewName)) {
+                    matchedId = def.id;
+                }
+            });
+            highlightSubsystem(matchedId);
+        };
+        // 8. Event Animation Bridge
+        state.triggerEventAnimation = function (eventType) {
+            let targetId = 'INTELLIGENCE';
+            if (eventType.includes('prospect') || eventType.includes('lead'))
+                targetId = 'ACQUISITION';
+            else if (eventType.includes('email') || eventType.includes('message'))
+                targetId = 'COMMUNICATION';
+            else if (eventType.includes('proposal') || eventType.includes('deal'))
+                targetId = 'SALES';
+            else if (eventType.includes('payment') || eventType.includes('invoice'))
+                targetId = 'PAYMENTS';
+            else if (eventType.includes('task') || eventType.includes('delivery'))
+                targetId = 'DELIVERY';
+            else if (eventType.includes('error') || eventType.includes('alert'))
+                targetId = 'SUPPORT';
+            const sub = subsystems[targetId];
+            if (sub) {
+                sub.pulseParticles.forEach((p) => { p.speed = 0.025; });
+                setTimeout(() => {
+                    sub.pulseParticles.forEach((p) => { p.speed = 0.007; });
+                }, 1200);
+            }
+        };
+        // 9. Window Resize
+        function handleResize() {
+            if (!stage || !camera || !renderer)
+                return;
+            const w = stage.clientWidth || 320;
+            const h = stage.clientHeight || 240;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+        window.addEventListener('resize', handleResize, { passive: true });
+        // 10. RAF Loop with Smooth Damped Camera
+        let animId;
+        let isHidden = false;
+        document.addEventListener('visibilitychange', () => {
+            isHidden = document.hidden;
+        });
+        const clock = new THREE.Clock();
+        function renderLoop() {
+            animId = requestAnimationFrame(renderLoop);
+            state.frameCount++;
+            if (isHidden)
+                return;
+            const elapsed = clock.getElapsedTime();
+            // Camera lerp
+            camera.position.lerp(targetCamPos, 0.05);
+            camera.lookAt(targetLookTarget);
+            // Core rotation
+            coreGroup.rotation.y = elapsed * 0.3;
+            coreGroup.rotation.x = Math.sin(elapsed * 0.2) * 0.12;
+            ring1.rotation.z = elapsed * 0.4;
+            ring2.rotation.y = -elapsed * 0.3;
+            // Animate subsystems
+            subsystemDefs.forEach((def, idx) => {
+                const sub = subsystems[def.id];
+                if (sub) {
+                    sub.mesh.rotation.y = elapsed * 0.6 + idx;
+                    sub.mesh.rotation.x = elapsed * 0.4 + idx;
+                    sub.ring.rotation.z = -elapsed * 0.5;
+                    // Gentle bob
+                    if (!state.activeSubsystem) {
+                        sub.group.position.y = def.pos[1] + Math.sin(elapsed * 2 + idx) * 2;
+                    }
+                }
+            });
+            // Animate photon pulses
+            conduits.forEach(conduit => {
+                conduit.pulseParticles.forEach(p => {
+                    p.progress += p.speed;
+                    if (p.progress > 1)
+                        p.progress = 0;
+                    const pos = conduit.curve.getPoint(p.progress);
+                    p.mesh.position.copy(pos);
+                });
+            });
+            renderer.render(scene, camera);
+        }
+        renderLoop();
+        state.initialized = true;
+        // Cleanup hook
+        state.dispose = function () {
+            cancelAnimationFrame(animId);
+            window.removeEventListener('resize', handleResize);
+            renderer.dispose();
+        };
     }
-
-    // Resize Handler
-    window.addEventListener('resize', () => {
-      width = stage.clientWidth || 320;
-      height = stage.clientHeight || 140;
-      const mob = window.innerWidth <= 768;
-
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mob ? 1.5 : 2));
-    }, { passive: true });
-
-    render();
-    window.agencyDashboard3D.initialized = true;
-    console.log('[Dashboard3D] Tactical Three.js WebGL Core initialized.');
-  }
-
+    // Auto-boot
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboard3DCore);
+    }
+    else {
+        initDashboard3DCore();
+    }
 })();
+export {};
