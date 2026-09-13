@@ -103,7 +103,7 @@ class UnifiedFeatureStore:
             features["overall_health_score"] = float(audit.overall_health_score or 50.0)
 
             # Audit findings
-            stmt_findings = select(AuditFinding).where(AuditFinding.audit_run_id == audit.id)
+            stmt_findings = select(AuditFinding).where(AuditFinding.audit_id == audit.id)
             findings = (await session.execute(stmt_findings)).scalars().all()
             features["critical_findings_count"] = sum(1 for f in findings if f.severity in ("CRITICAL", "HIGH"))
             features["high_findings_count"] = len(findings)
