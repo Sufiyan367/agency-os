@@ -351,6 +351,16 @@ async def init_db():
                 except Exception:
                     pass
 
+            try:
+                await conn.execute(text("ALTER TABLE businesses ADD COLUMN whatsapp_opt_in BOOLEAN DEFAULT 0"))
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(text("ALTER TABLE contacts ADD COLUMN whatsapp_opt_in BOOLEAN DEFAULT 0"))
+            except Exception:
+                pass
+
             # contacts (WhatsApp eligibility & compliance gating)
             for col, col_type in [
                 ("whatsapp_eligible", "BOOLEAN DEFAULT 0"),
