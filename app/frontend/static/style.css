@@ -45,6 +45,20 @@
   --font-hud: 'Orbitron', -apple-system, sans-serif;
   --font-accent: 'Rajdhani', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Canonical Spacing & Geometry Tokens */
+  --sidebar-width: 240px;
+  --topbar-height: 56px;
+  --dashboard-gutter: 24px;
+  --dashboard-gap: 16px;
+  --panel-gap: 16px;
+  --card-padding: 16px;
+  --card-padding-sm: 12px;
+  --card-radius: 8px;
+  --card-radius-sm: 6px;
+  --right-rail-width: 340px;
+  --control-height: 36px;
+  --control-height-sm: 28px;
 }
 
 /* Reset & Box Sizing */
@@ -933,6 +947,12 @@ body {
   position: relative;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+}
+
+#modal-website-preview .modal-content {
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .close-modal {
@@ -1959,28 +1979,48 @@ body {
 .agency-dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 18px;
+  gap: var(--dashboard-gap, 16px);
   padding: 0;
   width: 100%;
   align-items: start;
+  margin-bottom: var(--panel-gap, 16px);
+  box-sizing: border-box;
 }
 .agency-dashboard-main-col {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--panel-gap, 16px);
+  box-sizing: border-box;
 }
 .agency-dashboard-rail {
   min-width: 0;
+  width: var(--right-rail-width, 340px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--panel-gap, 16px);
+  box-sizing: border-box;
+}
+.agency-dashboard-full-width {
+  width: 100%;
+  margin-bottom: var(--panel-gap, 16px);
+  box-sizing: border-box;
 }
 .agency-prospect-layout-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
   align-items: stretch;
+}
+@media (min-width: 1241px) {
+  .agency-prospect-layout-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  .agency-prospect-layout-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Hero Section */
@@ -2143,16 +2183,17 @@ body {
   gap: 14px;
 }
 .agency-panel-card {
-  background: var(--agency-bg-card);
-  border: 1px solid var(--agency-border-subtle);
-  border-radius: 8px;
-  padding: 16px 18px;
+  background: var(--agency-bg-card, #121214);
+  border: 1px solid var(--agency-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--card-radius, 8px);
+  padding: var(--card-padding, 16px);
   display: flex;
   flex-direction: column;
   transition: border-color 0.15s ease;
+  box-sizing: border-box;
 }
 .agency-panel-card:hover {
-  border-color: var(--agency-border-hover);
+  border-color: var(--agency-border-hover, rgba(255, 255, 255, 0.15));
 }
 .agency-panel-card-header {
   display: flex;
@@ -2161,13 +2202,99 @@ body {
   margin-bottom: 12px;
   flex-wrap: wrap;
   gap: 8px;
+  box-sizing: border-box;
 }
 .agency-panel-title {
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
+
+/* Tabular Live Operations Timeline */
+.live-ops-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  min-width: 0;
+  transition: background 0.15s ease;
+  box-sizing: border-box;
+}
+.live-ops-item:hover {
+  background: #18181b;
+}
+.live-ops-item .badge-status-running,
+.live-ops-item .badge-status-waiting,
+.live-ops-item .badge-status-blocked,
+.live-ops-item .badge-status-failed,
+.live-ops-item .badge-status-completed {
+  min-width: 84px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Middle East Metrics Grid */
+.me-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+@media (max-width: 1200px) {
+  .me-metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .me-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.me-metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+.me-metric-card .me-metric-label {
+  font-size: 0.65rem;
+  color: var(--agency-text-muted, #71717a);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.me-metric-card .me-metric-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .agency-select-pill {
   background: var(--agency-bg-card-inner);
   border: 1px solid var(--agency-border-subtle);

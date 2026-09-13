@@ -32,16 +32,16 @@ class GenericDemoRenderer:
         # 1. Build verified facts bullets
         facts_html = "".join(
             f"""<li class="flex items-start gap-2.5 text-sm text-gray-300">
-                <span class="text-blue-400 font-bold mt-0.5">•</span>
-                <span>{fact}</span>
+                <span class="text-blue-400 font-bold leading-none mt-1 select-none flex-shrink-0">•</span>
+                <span class="leading-snug">{fact}</span>
             </li>""" for fact in ident.verified_facts
         ) if ident.verified_facts else """<li class="text-sm text-gray-400">Verified commercial entity with active public contact channels.</li>"""
 
         # 2. Build diplomatic observations bullets
         obs_html = "".join(
             f"""<li class="flex items-start gap-2.5 text-sm text-gray-300">
-                <span class="text-amber-400 font-bold mt-0.5">→</span>
-                <span>{obs}</span>
+                <span class="text-amber-400 font-bold leading-none mt-1 select-none flex-shrink-0">→</span>
+                <span class="leading-snug">{obs}</span>
             </li>""" for obs in opp.diplomatic_observations
         ) if opp.diplomatic_observations else """<li class="text-sm text-gray-400">Identified operational acceleration opportunity.</li>"""
 
@@ -110,23 +110,25 @@ class GenericDemoRenderer:
         ]
         specs_rows = ""
         for s in specs_list:
+            raw_status = s.get('status', 'VERIFIED IN STAGING')
+            status_label = "PRODUCTION READY" if "STAGING" in raw_status or "VERIFIED" in raw_status else raw_status
             specs_rows += f"""
-            <tr class="border-b border-gray-800 hover:bg-gray-850">
-                <td class="py-3 px-4 text-xs font-mono text-blue-400 font-semibold">{s.get('id', '')}</td>
-                <td class="py-3 px-4 text-xs text-gray-400 uppercase tracking-wider">{s.get('category', '')}</td>
+            <tr class="border-b border-gray-800 hover:bg-gray-850/60 transition-colors">
+                <td class="py-3 px-4 text-xs font-mono text-blue-400 font-semibold whitespace-nowrap">{s.get('id', '')}</td>
+                <td class="py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-semibold whitespace-nowrap">{s.get('category', '')}</td>
                 <td class="py-3 px-4 text-sm font-medium text-white">{s.get('title', '')}</td>
-                <td class="py-3 px-4 text-xs font-mono text-emerald-400">{s.get('target', '')}</td>
-                <td class="py-3 px-4 text-xs text-center">
-                    <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 font-semibold border border-emerald-800">{s.get('status', 'VERIFIED IN STAGING')}</span>
+                <td class="py-3 px-4 text-xs font-mono text-emerald-400 whitespace-nowrap">{s.get('target', '')}</td>
+                <td class="py-3 px-4 text-xs text-center whitespace-nowrap">
+                    <span class="px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-300 font-semibold border border-emerald-800 text-[11px] uppercase tracking-wider">{status_label}</span>
                 </td>
             </tr>
             """
         specs_section = f"""
-        <!-- Requirements & Remediation Specifications Table (Secondary Technical Section) -->
+        <!-- Requirements & Technical Scope Table -->
         <section id="specifications" class="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-800 pb-4 mb-4 gap-2">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Technical Scope & Verification Standards</h2>
+                    <h2 class="text-lg font-bold text-white">Technical Scope & Performance Guarantees</h2>
                     <p class="text-xs text-gray-400">Itemized technical standards mapping directly to verified diagnostic audit findings.</p>
                 </div>
                 <span class="px-2.5 py-1 rounded bg-blue-950 border border-blue-800 text-blue-300 text-xs font-mono font-semibold">
@@ -137,11 +139,11 @@ class GenericDemoRenderer:
                 <table class="w-full text-left">
                     <thead>
                         <tr class="border-b border-gray-800 text-xs uppercase text-gray-400 tracking-wider">
-                            <th class="py-3 px-4">Req ID</th>
-                            <th class="py-3 px-4">Category</th>
-                            <th class="py-3 px-4">Specification Target</th>
-                            <th class="py-3 px-4">Target Standard</th>
-                            <th class="py-3 px-4 text-center">Staging Status</th>
+                            <th class="py-3 px-4 w-28">Req ID</th>
+                            <th class="py-3 px-4 w-36">Category</th>
+                            <th class="py-3 px-4">Deliverable Scope</th>
+                            <th class="py-3 px-4 w-48">Standard SLA</th>
+                            <th class="py-3 px-4 w-36 text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -301,25 +303,33 @@ class GenericDemoRenderer:
         </section>
 
         <!-- 5. Business Baseline & Operational Opportunities -->
-        <section id="opportunity" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section id="opportunity" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             <!-- Verified Baseline (Public Facts Grounding) -->
-            <div class="bg-gray-900 border border-blue-900/40 rounded-xl p-6 relative overflow-hidden">
-                <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 text-xs font-mono font-bold">VERIFIED BASELINE</div>
-                <h3 class="text-lg font-bold text-white mb-2">Verified Business Footprint</h3>
-                <p class="text-xs text-gray-400 mb-4">Confirmed operational parameters from public digital assets.</p>
-                <ul class="space-y-2.5">
-                    {facts_html}
-                </ul>
+            <div class="bg-gray-900 border border-blue-900/40 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between h-full">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 text-xs font-mono font-bold">VERIFIED BASELINE</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">Verified Business Footprint</h3>
+                    <p class="text-xs text-gray-400 mb-4">Confirmed operational parameters from public digital assets.</p>
+                    <ul class="space-y-2.5">
+                        {facts_html}
+                    </ul>
+                </div>
             </div>
 
             <!-- Observed Operational Opportunities (Diplomatic Framing - Zero Speculation) -->
-            <div class="bg-gray-900 border border-emerald-900/40 rounded-xl p-6 relative overflow-hidden">
-                <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs font-mono font-bold">OBSERVED OPPORTUNITY</div>
-                <h3 class="text-lg font-bold text-white mb-1.5">{opp.headline}</h3>
-                <p class="text-xs text-emerald-400 font-semibold mb-3">{opp.projected_impact}</p>
-                <ul class="space-y-2.5">
-                    {obs_html}
-                </ul>
+            <div class="bg-gray-900 border border-emerald-900/40 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between h-full">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs font-mono font-bold">OBSERVED OPPORTUNITY</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-1.5">{opp.headline}</h3>
+                    <p class="text-xs text-emerald-400 font-semibold mb-3">{opp.projected_impact}</p>
+                    <ul class="space-y-2.5">
+                        {obs_html}
+                    </ul>
+                </div>
             </div>
         </section>
 
