@@ -1110,7 +1110,7 @@ function renderCeoMiddleEastPanel(me) {
             return `
                 <tr data-code="${m.code}" onclick="filterMeCountry('${m.code}', document.querySelector('.me-country-chip[data-country=\\'${m.code}\\']'))">
                     <td style="color:#71717a; font-family:var(--font-mono);">${m.priority_rank || '—'}</td>
-                    <td>
+                    <td style="white-space:nowrap;">
                         <span style="font-size:1.05rem; margin-right:4px;">${m.flag || '🌍'}</span>
                         <strong style="color:#ffffff;">${m.name}</strong>
                         <span style="font-size:0.68rem; color:#888888; font-family:var(--font-mono); margin-left:2px;">(${m.code})</span>

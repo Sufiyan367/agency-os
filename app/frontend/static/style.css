@@ -3282,7 +3282,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.76rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .me-country-table th {
@@ -3506,18 +3506,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 6px 8px;
   background: #0e0e0e;
   border: 1px solid #1a1a1a;
   border-radius: 4px;
   font-size: 0.72rem;
+  min-width: 0;
 }
 .me-priority-left {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-width: 0;
+  gap: 6px;
+  flex-shrink: 0;
 }
 .me-priority-rank {
   font-size: 0.65rem;
@@ -3533,11 +3534,13 @@ body {
 }
 .me-priority-focus {
   font-size: 0.65rem;
-  color: #666666;
+  color: #777777;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Responsiveness Contract */
