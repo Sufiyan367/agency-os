@@ -2890,6 +2890,7 @@ async def inbound_email_webhook(data: InboundEmailWebhook, db: AsyncSession = De
 # --- WhatsApp Webhooks ---
 
 @router.get("/api/webhooks/whatsapp")
+@router.get("/api/webhooks/whatsapp/")
 async def whatsapp_webhook_verification(request: Request):
     """
     Handles Meta WhatsApp Cloud API webhook verification challenge handshake.
@@ -2907,12 +2908,13 @@ async def whatsapp_webhook_verification(request: Request):
 
     verified_challenge = whatsapp_adapter.verify_webhook(mode=mode, token=token, challenge=challenge)
     if verified_challenge is not None:
-        return PlainTextResponse(content=verified_challenge, status_code=200)
+        return PlainTextResponse(content=str(verified_challenge), status_code=200)
 
     raise HTTPException(status_code=403, detail="WhatsApp webhook verification failed: Invalid verify token or mode.")
 
 
 @router.post("/api/webhooks/whatsapp")
+@router.post("/api/webhooks/whatsapp/")
 async def whatsapp_webhook_receiver(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Receives and processes incoming WhatsApp Cloud API events:

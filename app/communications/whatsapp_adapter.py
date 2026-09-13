@@ -76,7 +76,9 @@ class WhatsAppAdapter:
         """
         Handles Meta WhatsApp Webhook verification handshake (hub.mode, hub.verify_token, hub.challenge).
         """
-        if mode == "subscribe" and token == self.verify_token:
+        current_token = (self.verify_token or getattr(settings, "WHATSAPP_VERIFY_TOKEN", "") or "").strip()
+        provided_token = (token or "").strip()
+        if mode == "subscribe" and provided_token and current_token and provided_token == current_token:
             return challenge
         return None
 

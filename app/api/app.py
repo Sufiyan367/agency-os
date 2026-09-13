@@ -98,7 +98,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
                     headers={"Retry-After": str(retry_after)}
                 )
         # 3. Webhook endpoints: 60 req/min
-        elif path.startswith("/api/webhooks/"):
+        elif path.startswith("/api/webhooks"):
             allowed, retry_after = await rate_limiter.is_allowed(f"webhook:{client_ip}", max_requests=60, window_seconds=60)
             if not allowed:
                 return JSONResponse(
@@ -165,7 +165,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         is_public = (
             normalized_path in public_exact_paths
             or normalized_path.startswith("/static/")
-            or normalized_path.startswith("/api/webhooks/")
+            or normalized_path.startswith("/api/webhooks")
             or normalized_path.startswith("/demo/")
         )
 
