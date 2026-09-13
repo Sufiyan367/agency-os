@@ -190,13 +190,13 @@
     //              (0, -44, 0)
     // INTELLIGENCE Orbit: (0, 22, 34)
     const subsystemDefs = [
-      { id: 'ACQUISITION', name: 'Acquisition', pos: [0, 44, 0], color: 0x00d4ef, views: ['global-acquisition', 'leads'] },
-      { id: 'COMMUNICATION', name: 'Communication', pos: [-48, 10, -8], color: 0x38bdf8, views: ['queue', 'replies'] },
-      { id: 'SALES', name: 'Sales', pos: [48, 10, 8], color: 0x10b981, views: ['proposals'] },
-      { id: 'PAYMENT', name: 'Payment', pos: [-34, -32, 10], color: 0x8b5cf6, views: ['payments'] },
-      { id: 'DELIVERY', name: 'Delivery', pos: [34, -32, -10], color: 0x6366f1, views: ['client-intelligence'] },
-      { id: 'SUPPORT', name: 'Support', pos: [0, -44, 0], color: 0xf59e0b, views: ['support-ops', 'runs'] },
-      { id: 'INTELLIGENCE', name: 'Intelligence', pos: [0, 22, 34], color: 0xf43f5e, views: ['intelligence', 'decision-analytics'] }
+      { id: 'ACQUISITION', name: 'Acquisition', pos: [0, 44, 0], color: 0x00d4ef, views: ['global-acquisition', 'leads', 'prospects'] },
+      { id: 'COMMUNICATION', name: 'Communication', pos: [-48, 10, -8], color: 0x38bdf8, views: ['queue', 'replies', 'campaigns'] },
+      { id: 'SALES', name: 'Sales', pos: [48, 10, 8], color: 0x10b981, views: ['proposals', 'pipeline', 'deals'] },
+      { id: 'PAYMENT', name: 'Payment', pos: [-34, -32, 10], color: 0x8b5cf6, views: ['payments', 'billing', 'invoices'] },
+      { id: 'DELIVERY', name: 'Delivery', pos: [34, -32, -10], color: 0x6366f1, views: ['client-intelligence', 'delivery', 'projects'] },
+      { id: 'SUPPORT', name: 'Support', pos: [0, -44, 0], color: 0xf59e0b, views: ['support-ops', 'runs', 'logs'] },
+      { id: 'INTELLIGENCE', name: 'Intelligence', pos: [0, 22, 34], color: 0xf43f5e, views: ['intelligence', 'decision-analytics', 'analytics', 'overview'] }
     ];
 
     const subsystems = {};
