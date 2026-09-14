@@ -2609,6 +2609,41 @@ async function viewLeadDetail(leadId) {
                         </div>
                     </div>
                 ` : ''}
+
+            <!-- Customer-Supplied Automation Assessment (Phase 21) -->
+            ${data.customer_assessment ? `
+                <div style="margin-bottom:18px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">📋</span>
+                            <strong style="color:#ffffff; font-size:0.9rem;">Customer-Supplied Automation Assessment</strong>
+                        </div>
+                        <span class="badge badge-cyan" style="font-size:0.7rem;">CUSTOMER-SUPPLIED (UNVERIFIED)</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:0.78rem; margin-bottom:10px;">
+                        <div><span style="color:var(--text-muted);">Contact:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.name || '')}</strong></div>
+                        <div><span style="color:var(--text-muted);">Business:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.company || '')}</strong></div>
+                        <div><span style="color:var(--text-muted);">Email:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.email || '')}</strong></div>
+                        <div><span style="color:var(--text-muted);">Phone:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.phone || 'Not provided')}</strong></div>
+                        <div><span style="color:var(--text-muted);">Website:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.website || 'Not provided')}</strong></div>
+                        <div><span style="color:var(--text-muted);">Industry:</span> <strong style="color:#f4f4f5;">${escapeHtml(data.customer_assessment.industry || 'Not provided')}</strong></div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px; margin-bottom:8px;">
+                        <div style="font-size:0.72rem; color:var(--hud-cyan-bright); font-weight:700; text-transform:uppercase; margin-bottom:4px;">Automation Need:</div>
+                        <div style="color:#f1f5f9; font-size:0.82rem; font-weight:600;">${escapeHtml(data.customer_assessment.need || 'Custom Assessment')}</div>
+                    </div>
+                    ${data.customer_assessment.additional_details ? `
+                        <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px;">
+                            <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:4px;">Additional Details / Current Process:</div>
+                            <div style="color:#e4e4e7; font-size:0.8rem; line-height:1.5; white-space:pre-wrap;">${escapeHtml(data.customer_assessment.additional_details)}</div>
+                        </div>
+                    ` : ''}
+                    <div style="font-size:0.68rem; color:#71717a; margin-top:8px; font-family:var(--font-mono); text-align:right;">
+                        Submitted: ${data.customer_assessment.submitted_at ? new Date(data.customer_assessment.submitted_at).toLocaleString() : ''}
+                    </div>
+                </div>
+            ` : ''}
+
             <!-- Inbound Replies & Conversation Thread -->
             ${(data.replies && data.replies.length > 0) ? `
                 <div style="margin-bottom:18px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:14px;">

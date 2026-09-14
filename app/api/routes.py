@@ -15,7 +15,7 @@ from app.database.models import (
     Payment, Reply, Project, Proposal, Deal, DealAuditTrail,
     AgentActivityEvent, Artifact, ProspectMemory, Country, Niche, ModelPrediction,
     PaymentWebhookEvent, SecurityAuditLog, ProspectEvidence, ClientIntelligenceRecord, PipelineEvent,
-    User, SupportTicket, CustomerIncident, CustomerHealthMetric
+    User, SupportTicket, CustomerIncident, CustomerHealthMetric, VerificationStatus, ReplyClassification
 )
 from app.services.audit_service import AuditService, sanitize_audit_payload
 from app.ml import (
@@ -327,8 +327,8 @@ async def auth_me(request: Request):
     }
 
 # --- Cloud Health & Readiness ---
-@router.get("/health")
-@router.get("/api/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
+@router.api_route("/api/health", methods=["GET", "HEAD"])
 async def health(db: AsyncSession = Depends(get_db)):
     import time
     db_status = "connected"
@@ -998,6 +998,14 @@ async def get_lead_detail(lead_id: int, db: AsyncSession = Depends(get_db)):
         }
         for r in rep_items
     ]
+
+    # Customer-supplied assessment information (tagged as unverified customer input)
+    mem_q = select(ProspectMemory).where(ProspectMemory.business_id == lead_id)
+    mem_rec = (await db.execute(mem_q)).scalars().first()
+    cust_assessment = None
+    if mem_rec and mem_rec.memory_summary:
+        cust_assessment = mem_rec.memory_summary.get("customer_supplied_assessment")
+    res["customer_assessment"] = cust_assessment
 
     return res
 
@@ -4898,9 +4906,16 @@ class OnboardingConsultationRequest(BaseModel):
     agency_name: Optional[str] = ""
     company: Optional[str] = ""
     companyName: Optional[str] = ""
-    niche: Optional[str] = "enterprise"
+    website: Optional[str] = ""
+    website_url: Optional[str] = ""
+    industry: Optional[str] = ""
+    niche: Optional[str] = "Enquiry-Driven Business"
+    need: Optional[str] = ""
+    automation_need: Optional[str] = ""
+    additional_details: Optional[str] = ""
     current_process: Optional[str] = ""
     notes: Optional[str] = ""
+    note: Optional[str] = ""
     message: Optional[str] = ""
 
 
@@ -4911,14 +4926,19 @@ async def submit_onboarding_consultation(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Public onboarding consultation request endpoint.
-    Validates submission, logs the consultation into the activity event stream,
-    and returns a verified confirmation.
+    Public onboarding automation assessment & consultation request endpoint.
+    Validates submission, persists or updates Business record, creates an inbound Reply,
+    records PipelineEvent, records ProspectMemory with customer-supplied tagging,
+    logs the consultation into the activity event stream, and returns a verified confirmation.
     """
     name = (payload.name or payload.fullName or "").strip()
     email = (payload.email or payload.businessEmail or "").strip()
     company = (payload.company or payload.companyName or payload.agency_name or "").strip()
-    note = (payload.notes or payload.current_process or payload.message or "Architecture Consultation Request").strip()
+    phone = (payload.phone or "").strip()
+    website = (payload.website or payload.website_url or "").strip()
+    industry = (payload.industry or payload.niche or "Enquiry-Driven Business").strip()
+    need = (payload.need or payload.automation_need or "Not sure yet / Full Assessment").strip()
+    note = (payload.additional_details or payload.notes or payload.note or payload.current_process or payload.message or "").strip()
 
     if not name or not email:
         raise HTTPException(status_code=400, detail="Name and email are required.")
@@ -4926,38 +4946,237 @@ async def submit_onboarding_consultation(
     if "@" not in email or "." not in email.split("@")[-1]:
         raise HTTPException(status_code=400, detail="Please enter a valid business email address.")
 
-    logger.info(f"[ConsultationRequest] Received consultation request from {name} <{email}> ({company})")
+    # Derive normalized domain
+    raw_domain = re.sub(r"^https?://", "", website).split("/")[0].strip().lower()
+    if raw_domain.startswith("www."):
+        raw_domain = raw_domain[4:]
+
+    email_domain = email.split("@")[-1].strip().lower()
+    generic_domains = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "aol.com", "proton.me", "protonmail.com"}
+
+    if raw_domain:
+        domain = raw_domain
+    elif email_domain not in generic_domains:
+        domain = email_domain
+    else:
+        slug = re.sub(r"[^a-z0-9\-]", "", (company or name).lower().replace(" ", "-")).strip("-")
+        domain = f"{slug or 'prospect'}.com"
+
+    logger.info(f"[ConsultationRequest] Received automation assessment from {name} <{email}> ({company}) for domain={domain}")
 
     try:
+        # 1. Check for existing Business by domain or email
+        biz_q = select(Business).where(
+            (Business.domain == domain) | (Business.public_email == email)
+        )
+        b = (await db.execute(biz_q)).scalars().first()
+
+        now = datetime.utcnow()
+
+        if not b:
+            # Create new lead record
+            b = Business(
+                name=company or name,
+                domain=domain,
+                website_url=website if (website.startswith("http://") or website.startswith("https://")) else (f"https://{domain}" if domain else ""),
+                country="US",
+                city="Regional",
+                niche=industry,
+                public_email=email,
+                phone=phone or None,
+                source="inbound_assessment",
+                verification_status=VerificationStatus.VERIFIED.value,
+                pipeline_stage=PipelineStage.QUALIFIED_REPLY.value,
+                research_status="RESEARCH_COMPLETED",
+                created_at=now,
+                updated_at=now
+            )
+            db.add(b)
+            await db.flush()  # populate b.id
+        else:
+            # Update existing lead record safely without overwriting established data
+            if not b.public_email:
+                b.public_email = email
+            if not b.phone and phone:
+                b.phone = phone
+            if (not b.name or b.name == "Unknown") and company:
+                b.name = company
+            if (not b.niche or b.niche in ("General", "enterprise")) and industry:
+                b.niche = industry
+            if not b.website_url and website:
+                b.website_url = website if website.startswith("http") else f"https://{website}"
+            # Promote stage if in early pipeline
+            if b.pipeline_stage in (
+                PipelineStage.DISCOVERED.value,
+                PipelineStage.VERIFIED.value,
+                PipelineStage.AUDITED.value,
+                PipelineStage.QUALIFIED.value,
+                PipelineStage.OUTREACH_READY.value,
+                PipelineStage.APPROVAL.value,
+                PipelineStage.CONTACTED.value,
+                PipelineStage.REPLIED.value
+            ):
+                b.pipeline_stage = PipelineStage.QUALIFIED_REPLY.value
+            b.updated_at = now
+
+        # 2. Record Inbound Reply so it appears in CRM inbox and lead dossier
+        full_assessment_text = (
+            f"Customer: {name}\n"
+            f"Business: {company or name}\n"
+            f"Email: {email}\n"
+            f"Phone: {phone or 'Not provided'}\n"
+            f"Website: {website or domain}\n"
+            f"Industry: {industry}\n"
+            f"Automation Need: {need}\n"
+            f"Additional Details / Current Process:\n{note or 'None provided'}"
+        )
+
+        reply = Reply(
+            business_id=b.id,
+            sender_email=email,
+            raw_body=full_assessment_text,
+            classification=ReplyClassification.INTERESTED.value,
+            confidence=0.99,
+            suggested_response=f"Thank you for requesting an assessment for {company or name}. A systems architect will review your requirement for '{need}' and provide a tailored blueprint.",
+            is_handled=False,
+            received_at=now
+        )
+        db.add(reply)
+
+        # 3. Record PipelineEvent (Timeline)
+        event = PipelineEvent(
+            business_id=b.id,
+            from_stage=b.pipeline_stage,
+            to_stage=PipelineStage.QUALIFIED_REPLY.value,
+            deal_value=1200.0,
+            note=f"[CUSTOMER-SUPPLIED ASSESSMENT] Inbound request: {need}. Details: {note or 'None'}",
+            created_at=now
+        )
+        db.add(event)
+
+        # 4. Record / Update ProspectMemory with explicit customer-supplied tagging
+        mem_q = select(ProspectMemory).where(ProspectMemory.business_id == b.id)
+        mem = (await db.execute(mem_q)).scalars().first()
+
+        convo_entry = {
+            "timestamp": now.isoformat(),
+            "direction": "INBOUND",
+            "channel": "WEB_FORM",
+            "speaker": "CUSTOMER",
+            "tag": "[CUSTOMER-SUPPLIED ASSESSMENT]",
+            "content": full_assessment_text,
+            "metadata": {
+                "full_name": name,
+                "business_name": company or name,
+                "email": email,
+                "phone": phone,
+                "website": website or domain,
+                "industry": industry,
+                "automation_need": need,
+                "additional_details": note,
+                "submitted_at": now.isoformat()
+            }
+        }
+
+        assessment_dict = {
+            "name": name,
+            "company": company or name,
+            "email": email,
+            "phone": phone or "",
+            "website": website or domain,
+            "industry": industry,
+            "need": need,
+            "additional_details": note or "",
+            "submitted_at": now.isoformat()
+        }
+
+        if not mem:
+            mem = ProspectMemory(
+                business_id=b.id,
+                domain=b.domain,
+                contact_name=name,
+                contact_email=email,
+                contact_phone=phone or None,
+                channel_used="EMAIL",
+                pipeline_stage=PipelineStage.QUALIFIED_REPLY.value,
+                last_interaction=f"[CUSTOMER-SUPPLIED ASSESSMENT] Request received: {need}",
+                next_expected_action="AWAITING_OPERATOR_REVIEW",
+                conversation_history=[convo_entry],
+                memory_summary={
+                    "customer_preferences": [f"Requested automation: {need}"],
+                    "pain_points": [note] if note else [],
+                    "customer_supplied_assessment": assessment_dict
+                },
+                timestamp=now,
+                updated_at=now
+            )
+            db.add(mem)
+        else:
+            # Preserve existing memory without overwriting established notes
+            history = list(mem.conversation_history or [])
+            history.append(convo_entry)
+            mem.conversation_history = history
+            mem.last_interaction = f"[CUSTOMER-SUPPLIED ASSESSMENT] Request received: {need}"
+            mem.pipeline_stage = PipelineStage.QUALIFIED_REPLY.value
+
+            summary = dict(mem.memory_summary or {})
+            summary["customer_supplied_assessment"] = assessment_dict
+
+            if note:
+                existing_pain = summary.get("pain_points", [])
+                if isinstance(existing_pain, list):
+                    if note not in existing_pain:
+                        existing_pain.append(note)
+                    summary["pain_points"] = existing_pain
+                else:
+                    summary["pain_points"] = [note]
+            mem.memory_summary = summary
+            mem.updated_at = now
+
+        # 5. Record AgentActivityEvent for real-time operations feed
         activity = AgentActivityEvent(
             run_id="public_consultation",
+            business_id=b.id,
+            domain=b.domain,
             event_type="CONSULTATION_REQUEST",
             status="SUCCESS",
-            message=f"Consultation request from {name} ({company or 'Individual'}) - {payload.niche or 'enterprise'}",
+            message=f"Assessment submitted by {name} ({company or 'Individual'}) - {need}",
             metadata_json={
+                "lead_id": b.id,
                 "name": name,
                 "email": email,
                 "company": company,
-                "phone": payload.phone or "",
-                "niche": payload.niche or "enterprise",
-                "current_process": note,
+                "phone": phone,
+                "website": website or domain,
+                "industry": industry,
+                "need": need,
+                "additional_details": note,
                 "client_ip": request.client.host if request.client else "unknown",
-                "received_at": datetime.utcnow().isoformat()
+                "received_at": now.isoformat()
             }
         )
         db.add(activity)
+
         await db.commit()
     except Exception as e:
-        logger.warning(f"[ConsultationRequest] DB record warning: {e}")
+        logger.error(f"[ConsultationRequest] Database persistence failed: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to persist assessment request. Please try again or email hello@automatedagencyos.tech"
+        )
 
     return {
         "success": True,
-        "message": "Consultation request received. A systems architect will reach out shortly.",
+        "message": "Automation assessment request received. Our team will review your requirements and provide your blueprint shortly.",
+        "lead_id": b.id,
         "consultation": {
             "name": name,
             "email": email,
-            "company": company,
-            "received_at": datetime.utcnow().isoformat()
+            "company": company or name,
+            "need": need,
+            "additional_details": note,
+            "received_at": now.isoformat()
         }
     }
 

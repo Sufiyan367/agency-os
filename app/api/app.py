@@ -1,10 +1,20 @@
 import os
+import mimetypes
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+
+# Ensure modern web asset MIME types are deterministically recognized across OS environments
+mimetypes.init()
+mimetypes.add_type("image/webp", ".webp")
+mimetypes.add_type("image/x-icon", ".ico")
+mimetypes.add_type("image/png", ".png")
+mimetypes.add_type("image/svg+xml", ".svg")
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/woff", ".woff")
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -178,6 +188,9 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/sw.js",
             "/manifest.json",
             "/manifest.webmanifest",
+            "/favicon.ico",
+            "/apple-touch-icon.png",
+            "/apple-touch-icon-precomposed.png",
             "/api/notifications/vapid-public-key",
         }
         privileged_prefixes = (
@@ -440,6 +453,26 @@ async def serve_sitemap_xml():
     if os.path.exists(sitemap_path):
         return FileResponse(sitemap_path, media_type="application/xml")
     return HTMLResponse("<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'></urlset>", media_type="application/xml")
+
+
+@app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+async def serve_favicon():
+    fav_ico = os.path.join(STATIC_DIR, "assets", "favicon.ico")
+    if os.path.exists(fav_ico):
+        return FileResponse(fav_ico, media_type="image/x-icon", headers={"Cache-Control": "public, max-age=86400"})
+    fav_png = os.path.join(STATIC_DIR, "assets", "favicon.png")
+    if os.path.exists(fav_png):
+        return FileResponse(fav_png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+    return HTMLResponse(status_code=404)
+
+
+@app.api_route("/apple-touch-icon.png", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/apple-touch-icon-precomposed.png", methods=["GET", "HEAD"], include_in_schema=False)
+async def serve_apple_touch_icon():
+    fav_png = os.path.join(STATIC_DIR, "assets", "favicon.png")
+    if os.path.exists(fav_png):
+        return FileResponse(fav_png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+    return HTMLResponse(status_code=404)
 
 
 @app.get("/privacy", response_class=HTMLResponse)

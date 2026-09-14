@@ -418,7 +418,14 @@
                     phone: phone || '',
                     agency_name: company || '',
                     company: company || '',
+                    website: website || '',
+                    industry: industry || 'Enquiry-Driven Business',
                     niche: industry || 'Enquiry-Driven Business',
+                    need: need || 'Not sure yet / Full Assessment',
+                    automation_need: need || 'Not sure yet / Full Assessment',
+                    additional_details: note || '',
+                    notes: note || '',
+                    note: note || '',
                     current_process: currentProcessParts.join(' | ') || 'Custom AI Automation Assessment Request'
                 })
             });
