@@ -169,6 +169,47 @@ class ConversationNormalizer:
                 )
                 session.add(pipe_evt)
 
+            # Sync persistent lead memory & commitments
+            try:
+                from app.crm.commitment_service import commitment_service, CommitmentType
+                from app.crm.objection_service import objection_service
+                from app.crm.memory_service import memory_service
+                from app.crm.objections import objection_detector, ObjectionCategory
+
+                cmts = commitment_service.detect_commitments_from_text(content, speaker_type="CUSTOMER")
+                for c in cmts:
+                    await commitment_service.add_commitment(
+                        session,
+                        business_id=biz.id,
+                        commitment_type=CommitmentType.CUSTOMER,
+                        description=c["description"],
+                        raw_statement=c.get("raw_statement", ""),
+                        due_at=c.get("due_at"),
+                        source_event_id=str(event.id)
+                    )
+
+                detected_objs = objection_detector.detect_objections(content)
+                for obj_cat in detected_objs:
+                    if obj_cat != ObjectionCategory.UNKNOWN:
+                        await objection_service.record_objection(
+                            session,
+                            business_id=biz.id,
+                            objection_type=obj_cat,
+                            statement=content,
+                            source_event_id=str(event.id)
+                        )
+
+                questions = [line.strip() for line in content.split("\n") if "?" in line and len(line.strip()) > 5]
+                await memory_service.update_memory_summary(
+                    session,
+                    biz.id,
+                    questions=questions if questions else None,
+                    objections=[o.value for o in detected_objs] if detected_objs else None,
+                    commitments=[c["description"] for c in cmts] if cmts else None
+                )
+            except Exception as mem_err:
+                logger.warning(f"[Normalizer] Persistent memory update note: {mem_err}")
+
         except Exception as e:
             logger.error(f"[Normalizer] Error processing inbound interaction for biz {business_id}: {e}")
 

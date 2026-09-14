@@ -343,7 +343,10 @@ async def init_db():
                 ("payment_history", "JSON DEFAULT '[]'"),
                 ("human_decisions", "JSON DEFAULT '[]'"),
                 ("suppression_state", "JSON DEFAULT '{}'"),
-                ("commercial_context", "JSON DEFAULT '{}'")
+                ("commercial_context", "JSON DEFAULT '{}'"),
+                ("memory_summary", "JSON DEFAULT '{}'"),
+                ("commitments", "JSON DEFAULT '[]'"),
+                ("exact_outbound_context", "JSON DEFAULT '{}'")
             ]:
                 try:
                     await conn.execute(text(f"ALTER TABLE prospect_memories ADD COLUMN {col} {col_type}"))

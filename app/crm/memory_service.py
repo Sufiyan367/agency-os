@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.database.models import (
     Business, Contact, AuditRun, LeadScore, Offer, OutreachMessage,
@@ -57,7 +58,10 @@ class ProspectMemoryService:
         outreach_message: Optional[Dict[str, Any]] = None,
         last_interaction: str = "",
         next_expected_action: str = "AWAITING_INBOUND_EVENT",
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: Optional[List[Dict[str, Any]]] = None,
+        memory_summary: Optional[Dict[str, Any]] = None,
+        commitments: Optional[List[Dict[str, Any]]] = None,
+        exact_outbound_context: Optional[Dict[str, Any]] = None
     ) -> ProspectMemory:
         """Saves or updates the persistent snapshot for a prospect."""
         q = select(ProspectMemory).where(
@@ -73,6 +77,22 @@ class ProspectMemoryService:
         clean_offer = offer_proposal or {}
         clean_outreach = outreach_message or {}
         clean_history = conversation_history or []
+        clean_summary = memory_summary or {}
+        clean_commitments = commitments or []
+        clean_exact_outbound = exact_outbound_context or {}
+        if not clean_exact_outbound and clean_outreach and (clean_outreach.get("body") or clean_outreach.get("subject")):
+            clean_exact_outbound = {
+                "outreach_message_id": clean_outreach.get("message_id"),
+                "provider_message_id": clean_outreach.get("provider_message_id"),
+                "thread_id": clean_outreach.get("thread_id") or thread_id,
+                "recipient": clean_outreach.get("recipient") or contact_email,
+                "subject": clean_outreach.get("subject"),
+                "body": clean_outreach.get("body"),
+                "sent_at": clean_outreach.get("sent_at"),
+                "offer_title": clean_offer.get("title") if clean_offer else "Turnaround & Optimization",
+                "quoted_price": clean_offer.get("recommended_price", estimated_value),
+                "service_type": clean_offer.get("service_type", "Web Conversion Optimization")
+            }
 
         if not memory:
             memory = ProspectMemory(
@@ -95,6 +115,9 @@ class ProspectMemoryService:
                 last_interaction=last_interaction or f"Outreach dispatched via {channel_used}",
                 next_expected_action=next_expected_action,
                 conversation_history=clean_history,
+                memory_summary=clean_summary,
+                commitments=clean_commitments,
+                exact_outbound_context=clean_exact_outbound,
                 timestamp=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
@@ -137,6 +160,12 @@ class ProspectMemoryService:
                 memory.offer_proposal = clean_offer
             if clean_outreach:
                 memory.outreach_message = clean_outreach
+            if clean_exact_outbound:
+                memory.exact_outbound_context = clean_exact_outbound
+            if memory_summary is not None:
+                memory.memory_summary = clean_summary
+            if commitments is not None:
+                memory.commitments = clean_commitments
             if last_interaction:
                 memory.last_interaction = last_interaction
             if next_expected_action:
@@ -253,6 +282,126 @@ class ProspectMemoryService:
             )
 
         return None
+
+    @classmethod
+    async def get_exact_outbound_context(
+        cls,
+        session: AsyncSession,
+        business_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Deterministically recovers the exact outbound email sent to this prospect,
+        including exact subject, body, sent timestamp, provider message ID, and offer terms.
+        Never relies on LLM reconstruction or paraphrasing.
+        """
+        q = select(ProspectMemory).where(ProspectMemory.business_id == business_id)
+        memory = (await session.execute(q)).scalars().first()
+        if memory and memory.exact_outbound_context and memory.exact_outbound_context.get("body"):
+            return memory.exact_outbound_context
+
+        q_msg = select(OutreachMessage).where(OutreachMessage.business_id == business_id).order_by(OutreachMessage.created_at.desc())
+        msg = (await session.execute(q_msg)).scalars().first()
+        if not msg:
+            return None
+
+        q_off = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
+        offer = (await session.execute(q_off)).scalars().first()
+
+        from app.database.models import OutreachEvent
+        q_ev = select(OutreachEvent).where(OutreachEvent.outreach_message_id == msg.id).order_by(OutreachEvent.created_at.desc())
+        events = (await session.execute(q_ev)).scalars().all()
+        dispatch_ev = next((e for e in events if e.event_type in ("email_dispatched", "dispatch")), None)
+        ev_details = dispatch_ev.details if (dispatch_ev and dispatch_ev.details) else (events[0].details if events and events[0].details else {})
+
+        exact_ctx = {
+            "outreach_message_id": msg.id,
+            "provider_message_id": ev_details.get("message_id") or ev_details.get("gmail_message_id"),
+            "thread_id": ev_details.get("thread_id") or ev_details.get("gmail_thread_id") or (memory.thread_id if memory else None),
+            "recipient": msg.recipient_email,
+            "subject": msg.subject,
+            "body": msg.body,
+            "sent_at": msg.sent_at.isoformat() if msg.sent_at else (msg.created_at.isoformat() if msg.created_at else None),
+            "offer_title": offer.title if offer else "Website Turnaround & Optimization",
+            "quoted_price": offer.recommended_price if (offer and offer.recommended_price) else (memory.estimated_value if memory else 1000.0),
+            "service_type": offer.service_type if offer else "Web Conversion Optimization",
+            "provider": ev_details.get("provider", "SMTP")
+        }
+
+        if memory:
+            memory.exact_outbound_context = exact_ctx
+            memory.updated_at = datetime.utcnow()
+            await session.commit()
+
+        return exact_ctx
+
+    @classmethod
+    async def update_memory_summary(
+        cls,
+        session: AsyncSession,
+        business_id: int,
+        *,
+        business_context: Optional[List[str]] = None,
+        customer_preferences: Optional[List[str]] = None,
+        pain_points: Optional[List[str]] = None,
+        questions: Optional[List[str]] = None,
+        objections: Optional[List[str]] = None,
+        commitments: Optional[List[str]] = None,
+        agency_commitments: Optional[List[str]] = None,
+        important_facts: Optional[List[str]] = None,
+        do_not_repeat: Optional[List[str]] = None,
+        next_action: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Updates the compact persistent memory summary for the lead.
+        Deduplicates items and avoids infinite unbounded append.
+        """
+        q = select(ProspectMemory).where(ProspectMemory.business_id == business_id)
+        memory = (await session.execute(q)).scalars().first()
+        if not memory:
+            return {}
+
+        current = dict(memory.memory_summary or {})
+
+        def _merge(field: str, new_items: Optional[List[str]]):
+            if new_items is None:
+                return current.get(field, [])
+            existing = list(current.get(field, []))
+            for item in new_items:
+                if item and item not in existing:
+                    existing.append(item)
+            return existing
+
+        updated_summary = {
+            "business_context": _merge("business_context", business_context),
+            "customer_preferences": _merge("customer_preferences", customer_preferences),
+            "pain_points": _merge("pain_points", pain_points),
+            "questions": _merge("questions", questions),
+            "objections": _merge("objections", objections),
+            "commitments": _merge("commitments", commitments),
+            "agency_commitments": _merge("agency_commitments", agency_commitments),
+            "important_facts": _merge("important_facts", important_facts),
+            "do_not_repeat": _merge("do_not_repeat", do_not_repeat),
+            "next_action": next_action if next_action is not None else current.get("next_action")
+        }
+
+        memory.memory_summary = updated_summary
+        flag_modified(memory, "memory_summary")
+        memory.updated_at = datetime.utcnow()
+        await session.commit()
+        await session.refresh(memory)
+
+        from app.agents.activity_broadcaster import activity_broadcaster, AgentEventType
+        await activity_broadcaster.record_event(
+            session=session,
+            run_id=f"MEM-{business_id}",
+            event_type=AgentEventType.MEMORY_UPDATED.value,
+            message=f"Persistent memory summary updated for business #{business_id}.",
+            business_id=business_id,
+            status="INFO",
+            metadata_json=updated_summary
+        )
+
+        return updated_summary
 
     @classmethod
     async def handle_inbound_event(
@@ -823,6 +972,9 @@ class ProspectMemoryService:
             "objections": {
                 "history": memory.objection_history if memory else [],
             },
+            "memory_summary": memory.memory_summary if memory else {},
+            "commitments": memory.commitments if memory else [],
+            "exact_outbound_context": memory.exact_outbound_context if memory else {},
             "proposals": [
                 {
                     "id": p.id,

@@ -8,6 +8,7 @@ from app.database.models import (
     PipelineStage, PipelineEvent, FollowupStatus, Proposal, Offer, AuditRun, ProspectMemory,
     ConversationEvent, ChannelType, EventDirection, ConversationEventType
 )
+from app.core.config import settings
 from app.core.llm import llm_client
 from app.core.logging import logger
 from app.followups.engine import followup_engine
@@ -15,6 +16,9 @@ from app.outreach.compliance import compliance_guard
 from app.crm.objections import (
     objection_detector, objection_response_engine, ObjectionCategory, ObjectionResponse
 )
+from app.crm.commitment_service import commitment_service, CommitmentType
+from app.crm.objection_service import objection_service
+from app.agents.activity_broadcaster import activity_broadcaster, AgentEventType
 
 class ReplyClassifier:
     """
@@ -189,19 +193,22 @@ class ReplyClassifier:
         session.add(conv_event)
 
         biz = await session.get(Business, business_id)
+        new_stage = biz.pipeline_stage if biz else PipelineStage.REPLIED.value
 
         # Handle Unsubscribes and Bounces: Immediately add to suppression list
         if cat in (ReplyClassification.UNSUBSCRIBE.value, ReplyClassification.NOT_INTERESTED.value, ReplyClassification.NEGATIVE.value):
             if cat == ReplyClassification.UNSUBSCRIBE.value:
                 await compliance_guard.add_to_suppression(session, sender_email, reason="UNSUBSCRIBE")
             await followup_engine.cancel_pending_followups(session, business_id, FollowupStatus.CANCELLED_UNSUB)
+            new_stage = PipelineStage.LOST.value
             if biz:
-                biz.pipeline_stage = PipelineStage.LOST.value
+                biz.pipeline_stage = new_stage
         elif cat == ReplyClassification.BOUNCE.value:
             await compliance_guard.add_to_suppression(session, sender_email, reason="BOUNCE")
             await followup_engine.cancel_pending_followups(session, business_id, FollowupStatus.CANCELLED_UNSUB)
+            new_stage = PipelineStage.DEAD.value
             if biz:
-                biz.pipeline_stage = PipelineStage.DEAD.value
+                biz.pipeline_stage = new_stage
         elif cat == ReplyClassification.OUT_OF_OFFICE.value:
             # Reschedule followup without advancing pipeline stage
             pass
@@ -303,7 +310,6 @@ class ReplyClassifier:
                             offer = (await session.execute(q_off)).scalars().first()
                             title = offer.title if offer else "Website Turnaround & Optimization Package"
                             price = offer.recommended_price if (offer and offer.recommended_price >= 500.0) else 650.0
-                            from app.core.config import settings
                             adv_pct = getattr(settings, "DEFAULT_ADVANCE_PERCENTAGE", 40.0)
                             adv_req = round(price * (adv_pct / 100.0), 2)
                             
@@ -330,7 +336,6 @@ class ReplyClassifier:
                         checkout_link = payment_data.get("checkout_url", "")
 
                         if checkout_link:
-                            from app.core.config import settings
                             adv_pct = getattr(settings, "DEFAULT_ADVANCE_PERCENTAGE", 40.0)
                             if cat == ReplyClassification.PRICE_REQUEST.value:
                                 suggested = (
@@ -349,92 +354,146 @@ class ReplyClassifier:
                     except Exception as e:
                         logger.warning(f"[ReplyClassifier] Auto-proposal drafting note: {e}")
 
-                # Commercial Value & Offer Resolution
-                q_off = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
-                offer = (await session.execute(q_off)).scalars().first()
-                offered_val = offer.recommended_price if offer else getattr(settings, "TARGET_OFFER_MINIMUM_USD", 1000.0)
+        # Commercial Value & Offer Resolution
+        q_off = select(Offer).where(Offer.business_id == business_id).order_by(Offer.created_at.desc())
+        offer = (await session.execute(q_off)).scalars().first()
+        offered_val = offer.recommended_price if offer else getattr(settings, "TARGET_OFFER_MINIMUM_USD", 1000.0)
 
-                # Objection Handling Engine Evaluation
-                detected_objections = objection_detector.detect_objections(raw_body)
-                sensitive_trigger = objection_detector.detect_sensitive_triggers(raw_body)
-                obj_resp = None
+        # Objection Handling Engine Evaluation
+        detected_objections = objection_detector.detect_objections(raw_body)
+        sensitive_trigger = objection_detector.detect_sensitive_triggers(raw_body)
+        obj_resp = None
 
-                if sensitive_trigger.get("is_sensitive"):
-                    if biz:
-                        biz.human_takeover = True
-                        biz.pipeline_stage = PipelineStage.APPROVAL.value
+        if sensitive_trigger.get("is_sensitive"):
+            if biz:
+                biz.human_takeover = True
+                biz.pipeline_stage = PipelineStage.APPROVAL.value
 
-                if detected_objections or sensitive_trigger.get("is_sensitive"):
-                    # Retrieve audit context for grounded response
-                    q_audit = select(AuditRun).where(AuditRun.business_id == business_id).order_by(AuditRun.audited_at.desc())
-                    audit_run = (await session.execute(q_audit)).scalars().first()
-                    audit_ctx = {
-                        "performance_score": audit_run.performance_score if audit_run else 70.0,
-                        "findings": audit_run.findings if audit_run else []
-                    }
+        if detected_objections or sensitive_trigger.get("is_sensitive"):
+            # Retrieve audit context for grounded response
+            q_audit = select(AuditRun).where(AuditRun.business_id == business_id).order_by(AuditRun.audited_at.desc())
+            audit_run = (await session.execute(q_audit)).scalars().first()
+            audit_ctx = {
+                "performance_score": audit_run.performance_score if audit_run else 70.0,
+                "findings": audit_run.findings if audit_run else []
+            }
 
-                    prospect_ctx = {
-                        "domain": biz.domain if biz else "your website",
-                        "name": biz.name if biz else "your website",
-                        "audit_results": audit_ctx,
-                        "estimated_value": offered_val
-                    }
-                    obj_resp = objection_response_engine.generate_response(
-                        prospect_context=prospect_ctx,
-                        objections=detected_objections,
-                        raw_reply=raw_body
-                    )
-                    # If reply was an objection, use the objection response draft
-                    if cat not in (ReplyClassification.UNSUBSCRIBE.value, ReplyClassification.BOUNCE.value, ReplyClassification.PRICE_REQUEST.value, ReplyClassification.INTERESTED.value):
-                        suggested = obj_resp.client_facing_draft
-                        reply.suggested_response = suggested
+            prospect_ctx = {
+                "domain": biz.domain if biz else "your website",
+                "name": biz.name if biz else "your website",
+                "audit_results": audit_ctx,
+                "estimated_value": offered_val
+            }
+            obj_resp = objection_response_engine.generate_response(
+                prospect_context=prospect_ctx,
+                objections=detected_objections,
+                raw_reply=raw_body
+            )
+            # If reply was an objection, use the objection response draft
+            if cat not in (ReplyClassification.UNSUBSCRIBE.value, ReplyClassification.BOUNCE.value, ReplyClassification.PRICE_REQUEST.value, ReplyClassification.INTERESTED.value):
+                suggested = obj_resp.client_facing_draft
+                reply.suggested_response = suggested
 
-                # Sync ProspectMemory
-                q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
-                mem = (await session.execute(q_mem)).scalars().first()
-                if not mem:
-                    mem = ProspectMemory(
-                        business_id=biz.id,
-                        domain=biz.domain,
-                        contact_email=sender_email,
-                        pipeline_stage=new_stage,
-                        estimated_value=offered_val,
-                        conversation_history=[],
-                        objection_history=[]
-                    )
-                    session.add(mem)
-                mem.pipeline_stage = new_stage
-                mem.last_interaction = f"Reply received from {sender_email}: {cat}"
-                mem.next_expected_action = "MEETING_CONFIRMATION" if new_stage == PipelineStage.QUALIFIED_REPLY.value else "FOLLOW_UP"
-                history = list(mem.conversation_history or [])
+        # Sync ProspectMemory
+        if biz and cat != ReplyClassification.BOUNCE.value:
+            from sqlalchemy.orm.attributes import flag_modified
+            q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+            mem = (await session.execute(q_mem)).scalars().first()
+            if not mem:
+                mem = ProspectMemory(
+                    business_id=biz.id,
+                    domain=biz.domain,
+                    contact_email=sender_email,
+                    pipeline_stage=new_stage,
+                    estimated_value=offered_val,
+                    conversation_history=[],
+                    objection_history=[]
+                )
+                session.add(mem)
+            mem.pipeline_stage = new_stage
+            mem.last_interaction = f"Reply received from {sender_email}: {cat}"
+            mem.next_expected_action = "MEETING_CONFIRMATION" if new_stage == PipelineStage.QUALIFIED_REPLY.value else "FOLLOW_UP"
+            history = list(mem.conversation_history or [])
+            history.append({
+                "sender": "PROSPECT",
+                "message": raw_body,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            if suggested:
                 history.append({
-                    "sender": "PROSPECT",
-                    "message": raw_body,
+                    "sender": "AGENT",
+                    "message": suggested,
+                    "intent": cat,
                     "timestamp": datetime.utcnow().isoformat()
                 })
-                if suggested:
-                    history.append({
-                        "sender": "AGENT",
-                        "message": suggested,
-                        "intent": cat,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-                mem.conversation_history = history
+            mem.conversation_history = history
+            flag_modified(mem, "conversation_history")
 
-                if obj_resp:
-                    obj_hist = list(mem.objection_history or [])
-                    obj_hist.append({
-                        "objections": obj_resp.objection_categories,
-                        "primary": obj_resp.primary_objection,
-                        "draft_response": obj_resp.client_facing_draft,
-                        "reasoning": obj_resp.internal_reasoning,
-                        "commercial_implications": obj_resp.commercial_implications,
-                        "recommended_action": obj_resp.recommended_action,
-                        "force_human_takeover": obj_resp.force_human_takeover,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-                    mem.objection_history = obj_hist
-                    mem.updated_at = datetime.utcnow()
+            # Detect and record commitments
+            detected_cmts = commitment_service.detect_commitments_from_text(raw_body, speaker_type="CUSTOMER")
+            for c in detected_cmts:
+                await commitment_service.add_commitment(
+                    session,
+                    business_id=business_id,
+                    commitment_type=CommitmentType.CUSTOMER,
+                    description=c["description"],
+                    raw_statement=c.get("raw_statement", ""),
+                    due_at=c.get("due_at"),
+                    source_event_id=str(conv_event.id)
+                )
+
+            # Record structured objections
+            for obj_cat in detected_objections:
+                if obj_cat != ObjectionCategory.UNKNOWN:
+                    await objection_service.record_objection(
+                        session,
+                        business_id=business_id,
+                        objection_type=obj_cat,
+                        statement=raw_body,
+                        source_event_id=str(conv_event.id)
+                    )
+
+            # Update memory summary
+            from app.crm.memory_service import memory_service
+            questions = [line.strip() for line in raw_body.split("\n") if "?" in line and len(line.strip()) > 5]
+            await memory_service.update_memory_summary(
+                session,
+                business_id,
+                questions=questions if questions else None,
+                objections=[o.value for o in detected_objections] if detected_objections else None,
+                commitments=[c["description"] for c in detected_cmts] if detected_cmts else None
+            )
+
+            # Ensure exact outbound context is populated
+            if not mem.exact_outbound_context:
+                await memory_service.get_exact_outbound_context(session, business_id)
+
+            if obj_resp:
+                obj_hist = list(mem.objection_history or [])
+                obj_hist.append({
+                    "objections": obj_resp.objection_categories,
+                    "primary": obj_resp.primary_objection,
+                    "draft_response": obj_resp.client_facing_draft,
+                    "reasoning": obj_resp.internal_reasoning,
+                    "commercial_implications": obj_resp.commercial_implications,
+                    "recommended_action": obj_resp.recommended_action,
+                    "force_human_takeover": obj_resp.force_human_takeover,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                mem.objection_history = obj_hist
+                flag_modified(mem, "objection_history")
+
+            mem.updated_at = datetime.utcnow()
+
+            await activity_broadcaster.record_event(
+                session=session,
+                run_id=f"REPLY-{business_id}",
+                event_type=AgentEventType.LEAD_CONTEXT_RECONSTRUCTED.value,
+                message=f"Persistent lead context updated for {biz.name or biz.domain} (#{business_id}).",
+                business_id=business_id,
+                domain=biz.domain if biz else None,
+                status="SUCCESS"
+            )
 
         await session.commit()
         logger.info(f"Processed reply from {sender_email} for business {business_id}. Classified as {cat}")

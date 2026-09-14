@@ -756,6 +756,9 @@ class ProspectMemory(Base):
     human_decisions: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
     suppression_state: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     commercial_context: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    memory_summary: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    commitments: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    exact_outbound_context: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
 
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
