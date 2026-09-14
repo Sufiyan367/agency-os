@@ -169,7 +169,6 @@ class AutonomousCycleOrchestrator:
 
                 # 2b. Lead Discovery: Check daily country and global qualified prospect ceilings
                 today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                from sqlalchemy import select, func
                 q_glob = select(func.count(Business.id)).where(
                     Business.pipeline_stage.in_([
                         PipelineStage.APPROVAL.value,
