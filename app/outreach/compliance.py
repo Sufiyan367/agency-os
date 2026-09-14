@@ -63,7 +63,8 @@ class ComplianceGuard:
             await session.commit()
 
     async def can_send_today(self, session: AsyncSession) -> bool:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        from app.core.config import get_today_window_start
+        today_start = get_today_window_start()
         q = select(func.count(OutreachMessage.id)).where(
             OutreachMessage.status == OutreachStatus.SENT.value,
             OutreachMessage.sent_at >= today_start

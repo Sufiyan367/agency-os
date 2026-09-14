@@ -131,8 +131,9 @@ class SenderRegistry:
         else:
             from_email = settings.EMAIL_FROM or "hello@automatedagencyos.tech"
 
-        # Query real dispatches today (since midnight UTC)
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        # Query real dispatches today (since midnight UTC or canary window start)
+        from app.core.config import get_today_window_start
+        today_start = get_today_window_start()
         q_sent = select(func.count(OutreachEvent.id)).where(
             OutreachEvent.event_type == "email_dispatched",
             OutreachEvent.created_at >= today_start

@@ -201,6 +201,18 @@ class PersistentAgencyWorker:
                         )
                         await session.rollback()
 
+                # Job 1a: Capacity-Governed Auto-Approval Gate (Deterministic Quality & Compliance Verification)
+                summary["auto_approved_count"] = 0
+                if getattr(settings, "AUTONOMOUS_OUTREACH", False) and getattr(settings, "AUTO_APPROVAL_ENABLED", True) and not getattr(settings, "EMERGENCY_STOP", False):
+                    from app.outreach.auto_approval import auto_approval_engine
+                    try:
+                        auto_appr_summary = await auto_approval_engine.scan_and_auto_approve_pending(session)
+                        summary["auto_approved_count"] = auto_appr_summary.get("auto_approved_count", 0)
+                        if summary["auto_approved_count"] > 0:
+                            logger.info(f"[PersistentWorker] Auto-approved {summary['auto_approved_count']} qualified messages passing all 14 safety gates.")
+                    except Exception as appr_err:
+                        logger.error(f"[PersistentWorker] Auto-approval evaluation error: {appr_err}")
+
                 # Job 1b: Capacity-Governed Approved Queue Processing (DISPATCH)
                 summary["approved_queue_processed"] = 0
                 summary["approved_queue_deferred"] = 0
@@ -274,10 +286,23 @@ class PersistentAgencyWorker:
                 should_run_cycle = False
                 if getattr(settings, "AUTONOMOUS_AUTO_DISCOVERY", True):
                     if not self.last_cycle_at:
-                        # Run on startup if pipeline has low volume (< 20 leads)
-                        lead_count = (await session.execute(select(func.count(Business.id)))).scalar() or 0
-                        if lead_count < 20:
+                        # Run on startup if uncontacted / actionable prospect volume is low (< 5 leads)
+                        uncontacted_stmt = select(func.count(Business.id)).where(
+                            Business.pipeline_stage.in_([
+                                PipelineStage.DISCOVERED.value,
+                                PipelineStage.VERIFIED.value,
+                                PipelineStage.AUDITED.value,
+                                PipelineStage.QUALIFIED.value,
+                                PipelineStage.OUTREACH_READY.value,
+                                PipelineStage.APPROVAL.value
+                            ])
+                        )
+                        actionable_count = (await session.execute(uncontacted_stmt)).scalar() or 0
+                        if actionable_count < 5:
                             should_run_cycle = True
+                        else:
+                            # Initialize last_cycle_at so timer runs cleanly
+                            self.last_cycle_at = datetime.utcnow()
                     else:
                         elapsed_mins = (datetime.utcnow() - self.last_cycle_at).total_seconds() / 60.0
                         if elapsed_mins >= cycle_interval_mins:
@@ -286,9 +311,10 @@ class PersistentAgencyWorker:
                     logger.debug("[PersistentWorker] Unsolicited autonomous auto-discovery is disabled by policy (AUTONOMOUS_AUTO_DISCOVERY=False).")
 
                 if should_run_cycle:
-                    logger.info("[PersistentWorker] Triggering scheduled autonomous lead cycle...")
+                    target_leads_n = min(getattr(settings, "CANARY_DAILY_LIMIT", 5), 5)
+                    logger.info(f"[PersistentWorker] Triggering scheduled autonomous lead cycle (Target: {target_leads_n} leads)...")
                     cycle_res = await orchestrator.run_full_autonomous_cycle(
-                        target_leads_per_market=10, max_opportunities_to_mine=1
+                        target_leads_per_market=target_leads_n, max_opportunities_to_mine=1
                     )
                     self.last_cycle_at = datetime.utcnow()
                     summary["autonomous_cycle_run"] = True

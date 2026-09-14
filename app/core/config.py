@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -244,4 +245,32 @@ class Settings(BaseSettings):
     WEIGHT_MKT_OUTREACH_DIFFICULTY: float = 0.7
     WEIGHT_MKT_COMPLIANCE_RISK: float = 0.9
 
+    # Live Canary Outreach Settings
+    CANARY_START_TIME: Optional[str] = os.getenv("CANARY_START_TIME")
+    CANARY_DAILY_LIMIT: int = int(os.getenv("CANARY_DAILY_LIMIT", "5"))
+
 settings = Settings()
+
+
+def get_today_window_start() -> datetime:
+    """
+    Returns the UTC start timestamp for today's quota window.
+    If CANARY_START_TIME is set and occurs after today's midnight UTC,
+    it acts as the window anchor so that historical test dispatches
+    do not exhaust the live canary quota. Lifetime duplicate suppression
+    is independently enforced across all time.
+    """
+    today_midnight = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    now_utc = datetime.utcnow()
+    canary_str = getattr(settings, "CANARY_START_TIME", None) or os.getenv("CANARY_START_TIME")
+    if canary_str:
+        try:
+            clean_str = canary_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(clean_str)
+            if dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            if today_midnight < dt <= now_utc:
+                return dt
+        except Exception:
+            pass
+    return today_midnight

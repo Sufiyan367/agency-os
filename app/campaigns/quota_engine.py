@@ -29,8 +29,8 @@ class QuotaEngine:
         campaign_id: Optional[int] = None,
         country_code: Optional[str] = None
     ) -> Dict[str, int]:
-        """Queries database for real messages sent today (since midnight UTC)."""
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        from app.core.config import get_today_window_start
+        today_start = get_today_window_start()
 
         # 1. Global sent today
         q_global = select(func.count(OutreachMessage.id)).where(

@@ -43,7 +43,7 @@ class CampaignComplianceGate:
 
         biz = await session.get(Business, message.business_id) if message.business_id else None
         country_code = (biz.country if biz and biz.country else (campaign.country_code if campaign else "US")).strip().upper()
-        is_live = not getattr(settings, "EMAIL_DRY_RUN", True) and force_live
+        is_live = force_live or (not getattr(settings, "EMAIL_DRY_RUN", True) and not getattr(settings, "DRY_RUN", True))
         email = (message.recipient_email or "").strip().lower()
 
         # Check 1: Suppression check

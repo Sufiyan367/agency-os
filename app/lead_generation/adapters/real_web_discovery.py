@@ -170,41 +170,46 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         # Source 2: If more candidates needed, query OpenStreetMap Public Business Index
         if len(candidates) < limit:
             osm_headers = {"User-Agent": "AgencyB2BResearch/2.0 (contact@agencygrowth.co)"}
-            async with httpx.AsyncClient(timeout=4.0, follow_redirects=True, verify=False) as client:
+            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=False) as client:
+                query_terms = [search_term]
+                # Also try first 2 words if search_term has 3+ words (e.g. 'real estate agency brokerage' -> 'real estate')
+                words = search_term.split()
+                if len(words) > 2:
+                    query_terms.append(" ".join(words[:2]))
+
                 for city in cities:
                     if len(candidates) >= limit * 3:
                         break
-                    query = f"{city} {search_term}"
-                    url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&format=json&extratags=1&limit=10"
-                    try:
-                        r = await client.get(url, headers=osm_headers)
-                        if r.status_code == 200:
-                            for item in r.json():
-                                tags = item.get("extratags") or {}
-                                web = tags.get("website") or tags.get("contact:website")
-                                if not web or not web.startswith("http"):
-                                    continue
-                                norm_dom = normalize_domain(web)
-                                if not norm_dom or norm_dom in seen_domains or norm_dom in excluded:
-                                    continue
-                                if any(b in norm_dom for b in BLOCKED_DOMAINS):
-                                    continue
+                    for q_term in query_terms:
+                        query = f"{city} {q_term}"
+                        url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&format=json&extratags=1&limit=10"
+                        try:
+                            r = await client.get(url, headers=osm_headers)
+                            if r.status_code == 200:
+                                for item in r.json():
+                                    tags = item.get("extratags") or {}
+                                    web = tags.get("website") or tags.get("contact:website")
+                                    if not web or not web.startswith("http"):
+                                        continue
+                                    norm_dom = normalize_domain(web)
+                                    if not norm_dom or norm_dom in seen_domains or norm_dom in excluded:
+                                        continue
+                                    if any(b in norm_dom for b in BLOCKED_DOMAINS):
+                                        continue
 
-                                seen_domains.add(norm_dom)
-                                name = item.get("name") or item.get("display_name").split(",")[0].strip()
-                                phone = tags.get("phone") or tags.get("contact:phone")
-                                candidates.append({
-                                    "domain": norm_dom,
-                                    "url": web,
-                                    "title": name,
-                                    "city": city,
-                                    "phone": phone,
-                                    "source": "openstreetmap_registry"
-                                })
-                                if len(candidates) >= limit * 3:
-                                    break
-                    except Exception as e:
-                        logger.debug(f"OSM query note for {city}: {e}")
+                                    seen_domains.add(norm_dom)
+                                    name = item.get("name") or item.get("display_name").split(",")[0].strip()
+                                    phone = tags.get("phone") or tags.get("contact:phone")
+                                    candidates.append({
+                                        "domain": norm_dom,
+                                        "url": web,
+                                        "title": name,
+                                        "city": city,
+                                        "phone": phone,
+                                        "source": "openstreetmap_registry"
+                                    })
+                        except Exception as e:
+                            logger.debug(f"OSM query note for {city}: {e}")
 
         # Prioritize candidates that already have verified public corporate contact emails
         candidates.sort(key=lambda c: 0 if c.get("email") else 1)

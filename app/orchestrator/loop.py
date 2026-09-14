@@ -72,7 +72,22 @@ class AutonomousCycleOrchestrator:
             # 1. Market Research & Intelligence: Select Best Opportunity
             logger.info("Step 1: Discovering and evaluating global market opportunities...")
             opportunities = await market_intelligence_engine.scan_and_rank_markets(session)
-            top_markets = opportunities[:max_opportunities_to_mine]
+            
+            # Filter opportunities by sending window and campaign enablement
+            from app.campaigns.scheduler import campaign_scheduler
+            from app.campaigns.config import campaign_config_loader
+            active_window_opportunities = []
+            for opp in opportunities:
+                cc = (opp.country_code or "US").upper()
+                c_prof = campaign_config_loader.get_country(cc)
+                if c_prof and not c_prof.enabled:
+                    continue
+                in_win, _, _, _ = campaign_scheduler.is_within_sending_window(cc)
+                if in_win:
+                    active_window_opportunities.append(opp)
+
+            candidate_markets = active_window_opportunities if active_window_opportunities else opportunities
+            top_markets = candidate_markets[:max_opportunities_to_mine]
             best_market = top_markets[0]
             cycle_summary["selected_market"] = {
                 "country": best_market.country_name,
