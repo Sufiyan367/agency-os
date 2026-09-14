@@ -109,8 +109,8 @@ class InboxPoller:
         Fails safely on network or provider errors without crashing the caller.
         """
         try:
-            # 1. Check for Gmail OAuth if configured
-            is_gmail = (settings.EMAIL_PROVIDER or "").lower().strip() in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None)
+            # 1. Check for Gmail OAuth if configured as active provider
+            is_gmail = (settings.EMAIL_PROVIDER or "").lower().strip() in ("gmail", "gmail_oauth")
             if is_gmail and getattr(settings, "GMAIL_CLIENT_ID", None) and getattr(settings, "GMAIL_REFRESH_TOKEN", None):
                 return await self.poll_gmail(session)
 

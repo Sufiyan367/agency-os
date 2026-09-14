@@ -164,7 +164,7 @@ export class DeliverabilityHUDController {
                 <span style="color:#71717a;">|</span>
                 <span style="color:#a1a1aa;">${sender}</span>
                 <span style="color:#71717a;">|</span>
-                <span style="color:${isAuthBlocked ? '#f87171' : '#10b981'};">Auth: ${report.outbound_authorization || 'BLOCKED'}</span>
+                <span style="color:${isAuthBlocked ? '#f87171' : '#10b981'};">Auth: ${report.outbound_authorization || 'BLOCKED'}${isAuthBlocked && report.outbound_auth_blocker ? ` (${report.outbound_auth_blocker})` : ''}</span>
                 <span style="color:#71717a;">|</span>
                 <span style="color:${lockStatus === 'IDLE' ? '#10b981' : '#f59e0b'};">Lock: ${lockStatus}</span>
             </div>

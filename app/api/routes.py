@@ -1301,20 +1301,20 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
     lock = await active_prospect_controller.get_or_create_lock(db)
     lock_status = lock.status
 
-    primary_prov = getattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
+    primary_prov = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or getattr(settings, "EMAIL_PROVIDER", None) or "titan").lower().strip()
     email_prov = getattr(settings, "EMAIL_PROVIDER", "titan")
     fallback_prov = getattr(settings, "FALLBACK_EMAIL_PROVIDER", None)
 
     titan_smtp_health = {"status": "NOT_CHECKED"}
     titan_imap_health = {"status": "NOT_CHECKED"}
-    if email_prov in ("titan", "titan_smtp") or primary_prov in ("titan", "titan_smtp") or getattr(settings, "TITAN_SMTP_USER", None):
+    if primary_prov in ("titan", "titan_smtp") or email_prov in ("titan", "titan_smtp") or getattr(settings, "TITAN_SMTP_USER", None):
         from app.outreach.providers.titan_provider import TitanEmailProvider
         tp = TitanEmailProvider()
         titan_smtp_health = tp.check_auth_health()
         titan_imap_health = tp.check_imap_health()
 
     gmail_health = {"status": "NOT_CHECKED"}
-    if email_prov in ("gmail", "gmail_oauth") or getattr(settings, "GMAIL_REFRESH_TOKEN", None):
+    if primary_prov in ("gmail", "gmail_oauth") or fallback_prov in ("gmail", "gmail_oauth"):
         try:
             from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
             gp = GmailOAuthEmailProvider()
@@ -1328,7 +1328,7 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
         outbound_auth = "BLOCKED"
         auth_blocker = "TITAN_SMTP_PASSWORD is missing in configuration"
     elif titan_smtp_health.get("healthy"):
-        outbound_auth = "AUTHORIZED"
+        outbound_auth = "READY"
         auth_blocker = None
     else:
         outbound_auth = "BLOCKED"

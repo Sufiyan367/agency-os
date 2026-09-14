@@ -2055,6 +2055,70 @@ body.menu-open {
     margin-bottom: 18px;
 }
 
+/* ==========================================================================
+   INLINE SVG ICON UNIFORMITY
+   ========================================================================== */
+.icon-svg {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.problem-icon .icon-svg,
+.service-icon .icon-svg,
+.industry-icon .icon-svg,
+.deliverable-icon .icon-svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+.service-bullets li .icon-svg,
+.pricing-features li .icon-svg {
+    width: 14px;
+    height: 14px;
+    stroke: #4ade80;
+    stroke-width: 2.5;
+    fill: none;
+}
+
+.payment-step-arrow .icon-svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--muted);
+    stroke-width: 2;
+    fill: none;
+}
+
+.assurance-item .icon-svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--muted-light);
+    stroke-width: 2;
+    fill: none;
+}
+
+.industries-footer-note .icon-svg {
+    width: 18px;
+    height: 18px;
+    stroke: #60a5fa;
+    stroke-width: 2;
+    fill: none;
+}
+
+.secondary-cta-link .icon-svg,
+.form-submit-btn .icon-svg,
+.back-to-top .icon-svg,
+.modal-close-btn .icon-svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
 .problem-title {
     font-size: 17px;
     font-weight: 600;
