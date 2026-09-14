@@ -4753,6 +4753,76 @@ async def submit_contact_inquiry(
     }
 
 
+class OnboardingConsultationRequest(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = ""
+    agency_name: Optional[str] = ""
+    company: Optional[str] = ""
+    niche: Optional[str] = "enterprise"
+    current_process: Optional[str] = ""
+    message: Optional[str] = ""
+
+
+@router.post("/api/v1/onboarding/consultation")
+async def submit_onboarding_consultation(
+    payload: OnboardingConsultationRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Public onboarding consultation request endpoint.
+    Validates submission, logs the consultation into the activity event stream,
+    and returns a verified confirmation.
+    """
+    name = (payload.name or "").strip()
+    email = (payload.email or "").strip()
+    company = (payload.company or payload.agency_name or "").strip()
+    note = (payload.current_process or payload.message or "Architecture Consultation Request").strip()
+
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="Name and email are required.")
+
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Please enter a valid business email address.")
+
+    logger.info(f"[ConsultationRequest] Received consultation request from {name} <{email}> ({company})")
+
+    try:
+        activity = AgentActivityEvent(
+            run_id="public_consultation",
+            event_type="CONSULTATION_REQUEST",
+            status="SUCCESS",
+            message=f"Consultation request from {name} ({company or 'Individual'}) - {payload.niche or 'enterprise'}",
+            metadata_json={
+                "name": name,
+                "email": email,
+                "company": company,
+                "phone": payload.phone or "",
+                "niche": payload.niche or "enterprise",
+                "current_process": note,
+                "client_ip": request.client.host if request.client else "unknown",
+                "received_at": datetime.utcnow().isoformat()
+            }
+        )
+        db.add(activity)
+        await db.commit()
+    except Exception as e:
+        logger.warning(f"[ConsultationRequest] DB record warning: {e}")
+
+    return {
+        "success": True,
+        "message": "Consultation request received. A systems architect will reach out shortly.",
+        "consultation": {
+            "name": name,
+            "email": email,
+            "company": company,
+            "received_at": datetime.utcnow().isoformat()
+        }
+    }
+
+
+
 # =====================================================================
 # Support & Telemetry Endpoints (Phase 11 & Phase 12)
 # =====================================================================

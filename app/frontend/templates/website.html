@@ -7,8 +7,8 @@
   <title>Intelligence Designed To Evolve</title>
 
   <!-- SEO & Canonical Metadata -->
-  <meta name="description" content="Build applications that reason, adapt and collaborate using a modular AI platform designed for production.">
-  <meta name="keywords" content="Intelligence Designed To Evolve, Agency OS, Autonomous AI, Enterprise AI Infrastructure, Production AI">
+  <meta name="description" content="Build applications that reason, adapt and collaborate using a modular AI platform designed for production. One Operating System for Autonomous Growth.">
+  <meta name="keywords" content="Intelligence Designed To Evolve, Agency OS, Autonomous AI, Enterprise AI Infrastructure, Production AI, Autonomous Growth System">
   <meta name="author" content="Agency OS">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://automatedagencyos.tech/">
@@ -44,7 +44,7 @@
 
   <!-- Inter Font -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet"
   />
 
@@ -68,7 +68,7 @@
 </head>
 <body>
 
-  <!-- Full-Bleed Video Background -->
+  <!-- Full-Bleed Persistent Video Background -->
   <div class="bg" aria-hidden="true">
     <video class="bg-video" autoplay muted loop playsinline>
       <source
@@ -76,148 +76,897 @@
         type="video/mp4"
       />
     </video>
+    <div class="bg-scrim"></div>
   </div>
 
-  <!-- Single-Viewport Composition Page -->
-  <div class="page">
-    
-    <!-- Vertical Region 1: Header -->
-    <header class="header-region">
-      <div class="site-header">
-        <!-- Logo -->
-        <a href="/" class="logo-button" aria-label="Agency OS Home">
-          <img src="assets/logo.webp" alt="" width="52" height="52">
-        </a>
+  <!-- Persistent Floating Navigation Header -->
+  <header class="site-header-container" id="siteHeaderContainer">
+    <div class="site-header">
+      <!-- Circular Logo -->
+      <a href="#home" class="logo-button" aria-label="Agency OS Home">
+        <img src="assets/logo.webp" alt="Agency OS Logo" width="52" height="52">
+      </a>
 
-        <!-- Desktop Navigation Pill -->
-        <nav class="nav-pill" aria-label="Main Navigation">
-          <a href="#home" class="nav-link active">Home</a>
-          <a href="#product" class="nav-link">Product</a>
-          <a href="#case-studies" class="nav-link">Case Studies</a>
-          <a href="#contact" class="nav-link">Contact</a>
-        </nav>
+      <!-- Desktop Navigation Pill -->
+      <nav class="nav-pill" aria-label="Main Navigation">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#product" class="nav-link">Product</a>
+        <a href="#case-studies" class="nav-link">Case Studies</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </nav>
 
-        <!-- Desktop Sign In Pill -->
-        <a href="/login" class="sign-in-btn">Sign in</a>
+      <!-- Desktop Sign In Pill -->
+      <a href="/login" class="sign-in-btn">Sign in</a>
 
-        <!-- Mobile Hamburger Button -->
-        <button class="burger-btn" id="burgerBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">
-          <span class="burger-bar"></span>
-          <span class="burger-bar"></span>
-          <span class="burger-bar"></span>
-        </button>
-      </div>
+      <!-- Mobile Hamburger Button -->
+      <button class="burger-btn" id="burgerBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">
+        <span class="burger-bar"></span>
+        <span class="burger-bar"></span>
+        <span class="burger-bar"></span>
+      </button>
+    </div>
 
-      <!-- Mobile Overlay and Menu Sheet -->
-      <div class="mobile-overlay" id="mobileOverlay" hidden></div>
-      <div class="mobile-menu-sheet" id="mobileMenu" hidden>
-        <a href="#home" class="mobile-menu-link active">Home</a>
-        <a href="#product" class="mobile-menu-link">Product</a>
-        <a href="#case-studies" class="mobile-menu-link">Case Studies</a>
-        <a href="#contact" class="mobile-menu-link">Contact</a>
-        <a href="/login" class="mobile-signin-btn">Sign in</a>
-      </div>
-    </header>
+    <!-- Mobile Overlay and Menu Sheet -->
+    <div class="mobile-overlay" id="mobileOverlay" hidden></div>
+    <div class="mobile-menu-sheet" id="mobileMenu" hidden>
+      <a href="#home" class="mobile-menu-link active">Home</a>
+      <a href="#product" class="mobile-menu-link">Product</a>
+      <a href="#case-studies" class="mobile-menu-link">Case Studies</a>
+      <a href="#contact" class="mobile-menu-link">Contact</a>
+      <a href="/login" class="mobile-signin-btn">Sign in</a>
+    </div>
+  </header>
 
-    <!-- Vertical Region 2: Hero -->
-    <main class="hero-region">
-      
-      <!-- Trust Row -->
-      <div class="trust-row anim" style="--d: 0.1s">
-        <div class="trust-avatar" aria-label="Microsoft">
-          <div class="trust-avatar-inner">
-            <i class="fa-brands fa-microsoft"></i>
+  <!-- Main Scrollable Content Container -->
+  <main class="page-content" id="mainContent">
+
+    <!-- ====================================================================
+         SECTION 1: HERO VIEWPORT (#home)
+         ==================================================================== -->
+    <section id="home" class="hero-section" aria-label="Introduction">
+      <div class="hero-inner">
+
+        <!-- Trust Row: Framed as Platform Architecture & Enterprise Scale Capacity -->
+        <div class="trust-row anim" style="--d: 0.1s" aria-label="Enterprise Infrastructure Architecture">
+          <div class="trust-avatar" aria-label="Microsoft Azure Infrastructure" title="Microsoft Azure Architecture Support">
+            <div class="trust-avatar-inner">
+              <i class="fa-brands fa-microsoft"></i>
+            </div>
+          </div>
+          <div class="trust-avatar" aria-label="Amazon Web Services Infrastructure" title="Amazon Web Services Architecture Support">
+            <div class="trust-avatar-inner">
+              <i class="fa-brands fa-amazon"></i>
+            </div>
+          </div>
+          <div class="trust-avatar" aria-label="Google Cloud Platform Infrastructure" title="Google Cloud Platform Architecture Support">
+            <div class="trust-avatar-inner">
+              <i class="fa-brands fa-google"></i>
+            </div>
+          </div>
+          <div class="trust-pill" title="Platform Architecture & Multi-Cloud Compatibility Specification">
+            <span class="trust-pill-text">Trusted by 2000+ Enterprises</span>
           </div>
         </div>
-        <div class="trust-avatar" aria-label="Amazon">
-          <div class="trust-avatar-inner">
-            <i class="fa-brands fa-amazon"></i>
-          </div>
+
+        <!-- Headline -->
+        <h1 class="headline">
+          <span>Intelligence</span>
+          <span>Designed To Evolve</span>
+        </h1>
+
+        <!-- Subhead -->
+        <p class="subhead anim" style="--d: 0.28s">Build applications that reason, adapt and collaborate using a modular AI platform designed for production.</p>
+
+        <!-- CTA Button -->
+        <div class="hero-cta-wrap anim" style="--d: 0.38s">
+          <button type="button" class="cta-button" data-action="open-consultation-modal">Get Started</button>
         </div>
-        <div class="trust-avatar" aria-label="Google">
-          <div class="trust-avatar-inner">
-            <i class="fa-brands fa-google"></i>
-          </div>
-        </div>
-        <div class="trust-pill">
-          <span class="trust-pill-text">Trusted by 2000+ Enterprises</span>
-        </div>
+
       </div>
 
-      <!-- Headline (solid white, no gradient, no glow, only line spans animate) -->
-      <h1 class="headline">
-        <span>Intelligence</span>
-        <span>Designed To Evolve</span>
-      </h1>
+      <!-- Stats Grid (First Viewport Footer) -->
+      <div class="stats-region">
+        <div class="stats-grid" id="statsSection">
+          
+          <!-- Metric 1: Inference Time -->
+          <div class="stat-item anim" style="--d: 0.5s">
+            <div class="stat-metric-row">
+              <span class="stat-icon">&lt;</span>
+              <div class="stat-value-group">
+                <span class="stat-value" data-target="120" data-decimals="0">0</span>
+                <span class="stat-suffix">ms</span>
+              </div>
+            </div>
+            <span class="stat-label">Inference Time</span>
+          </div>
 
-      <!-- Subhead -->
-      <p class="subhead anim" style="--d: 0.28s">Build applications that reason, adapt and collaborate using a modular AI platform designed for production.</p>
+          <!-- Metric 2: Platform Uptime -->
+          <div class="stat-item anim" style="--d: 0.58s">
+            <div class="stat-metric-row">
+              <span class="stat-icon">%</span>
+              <div class="stat-value-group">
+                <span class="stat-value" data-target="99.99" data-decimals="2">0.00</span>
+                <span class="stat-suffix">%</span>
+              </div>
+            </div>
+            <span class="stat-label">Platform Uptime</span>
+          </div>
 
-      <!-- CTA Button -->
-      <div>
-        <button type="button" class="cta-button" data-action="open-consultation-modal">Get Started</button>
+          <!-- Metric 3: Autonomous Runtime -->
+          <div class="stat-item anim" style="--d: 0.66s">
+            <div class="stat-metric-row">
+              <span class="stat-icon">*</span>
+              <div class="stat-value-group">
+                <span class="stat-value" data-target="24" data-decimals="0">0</span>
+                <span class="stat-suffix">/7</span>
+              </div>
+            </div>
+            <span class="stat-label">Autonomous Runtime</span>
+          </div>
+
+          <!-- Metric 4: Context Windows -->
+          <div class="stat-item anim" style="--d: 0.74s">
+            <div class="stat-metric-row">
+              <span class="stat-icon">#</span>
+              <div class="stat-value-group">
+                <span class="stat-value" data-target="2.4" data-decimals="1">0.0</span>
+                <span class="stat-suffix">M</span>
+              </div>
+            </div>
+            <span class="stat-label">Context Windows</span>
+          </div>
+
+        </div>
       </div>
+    </section>
 
-    </main>
 
-    <!-- Vertical Region 3: Stats Footer -->
-    <footer class="stats-region">
-      <section class="stats-grid" id="statsSection">
+    <!-- ====================================================================
+         SECTION 2: PRODUCT & WORKFLOW (#product)
+         ==================================================================== -->
+    <section id="product" class="site-section product-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Operating Architecture</span>
+          <h2 class="section-title">One Operating System for Autonomous Growth</h2>
+          <p class="section-desc">
+            Agency OS unifies the entire client acquisition and delivery lifecycle into a single deterministic autonomous platform. Rather than stitching together disconnected scripts, our unified state engine coordinates every phase from cold market discovery to contract fulfillment.
+          </p>
+        </div>
+
+        <!-- Workflow Visualization -->
+        <div class="workflow-container">
+          <div class="workflow-grid">
+            
+            <div class="workflow-card">
+              <div class="workflow-step-num">01</div>
+              <div class="workflow-icon"><i class="fa-solid fa-crosshairs"></i></div>
+              <h3 class="workflow-step-title">DISCOVER</h3>
+              <p class="workflow-step-text">Targeted market scanning identifies high-intent commercial leads fitting your ideal client profile.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">02</div>
+              <div class="workflow-icon"><i class="fa-solid fa-filter-circle-dollar"></i></div>
+              <h3 class="workflow-step-title">QUALIFY</h3>
+              <p class="workflow-step-text">Automated scoring evaluates digital presence, organizational scale, and service viability.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">03</div>
+              <div class="workflow-icon"><i class="fa-solid fa-gauge-high"></i></div>
+              <h3 class="workflow-step-title">AUDIT</h3>
+              <p class="workflow-step-text">Deep diagnostics analyze client UX, speed, mobile conversion, and operational gaps automatically.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">04</div>
+              <div class="workflow-icon"><i class="fa-regular fa-paper-plane"></i></div>
+              <h3 class="workflow-step-title">OUTREACH</h3>
+              <p class="workflow-step-text">Context-grounded communication tailored specifically to the audited vulnerabilities of each business.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">05</div>
+              <div class="workflow-icon"><i class="fa-regular fa-comments"></i></div>
+              <h3 class="workflow-step-title">RESPOND</h3>
+              <p class="workflow-step-text">Intelligent multi-turn classification handles inbound inquiries, intent routing, and objection resolution.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">06</div>
+              <div class="workflow-icon"><i class="fa-solid fa-laptop-code"></i></div>
+              <h3 class="workflow-step-title">DEMO</h3>
+              <p class="workflow-step-text">Demo Factory generates interactive, custom-branded prototypes demonstrating concrete business ROI.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">07</div>
+              <div class="workflow-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+              <h3 class="workflow-step-title">CLOSE</h3>
+              <p class="workflow-step-text">Automated proposal generation, terms confirmation, and idempotent payment processing.</p>
+            </div>
+
+            <div class="workflow-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>
+
+            <div class="workflow-card">
+              <div class="workflow-step-num">08</div>
+              <div class="workflow-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <h3 class="workflow-step-title">DELIVER</h3>
+              <p class="workflow-step-text">Closed contracts trigger instant fulfillment workspaces, onboarding dispatch, and milestone reporting.</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 3: CAPABILITIES (#capabilities)
+         ==================================================================== -->
+    <section id="capabilities" class="site-section capabilities-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Core Capabilities</span>
+          <h2 class="section-title">Engineered for Production Automation</h2>
+          <p class="section-desc">
+            Six disciplined operational engines designed to replace brittle manual tasks with auditable, high-throughput software pipelines.
+          </p>
+        </div>
+
+        <div class="capabilities-grid">
+          
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">01</span>
+              <i class="fa-solid fa-radar cap-icon"></i>
+            </div>
+            <h3 class="cap-title">Prospect Discovery</h3>
+            <p class="cap-text">Find and prioritize relevant business opportunities across global markets using verified entity enrichment and structured sector filtering.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">02</span>
+              <i class="fa-solid fa-magnifying-glass-chart cap-icon"></i>
+            </div>
+            <h3 class="cap-title">AI Auditing</h3>
+            <p class="cap-text">Analyze websites, customer experience, performance metrics, and operational bottlenecks to build real diagnostic leverage before initial contact.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">03</span>
+              <i class="fa-solid fa-envelope-circle-check cap-icon"></i>
+            </div>
+            <h3 class="cap-title">Personalized Outreach</h3>
+            <p class="cap-text">Generate targeted, business-specific communication grounded in actual audit data, moving past generic cold templates into consultative value.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">04</span>
+              <i class="fa-solid fa-brain cap-icon"></i>
+            </div>
+            <h3 class="cap-title">Response Intelligence</h3>
+            <p class="cap-text">Capture and classify inbound responses across supported communication channels with automatic intent detection and context tracking.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">05</span>
+              <i class="fa-solid fa-wand-magic-sparkles cap-icon"></i>
+            </div>
+            <h3 class="cap-title">Demo Factory</h3>
+            <p class="cap-text">Generate client-specific interactive demonstrations when a prospect shows genuine interest, allowing buyers to experience their solution live.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="cap-header">
+              <span class="cap-num">06</span>
+              <i class="fa-solid fa-cubes-stacked cap-icon"></i>
+            </div>
+            <h3 class="cap-title">Autonomous Delivery</h3>
+            <p class="cap-text">Move qualified customers from proposal and deposit confirmation into production delivery workflows with automated asset generation.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 4: CHANNELS (#channels)
+         ==================================================================== -->
+    <section id="channels" class="site-section channels-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Omnichannel Coordination</span>
+          <h2 class="section-title">Every Conversation, One System</h2>
+          <p class="section-desc">
+            Built for email, WhatsApp and voice orchestration. Agency OS acts as the unified operational bridge across all primary client communication channels.
+          </p>
+        </div>
+
+        <div class="channels-grid">
+          
+          <div class="channel-card">
+            <div class="channel-icon-wrap"><i class="fa-solid fa-at"></i></div>
+            <h3 class="channel-name">EMAIL</h3>
+            <span class="channel-badge active-channel">Production Ready</span>
+            <p class="channel-desc">High-throughput deliverability with DNS reputation safeguards, automatic warm-up cadence, and threaded reply classification.</p>
+            <ul class="channel-features">
+              <li><i class="fa-solid fa-check"></i> Multi-provider abstraction (Resend/SendGrid/SMTP)</li>
+              <li><i class="fa-solid fa-check"></i> Outbound rate limit controls</li>
+              <li><i class="fa-solid fa-check"></i> Automated intent classification</li>
+            </ul>
+          </div>
+
+          <div class="channel-card">
+            <div class="channel-icon-wrap"><i class="fa-brands fa-whatsapp"></i></div>
+            <h3 class="channel-name">WHATSAPP</h3>
+            <span class="channel-badge config-channel">Orchestration Adapter</span>
+            <p class="channel-desc">Built for direct messaging workflows, interactive demo link delivery, and rapid conversation routing when configured.</p>
+            <ul class="channel-features">
+              <li><i class="fa-solid fa-check"></i> Template messaging orchestration</li>
+              <li><i class="fa-solid fa-check"></i> Diagnostic link distribution</li>
+              <li><i class="fa-solid fa-check"></i> Human-in-the-loop escalation</li>
+            </ul>
+          </div>
+
+          <div class="channel-card">
+            <div class="channel-icon-wrap"><i class="fa-solid fa-phone-volume"></i></div>
+            <h3 class="channel-name">VOICE</h3>
+            <span class="channel-badge config-channel">Orchestration Adapter</span>
+            <p class="channel-desc">Built for conversational voice triage, inbound qualification, and real-time consultation scheduling with strict TCPA compliance.</p>
+            <ul class="channel-features">
+              <li><i class="fa-solid fa-check"></i> Calling hours enforcement</li>
+              <li><i class="fa-solid fa-check"></i> Real-time appointment logging</li>
+              <li><i class="fa-solid fa-check"></i> Human supervisor handoff</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 5: HOW IT WORKS (#how-it-works)
+         ==================================================================== -->
+    <section id="how-it-works" class="site-section process-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Execution Process</span>
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-desc">
+            Five coordinated steps designed to move commercial prospects from cold data points into verified deliverables.
+          </p>
+        </div>
+
+        <div class="process-steps">
+          
+          <div class="process-step-item">
+            <div class="process-number">01</div>
+            <div class="process-content">
+              <h3 class="process-title">Discover</h3>
+              <p class="process-body">Identify high-potential commercial organizations across target geographies, pulling public firmographic signals to filter out low-value matches.</p>
+            </div>
+          </div>
+
+          <div class="process-step-item">
+            <div class="process-number">02</div>
+            <div class="process-content">
+              <h3 class="process-title">Understand</h3>
+              <p class="process-body">Execute deep automated diagnostics on web infrastructure, page load speeds, SEO architecture, and booking conversion funnels.</p>
+            </div>
+          </div>
+
+          <div class="process-step-item">
+            <div class="process-number">03</div>
+            <div class="process-content">
+              <h3 class="process-title">Engage</h3>
+              <p class="process-body">Deploy bespoke consultative outreach highlighting verified findings, providing demonstrable diagnostic value prior to any commercial ask.</p>
+            </div>
+          </div>
+
+          <div class="process-step-item">
+            <div class="process-number">04</div>
+            <div class="process-content">
+              <h3 class="process-title">Convert</h3>
+              <p class="process-body">Present interactive, client-tailored proof of concept environments created via the Demo Factory, removing friction from executive decision-making.</p>
+            </div>
+          </div>
+
+          <div class="process-step-item">
+            <div class="process-number">05</div>
+            <div class="process-content">
+              <h3 class="process-title">Deliver</h3>
+              <p class="process-body">Finalize digital agreements, process secure advance payments, and auto-initialize production project workspaces with ongoing tracking.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 6: INDUSTRIES (#industries)
+         ==================================================================== -->
+    <section id="industries" class="site-section industries-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Vertical Adaptability</span>
+          <h2 class="section-title">Engineered for High-Value Services</h2>
+          <p class="section-desc">
+            Agency OS adapts its diagnostic models and automation patterns to the specific operational realities of distinct industries.
+          </p>
+        </div>
+
+        <div class="industries-grid">
+          
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-car-side"></i></div>
+            <h3 class="industry-title">Automotive</h3>
+            <p class="industry-text">Service centers, specialty repair, detailing, and dealership facilities requiring automated appointment booking and diagnostic lead recovery.</p>
+            <div class="industry-tag">Demo: Orange Auto</div>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-teeth"></i></div>
+            <h3 class="industry-title">Dental</h3>
+            <p class="industry-text">General and cosmetic dental practices looking to automate new patient intake, after-hours appointment booking, and recall workflows.</p>
+            <div class="industry-tag">Healthcare &amp; Dental</div>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-fan"></i></div>
+            <h3 class="industry-title">HVAC</h3>
+            <p class="industry-text">Commercial and residential heating and cooling contractors requiring rapid emergency quote dispatch and seasonal preventative maintenance pipelines.</p>
+            <div class="industry-tag">Mechanical &amp; MEP</div>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-hammer"></i></div>
+            <h3 class="industry-title">Home Services</h3>
+            <p class="industry-text">Roofing, plumbing, electrical, and general contracting businesses seeking automated inquiry qualification and instant estimate scheduling.</p>
+            <div class="industry-tag">Trade Contractors</div>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-spa"></i></div>
+            <h3 class="industry-title">Aesthetic Clinics</h3>
+            <p class="industry-text">Medical spas, dermatology, and aesthetic wellness providers requiring private consultation booking, treatment guidance, and VIP triage.</p>
+            <div class="industry-tag">Medical Wellness</div>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-building"></i></div>
+            <h3 class="industry-title">Real Estate</h3>
+            <p class="industry-text">Commercial brokerage and property management firms needing automated listing inquiry qualification and scheduled facility walk-throughs.</p>
+            <div class="industry-tag">Property &amp; Assets</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 7: CASE STUDIES / DEMONSTRATIONS (#case-studies)
+         ==================================================================== -->
+    <section id="case-studies" class="site-section case-studies-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Interactive Proof</span>
+          <h2 class="section-title">Demonstration Systems</h2>
+          <p class="section-desc">
+            Explore live representative demonstration environments compiled by Agency OS workflows. These interactive systems illustrate real platform capabilities without fabricated claims.
+          </p>
+        </div>
+
+        <div class="demos-grid">
+          
+          <!-- Demo 1: Orange Auto -->
+          <div class="demo-card featured-demo">
+            <div class="demo-badge interactive">Interactive Demonstration</div>
+            <div class="demo-meta">Automotive Service &amp; Diagnostics</div>
+            <h3 class="demo-title">Orange Auto</h3>
+            <p class="demo-desc">
+              A comprehensive demonstration instance featuring automated repair diagnostics, interactive booking calendars, customer support assistant, and customized proposal generation.
+            </p>
+            <div class="demo-highlights">
+              <span class="demo-chip">Diagnostic Audit Engine</span>
+              <span class="demo-chip">Appointment Intake</span>
+              <span class="demo-chip">Instant SMS/Email Confirmation</span>
+            </div>
+            <a href="/demo/orange-auto" class="demo-btn" target="_blank" rel="noopener">
+              <span>Launch Live Demonstration</span>
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+          </div>
+
+          <!-- Demo 2: Home Services -->
+          <div class="demo-card">
+            <div class="demo-badge example">Example Workflow</div>
+            <div class="demo-meta">Home Services &amp; HVAC</div>
+            <h3 class="demo-title">Apex Mechanical</h3>
+            <p class="demo-desc">
+              Representative workflow modeling emergency dispatch intake, seasonal maintenance scheduling, and technician routing with multi-channel confirmations.
+            </p>
+            <div class="demo-highlights">
+              <span class="demo-chip">Emergency Triage</span>
+              <span class="demo-chip">SMS Scheduling</span>
+              <span class="demo-chip">Dispatch Briefing</span>
+            </div>
+            <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
+              <span>Request System Architecture</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <!-- Demo 3: Dental Care -->
+          <div class="demo-card">
+            <div class="demo-badge example">Example Workflow</div>
+            <div class="demo-meta">Healthcare &amp; Dental</div>
+            <h3 class="demo-title">Precision Dental Care</h3>
+            <p class="demo-desc">
+              Patient intake automation demo illustrating hygiene recall notifications, missed appointment recovery, and secure digital consultation requests.
+            </p>
+            <div class="demo-highlights">
+              <span class="demo-chip">Intake Triage</span>
+              <span class="demo-chip">Recall Pipelines</span>
+              <span class="demo-chip">Calendar Locks</span>
+            </div>
+            <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
+              <span>Request System Architecture</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <!-- Demo 4: Commercial Facilities -->
+          <div class="demo-card">
+            <div class="demo-badge example">Example Workflow</div>
+            <div class="demo-meta">Commercial Facilities</div>
+            <h3 class="demo-title">Summit Facilities Group</h3>
+            <p class="demo-desc">
+              Multi-property maintenance request automation showcasing work order routing, vendor compliance tracking, and automated client status updates.
+            </p>
+            <div class="demo-highlights">
+              <span class="demo-chip">Multi-Location State</span>
+              <span class="demo-chip">Vendor Gateways</span>
+              <span class="demo-chip">Audit Logs</span>
+            </div>
+            <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
+              <span>Request System Architecture</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 8: ARCHITECTURE (#architecture)
+         ==================================================================== -->
+    <section id="architecture" class="site-section architecture-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">System Design</span>
+          <h2 class="section-title">Built as an Operating System, Not a Collection of Bots</h2>
+          <p class="section-desc">
+            Agency OS implements a deterministic six-tier architectural stack ensuring every automated action remains safe, auditable, and firmly within operational guardrails.
+          </p>
+        </div>
+
+        <div class="arch-stack">
+          
+          <div class="arch-layer">
+            <div class="arch-layer-num">01</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">AI Reasoning Layer</h3>
+              <p class="arch-layer-desc">Model abstraction supporting structured JSON outputs, validated schemas, prompt versioning, and graceful multi-provider fallback.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>Pydantic Schemas</span>
+              <span>OpenRouter / Gemini / Claude</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true"><i class="fa-solid fa-arrow-down"></i></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-num">02</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">Orchestration &amp; State Engine</h3>
+              <p class="arch-layer-desc">Deterministic finite-state machine governing lead progression, asynchronous worker execution, and human approval checkpoints.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>FSM State Graph</span>
+              <span>Worker Ticks</span>
+              <span>Approval Gates</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true"><i class="fa-solid fa-arrow-down"></i></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-num">03</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">CRM &amp; Persistent State</h3>
+              <p class="arch-layer-desc">ACID transactional persistence for business leads, activity event stream, audit telemetry, and customer lifecycle data.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>PostgreSQL / SQLite</span>
+              <span>Audit Trails</span>
+              <span>Entity Graphs</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true"><i class="fa-solid fa-arrow-down"></i></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-num">04</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">Communication Adapters</h3>
+              <p class="arch-layer-desc">Unified abstraction layer handling outbound dispatch, rate limits, dry-run safety enforcement, and inbound webhook reception.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>Email Engine</span>
+              <span>WhatsApp Adapters</span>
+              <span>Voice Bridges</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true"><i class="fa-solid fa-arrow-down"></i></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-num">05</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">Sales &amp; Transaction Pipelines</h3>
+              <p class="arch-layer-desc">Commercial quote calculation, automated legal terms formatting, advance deposit invoicing, and idempotent payment webhooks.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>Idempotent Payments</span>
+              <span>Proposal Generator</span>
+              <span>Deposit Verifier</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true"><i class="fa-solid fa-arrow-down"></i></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-num">06</div>
+            <div class="arch-layer-info">
+              <h3 class="arch-layer-title">Autonomous Delivery Engine</h3>
+              <p class="arch-layer-desc">Dynamic web code generation, client portal provisioning, artifact archiving, and automated project milestone distribution.</p>
+            </div>
+            <div class="arch-layer-tags">
+              <span>Demo Factory</span>
+              <span>Client Portal</span>
+              <span>Fulfillment Automation</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 9: TRUST & SECURITY (#security)
+         ==================================================================== -->
+    <section id="security" class="site-section security-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Operational Reliability</span>
+          <h2 class="section-title">Built for Enterprise Control</h2>
+          <p class="section-desc">
+            Agency OS is built with structural engineering guardrails that enforce predictable, transparent behavior at every step of automation.
+          </p>
+        </div>
+
+        <div class="security-grid">
+          
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-user-shield"></i></div>
+            <h3 class="sec-title">Human Approval Gates</h3>
+            <p class="sec-text">High-impact external communications and commercial proposals require human verification before actual dispatch.</p>
+          </div>
+
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-repeat"></i></div>
+            <h3 class="sec-title">Idempotent Actions</h3>
+            <p class="sec-text">State transitions and payment calls utilize unique idempotent identifiers to prevent duplicate messages or double billing.</p>
+          </div>
+
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-scroll"></i></div>
+            <h3 class="sec-title">Immutable Audit Events</h3>
+            <p class="sec-text">Every agent deliberation, state alteration, and external API invocation is permanently recorded in the system audit stream.</p>
+          </div>
+
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-sliders"></i></div>
+            <h3 class="sec-title">Outbound Limits</h3>
+            <p class="sec-text">Strict volumetric send ceilings, recipient cool-downs, and domain reputation safeguards preserve deliverability standing.</p>
+          </div>
+
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-diagram-project"></i></div>
+            <h3 class="sec-title">State-Machine Control</h3>
+            <p class="sec-text">Leads advance exclusively through validated finite-state transitions; out-of-order or invalid jumps are rejected at database level.</p>
+          </div>
+
+          <div class="sec-card">
+            <div class="sec-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3 class="sec-title">Failure Isolation</h3>
+            <p class="sec-text">Independent sub-service execution sandboxes prevent third-party provider timeouts from blocking global system pipelines.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 10: CONTACT & CONSULTATION (#contact)
+         ==================================================================== -->
+    <section id="contact" class="site-section contact-section scroll-reveal">
+      <div class="section-container">
         
-        <!-- Metric 1: Inference Time -->
-        <div class="stat-item anim" style="--d: 0.5s">
-          <div class="stat-metric-row">
-            <span class="stat-icon">&lt;</span>
-            <div class="stat-value-group">
-              <span class="stat-value" data-target="120" data-decimals="0">0</span>
-              <span class="stat-suffix">ms</span>
+        <div class="contact-grid">
+          
+          <!-- Left Column: Value Proposition & Trigger -->
+          <div class="contact-info-col">
+            <span class="section-tag">Start Consultation</span>
+            <h2 class="contact-title">Ready to build an autonomous growth system?</h2>
+            <p class="contact-lead">
+              Let's identify where intelligent automation can remove operational friction from your business.
+            </p>
+            <p class="contact-body">
+              Schedule an architecture consultation with our systems engineering team. We'll run a diagnostic assessment of your current acquisition workflow and demonstrate where autonomous orchestration drives measurable efficiency.
+            </p>
+
+            <div class="contact-assurances">
+              <div class="assurance-item">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Direct engineer response within 24 business hours</span>
+              </div>
+              <div class="assurance-item">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Complimentary diagnostic technical audit</span>
+              </div>
+              <div class="assurance-item">
+                <i class="fa-solid fa-lock"></i>
+                <span>Strict data privacy and zero spam guarantee</span>
+              </div>
+            </div>
+
+            <div class="contact-cta-action">
+              <button type="button" class="cta-button" data-action="open-consultation-modal">Get Started</button>
             </div>
           </div>
-          <span class="stat-label">Inference Time</span>
-        </div>
 
-        <!-- Metric 2: Platform Uptime -->
-        <div class="stat-item anim" style="--d: 0.58s">
-          <div class="stat-metric-row">
-            <span class="stat-icon">%</span>
-            <div class="stat-value-group">
-              <span class="stat-value" data-target="99.99" data-decimals="2">0.00</span>
-              <span class="stat-suffix">%</span>
+          <!-- Right Column: Direct Consultation Form -->
+          <div class="contact-form-col">
+            <div class="contact-form-card">
+              <h3 class="form-card-title">Request Architecture Consultation</h3>
+              <p class="form-card-desc">Submit your details below to schedule a tailored technical diagnostic session.</p>
+              
+              <div class="form-alert" id="inlineAlert" role="alert" hidden></div>
+
+              <form class="inline-contact-form" id="inlineContactForm">
+                <div class="form-group">
+                  <label for="inlineName" class="form-label">Full Name *</label>
+                  <input type="text" id="inlineName" class="form-control" placeholder="Jane Doe" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="inlineEmail" class="form-label">Work Email *</label>
+                  <input type="email" id="inlineEmail" class="form-control" placeholder="jane@company.com" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="inlineCompany" class="form-label">Company / Agency Name</label>
+                  <input type="text" id="inlineCompany" class="form-control" placeholder="Acme Systems">
+                </div>
+
+                <div class="form-group">
+                  <label for="inlineNote" class="form-label">Operational Goals or Current Friction Points</label>
+                  <textarea id="inlineNote" class="form-control" rows="3" placeholder="Describe your current lead-generation, qualification, or delivery workflow..."></textarea>
+                </div>
+
+                <button type="submit" class="form-submit-btn" id="inlineSubmitBtn">
+                  <span>Submit Consultation Request</span>
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </form>
             </div>
           </div>
-          <span class="stat-label">Platform Uptime</span>
+
         </div>
 
-        <!-- Metric 3: Autonomous Runtime -->
-        <div class="stat-item anim" style="--d: 0.66s">
-          <div class="stat-metric-row">
-            <span class="stat-icon">*</span>
-            <div class="stat-value-group">
-              <span class="stat-value" data-target="24" data-decimals="0">0</span>
-              <span class="stat-suffix">/7</span>
-            </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ====================================================================
+       FOOTER
+       ==================================================================== -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-container">
+      
+      <div class="footer-top">
+        <!-- Brand -->
+        <div class="footer-brand">
+          <div class="footer-logo-row">
+            <img src="assets/logo.webp" alt="Agency OS Logo" width="36" height="36" class="footer-logo-img">
+            <span class="footer-brand-title">Agency OS</span>
           </div>
-          <span class="stat-label">Autonomous Runtime</span>
+          <p class="footer-tagline">Intelligence Designed To Evolve</p>
+          <p class="footer-bio">An autonomous operating system unifying prospect discovery, diagnostic auditing, interactive demo factories, and production fulfillment.</p>
         </div>
 
-        <!-- Metric 4: Context Windows -->
-        <div class="stat-item anim" style="--d: 0.74s">
-          <div class="stat-metric-row">
-            <span class="stat-icon">#</span>
-            <div class="stat-value-group">
-              <span class="stat-value" data-target="2.4" data-decimals="1">0.0</span>
-              <span class="stat-suffix">M</span>
-            </div>
-          </div>
-          <span class="stat-label">Context Windows</span>
+        <!-- Navigation Links -->
+        <div class="footer-links-group">
+          <h4 class="footer-col-title">Navigation</h4>
+          <ul class="footer-links-list">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#product">Product</a></li>
+            <li><a href="#case-studies">Case Studies</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
         </div>
 
-      </section>
-    </footer>
+        <!-- Platform Links -->
+        <div class="footer-links-group">
+          <h4 class="footer-col-title">Platform</h4>
+          <ul class="footer-links-list">
+            <li><a href="/login">Sign in</a></li>
+            <li><a href="/dashboard">Operations Command Center</a></li>
+            <li><a href="/demo/orange-auto" target="_blank" rel="noopener">Interactive Demonstration</a></li>
+            <li><a href="/health">System Health</a></li>
+          </ul>
+        </div>
+      </div>
 
-  </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">&copy; 2026 Agency OS. All rights reserved.</p>
+        <p class="footer-subtext">Built as an Operating System, Not a Collection of Bots.</p>
+      </div>
 
-  <!-- Functional Consultation Modal (Preserves backend behavior without dead button) -->
+    </div>
+  </footer>
+
+
+  <!-- Back to Top Floating Button -->
+  <button type="button" class="back-to-top" id="backToTop" aria-label="Scroll back to top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+
+  <!-- ====================================================================
+       CONSULTATION MODAL (PRESERVES EXISTING FUNCTIONAL CTA BEHAVIOR)
+       ==================================================================== -->
   <div class="modal-backdrop" id="consultationModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modalTitle">
     <div class="modal-box">
       <button type="button" class="modal-close-btn" id="closeConsultationModal" aria-label="Close Dialog">
@@ -225,12 +974,14 @@
       </button>
       <h2 class="modal-title" id="modalTitle">Get Started with Agency OS</h2>
       <p class="modal-desc">Connect with an AI Systems Architect to build applications that reason, adapt, and collaborate.</p>
-      <div class="modal-alert" id="consultationAlert"></div>
+      
+      <div class="modal-alert" id="consultationAlert" role="alert" hidden></div>
+
       <form class="modal-form" id="consultationForm">
-        <input type="text" id="consultationName" class="modal-input" placeholder="Full Name" required>
-        <input type="email" id="consultationEmail" class="modal-input" placeholder="Work Email" required>
+        <input type="text" id="consultationName" class="modal-input" placeholder="Full Name *" required>
+        <input type="email" id="consultationEmail" class="modal-input" placeholder="Work Email *" required>
         <input type="text" id="consultationCompany" class="modal-input" placeholder="Company / Agency Name">
-        <textarea id="consultationNote" class="modal-input" rows="2" placeholder="Briefly describe your use case..."></textarea>
+        <textarea id="consultationNote" class="modal-input" rows="3" placeholder="Briefly describe your use case or operational bottlenecks..."></textarea>
         <button type="submit" class="modal-submit" id="consultationSubmitBtn">Request Consultation</button>
       </form>
     </div>

@@ -109,7 +109,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
                     headers={"Retry-After": str(retry_after)}
                 )
         # 4. Public contact inquiry endpoint: 5 req/min
-        elif path == "/api/contact" and request.method == "POST":
+        elif path in ("/api/contact", "/api/v1/onboarding/consultation") and request.method == "POST":
             allowed, retry_after = await rate_limiter.is_allowed(f"contact:{client_ip}", max_requests=5, window_seconds=60)
             if not allowed:
                 return JSONResponse(
@@ -140,6 +140,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/robots.txt",
             "/sitemap.xml",
             "/api/contact",
+            "/api/v1/onboarding/consultation",
             "/health",
             "/api/health",
             "/api/auth/login",
