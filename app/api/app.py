@@ -186,6 +186,7 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         is_public = (
             normalized_path in public_exact_paths
             or normalized_path.startswith("/static/")
+            or normalized_path.startswith("/assets/")
             or normalized_path.startswith("/api/webhooks")
             or normalized_path.startswith("/demo/")
             or normalized_path.startswith("/proposal/")
