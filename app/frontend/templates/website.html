@@ -67,7 +67,7 @@
   />
 
   <!-- Landing Styles -->
-  <link rel="stylesheet" href="/static/landing.css?v=20260914d">
+  <link rel="stylesheet" href="/static/landing.css?v=20260914e">
 </head>
 <body>
 
@@ -87,14 +87,13 @@
     <div class="site-header">
       <!-- Logo Container -->
       <a href="#home" class="logo-button" aria-label="Automated Agency OS Home">
-        <img src="assets/logo.webp" alt="Automated Agency OS Logo" width="44" height="44">
+        <img src="assets/logo.webp" alt="Automated Agency OS Logo" width="40" height="40">
       </a>
 
       <!-- Desktop Navigation Pill -->
       <nav class="nav-pill" aria-label="Main Navigation">
-        <a href="#home" class="nav-link active">Home</a>
-        <a href="#problems" class="nav-link">Problems We Solve</a>
         <a href="#services" class="nav-link">Services</a>
+        <a href="#who-we-help" class="nav-link">Who We Help</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
         <a href="#pricing" class="nav-link">Pricing</a>
         <a href="#deliverables" class="nav-link">Deliverables</a>
@@ -102,7 +101,7 @@
       </nav>
 
       <!-- Desktop Consultation CTA Button -->
-      <button type="button" class="nav-cta-btn" data-action="open-consultation-modal">Get Assessment</button>
+      <a href="#contact" class="nav-cta-btn">Get Assessment</a>
 
       <!-- Mobile Hamburger Button -->
       <button class="burger-btn" id="burgerBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">
@@ -116,13 +115,13 @@
     <div class="mobile-overlay" id="mobileOverlay" hidden></div>
     <div class="mobile-menu-sheet" id="mobileMenu" hidden>
       <a href="#home" class="mobile-menu-link active">Home</a>
-      <a href="#problems" class="mobile-menu-link">Problems We Solve</a>
       <a href="#services" class="mobile-menu-link">Services</a>
+      <a href="#who-we-help" class="mobile-menu-link">Who We Help</a>
       <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
       <a href="#pricing" class="mobile-menu-link">Pricing</a>
       <a href="#deliverables" class="mobile-menu-link">Deliverables</a>
       <a href="#contact" class="mobile-menu-link">Contact</a>
-      <button type="button" class="mobile-cta-btn" data-action="open-consultation-modal">Get Assessment</button>
+      <a href="#contact" class="mobile-cta-btn">Get Assessment</a>
     </div>
   </header>
 
@@ -135,26 +134,10 @@
     <section id="home" class="hero-section" aria-label="Hero Overview">
       <div class="hero-inner">
 
-        <!-- Trust Strip -->
-        <div class="trust-row anim" style="--d: 0.1s" aria-label="Value Highlights">
-          <div class="trust-avatar" aria-label="Custom AI Automations" title="Custom AI Automations">
-            <div class="trust-avatar-inner">
-              <i class="fa-solid fa-microchip"></i>
-            </div>
-          </div>
-          <div class="trust-avatar" aria-label="Seamless Tool Integration" title="Seamless Tool Integration">
-            <div class="trust-avatar-inner">
-              <i class="fa-solid fa-plug"></i>
-            </div>
-          </div>
-          <div class="trust-avatar" aria-label="Full Workflow Ownership" title="Full Workflow Ownership">
-            <div class="trust-avatar-inner">
-              <i class="fa-solid fa-shield-check"></i>
-            </div>
-          </div>
-          <div class="trust-pill" title="Custom AI Automations Built for Real Businesses">
-            <span class="trust-pill-text">AI Automation Built Around Your Business</span>
-          </div>
+        <!-- Eyebrow Badge -->
+        <div class="hero-eyebrow anim" style="--d: 0.1s" aria-label="Category Badge">
+          <span class="hero-eyebrow-dot"></span>
+          <span>AI AUTOMATION FOR MODERN BUSINESSES</span>
         </div>
 
         <!-- Headline -->
@@ -165,73 +148,18 @@
 
         <!-- Subhead -->
         <p class="subhead anim" style="--d: 0.28s">
-          We design, build, and deploy custom AI automation systems that handle customer inquiries, qualify leads, schedule appointments, and eliminate repetitive manual work.
+          We design and deploy practical AI workflows that help businesses handle enquiries, qualify leads, manage appointments, follow up with customers, and reduce repetitive work.
         </p>
 
         <!-- CTA Row -->
         <div class="hero-cta-wrap anim" style="--d: 0.38s">
-          <button type="button" class="cta-button" data-action="open-consultation-modal">Get Your Free Automation Assessment</button>
-          <a href="#services" class="secondary-cta-link">
-            <span>Explore Our Services</span>
+          <button type="button" class="cta-button" data-action="open-consultation-modal">Get Your Automation Assessment</button>
+          <a href="#how-it-works" class="secondary-cta-link">
+            <span>See How It Works</span>
             <i class="fa-solid fa-arrow-down"></i>
           </a>
         </div>
 
-      </div>
-
-      <!-- Stats / Metric Badges (Honest Outcome Metrics) -->
-      <div class="stats-region">
-        <div class="stats-grid" id="statsSection">
-          
-          <!-- Metric 1: 24/7 Availability -->
-          <div class="stat-item anim" style="--d: 0.5s">
-            <div class="stat-metric-row">
-              <span class="stat-icon">*</span>
-              <div class="stat-value-group">
-                <span class="stat-value" data-target="24" data-decimals="0">0</span>
-                <span class="stat-suffix">/7</span>
-              </div>
-            </div>
-            <span class="stat-label">Instant Response</span>
-          </div>
-
-          <!-- Metric 2: Under 2 min response -->
-          <div class="stat-item anim" style="--d: 0.58s">
-            <div class="stat-metric-row">
-              <span class="stat-icon">&lt;</span>
-              <div class="stat-value-group">
-                <span class="stat-value" data-target="2" data-decimals="0">0</span>
-                <span class="stat-suffix">min</span>
-              </div>
-            </div>
-            <span class="stat-label">Average Lead Response</span>
-          </div>
-
-          <!-- Metric 3: 100% Custom Stack Integration -->
-          <div class="stat-item anim" style="--d: 0.66s">
-            <div class="stat-metric-row">
-              <span class="stat-icon">%</span>
-              <div class="stat-value-group">
-                <span class="stat-value" data-target="100" data-decimals="0">0</span>
-                <span class="stat-suffix">%</span>
-              </div>
-            </div>
-            <span class="stat-label">Custom Stack Integration</span>
-          </div>
-
-          <!-- Metric 4: 14 Days Typical Deployment -->
-          <div class="stat-item anim" style="--d: 0.74s">
-            <div class="stat-metric-row">
-              <span class="stat-icon">#</span>
-              <div class="stat-value-group">
-                <span class="stat-value" data-target="14" data-decimals="0">0</span>
-                <span class="stat-suffix">d</span>
-              </div>
-            </div>
-            <span class="stat-label">Typical Go-Live Cadence</span>
-          </div>
-
-        </div>
       </div>
     </section>
 
@@ -253,38 +181,38 @@
           
           <div class="problem-card">
             <div class="problem-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <h3 class="problem-title">Missed Inquiries &amp; Slow Response</h3>
-            <p class="problem-text">Over 50% of inbound inquiries go cold if not answered within 15 minutes. Messages arriving after hours, during busy periods, or on weekends often receive no immediate response.</p>
+            <h3 class="problem-title">Missed Enquiries &amp; Slow Response</h3>
+            <p class="problem-text">Potential customers often reach out when your team is busy or unavailable. Slow responses can lead to lost opportunities.</p>
           </div>
 
           <div class="problem-card">
-            <div class="problem-icon"><i class="fa-solid fa-messages-question"></i></div>
-            <h3 class="problem-title">Repetitive Routine Communication</h3>
-            <p class="problem-text">Your core team wastes hours answering the same 20 questions daily about pricing, availability, and services instead of working on high-value client delivery.</p>
+            <div class="problem-icon"><i class="fa-solid fa-comments"></i></div>
+            <h3 class="problem-title">Repetitive Customer Communication</h3>
+            <p class="problem-text">Your team repeatedly answers the same questions about services, pricing, availability and next steps.</p>
           </div>
 
           <div class="problem-card">
-            <div class="problem-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
-            <h3 class="problem-title">Scheduling Back-and-Forth</h3>
-            <p class="problem-text">Endless email or messaging threads trying to align calendars create booking friction, missed appointments, and frustrating client drop-offs.</p>
+            <div class="problem-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+            <h3 class="problem-title">Scheduling Friction</h3>
+            <p class="problem-text">Back-and-forth messages and manual scheduling create unnecessary delays.</p>
           </div>
 
           <div class="problem-card">
-            <div class="problem-icon"><i class="fa-solid fa-route-interrupted"></i></div>
-            <h3 class="problem-title">Fragmented Follow-Ups &amp; Lost Leads</h3>
-            <p class="problem-text">Without automated cadences, qualified leads slip through the cracks. Inconsistent follow-up schedules leave verified revenue on the table.</p>
+            <div class="problem-icon"><i class="fa-solid fa-bell-slash"></i></div>
+            <h3 class="problem-title">Inconsistent Follow-Ups</h3>
+            <p class="problem-text">Leads can be forgotten when follow-up depends entirely on manual reminders.</p>
           </div>
 
           <div class="problem-card">
-            <div class="problem-icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
-            <h3 class="problem-title">High Overhead for Routine Admin</h3>
-            <p class="problem-text">Hiring additional administrative staff just to handle basic message triage, data entry, and manual status updates is expensive and difficult to scale.</p>
+            <div class="problem-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+            <h3 class="problem-title">Manual Administrative Work</h3>
+            <p class="problem-text">Data entry, message triage and repetitive updates consume time that could be spent on higher-value work.</p>
           </div>
 
           <div class="problem-card">
             <div class="problem-icon"><i class="fa-solid fa-layer-group"></i></div>
-            <h3 class="problem-title">Disconnected Software Tools</h3>
-            <p class="problem-text">Inquiries arrive in WhatsApp, bookings live in Google Calendar, client data sits in spreadsheets, and invoices live in billing tools with zero automated sync.</p>
+            <h3 class="problem-title">Disconnected Workflows</h3>
+            <p class="problem-text">Customer conversations, appointments and internal processes can become fragmented across multiple tools.</p>
           </div>
 
         </div>
@@ -293,15 +221,15 @@
 
 
     <!-- ====================================================================
-         SECTION 3: OUR SERVICES (#services)
+         SECTION 3: SERVICES (#services)
          ==================================================================== -->
     <section id="services" class="site-section services-section scroll-reveal">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-tag">What We Build</span>
+          <span class="section-tag">Services</span>
           <h2 class="section-title">Practical AI Automation Services</h2>
           <p class="section-desc">
-            We do not sell generic chatbots. We engineer tailored, production-grade automation systems integrated directly into your existing software tools.
+            We build focused automation systems integrated directly into your existing communication and operational tools.
           </p>
         </div>
 
@@ -313,14 +241,14 @@
               <span class="service-num">01</span>
               <div class="service-icon"><i class="fa-solid fa-headset"></i></div>
             </div>
-            <h3 class="service-title">AI Receptionist &amp; Inbound Lead Capture</h3>
+            <h3 class="service-title">AI Receptionist</h3>
             <p class="service-desc">
-              24/7 intelligent answering across your website, WhatsApp, and email. Instantly greets visitors, understands their specific needs, provides accurate answers in your brand voice, and captures verified contact details.
+              Intelligent answering across your website, WhatsApp, and email to capture enquiries immediately.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> Sub-minute response time on all channels</li>
-              <li><i class="fa-solid fa-check"></i> Knowledge base trained on your business guidelines</li>
-              <li><i class="fa-solid fa-check"></i> Instant lead notification to your team</li>
+              <li><i class="fa-solid fa-check"></i> Greets visitors and captures contact details</li>
+              <li><i class="fa-solid fa-check"></i> Answers questions from your business knowledge base</li>
+              <li><i class="fa-solid fa-check"></i> Sends instant notifications to your team</li>
             </ul>
           </div>
 
@@ -330,35 +258,35 @@
               <span class="service-num">02</span>
               <div class="service-icon"><i class="fa-solid fa-filter-circle-dollar"></i></div>
             </div>
-            <h3 class="service-title">Lead Qualification &amp; Smart Routing</h3>
+            <h3 class="service-title">Lead Qualification &amp; Follow-Up</h3>
             <p class="service-desc">
-              Automatically evaluate incoming prospects against your ideal client criteria before booking meetings. Collect project scope, timeline, and budget parameters to route priority opportunities directly to senior staff.
+              Evaluate prospect intent and keep potential clients engaged with structured follow-ups.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> Custom qualification questionnaires</li>
-              <li><i class="fa-solid fa-check"></i> Intent and budget classification</li>
-              <li><i class="fa-solid fa-check"></i> Seamless escalation for VIP inquiries</li>
+              <li><i class="fa-solid fa-check"></i> Collects project scope, timeline, and needs</li>
+              <li><i class="fa-solid fa-check"></i> Prioritizes high-intent enquiries for your team</li>
+              <li><i class="fa-solid fa-check"></i> Follows up automatically so leads are not lost</li>
             </ul>
           </div>
 
-          <!-- Service 3: Appointment Booking -->
+          <!-- Service 3: Appointment Automation -->
           <div class="service-card">
             <div class="service-header">
               <span class="service-num">03</span>
-              <div class="service-icon"><i class="fa-regular fa-calendar-check"></i></div>
+              <div class="service-icon"><i class="fa-solid fa-calendar-check"></i></div>
             </div>
-            <h3 class="service-title">Automated Appointment Booking &amp; Reminders</h3>
+            <h3 class="service-title">Appointment Automation</h3>
             <p class="service-desc">
-              Direct integration with your Google Calendar, Outlook, or booking tool. Coordinates meeting availability in real-time, sends instant confirmations, handles rescheduling, and delivers automated reminders to minimize no-shows.
+              Coordinates bookings directly with your calendar and keeps customers informed.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> Real-time calendar availability lookup</li>
-              <li><i class="fa-solid fa-check"></i> Instant email &amp; WhatsApp calendar invites</li>
-              <li><i class="fa-solid fa-check"></i> Automated reminder sequences (24h &amp; 1h prior)</li>
+              <li><i class="fa-solid fa-check"></i> Live calendar availability coordination</li>
+              <li><i class="fa-solid fa-check"></i> Automated booking confirmations and invitations</li>
+              <li><i class="fa-solid fa-check"></i> Timely appointment reminders to reduce no-shows</li>
             </ul>
           </div>
 
-          <!-- Service 4: Customer Support -->
+          <!-- Service 4: Customer Support Automation -->
           <div class="service-card">
             <div class="service-header">
               <span class="service-num">04</span>
@@ -366,46 +294,46 @@
             </div>
             <h3 class="service-title">Customer Support Automation</h3>
             <p class="service-desc">
-              Instant, accurate resolution for common customer questions, order status inquiries, policies, and service requests using your private documentation, with seamless handoff to human agents when complex situations arise.
+              Provides accurate, instant responses to common questions with human escalation when needed.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> 80%+ routine inquiry deflection</li>
-              <li><i class="fa-solid fa-check"></i> Context preservation on human handover</li>
-              <li><i class="fa-solid fa-check"></i> Continuous learning from resolved tickets</li>
+              <li><i class="fa-solid fa-check"></i> Answers routine questions on pricing, services, and policies</li>
+              <li><i class="fa-solid fa-check"></i> Calibrated strictly on your business documentation</li>
+              <li><i class="fa-solid fa-check"></i> Seamlessly escalates complex enquiries to staff</li>
             </ul>
           </div>
 
-          <!-- Service 5: WhatsApp & Omnichannel -->
+          <!-- Service 5: WhatsApp & Email Automation -->
           <div class="service-card">
             <div class="service-header">
               <span class="service-num">05</span>
               <div class="service-icon"><i class="fa-brands fa-whatsapp"></i></div>
             </div>
-            <h3 class="service-title">WhatsApp &amp; Omnichannel Communication</h3>
+            <h3 class="service-title">WhatsApp &amp; Email Automation</h3>
             <p class="service-desc">
-              Unified conversational automation across WhatsApp, Email, and SMS. Engage prospects on their preferred messaging channel with automated follow-ups, quote delivery, and appointment reminders that maintain full conversation history.
+              Reach customers on their preferred messaging channels with consistent communication.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> Official WhatsApp Business integration</li>
-              <li><i class="fa-solid fa-check"></i> Automated multi-touch follow-up cadences</li>
-              <li><i class="fa-solid fa-check"></i> Centralized inbox for human oversight</li>
+              <li><i class="fa-solid fa-check"></i> Official WhatsApp Business &amp; email workflows</li>
+              <li><i class="fa-solid fa-check"></i> Automated quote delivery and message updates</li>
+              <li><i class="fa-solid fa-check"></i> Clear conversational logs for team visibility</li>
             </ul>
           </div>
 
-          <!-- Service 6: Custom Business Workflow -->
+          <!-- Service 6: Custom Business Automation -->
           <div class="service-card">
             <div class="service-header">
               <span class="service-num">06</span>
               <div class="service-icon"><i class="fa-solid fa-diagram-project"></i></div>
             </div>
-            <h3 class="service-title">Custom Business Workflow Automation</h3>
+            <h3 class="service-title">Custom Business Automation</h3>
             <p class="service-desc">
-              Connect your existing CRM, spreadsheets, accounting software, and forms into automated end-to-end workflows. Eliminate manual copy-pasting, invoice generation friction, and internal administrative bottlenecks.
+              Connect your forms, spreadsheets, and operational software into synchronized workflows.
             </p>
             <ul class="service-bullets">
-              <li><i class="fa-solid fa-check"></i> Integrates with HubSpot, Salesforce, Airtable &amp; Sheets</li>
-              <li><i class="fa-solid fa-check"></i> Automated proposal &amp; invoice drafting</li>
-              <li><i class="fa-solid fa-check"></i> Custom webhook triggers &amp; data validation</li>
+              <li><i class="fa-solid fa-check"></i> Synchronizes customer data across your tools</li>
+              <li><i class="fa-solid fa-check"></i> Eliminates manual data re-entry and copy-pasting</li>
+              <li><i class="fa-solid fa-check"></i> Custom triggers tailored to your operations</li>
             </ul>
           </div>
 
@@ -415,15 +343,76 @@
 
 
     <!-- ====================================================================
-         SECTION 4: HOW IT WORKS (#how-it-works)
+         SECTION 4: WHO WE HELP (#who-we-help)
+         ==================================================================== -->
+    <section id="who-we-help" class="site-section who-we-help-section scroll-reveal">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Who We Help</span>
+          <h2 class="section-title">Built for Businesses with Repetitive Customer Workflows</h2>
+          <p class="section-desc">
+            Practical automation designed for enquiry-driven businesses that want to respond faster, stay organized, and eliminate manual busywork.
+          </p>
+        </div>
+
+        <div class="industries-grid">
+          
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+            <h3 class="industry-name">Home Services &amp; Trades</h3>
+            <p class="industry-desc">HVAC, plumbing, roofing, electrical, and general contractors managing urgent calls and quote requests.</p>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-car"></i></div>
+            <h3 class="industry-name">Automotive</h3>
+            <p class="industry-desc">Service centers, detailing shops, and repair facilities handling booking requests and maintenance enquiries.</p>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-stethoscope"></i></div>
+            <h3 class="industry-name">Healthcare &amp; Clinics</h3>
+            <p class="industry-desc">Dental practices, medical clinics, and wellness centers coordinating patient intake and appointment reminders.</p>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-building"></i></div>
+            <h3 class="industry-name">Real Estate &amp; Property</h3>
+            <p class="industry-desc">Agencies, property managers, and brokerages qualifying tenant and buyer enquiries around the clock.</p>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-briefcase"></i></div>
+            <h3 class="industry-name">Professional Services</h3>
+            <p class="industry-desc">Legal, accounting, consulting, and advisory firms streamlining client intake and consultation scheduling.</p>
+          </div>
+
+          <div class="industry-card">
+            <div class="industry-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <h3 class="industry-name">Enquiry-Driven Businesses</h3>
+            <p class="industry-desc">Any business that receives daily inbound leads and wants to stop letting valuable prospects go cold.</p>
+          </div>
+
+        </div>
+
+        <div class="industries-footer-note">
+          <i class="fa-solid fa-shield-check"></i>
+          <span>We configure each automation around your actual workflow, not an inflexible generic template.</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 5: HOW IT WORKS (#how-it-works)
          ==================================================================== -->
     <section id="how-it-works" class="site-section process-section scroll-reveal">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-tag">The Engagement Process</span>
+          <span class="section-tag">The Process</span>
           <h2 class="section-title">How We Work Together</h2>
           <p class="section-desc">
-            A structured, collaborative 6-step journey designed to build and deploy working automations without disrupting your ongoing business operations.
+            A structured, transparent engagement designed to build and deploy working automations without disrupting your daily operations.
           </p>
         </div>
 
@@ -432,48 +421,48 @@
           <div class="process-step-item">
             <div class="process-number">01</div>
             <div class="process-content">
-              <h3 class="process-title">Discovery &amp; Assessment</h3>
-              <p class="process-body">We analyze your current customer communication channels, inquiry volume, repetitive administrative tasks, and existing tools to pinpoint high-ROI automation targets.</p>
+              <h3 class="process-title">Business Assessment</h3>
+              <p class="process-body">We understand your business, workflow and current pain points.</p>
             </div>
           </div>
 
           <div class="process-step-item">
             <div class="process-number">02</div>
             <div class="process-content">
-              <h3 class="process-title">Custom Solution Blueprint</h3>
-              <p class="process-body">We design a tailored automation architecture detailing how the AI handles inquiries, what business rules it enforces, brand voice guidelines, and tool integration points.</p>
+              <h3 class="process-title">Automation Blueprint</h3>
+              <p class="process-body">We identify where automation can create practical value.</p>
             </div>
           </div>
 
           <div class="process-step-item">
             <div class="process-number">03</div>
             <div class="process-content">
-              <h3 class="process-title">Rapid Development &amp; Integration</h3>
-              <p class="process-body">We build and connect the AI automation systems directly into your existing software stack (CRM, Google Calendar, WhatsApp, email) without requiring any tool migration.</p>
+              <h3 class="process-title">Personalized Demonstration</h3>
+              <p class="process-body">You see a solution designed around your actual workflow.</p>
             </div>
           </div>
 
           <div class="process-step-item">
             <div class="process-number">04</div>
             <div class="process-content">
-              <h3 class="process-title">Controlled Pilot &amp; Verification</h3>
-              <p class="process-body">We stress-test edge cases, evaluate hallucination safeguards, and run a controlled pilot to ensure 100% accurate responses and smooth human handoff triggers.</p>
+              <h3 class="process-title">Scope &amp; Proposal</h3>
+              <p class="process-body">We define deliverables, timeline and pricing.</p>
             </div>
           </div>
 
           <div class="process-step-item">
             <div class="process-number">05</div>
             <div class="process-content">
-              <h3 class="process-title">Deployment &amp; Team Training</h3>
-              <p class="process-body">We launch into live production and train your staff with clear video walkthroughs and operator guides so everyone feels confident monitoring and collaborating with the system.</p>
+              <h3 class="process-title">Payment &amp; Build</h3>
+              <p class="process-body">Once approved and paid, implementation begins.</p>
             </div>
           </div>
 
           <div class="process-step-item">
             <div class="process-number">06</div>
             <div class="process-content">
-              <h3 class="process-title">Optimization &amp; Ongoing Support</h3>
-              <p class="process-body">We provide dedicated post-launch hypercare, monitor live conversation accuracy, and refine prompts and workflows to ensure continuous performance as your business scales.</p>
+              <h3 class="process-title">Deployment &amp; Support</h3>
+              <p class="process-body">We test, deploy and provide the agreed handover/support.</p>
             </div>
           </div>
 
@@ -483,116 +472,120 @@
 
 
     <!-- ====================================================================
-         SECTION 5: TRANSPARENT PRICING (#pricing)
+         SECTION 6: PRICING (#pricing)
          ==================================================================== -->
     <section id="pricing" class="site-section pricing-section scroll-reveal">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-tag">Simple &amp; Transparent</span>
-          <h2 class="section-title">Predictable Pricing for Growing Businesses</h2>
+          <span class="section-tag">Pricing</span>
+          <h2 class="section-title">Transparent Pricing for Custom Automation</h2>
           <p class="section-desc">
-            Clear project scopes with zero hidden fees. You invest in working operational assets that you own completely.
+            Clear project scopes with zero hidden fees. You invest in working operational assets built for your business.
           </p>
         </div>
 
-        <div class="pricing-grid">
+        <div class="pricing-grid commercial-grid">
           
           <!-- Starter Package -->
           <div class="pricing-card">
             <div class="pricing-header">
-              <span class="pricing-tier-tag">Starter Setup</span>
+              <span class="pricing-tier-tag">Single Workflow</span>
               <h3 class="pricing-tier-name">Starter Automation</h3>
-              <p class="pricing-tier-desc">Ideal for small businesses needing a focused, single automated workflow.</p>
+              <p class="pricing-tier-desc">For focused, single-workflow automation.</p>
               <div class="pricing-amount">
                 <span class="pricing-currency">$</span>
                 <span class="pricing-val">500</span>
-                <span class="pricing-freq">one-time starting fee</span>
+                <span class="pricing-freq">starting fee</span>
               </div>
             </div>
 
             <ul class="pricing-features">
-              <li><i class="fa-solid fa-check"></i> Single core workflow (e.g. Lead Capture + Booking)</li>
+              <li><i class="fa-solid fa-check"></i> Single core workflow (e.g. Lead Capture or Appointment Booking)</li>
               <li><i class="fa-solid fa-check"></i> Integration with 1–2 existing tools (e.g. Website + Calendar)</li>
-              <li><i class="fa-solid fa-check"></i> Custom prompt engineering in your brand voice</li>
-              <li><i class="fa-solid fa-check"></i> Rigorous edge-case testing &amp; pilot check</li>
-              <li><i class="fa-solid fa-check"></i> 14 days of dedicated post-launch hypercare</li>
-              <li><i class="fa-solid fa-check"></i> Complete workflow ownership &amp; documentation</li>
+              <li><i class="fa-solid fa-check"></i> Custom prompt configuration in your brand voice</li>
+              <li><i class="fa-solid fa-check"></i> Rigorous testing &amp; validation</li>
+              <li><i class="fa-solid fa-check"></i> Handover documentation &amp; launch support</li>
             </ul>
 
             <button type="button" class="pricing-cta-btn" data-action="open-consultation-modal">Get Started with Starter</button>
           </div>
 
-          <!-- Growth Package (Featured) -->
+          <!-- Custom Automation (Featured) -->
           <div class="pricing-card featured">
-            <div class="pricing-featured-badge">Most Popular</div>
+            <div class="pricing-featured-badge">Comprehensive</div>
             <div class="pricing-header">
-              <span class="pricing-tier-tag">Multi-Channel</span>
-              <h3 class="pricing-tier-name">Growth Automation</h3>
-              <p class="pricing-tier-desc">Comprehensive automation for growing companies managing multi-channel inquiries.</p>
+              <span class="pricing-tier-tag">Multi-Step</span>
+              <h3 class="pricing-tier-name">Custom Automation</h3>
+              <p class="pricing-tier-desc">For multi-step workflows, integrations and more complex requirements.</p>
               <div class="pricing-amount">
                 <span class="pricing-val">Custom Quote</span>
-                <span class="pricing-freq">typically $1,500 – $3,500</span>
+                <span class="pricing-freq">based on agreed scope</span>
               </div>
             </div>
 
             <ul class="pricing-features">
-              <li><i class="fa-solid fa-check"></i> Multi-channel automation (WhatsApp + Email + Web)</li>
+              <li><i class="fa-solid fa-check"></i> Multi-channel workflows (WhatsApp, Email, Web)</li>
               <li><i class="fa-solid fa-check"></i> Custom knowledge base &amp; document training</li>
-              <li><i class="fa-solid fa-check"></i> Advanced lead qualification &amp; priority routing</li>
-              <li><i class="fa-solid fa-check"></i> Automated multi-touch follow-up cadences</li>
-              <li><i class="fa-solid fa-check"></i> Direct CRM sync (HubSpot, Salesforce, Airtable)</li>
-              <li><i class="fa-solid fa-check"></i> 30 days of post-launch hypercare &amp; live tuning</li>
-              <li><i class="fa-solid fa-check"></i> Team training video walkthroughs &amp; operator guides</li>
+              <li><i class="fa-solid fa-check"></i> Advanced qualification &amp; smart routing</li>
+              <li><i class="fa-solid fa-check"></i> Multi-step follow-up sequences</li>
+              <li><i class="fa-solid fa-check"></i> Direct CRM &amp; operational tool synchronization</li>
+              <li><i class="fa-solid fa-check"></i> Dedicated testing, team training &amp; handover</li>
             </ul>
 
-            <button type="button" class="pricing-cta-btn featured-btn" data-action="open-consultation-modal">Request Growth Blueprint</button>
+            <button type="button" class="pricing-cta-btn featured-btn" data-action="open-consultation-modal">Request Custom Quote</button>
           </div>
 
-          <!-- Enterprise Package -->
-          <div class="pricing-card">
-            <div class="pricing-header">
-              <span class="pricing-tier-tag">Bespoke Operations</span>
-              <h3 class="pricing-tier-name">Enterprise Solutions</h3>
-              <p class="pricing-tier-desc">Full-scale operational workflows for multi-location practices and high-volume firms.</p>
-              <div class="pricing-amount">
-                <span class="pricing-val">Custom Quote</span>
-                <span class="pricing-freq">tailored to operational scope</span>
-              </div>
+        </div>
+
+        <!-- Complexity Notice -->
+        <p class="pricing-complexity-note">
+          Final pricing depends on workflow complexity, integrations, customization and deployment requirements.
+        </p>
+
+        <!-- Payment Process Section -->
+        <div class="payment-process-card">
+          <h3 class="payment-process-title">How Payment Works</h3>
+          <div class="payment-steps">
+            <div class="payment-step">
+              <span class="payment-step-num">1</span>
+              <span class="payment-step-text">Review proposal</span>
             </div>
-
-            <ul class="pricing-features">
-              <li><i class="fa-solid fa-check"></i> Full-scale operational workflow architecture</li>
-              <li><i class="fa-solid fa-check"></i> Custom API connections &amp; legacy system bridges</li>
-              <li><i class="fa-solid fa-check"></i> Multi-department routing &amp; custom approval stages</li>
-              <li><i class="fa-solid fa-check"></i> Dedicated staging environment &amp; security review</li>
-              <li><i class="fa-solid fa-check"></i> Priority SLA &amp; dedicated account architect</li>
-              <li><i class="fa-solid fa-check"></i> Ongoing maintenance retainer options</li>
-            </ul>
-
-            <button type="button" class="pricing-cta-btn" data-action="open-consultation-modal">Contact Enterprise Team</button>
+            <div class="payment-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="payment-step">
+              <span class="payment-step-num">2</span>
+              <span class="payment-step-text">Approve scope</span>
+            </div>
+            <div class="payment-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="payment-step">
+              <span class="payment-step-num">3</span>
+              <span class="payment-step-text">Receive payment instructions</span>
+            </div>
+            <div class="payment-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="payment-step">
+              <span class="payment-step-num">4</span>
+              <span class="payment-step-text">Complete payment</span>
+            </div>
+            <div class="payment-step-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="payment-step">
+              <span class="payment-step-num">5</span>
+              <span class="payment-step-text">Development begins</span>
+            </div>
           </div>
-
+          <p class="payment-note">Payment options are provided during proposal acceptance.</p>
         </div>
 
-        <!-- Commercial Terms Strip -->
-        <div class="pricing-terms-strip">
-          <div class="term-badge"><i class="fa-solid fa-shield-halved"></i> Milestone-Based Progress</div>
-          <div class="term-badge"><i class="fa-solid fa-box-archive"></i> 100% Workflow Ownership</div>
-          <div class="term-badge"><i class="fa-solid fa-ban"></i> Zero Tool Migration Traps</div>
-          <div class="term-badge"><i class="fa-solid fa-lock"></i> Strict Data Confidentiality</div>
-        </div>
       </div>
     </section>
 
 
     <!-- ====================================================================
-         SECTION 6: DELIVERABLES (#deliverables)
+         SECTION 7: DELIVERABLES (#deliverables)
          ==================================================================== -->
     <section id="deliverables" class="site-section deliverables-section scroll-reveal">
       <div class="section-container">
         <div class="section-header">
           <span class="section-tag">What You Receive</span>
-          <h2 class="section-title">Everything You Receive Upon Handover</h2>
+          <h2 class="section-title">Practical, Tangible Deliverables</h2>
           <p class="section-desc">
             We deliver working, production-grade business assets that your team controls completely.
           </p>
@@ -602,47 +595,53 @@
           
           <div class="deliverable-card">
             <div class="deliverable-icon"><i class="fa-solid fa-circle-check"></i></div>
-            <h3 class="deliverable-title">Production-Ready Automations</h3>
-            <p class="deliverable-text">Fully configured, tested, and calibrated AI systems operating reliably in your live environment with verified guardrails.</p>
+            <h3 class="deliverable-title">1. Working AI Automations</h3>
+            <p class="deliverable-text">Configured, tested, and operating live in your accounts and operational systems with verified business guardrails.</p>
           </div>
 
           <div class="deliverable-card">
             <div class="deliverable-icon"><i class="fa-solid fa-plug-circle-bolt"></i></div>
-            <h3 class="deliverable-title">Seamless Tool Integration</h3>
-            <p class="deliverable-text">Direct connection to your current website, CRM, calendar, email, and messaging platforms without requiring you to switch tools.</p>
-          </div>
-
-          <div class="deliverable-card">
-            <div class="deliverable-icon"><i class="fa-solid fa-key"></i></div>
-            <h3 class="deliverable-title">100% Workflow Ownership</h3>
-            <p class="deliverable-text">You own all prompts, configurations, and data. There is zero proprietary platform lock-in; you remain in total control.</p>
-          </div>
-
-          <div class="deliverable-card">
-            <div class="deliverable-icon"><i class="fa-solid fa-book-open-reader"></i></div>
-            <h3 class="deliverable-title">Documentation &amp; Training</h3>
-            <p class="deliverable-text">Comprehensive operator playbooks, standard operating procedures, and video walkthroughs so your team can manage the systems with ease.</p>
-          </div>
-
-          <div class="deliverable-card">
-            <div class="deliverable-icon"><i class="fa-solid fa-life-ring"></i></div>
-            <h3 class="deliverable-title">Post-Launch Hypercare</h3>
-            <p class="deliverable-text">Direct architect support following go-live to monitor conversations, adjust prompt behavior, and resolve questions quickly.</p>
+            <h3 class="deliverable-title">2. Direct System Integrations</h3>
+            <p class="deliverable-text">Seamless connection to your current website, CRM, calendar, email, and messaging platforms without requiring you to switch tools.</p>
           </div>
 
           <div class="deliverable-card">
             <div class="deliverable-icon"><i class="fa-solid fa-sliders"></i></div>
-            <h3 class="deliverable-title">Transparent Maintenance Options</h3>
-            <p class="deliverable-text">Predictable monthly support and continuous enhancement retainers available if you prefer our team to handle ongoing maintenance.</p>
+            <h3 class="deliverable-title">3. Custom Prompt &amp; Workflow Design</h3>
+            <p class="deliverable-text">Calibrated specifically for your business voice, service catalog, pricing rules, and qualification criteria.</p>
           </div>
 
+          <div class="deliverable-card">
+            <div class="deliverable-icon"><i class="fa-solid fa-database"></i></div>
+            <h3 class="deliverable-title">4. Knowledge Base Setup</h3>
+            <p class="deliverable-text">Structured and calibrated on your actual business documents, FAQs, policies, and service guidelines to prevent hallucinations.</p>
+          </div>
+
+          <div class="deliverable-card">
+            <div class="deliverable-icon"><i class="fa-solid fa-vial-circle-check"></i></div>
+            <h3 class="deliverable-title">5. Testing &amp; Validation</h3>
+            <p class="deliverable-text">Rigorous scenario testing, edge-case validation, and end-to-end simulation before launching into your live environment.</p>
+          </div>
+
+          <div class="deliverable-card">
+            <div class="deliverable-icon"><i class="fa-solid fa-book-open-reader"></i></div>
+            <h3 class="deliverable-title">6. Handover &amp; Training</h3>
+            <p class="deliverable-text">Complete documentation, operator standard operating procedures, and video walkthrough so your team operates with confidence.</p>
+          </div>
+
+        </div>
+
+        <div class="deliverables-scope-note">
+          <p>
+            <strong>Note:</strong> Exact deliverables depend on the agreed scope defined in your project proposal. Ongoing support, monitoring, and iterative improvements are available via monthly maintenance plans.
+          </p>
         </div>
       </div>
     </section>
 
 
     <!-- ====================================================================
-         SECTION 7: CONTACT / ASSESSMENT REQUEST (#contact)
+         SECTION 8: CONTACT / ASSESSMENT REQUEST (#contact)
          ==================================================================== -->
     <section id="contact" class="site-section contact-section scroll-reveal">
       <div class="section-container">
@@ -678,58 +677,87 @@
                 <span>Direct email: hello@automatedagencyos.tech</span>
               </div>
             </div>
-
-            <div class="contact-cta-action">
-              <button type="button" class="cta-button" data-action="open-consultation-modal">Open Assessment Request</button>
-            </div>
           </div>
 
           <!-- Right Column: Direct Inline Assessment Form -->
           <div class="contact-form-col">
             <div class="contact-form-card">
               <h3 class="form-card-title">Automation Assessment Request</h3>
-              <p class="form-card-desc">Fill out the brief details below to receive your personalized automation roadmap.</p>
+              <p class="form-card-desc">Tell us about your business to receive a tailored automation blueprint and quote.</p>
               
               <div class="form-alert" id="inlineAlert" role="alert" hidden></div>
 
               <form class="inline-contact-form" id="inlineContactForm">
-                <div class="form-group">
-                  <label for="inlineName" class="form-label">Full Name *</label>
-                  <input type="text" id="inlineName" class="form-control" placeholder="Jane Doe" required>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="inlineName" class="form-label">Full Name *</label>
+                    <input type="text" id="inlineName" class="form-control" placeholder="Jane Doe" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inlineCompany" class="form-label">Business Name *</label>
+                    <input type="text" id="inlineCompany" class="form-control" placeholder="Acme Services" required>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="inlineEmail" class="form-label">Email Address *</label>
+                    <input type="email" id="inlineEmail" class="form-control" placeholder="jane@acme.com" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inlinePhone" class="form-label">Phone / WhatsApp Number</label>
+                    <input type="tel" id="inlinePhone" class="form-control" placeholder="+1 (555) 000-0000">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="inlineWebsite" class="form-label">Website (Optional)</label>
+                    <input type="text" id="inlineWebsite" class="form-control" placeholder="acme.com">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inlineIndustry" class="form-label">Industry / Business Type</label>
+                    <select id="inlineIndustry" class="form-control">
+                      <option value="Home Services & Trades">Home Services &amp; Trades</option>
+                      <option value="Automotive">Automotive</option>
+                      <option value="Healthcare & Clinics">Healthcare &amp; Clinics</option>
+                      <option value="Real Estate & Property">Real Estate &amp; Property</option>
+                      <option value="Professional Services">Professional Services</option>
+                      <option value="Enquiry-Driven Business" selected>Enquiry-Driven Business</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div class="form-group">
-                  <label for="inlineEmail" class="form-label">Work Email *</label>
-                  <input type="email" id="inlineEmail" class="form-control" placeholder="jane@company.com" required>
-                </div>
-
-                <div class="form-group">
-                  <label for="inlineCompany" class="form-label">Business Name / Website</label>
-                  <input type="text" id="inlineCompany" class="form-control" placeholder="Acme Services / acme.com">
-                </div>
-
-                <div class="form-group">
-                  <label for="inlineNeed" class="form-label">Primary Automation Need</label>
+                  <label for="inlineNeed" class="form-label">What would you like to automate?</label>
                   <select id="inlineNeed" class="form-control">
-                    <option value="AI Receptionist & Lead Capture">AI Receptionist &amp; Inbound Lead Capture</option>
-                    <option value="Lead Qualification & Smart Routing">Lead Qualification &amp; Smart Routing</option>
-                    <option value="Automated Appointment Booking">Automated Appointment Booking &amp; Reminders</option>
+                    <option value="AI Receptionist">AI Receptionist</option>
+                    <option value="Lead Qualification & Follow-Up">Lead Qualification &amp; Follow-Up</option>
+                    <option value="Automated Appointment Booking">Automated Appointment Booking</option>
                     <option value="Customer Support Automation">Customer Support Automation</option>
-                    <option value="WhatsApp & Omnichannel Messaging">WhatsApp &amp; Omnichannel Communication</option>
-                    <option value="Custom Workflow Automation">Custom Business Workflow Automation</option>
-                    <option value="General Automation Assessment">General Automation Assessment</option>
+                    <option value="WhatsApp & Email Automation">WhatsApp &amp; Email Automation</option>
+                    <option value="Custom Workflow Automation">Custom Workflow Automation</option>
+                    <option value="Not sure yet / Full Assessment" selected>Not sure yet / Full Assessment</option>
                   </select>
                 </div>
 
                 <div class="form-group">
-                  <label for="inlineNote" class="form-label">Current Bottlenecks or Goals</label>
-                  <textarea id="inlineNote" class="form-control" rows="3" placeholder="Briefly describe what repetitive tasks or communication bottlenecks you want automated..."></textarea>
+                  <label for="inlineNote" class="form-label">Additional Details / Current Process</label>
+                  <textarea id="inlineNote" class="form-control" rows="3" placeholder="Briefly describe what repetitive tasks, inquiry bottlenecks, or workflows you want automated..."></textarea>
                 </div>
 
                 <button type="submit" class="form-submit-btn" id="inlineSubmitBtn">
-                  <span>Request Free Assessment</span>
+                  <span>Request Assessment</span>
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
+
+                <p class="form-privacy-note">
+                  We respect your privacy. No spam. We review your submission and respond with relevant recommendations within 24 business hours.
+                </p>
               </form>
             </div>
           </div>
@@ -755,7 +783,7 @@
             <img src="assets/logo.webp" alt="Automated Agency OS Logo" width="36" height="36" class="footer-logo-img">
             <span class="footer-brand-title">Automated Agency OS</span>
           </div>
-          <p class="footer-tagline">AI Automation Built Around Your Business</p>
+          <p class="footer-tagline">Practical AI automations for modern businesses.</p>
           <p class="footer-bio">We engineer custom AI automation systems that handle customer inquiries, qualify leads, schedule appointments, and eliminate repetitive operational drag.</p>
         </div>
 
@@ -763,23 +791,22 @@
         <div class="footer-links-group">
           <h4 class="footer-col-title">Navigation</h4>
           <ul class="footer-links-list">
-            <li><a href="#home">Home</a></li>
-            <li><a href="#problems">Problems We Solve</a></li>
             <li><a href="#services">Services</a></li>
+            <li><a href="#who-we-help">Who We Help</a></li>
             <li><a href="#how-it-works">How It Works</a></li>
             <li><a href="#pricing">Pricing</a></li>
             <li><a href="#deliverables">Deliverables</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><a href="#contact">Request Assessment</a></li>
           </ul>
         </div>
 
-        <!-- Resources & Trust Links -->
+        <!-- Company Links -->
         <div class="footer-links-group">
-          <h4 class="footer-col-title">Company</h4>
+          <h4 class="footer-col-title">Contact &amp; Legal</h4>
           <ul class="footer-links-list">
             <li><a href="mailto:hello@automatedagencyos.tech">hello@automatedagencyos.tech</a></li>
             <li><a href="#pricing">Transparent Pricing</a></li>
-            <li><a href="#deliverables">Deliverables &amp; Ownership</a></li>
+            <li><a href="#deliverables">Scope &amp; Deliverables</a></li>
             <li><a href="/privacy">Privacy Policy</a></li>
             <li><a href="/terms">Terms of Service</a></li>
           </ul>
@@ -809,31 +836,49 @@
       <button type="button" class="modal-close-btn" id="closeConsultationModal" aria-label="Close Dialog">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <h2 class="modal-title" id="modalTitle">Get Your Free Automation Assessment</h2>
+      <h2 class="modal-title" id="modalTitle">Request Your Automation Assessment</h2>
       <p class="modal-desc">Tell us about your business and we will provide a personalized automation blueprint and quote.</p>
       
       <div class="modal-alert" id="consultationAlert" role="alert" hidden></div>
 
       <form class="modal-form" id="consultationForm">
-        <input type="text" id="consultationName" class="modal-input" placeholder="Full Name *" required>
-        <input type="email" id="consultationEmail" class="modal-input" placeholder="Work Email *" required>
-        <input type="text" id="consultationCompany" class="modal-input" placeholder="Business Name / Website">
+        <div class="form-row">
+          <input type="text" id="consultationName" class="modal-input" placeholder="Full Name *" required>
+          <input type="text" id="consultationCompany" class="modal-input" placeholder="Business Name *" required>
+        </div>
+        <div class="form-row">
+          <input type="email" id="consultationEmail" class="modal-input" placeholder="Email Address *" required>
+          <input type="tel" id="consultationPhone" class="modal-input" placeholder="Phone / WhatsApp Number">
+        </div>
+        <div class="form-row">
+          <input type="text" id="consultationWebsite" class="modal-input" placeholder="Website (Optional)">
+          <select id="consultationIndustry" class="modal-input" style="color: #fff; background: rgba(255,255,255,0.05);">
+            <option value="Home Services & Trades" style="background: #18181b;">Home Services &amp; Trades</option>
+            <option value="Automotive" style="background: #18181b;">Automotive</option>
+            <option value="Healthcare & Clinics" style="background: #18181b;">Healthcare &amp; Clinics</option>
+            <option value="Real Estate & Property" style="background: #18181b;">Real Estate &amp; Property</option>
+            <option value="Professional Services" style="background: #18181b;">Professional Services</option>
+            <option value="Enquiry-Driven Business" selected style="background: #18181b;">Enquiry-Driven Business</option>
+            <option value="Other" style="background: #18181b;">Other</option>
+          </select>
+        </div>
         <select id="consultationNeed" class="modal-input" style="color: #fff; background: rgba(255,255,255,0.05);">
-          <option value="AI Receptionist & Lead Capture" style="background: #18181b;">AI Receptionist &amp; Lead Capture</option>
-          <option value="Lead Qualification & Smart Routing" style="background: #18181b;">Lead Qualification &amp; Smart Routing</option>
-          <option value="Automated Appointment Booking" style="background: #18181b;">Automated Appointment Booking &amp; Reminders</option>
+          <option value="AI Receptionist" style="background: #18181b;">AI Receptionist</option>
+          <option value="Lead Qualification & Follow-Up" style="background: #18181b;">Lead Qualification &amp; Follow-Up</option>
+          <option value="Automated Appointment Booking" style="background: #18181b;">Automated Appointment Booking</option>
           <option value="Customer Support Automation" style="background: #18181b;">Customer Support Automation</option>
-          <option value="WhatsApp & Omnichannel Messaging" style="background: #18181b;">WhatsApp &amp; Omnichannel Messaging</option>
-          <option value="Custom Workflow Automation" style="background: #18181b;">Custom Business Workflow Automation</option>
-          <option value="General Automation Assessment" style="background: #18181b;">General Automation Assessment</option>
+          <option value="WhatsApp & Email Automation" style="background: #18181b;">WhatsApp &amp; Email Automation</option>
+          <option value="Custom Workflow Automation" style="background: #18181b;">Custom Workflow Automation</option>
+          <option value="Not sure yet / Full Assessment" selected style="background: #18181b;">Not sure yet / Full Assessment</option>
         </select>
-        <textarea id="consultationNote" class="modal-input" rows="3" placeholder="Describe your current bottlenecks or repetitive communication tasks..."></textarea>
-        <button type="submit" class="modal-submit" id="consultationSubmitBtn">Request Free Assessment</button>
+        <textarea id="consultationNote" class="modal-input" rows="3" placeholder="Describe your current bottlenecks or repetitive workflows..."></textarea>
+        <button type="submit" class="modal-submit" id="consultationSubmitBtn">Request Assessment</button>
+        <p class="form-privacy-note">We respect your privacy. No spam. Direct response within 24 business hours.</p>
       </form>
     </div>
   </div>
 
   <!-- Pure Vanilla Scripts -->
-  <script src="/static/landing.js?v=20260914d"></script>
+  <script src="/static/landing.js?v=20260914e"></script>
 </body>
 </html>

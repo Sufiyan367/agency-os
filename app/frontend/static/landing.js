@@ -129,9 +129,9 @@
 
     // Track active sections on scroll
     const observedSections = [
-        { id: 'home', nav: '#home' },
-        { id: 'problems', nav: '#problems' },
+        { id: 'home', nav: '#services' },
         { id: 'services', nav: '#services' },
+        { id: 'who-we-help', nav: '#who-we-help' },
         { id: 'how-it-works', nav: '#how-it-works' },
         { id: 'pricing', nav: '#pricing' },
         { id: 'deliverables', nav: '#deliverables' },
@@ -380,12 +380,12 @@
     // -------------------------------------------------------------------------
     // 7. FORM SUBMISSIONS: MODAL & INLINE FORMS
     // -------------------------------------------------------------------------
-    async function submitConsultationRequest({ name, email, company, note, submitBtn, alertEl, onSuccess }) {
+    async function submitConsultationRequest({ name, email, company, phone, website, industry, need, note, submitBtn, alertEl, onSuccess }) {
         if (!name || !email) {
             if (alertEl) {
                 alertEl.hidden = false;
                 alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert error' : 'modal-alert error';
-                alertEl.textContent = 'Please provide both your name and work email address.';
+                alertEl.textContent = 'Please provide both your name and email address.';
             }
             return;
         }
@@ -401,6 +401,13 @@
             alertEl.textContent = '';
         }
 
+        const currentProcessParts = [
+            website ? 'Website: ' + website : '',
+            industry ? 'Industry: ' + industry : '',
+            need ? 'Automation Need: ' + need : '',
+            note ? 'Details: ' + note : ''
+        ].filter(Boolean);
+
         try {
             const res = await fetch('/api/v1/onboarding/consultation', {
                 method: 'POST',
@@ -408,26 +415,25 @@
                 body: JSON.stringify({
                     name: name,
                     email: email,
-                    phone: '',
+                    phone: phone || '',
                     agency_name: company || '',
                     company: company || '',
-                    niche: 'enterprise',
-                    current_process: note || 'Agency OS Architecture Consultation Request'
+                    niche: industry || 'Enquiry-Driven Business',
+                    current_process: currentProcessParts.join(' | ') || 'Custom AI Automation Assessment Request'
                 })
             });
 
             if (res.ok) {
-                const data = await res.json();
                 if (alertEl) {
                     alertEl.hidden = false;
                     alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert success' : 'modal-alert success';
-                    alertEl.textContent = data.message || 'Request received. A systems architect will reach out shortly.';
+                    alertEl.textContent = "Thanks — your assessment request has been received. We'll review your requirements and contact you within 24 business hours.";
                 }
                 if (typeof onSuccess === 'function') {
                     onSuccess();
                 }
             } else {
-                let errorDetail = 'Unable to submit your consultation request. Please try again.';
+                let errorDetail = 'Unable to submit your assessment request. Please try again.';
                 try {
                     const errData = await res.json();
                     if (errData && errData.detail) {
@@ -458,7 +464,7 @@
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = submitBtn.dataset.originalText || 'Request Consultation';
+                submitBtn.textContent = submitBtn.dataset.originalText || 'Request Assessment';
             }
         }
     }
@@ -470,24 +476,27 @@
             const nameInput = document.getElementById('consultationName');
             const emailInput = document.getElementById('consultationEmail');
             const companyInput = document.getElementById('consultationCompany');
+            const phoneInput = document.getElementById('consultationPhone');
+            const websiteInput = document.getElementById('consultationWebsite');
+            const industryInput = document.getElementById('consultationIndustry');
             const needInput = document.getElementById('consultationNeed');
             const noteInput = document.getElementById('consultationNote');
             const submitBtn = document.getElementById('consultationSubmitBtn');
-
-            const needVal = needInput?.value?.trim() || '';
-            const rawNote = noteInput?.value?.trim() || '';
-            const fullNote = [needVal ? 'Need: ' + needVal : '', rawNote].filter(Boolean).join(' | ');
 
             submitConsultationRequest({
                 name: nameInput?.value?.trim() || '',
                 email: emailInput?.value?.trim() || '',
                 company: companyInput?.value?.trim() || '',
-                note: fullNote || 'Custom AI Automation Assessment Request',
+                phone: phoneInput?.value?.trim() || '',
+                website: websiteInput?.value?.trim() || '',
+                industry: industryInput?.value?.trim() || '',
+                need: needInput?.value?.trim() || '',
+                note: noteInput?.value?.trim() || '',
                 submitBtn: submitBtn,
                 alertEl: consultationAlert,
                 onSuccess: function() {
                     consultationForm.reset();
-                    setTimeout(closeConsultationModal, 2500);
+                    setTimeout(closeConsultationModal, 3000);
                 }
             });
         });
@@ -504,18 +513,21 @@
             const nameInput = document.getElementById('inlineName');
             const emailInput = document.getElementById('inlineEmail');
             const companyInput = document.getElementById('inlineCompany');
+            const phoneInput = document.getElementById('inlinePhone');
+            const websiteInput = document.getElementById('inlineWebsite');
+            const industryInput = document.getElementById('inlineIndustry');
             const needInput = document.getElementById('inlineNeed');
             const noteInput = document.getElementById('inlineNote');
-
-            const needVal = needInput?.value?.trim() || '';
-            const rawNote = noteInput?.value?.trim() || '';
-            const fullNote = [needVal ? 'Need: ' + needVal : '', rawNote].filter(Boolean).join(' | ');
 
             submitConsultationRequest({
                 name: nameInput?.value?.trim() || '',
                 email: emailInput?.value?.trim() || '',
                 company: companyInput?.value?.trim() || '',
-                note: fullNote || 'Custom AI Automation Assessment Request',
+                phone: phoneInput?.value?.trim() || '',
+                website: websiteInput?.value?.trim() || '',
+                industry: industryInput?.value?.trim() || '',
+                need: needInput?.value?.trim() || '',
+                note: noteInput?.value?.trim() || '',
                 submitBtn: inlineSubmitBtn,
                 alertEl: inlineAlert,
                 onSuccess: function() {
