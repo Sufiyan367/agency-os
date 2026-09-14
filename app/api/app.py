@@ -289,9 +289,10 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
-            "font-src 'self' https://fonts.gstatic.com data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://db.onlinewebfonts.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://db.onlinewebfonts.com data:; "
             "img-src 'self' data: https:; "
+            "media-src 'self' https://d8j0ntlcm91z4.cloudfront.net; "
             "connect-src 'self' ws: wss:; "
             "frame-ancestors 'self';"
         )
@@ -300,9 +301,10 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
-            "font-src 'self' https://fonts.gstatic.com data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://db.onlinewebfonts.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://db.onlinewebfonts.com data:; "
             "img-src 'self' data: https:; "
+            "media-src 'self' https://d8j0ntlcm91z4.cloudfront.net; "
             "connect-src 'self' ws: wss:; "
             "frame-ancestors 'none';"
         )
@@ -336,6 +338,10 @@ async def sanitized_global_exception_handler(request: Request, exc: Exception):
 # Mount static and templates
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+ASSETS_DIR = os.path.join(STATIC_DIR, "assets")
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR) if os.path.exists(TEMPLATES_DIR) else None
 
