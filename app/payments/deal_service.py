@@ -521,6 +521,244 @@ class DealClosingService:
             "delivery_status": proposal.delivery_status if proposal else "READY_TO_START"
         }
 
+    async def confirm_manual_payment(
+        self,
+        session: AsyncSession,
+        payment_id: int,
+        payment_reference: str,
+        operator: str = "operator",
+        amount_received: Optional[float] = None,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Operator Manual Verification & Delivery Activation Flow:
+        Explicitly verifies incoming remittance (e.g. Google Pay / International Inward Remittance).
+        - Idempotent: duplicate calls do not double-advance pipeline, double-create projects, or corrupt state.
+        - Exact-once delivery unlocking: provisions Customer & Project and transitions proposal to WON/ADVANCE_RECEIVED.
+        - Emits activity event and releases active outreach lock.
+        """
+        pmt = await session.get(Payment, payment_id)
+        if not pmt:
+            raise ValueError(f"Payment #{payment_id} not found.")
+
+        # 1. Idempotency Check: if already confirmed/paid, return idempotent success
+        if pmt.status in ("PAYMENT_CONFIRMED", "PAID", "VERIFIED_PAYMENT", "DELIVERY_UNLOCKED", "COMPLETED", "SETTLED"):
+            logger.info(f"[DealClosingService] Payment #{payment_id} already confirmed as '{pmt.status}'. Returning idempotent response.")
+            q_proj = select(Project).where(Project.customer_id == pmt.customer_id) if pmt.customer_id else None
+            proj = (await session.execute(q_proj)).scalars().first() if q_proj is not None else None
+            return {
+                "status": "ALREADY_CONFIRMED",
+                "is_confirmed": True,
+                "payment_id": pmt.id,
+                "payment_status": pmt.status,
+                "amount": float(pmt.amount),
+                "reference_id": pmt.reference_id,
+                "payment_reference": pmt.gpay_reference or payment_reference,
+                "delivery_unlocked": True,
+                "project_id": proj.id if proj else None,
+                "customer_id": pmt.customer_id,
+                "message": "Payment was already confirmed previously."
+            }
+
+        # 2. Validation
+        if not payment_reference or len(payment_reference.strip()) < 3:
+            raise ValueError("Invalid transaction reference. A valid bank UTR or remittance reference is required.")
+
+        ref_clean = payment_reference.strip()
+        expected_amount = float(pmt.amount)
+        confirmed_amount = float(amount_received) if amount_received is not None else expected_amount
+
+        if confirmed_amount < expected_amount:
+            raise ValueError(f"Underpayment rejected: Received ${confirmed_amount:,.2f} but required ${expected_amount:,.2f}.")
+
+        # 3. Transition Payment Record
+        now = datetime.utcnow()
+        pmt.status = "PAYMENT_CONFIRMED"
+        pmt.paid_at = now
+        pmt.verified_at = now
+        pmt.verified_by = operator
+        pmt.verification_method = "HUMAN_OPERATOR_VERIFICATION"
+        pmt.gpay_reference = ref_clean
+        
+        meta = dict(pmt.extra_metadata or {})
+        meta["confirmed_at"] = now.isoformat()
+        meta["payment_reference"] = ref_clean
+        meta["operator_notes"] = notes or ""
+        meta["verification_evidence"] = {
+            "source": "OPERATOR_CONFIRMATION",
+            "verified_by": operator,
+            "payment_reference": ref_clean,
+            "amount_confirmed": confirmed_amount,
+            "confirmed_at": now.isoformat(),
+            "notes": notes or ""
+        }
+        pmt.extra_metadata = meta
+
+        # 4. Advance Proposal & Financials
+        proposal = None
+        if pmt.proposal_id:
+            proposal = await session.get(Proposal, pmt.proposal_id)
+
+        if proposal:
+            proposal.advance_received = (proposal.advance_received or 0.0) + confirmed_amount
+            proposal.remaining_balance = max(0.0, float(proposal.total_value) - float(proposal.advance_received))
+
+            if proposal.remaining_balance <= 0.0:
+                proposal.status = "WON"
+                proposal.delivery_status = "READY_TO_START"
+                audit_event = "deal_won"
+            else:
+                proposal.status = "ADVANCE_RECEIVED"
+                proposal.delivery_status = "READY_TO_START"
+                audit_event = "advance_received"
+
+            session.add(DealAuditTrail(
+                proposal_id=proposal.id,
+                business_id=proposal.business_id,
+                event_type="payment_confirmed_manually",
+                operator=operator,
+                payload={
+                    "payment_id": pmt.id,
+                    "payment_reference": ref_clean,
+                    "amount": confirmed_amount,
+                    "currency": pmt.currency,
+                    "notes": notes or ""
+                }
+            ))
+            session.add(DealAuditTrail(
+                proposal_id=proposal.id,
+                business_id=proposal.business_id,
+                event_type=audit_event,
+                operator=operator,
+                payload={
+                    "advance_received": proposal.advance_received,
+                    "remaining_balance": proposal.remaining_balance,
+                    "total_value": proposal.total_value
+                }
+            ))
+            session.add(DealAuditTrail(
+                proposal_id=proposal.id,
+                business_id=proposal.business_id,
+                event_type="delivery_unlocked",
+                operator=operator,
+                payload={"delivery_status": proposal.delivery_status}
+            ))
+
+        # 5. Advance CRM Business Stage
+        biz = None
+        target_biz_id = pmt.business_id or (proposal.business_id if proposal else None)
+        if target_biz_id:
+            biz = await session.get(Business, target_biz_id)
+            if biz:
+                old_stage = biz.pipeline_stage
+                biz.pipeline_stage = PipelineStage.WON.value if (proposal and proposal.status == "WON") else "ADVANCE_RECEIVED"
+                session.add(PipelineEvent(
+                    business_id=biz.id,
+                    from_stage=old_stage,
+                    to_stage=biz.pipeline_stage,
+                    deal_value=confirmed_amount,
+                    note=f"Manual Payment Confirmed ({ref_clean}) by {operator}: ${confirmed_amount:,.2f} USD. Delivery unlocked."
+                ))
+
+                # Sync ProspectMemory
+                try:
+                    from app.database.models import ProspectMemory
+                    q_mem = select(ProspectMemory).where(ProspectMemory.business_id == biz.id)
+                    mem = (await session.execute(q_mem)).scalars().first()
+                    if mem:
+                        mem.pipeline_stage = biz.pipeline_stage
+                        mem.last_interaction = f"Manual Payment Confirmed ({ref_clean}): ${confirmed_amount:,.2f} USD. Delivery unlocked."
+                        mem.next_expected_action = "DELIVERY_IN_PROGRESS"
+                        mem.updated_at = now
+                except Exception as e:
+                    logger.debug(f"[DealClosingService] Memory sync note: {e}")
+
+        # 6. Provision Customer & Project (Exact-once idempotent)
+        cust = None
+        if target_biz_id:
+            q_cust = select(Customer).where(Customer.business_id == target_biz_id)
+            cust = (await session.execute(q_cust)).scalars().first()
+            if not cust:
+                cust = Customer(
+                    business_id=target_biz_id,
+                    company_name=biz.name if biz else f"Company #{target_biz_id}",
+                    contact_email=biz.public_email if biz else "billing@client.com",
+                    contract_amount=confirmed_amount,
+                    onboarding_status="ONBOARDED"
+                )
+                session.add(cust)
+                await session.flush()
+            else:
+                cust.contract_amount = max(float(cust.contract_amount or 0.0), confirmed_amount)
+                cust.onboarding_status = "ONBOARDED"
+
+            pmt.customer_id = cust.id
+
+        proj = None
+        if cust:
+            q_proj = select(Project).where(Project.customer_id == cust.id)
+            proj = (await session.execute(q_proj)).scalars().first()
+            if not proj:
+                proj = Project(
+                    customer_id=cust.id,
+                    title=f"Delivery Project: {proposal.title if proposal else (biz.name if biz else 'Client Onboarding')}",
+                    service_type=proposal.service_type if proposal else "Autonomous B2B Optimization",
+                    status="IN_PROGRESS",
+                    tasks=[
+                        {"task": "Technical Onboarding & Asset Audit", "status": "IN_PROGRESS"},
+                        {"task": "Execution & Performance Overhaul", "status": "PENDING"},
+                        {"task": "Delivery Verification & Signoff", "status": "PENDING"}
+                    ]
+                )
+                session.add(proj)
+                await session.flush()
+
+        # 7. Release active outreach lock upon WON
+        try:
+            from app.acquisition.controller import active_prospect_controller
+            await active_prospect_controller.release_active_slot(
+                session=session,
+                terminal_reason="WON",
+                notes=f"Payment confirmed manually: {ref_clean}. Project #{proj.id if proj else 'N/A'} unlocked."
+            )
+        except Exception as e:
+            logger.warning(f"[DealClosingService] Active outreach lock release skipped/failed: {e}")
+
+        # 8. Activity notification broadcast
+        try:
+            from app.core.activity_broadcaster import ActivityBroadcaster
+            await ActivityBroadcaster.broadcast_event(
+                event_type="PAYMENT_CONFIRMED",
+                title=f"Payment Confirmed: ${confirmed_amount:,.2f} USD",
+                description=f"Operator '{operator}' confirmed payment {ref_clean} for {biz.name if biz else 'Client'}. Delivery unlocked.",
+                metadata={"payment_id": pmt.id, "amount": confirmed_amount, "reference": ref_clean}
+            )
+        except Exception:
+            pass
+
+        await session.commit()
+        await session.refresh(pmt)
+
+        logger.info(
+            f"[DealClosingService] Operator '{operator}' confirmed payment #{pmt.id} "
+            f"(${confirmed_amount:,.2f} USD, Ref: '{ref_clean}'). Delivery unlocked."
+        )
+
+        return {
+            "status": "PAYMENT_CONFIRMED",
+            "is_confirmed": True,
+            "payment_id": pmt.id,
+            "amount_confirmed": confirmed_amount,
+            "payment_reference": ref_clean,
+            "verified_by": operator,
+            "proposal_status": proposal.status if proposal else "PAID",
+            "remaining_balance": proposal.remaining_balance if proposal else 0.0,
+            "delivery_status": proposal.delivery_status if proposal else "READY_TO_START",
+            "customer_id": cust.id if cust else None,
+            "project_id": proj.id if proj else None,
+            "delivery_unlocked": True
+        }
+
     async def get_real_deal_metrics(
         self,
         session: AsyncSession,

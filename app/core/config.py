@@ -172,12 +172,14 @@ class Settings(BaseSettings):
     AUTO_APPROVAL_ENABLED: bool = os.getenv("AUTO_APPROVAL_ENABLED", "true").lower() in ("true", "1", "yes")
 
     # Payment Architecture & Provider Strategy
-    PREFERRED_PAYMENT_METHOD: str = os.getenv("PREFERRED_PAYMENT_METHOD", "google_pay")
-    GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", "agencyos@okhdfcbank")
+    PREFERRED_PAYMENT_METHOD: str = os.getenv("PREFERRED_PAYMENT_METHOD", "google_pay_manual")
+    GOOGLE_PAY_UPI_ID: str = os.getenv("GOOGLE_PAY_UPI_ID", os.getenv("GOOGLE_PAY_VPA", "agencyos@okhdfcbank"))
+    GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", os.getenv("GOOGLE_PAY_UPI_ID", "agencyos@okhdfcbank"))
     GOOGLE_PAY_MERCHANT_NAME: str = os.getenv("GOOGLE_PAY_MERCHANT_NAME", "Autonomous Agency OS")
     GOOGLE_PAY_MERCHANT_ID: Optional[str] = os.getenv("GOOGLE_PAY_MERCHANT_ID")
+    PAYMENT_INSTRUCTIONS_EXPIRY_DAYS: int = int(os.getenv("PAYMENT_INSTRUCTIONS_EXPIRY_DAYS", "7"))
     
-    PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "google_pay")  # 'google_pay' (default), 'razorpay', 'dry_run'
+    PAYMENT_PROVIDER: str = os.getenv("PAYMENT_PROVIDER", "google_pay_manual")  # 'google_pay_manual' (default), 'google_pay', 'razorpay', 'dry_run'
     PAYMENTS_ENABLED: bool = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
     PAYMENT_DRY_RUN: bool = os.getenv("PAYMENT_DRY_RUN", "true").lower() in ("true", "1", "yes")
     MINIMUM_SERVICE_VALUE_USD: float = float(os.getenv("MINIMUM_SERVICE_VALUE_USD", "500.0"))

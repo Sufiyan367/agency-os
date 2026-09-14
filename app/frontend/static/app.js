@@ -721,9 +721,13 @@ function renderCeoActionsRequired(actions) {
             actionBtns = `
                 <button class="btn btn-xs btn-primary" onclick="viewLeadDetail(${leadId})" style="width:100%; background:#ffffff; color:#000000; font-weight:600; padding:6px 12px; border-radius:5px; border:none; cursor:pointer; font-size:0.75rem; text-align:center;">View Proposal →</button>
             `;
-        } else if (item.type === 'PAYMENT_AUTHORIZATION') {
+        } else if (item.type === 'PAYMENT_AUTHORIZATION' || item.type === 'PAYMENT_VERIFICATION') {
+            const payId = item.payment_id || item.entity_id || item.item_id;
             actionBtns = `
-                <span class="badge badge-amber" style="font-size:0.68rem; font-weight:600; padding:4px 10px; border-radius:4px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">SIMULATION MODE [DRY RUN]</span>
+                <div style="display:flex; align-items:center; gap:6px; width:100%;">
+                    <button class="btn btn-xs btn-primary" onclick="confirmPaymentModal(${payId})" style="flex:1; background:#10b981; color:#000000; font-weight:700; padding:6px 10px; border-radius:5px; border:none; cursor:pointer; font-size:0.72rem; text-align:center;">✓ Confirm Payment</button>
+                    <button class="btn btn-xs btn-secondary" onclick="viewPaymentInstructionsModal(${payId})" style="flex:1; background:#18181b; color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:600; padding:6px 10px; border-radius:5px; cursor:pointer; font-size:0.72rem; text-align:center;">📋 View Instructions</button>
+                </div>
             `;
         } else {
             actionBtns = `
@@ -3221,19 +3225,80 @@ async function loadPayments() {
 
         payments.forEach(p => {
             const tr = document.createElement('tr');
+            const isPending = ['PAYMENT_PENDING', 'PAYMENT_REQUESTED', 'PAYMENT_PENDING_VERIFICATION', 'PENDING'].includes(p.status);
+            const badgeClass = isPending ? 'badge-amber' : 'badge-emerald';
+            let actionBtns = `<button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" onclick="viewAuditReport(${p.business_id || p.customer_id})">📄 Delivery Pack</button>`;
+            if (isPending) {
+                actionBtns = `
+                    <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; background:#10b981; color:#000000; font-weight:700; border:none; border-radius:4px; margin-right:4px;" onclick="confirmPaymentModal(${p.id})">✓ Confirm</button>
+                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="viewPaymentInstructionsModal(${p.id})">📋 Instructions</button>
+                `;
+            }
             tr.innerHTML = `
                 <td><code style="color:var(--hud-cyan-bright);">${p.reference_id}</code></td>
                 <td><strong>${p.company_name}</strong></td>
                 <td style="font-weight:700; color:var(--hud-emerald);">$${p.amount.toLocaleString()}</td>
                 <td>${p.currency}</td>
-                <td><span class="badge badge-emerald">${p.status}</span></td>
+                <td><span class="badge ${badgeClass}">${p.status}</span></td>
                 <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}</td>
-                <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" onclick="viewAuditReport(${p.business_id || p.customer_id})">📄 Delivery Pack</button></td>
+                <td>${actionBtns}</td>
             `;
             tbody.appendChild(tr);
         });
     } catch (e) {
         console.error('Error loading payments and deals:', e);
+    }
+}
+
+async function confirmPaymentModal(paymentId) {
+    const utr = prompt(`Enter bank settlement reference / UTR for Payment #${paymentId}:\n(Required for human operator confirmation)`);
+    if (!utr || utr.trim().length < 3) {
+        if (utr !== null) alert("Error: A valid settlement reference / UTR is required to confirm payment.");
+        return;
+    }
+    const operator = prompt("Confirm Operator Name/ID:", "operator") || "operator";
+    try {
+        const res = await fetch(`/api/payments/${paymentId}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                payment_reference: utr.trim(),
+                operator: operator.trim()
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✓ Payment #${paymentId} confirmed successfully!\nStatus: ${data.status}\nDelivery automation has unlocked.`);
+            if (typeof loadCeoControlCenter === 'function') loadCeoControlCenter();
+            if (typeof loadPayments === 'function') loadPayments();
+        } else {
+            alert(`Payment confirmation failed: ${data.detail || JSON.stringify(data)}`);
+        }
+    } catch (e) {
+        alert(`Error contacting payment API: ${e}`);
+    }
+}
+
+async function viewPaymentInstructionsModal(paymentId) {
+    try {
+        const res = await fetch(`/api/payments/${paymentId}/instructions`);
+        if (!res.ok) {
+            alert(`Could not fetch instructions for payment #${paymentId}`);
+            return;
+        }
+        const d = await res.json();
+        const msg = `CUSTOMER PAYMENT INSTRUCTIONS:\n` +
+                    `---------------------------------------\n` +
+                    `Beneficiary: ${d.recipient_name}\n` +
+                    `UPI ID / VPA: ${d.recipient_upi_id}\n` +
+                    `Amount: $${d.amount} ${d.currency}\n` +
+                    `Reference Code: ${d.payment_reference}\n` +
+                    `Status: ${d.status}\n` +
+                    `Valid Until: ${d.expires_at || '7 days'}\n\n` +
+                    `Instructions:\n${d.instructions || 'Include reference code in transfer remarks.'}`;
+        alert(msg);
+    } catch (e) {
+        alert(`Error fetching instructions: ${e}`);
     }
 }
 

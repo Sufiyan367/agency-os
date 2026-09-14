@@ -2150,16 +2150,33 @@ async def get_ceo_control_center_overview(
     revenue_collected = float(real_revenue)
 
     payments_enabled = getattr(settings, "PAYMENTS_ENABLED", False)
-    stripe_key_exists = bool(os.getenv("STRIPE_SECRET_KEY") or os.getenv("STRIPE_API_KEY"))
-    if not payments_enabled:
-        payment_status = "PAYMENTS NOT ACTIVE"
-        revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
-    elif not stripe_key_exists and getattr(settings, "PAYMENT_PROVIDER", "") == "stripe":
-        payment_status = "PAYMENT PROVIDER NOT CONFIGURED"
-        revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
+    provider_name = (getattr(settings, "PAYMENT_PROVIDER", "") or getattr(settings, "PREFERRED_PAYMENT_METHOD", "google_pay_manual")).lower()
+
+    # Query count of pending vs confirmed payments
+    q_pending_cnt = select(func.count(Payment.id)).where(Payment.status.in_(["PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION", "PENDING"]))
+    pending_payments_count = (await db.execute(q_pending_cnt)).scalar() or 0
+
+    q_confirmed_cnt = select(func.count(Payment.id)).where(Payment.status.in_(["PAYMENT_CONFIRMED", "PAID", "VERIFIED_PAYMENT", "COMPLETED", "SETTLED"]))
+    confirmed_payments_count = (await db.execute(q_confirmed_cnt)).scalar() or 0
+
+    if provider_name in ("google_pay_manual", "google_pay", "upi_manual", "manual_upi"):
+        payment_method = "Google Pay / International UPI"
+        if not payments_enabled:
+            payment_status = "DISABLED (Manual Verification Ready)"
+        elif pending_payments_count > 0:
+            payment_status = "Pending Verification"
+        elif confirmed_payments_count > 0:
+            payment_status = "Confirmed"
+        else:
+            payment_status = "Ready (Google Pay / International UPI)"
     else:
-        payment_status = "LIVE"
-        revenue_label = f"${revenue_collected:,.2f}"
+        payment_method = provider_name.upper()
+        if not payments_enabled:
+            payment_status = "PAYMENTS NOT ACTIVE"
+        else:
+            payment_status = "LIVE"
+
+    revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
 
     # Calculate real funnel & observability metrics
     q_waiting_reply = select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.CONTACTED.value)
@@ -2188,15 +2205,17 @@ async def get_ceo_control_center_overview(
         "interested_leads": interested_leads,
         "active_demos": active_demos,
         "proposals_awaiting_action": proposals_awaiting_action,
-        "payments_awaiting_authorization": payments_awaiting_authorization,
-        "payments_count": payments_awaiting_authorization,
+        "payments_awaiting_authorization": pending_payments_count,
+        "payments_count": pending_payments_count,
+        "confirmed_payments_count": confirmed_payments_count,
         "active_projects": active_projects,
         "customers_count": active_projects,
         "open_support_tickets": open_support_tickets,
         "open_incidents": open_incidents,
         "revenue_collected": revenue_collected,
         "revenue_label": revenue_label,
-        "payment_status": payment_status
+        "payment_status": payment_status,
+        "payment_method": payment_method
     }
 
     # --- 2. Action Required (Executive Action Feed) ---
@@ -2330,10 +2349,10 @@ async def get_ceo_control_center_overview(
             ]
         })
 
-    # E. Payment authorization
+    # E. Payment authorization & verification
     pending_payments = (await db.execute(
         select(Payment).where(
-            Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"])
+            Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"])
         ).order_by(desc(Payment.created_at)).limit(5)
     )).scalars().all()
     for pay in pending_payments:
@@ -2343,18 +2362,21 @@ async def get_ceo_control_center_overview(
         b_name = b.name or b.domain or f"Lead #{pay.business_id}"
         actions_required.append({
             "id": f"payment_{pay.id}",
-            "type": "PAYMENT_AUTHORIZATION",
-            "severity": "INFO",
-            "title": f"Payment Authorization: {b_name} [DRY RUN]",
-            "description": f"Amount: ${float(pay.amount or 0.0):,.2f} — PAYMENTS: DISABLED (Dry-Run Safe)",
+            "type": "PAYMENT_VERIFICATION",
+            "severity": "WARNING",
+            "title": f"Payment Verification: {b_name} (${float(pay.amount or 0.0):,.2f})",
+            "description": f"Google Pay / UPI Inward Remittance (Ref: {pay.reference_id}) — Awaiting human operator confirmation.",
             "entity_id": pay.id,
             "item_id": pay.id,
+            "payment_id": pay.id,
+            "reference_id": pay.reference_id,
             "business_id": pay.business_id,
             "lead_id": pay.business_id,
             "business_name": b_name,
             "company": b_name,
             "actions": [
-                {"label": "Review Billing", "action": "view_lead", "style": "secondary"}
+                {"label": "Confirm Payment", "action": "confirm_payment", "style": "emerald"},
+                {"label": "View Instructions", "action": "view_payment_instructions", "style": "secondary"}
             ]
         })
 
@@ -5173,6 +5195,42 @@ async def unlock_delivery_endpoint(
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
 
+class PaymentConfirmRequest(BaseModel):
+    payment_reference: str
+    amount_received: Optional[float] = None
+    operator: Optional[str] = None
+    notes: Optional[str] = None
+
+@router.post("/api/payments/{payment_id}/confirm")
+async def confirm_payment_endpoint(
+    payment_id: int,
+    req: PaymentConfirmRequest,
+    db: AsyncSession = Depends(get_db),
+    user_info: Dict[str, str] = Depends(get_current_user_info)
+):
+    """
+    Operator Payment Confirmation Endpoint:
+    Explicitly confirms incoming payment (Google Pay / UPI Inward Remittance)
+    using human verification, bank transaction reference / UTR, and unlocks delivery automation.
+    Idempotent: Duplicate requests safely return ALREADY_CONFIRMED.
+    """
+    operator = req.operator or user_info.get("username", "operator")
+    try:
+        res = await deal_closing_service.confirm_manual_payment(
+            session=db,
+            payment_id=payment_id,
+            payment_reference=req.payment_reference,
+            operator=operator,
+            amount_received=req.amount_received,
+            notes=req.notes
+        )
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"[PaymentConfirmAPI] Failed to confirm payment #{payment_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to confirm payment: {str(e)}")
+
 @router.get("/api/payments/{payment_id}/instructions")
 async def get_payment_instructions_endpoint(
     payment_id: int,
@@ -5181,15 +5239,30 @@ async def get_payment_instructions_endpoint(
     pmt = await db.get(Payment, payment_id)
     if not pmt:
         raise HTTPException(status_code=404, detail=f"Payment #{payment_id} not found.")
+    meta = pmt.extra_metadata or {}
+    raw_instructions = meta.get("instructions", {})
+    if isinstance(raw_instructions, dict):
+        clean_text = raw_instructions.get("instructions") or ""
+        checkout_url = raw_instructions.get("checkout_url") or raw_instructions.get("gpay_uri") or ""
+    else:
+        clean_text = str(raw_instructions)
+        checkout_url = ""
+
     return {
         "payment_id": pmt.id,
         "reference_id": pmt.reference_id,
+        "payment_reference": meta.get("payment_reference") or pmt.reference_id,
         "amount": float(pmt.amount),
         "currency": pmt.currency,
         "provider": pmt.provider,
+        "recipient_upi_id": meta.get("recipient_upi_id") or pmt.gpay_reference or getattr(settings, "GOOGLE_PAY_UPI_ID", "agencyos@okhdfcbank"),
+        "recipient_name": meta.get("recipient_name") or getattr(settings, "GOOGLE_PAY_MERCHANT_NAME", "Automated Agency OS"),
         "status": pmt.status,
         "gpay_reference": pmt.gpay_reference,
-        "instructions": pmt.extra_metadata.get("instructions", {})
+        "checkout_url": checkout_url,
+        "instructions": clean_text,
+        "created_at": meta.get("created_at") or (pmt.created_at.isoformat() if pmt.created_at else None),
+        "expires_at": meta.get("expires_at")
     }
 
 

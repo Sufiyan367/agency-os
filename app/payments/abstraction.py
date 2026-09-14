@@ -6,6 +6,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Tuple, List
+from datetime import datetime, timedelta
 import httpx
 
 from app.core.config import settings
@@ -300,29 +301,34 @@ class RealRazorpayPaymentProvider(BasePaymentProvider):
 
 class GooglePayPaymentProvider(BasePaymentProvider):
     """
-    Google Pay Provider — Preferred customer-facing payment method.
-    Generates structured payment instructions, deep links, and manual/UTR reconciliation fields.
-    Does NOT assume server-side webhooks exist for GPay alone (zero fake automation).
-    Strictly gates verification behind trusted CEO approval or verified bank reconciliation.
+    Google Pay & UPI Remittance Provider — Preferred customer-facing manual payment method.
+    Designed for Indian Google Pay setups receiving international payments / Foreign Inward Remittances.
+    Generates clean customer-facing payment instructions, remittance reference codes, and VPA details.
+    Strictly gates verification behind trusted human operator confirmation.
     """
 
     def __init__(
         self,
         vpa: Optional[str] = None,
         merchant_name: Optional[str] = None,
-        merchant_id: Optional[str] = None
+        merchant_id: Optional[str] = None,
+        provider_name: Optional[str] = None,
+        expiry_days: Optional[int] = None
     ):
-        self.vpa = vpa or getattr(settings, "GOOGLE_PAY_VPA", "agencyos@okhdfcbank")
-        self.merchant_name = merchant_name or getattr(settings, "GOOGLE_PAY_MERCHANT_NAME", "Autonomous Agency OS")
+        self.vpa = vpa or getattr(settings, "GOOGLE_PAY_UPI_ID", None) or getattr(settings, "GOOGLE_PAY_VPA", "agencyos@okhdfcbank")
+        self.merchant_name = merchant_name or getattr(settings, "GOOGLE_PAY_MERCHANT_NAME", "Automated Agency OS")
         self.merchant_id = merchant_id or getattr(settings, "GOOGLE_PAY_MERCHANT_ID", None)
+        self._provider_name = provider_name or getattr(settings, "PAYMENT_PROVIDER", "google_pay_manual")
+        self.expiry_days = expiry_days or getattr(settings, "PAYMENT_INSTRUCTIONS_EXPIRY_DAYS", 7)
 
     @property
     def provider_name(self) -> str:
-        return "google_pay"
+        return self._provider_name
 
     @property
     def is_automated_webhook_supported(self) -> bool:
-        # Explicit: Google Pay alone does NOT provide server-side webhooks without a gateway
+        # Explicit: Google Pay UPI alone does NOT provide server-side webhooks without a 3rd-party gateway.
+        # Verification requires human operator confirmation in Agency OS.
         return False
 
     async def create_payment_order(
@@ -359,38 +365,55 @@ class GooglePayPaymentProvider(BasePaymentProvider):
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Generates customer-facing Google Pay payment instructions.
+        Generates clean customer-facing Google Pay / International Remittance payment instructions.
+        Never exposes internal DB IDs, API keys, or raw system prompts.
         """
-        ref_id = f"gpay_{deal_id}_{proposal_id}_{int(time.time())}"
+        now = datetime.utcnow()
+        expires_at = now + timedelta(days=self.expiry_days)
+        ref_hash = hashlib.sha256(f"{deal_id}:{proposal_id}:{now.timestamp()}".encode()).hexdigest()[:6].upper()
+        ref_id = f"OS-REM-{proposal_id}-{ref_hash}"
+
         encoded_pn = self.merchant_name.replace(" ", "%20")
         gpay_uri = f"upi://pay?pa={self.vpa}&pn={encoded_pn}&am={amount_usd:.2f}&cu={currency.upper()}&tr={ref_id}&tn=Invoice%20{ref_id}"
 
+        customer_instructions = (
+            f"Please complete your transfer of ${amount_usd:,.2f} {currency.upper()} using Google Pay "
+            f"or international foreign inward remittance to:\n\n"
+            f"• Beneficiary Name: {self.merchant_name}\n"
+            f"• Recipient UPI ID: {self.vpa}\n"
+            f"• Amount: ${amount_usd:,.2f} {currency.upper()}\n"
+            f"• Remittance Reference Code: {ref_id}\n\n"
+            f"IMPORTANT: Please include '{ref_id}' in your payment transfer remarks/description "
+            f"so our operations team can immediately verify settlement and unlock your delivery automation.\n"
+            f"Instructions valid through: {expires_at.strftime('%Y-%m-%d %H:%M UTC')}."
+        )
+
         logger.info(
-            f"[GooglePayPaymentProvider] Generated payment instructions for proposal #{proposal_id} "
+            f"[GooglePayPaymentProvider] Generated remittance instructions for proposal #{proposal_id} "
             f"(${amount_usd:,.2f} {currency.upper()}) to {self.vpa} (Ref: {ref_id})"
         )
 
         return {
             "order_id": ref_id,
             "reference_id": ref_id,
+            "payment_reference": ref_id,
             "checkout_url": gpay_uri,
             "gpay_uri": gpay_uri,
+            "recipient_upi_id": self.vpa,
             "vpa": self.vpa,
+            "recipient_name": self.merchant_name,
             "merchant_name": self.merchant_name,
             "merchant_id": self.merchant_id,
             "amount": amount_usd,
             "currency": currency.upper(),
             "payment_type": payment_type,
-            "status": "PAYMENT_INSTRUCTIONS",
-            "provider": "google_pay",
+            "status": "PAYMENT_REQUESTED",
+            "provider": self.provider_name,
             "is_mock": False,
-            "verification_requirement": "CEO_APPROVAL_OR_BANK_RECONCILIATION",
-            "instructions": (
-                f"Please submit payment of ${amount_usd:,.2f} {currency.upper()} using Google Pay / UPI "
-                f"to merchant handle: {self.vpa} ({self.merchant_name}).\n"
-                f"Reference Code: {ref_id}.\n"
-                f"After transmission, our billing officer will verify the settlement reference in our bank ledger."
-            ),
+            "verification_requirement": "HUMAN_OPERATOR_VERIFICATION",
+            "created_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "instructions": customer_instructions,
             "notes": {
                 "deal_id": str(deal_id),
                 "proposal_id": str(proposal_id),
@@ -403,32 +426,36 @@ class GooglePayPaymentProvider(BasePaymentProvider):
         payload_bytes: bytes,
         signature: Optional[str]
     ) -> Tuple[bool, str]:
-        return False, "Google Pay does not provide standalone server webhooks without an acquiring gateway. Use CEO approval or bank reconciliation."
+        return False, "Google Pay does not provide standalone server webhooks without an acquiring gateway. Use human operator verification."
 
     async def fetch_payment_status(self, payment_id: str) -> Dict[str, Any]:
         return {
             "id": payment_id,
-            "provider": "google_pay",
-            "status": "AWAITING_VERIFICATION",
-            "note": "Awaiting CEO verification or bank ledger reconciliation."
+            "provider": self.provider_name,
+            "status": "PAYMENT_PENDING_VERIFICATION",
+            "note": "Awaiting explicit human operator verification in Agency OS."
         }
 
 
 def get_payment_provider(provider_name: Optional[str] = None) -> BasePaymentProvider:
     """
     Returns the configured payment provider instance.
-    - If target is 'google_pay': returns GooglePayPaymentProvider (preferred customer-facing method).
+    - If target is 'google_pay_manual', 'google_pay', or 'upi_manual': returns GooglePayPaymentProvider (preferred customer-facing method).
     - If target is 'razorpay': guarded by RAZORPAY_ENABLED. Inactive by default.
     - In dry run mode for gateway providers, returns MockPaymentProvider.
     """
-    target = (provider_name or getattr(settings, "PREFERRED_PAYMENT_METHOD", "google_pay")).lower()
+    target = (
+        provider_name
+        or getattr(settings, "PAYMENT_PROVIDER", None)
+        or getattr(settings, "PREFERRED_PAYMENT_METHOD", "google_pay_manual")
+    ).lower()
 
-    if target == "google_pay":
-        return GooglePayPaymentProvider()
+    if target in ("google_pay", "google_pay_manual", "upi_manual", "manual_upi"):
+        return GooglePayPaymentProvider(provider_name=target)
 
     if target == "razorpay":
         if not getattr(settings, "RAZORPAY_ENABLED", False):
-            logger.warning("[PaymentProvider] Razorpay requested but RAZORPAY_ENABLED is False. Falling back to Google Pay.")
+            logger.warning("[PaymentProvider] Razorpay requested but RAZORPAY_ENABLED is False. Falling back to Google Pay manual.")
             return GooglePayPaymentProvider()
         if settings.PAYMENT_DRY_RUN or settings.DRY_RUN or not settings.PAYMENTS_ENABLED:
             return MockPaymentProvider()
@@ -438,3 +465,4 @@ def get_payment_provider(provider_name: Optional[str] = None) -> BasePaymentProv
         return MockPaymentProvider()
 
     return GooglePayPaymentProvider()
+

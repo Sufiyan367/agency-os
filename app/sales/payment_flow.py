@@ -476,5 +476,27 @@ class PaymentWorkflowManager:
         verify_res.onboarding_status = "ONBOARDED"
         return verify_res
 
+    async def confirm_manual_payment(
+        self,
+        session: AsyncSession,
+        payment_id: int,
+        payment_reference: str,
+        operator: str = "operator",
+        amount_received: Optional[float] = None,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Delegates manual payment confirmation to canonical DealClosingService.
+        """
+        from app.payments.deal_service import deal_closing_service
+        return await deal_closing_service.confirm_manual_payment(
+            session=session,
+            payment_id=payment_id,
+            payment_reference=payment_reference,
+            operator=operator,
+            amount_received=amount_received,
+            notes=notes
+        )
+
 
 payment_workflow_manager = PaymentWorkflowManager()
