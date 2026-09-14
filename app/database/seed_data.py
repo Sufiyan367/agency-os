@@ -143,6 +143,86 @@ COUNTRIES_DATA = [
         "english_accessibility": 80.0,
         "currency": "JOD",
         "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "FR",
+        "name": "France",
+        "gdp_per_capita": 44000.0,
+        "business_density_score": 84.0,
+        "digital_maturity_score": 82.0,
+        "english_accessibility": 75.0,
+        "currency": "EUR",
+        "regulatory_risk_score": 35.0
+    },
+    {
+        "code": "SE",
+        "name": "Sweden",
+        "gdp_per_capita": 55000.0,
+        "business_density_score": 86.0,
+        "digital_maturity_score": 89.0,
+        "english_accessibility": 95.0,
+        "currency": "SEK",
+        "regulatory_risk_score": 30.0
+    },
+    {
+        "code": "JP",
+        "name": "Japan",
+        "gdp_per_capita": 34000.0,
+        "business_density_score": 88.0,
+        "digital_maturity_score": 85.0,
+        "english_accessibility": 70.0,
+        "currency": "JPY",
+        "regulatory_risk_score": 30.0
+    },
+    {
+        "code": "NZ",
+        "name": "New Zealand",
+        "gdp_per_capita": 48000.0,
+        "business_density_score": 80.0,
+        "digital_maturity_score": 84.0,
+        "english_accessibility": 100.0,
+        "currency": "NZD",
+        "regulatory_risk_score": 25.0
+    },
+    {
+        "code": "IE",
+        "name": "Ireland",
+        "gdp_per_capita": 103000.0,
+        "business_density_score": 85.0,
+        "digital_maturity_score": 88.0,
+        "english_accessibility": 100.0,
+        "currency": "EUR",
+        "regulatory_risk_score": 30.0
+    },
+    {
+        "code": "ES",
+        "name": "Spain",
+        "gdp_per_capita": 30000.0,
+        "business_density_score": 80.0,
+        "digital_maturity_score": 80.0,
+        "english_accessibility": 75.0,
+        "currency": "EUR",
+        "regulatory_risk_score": 35.0
+    },
+    {
+        "code": "IT",
+        "name": "Italy",
+        "gdp_per_capita": 35000.0,
+        "business_density_score": 82.0,
+        "digital_maturity_score": 78.0,
+        "english_accessibility": 72.0,
+        "currency": "EUR",
+        "regulatory_risk_score": 35.0
+    },
+    {
+        "code": "CH",
+        "name": "Switzerland",
+        "gdp_per_capita": 93000.0,
+        "business_density_score": 88.0,
+        "digital_maturity_score": 90.0,
+        "english_accessibility": 90.0,
+        "currency": "CHF",
+        "regulatory_risk_score": 25.0
     }
 ]
 

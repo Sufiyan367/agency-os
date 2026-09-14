@@ -16,15 +16,18 @@ class MarketIntelligenceEngine:
     def calculate_opportunity_score(
         self, country: Country, niche: Niche
     ) -> OpportunityEvaluation:
-        # Market scale & regional focus: Phase 1 prioritizes Middle East corridors
+        # Market scale & regional focus: Prioritize high-value corridors across active campaigns
         if country.code in ("AE", "SA", "QA", "KW", "OM", "BH", "JO"):
             market_scale_bonus = 25.0
             outreach_feasibility = 95.0
         elif country.code == "US":
             market_scale_bonus = 20.0
             outreach_feasibility = 98.0
-        elif country.code in ("GB", "CA", "AU"):
-            market_scale_bonus = 10.0
+        elif country.code in ("GB", "UK", "CA", "AU"):
+            market_scale_bonus = 15.0
+            outreach_feasibility = 90.0
+        elif country.code in ("DE", "FR", "NL", "SE", "SG", "IE", "CH", "NZ", "ES", "IT", "JP"):
+            market_scale_bonus = 15.0
             outreach_feasibility = 85.0
         else:
             market_scale_bonus = 0.0

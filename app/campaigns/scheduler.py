@@ -26,6 +26,11 @@ COUNTRY_TIMEZONE_FALLBACKS = {
     "IT": ("Europe/Rome", 1),
     "CH": ("Europe/Zurich", 1),
     "QA": ("Asia/Qatar", 3),
+    "GB": ("Europe/London", 0),
+    "KW": ("Asia/Kuwait", 3),
+    "OM": ("Asia/Muscat", 4),
+    "BH": ("Asia/Bahrain", 3),
+    "JO": ("Asia/Amman", 3),
 }
 
 

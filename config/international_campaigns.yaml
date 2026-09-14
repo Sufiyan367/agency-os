@@ -54,7 +54,7 @@ countries:
   currency: GBP
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: UK-GDPR / PECR
@@ -68,7 +68,7 @@ countries:
   currency: CAD
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: CASL
@@ -82,7 +82,7 @@ countries:
   currency: AUD
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Spam Act 2003
@@ -164,7 +164,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / UWG
@@ -178,7 +178,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / CNIL
@@ -192,7 +192,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / Telecommunicatiewet
@@ -206,7 +206,7 @@ countries:
   currency: SEK
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / Marketing Act
@@ -220,7 +220,7 @@ countries:
   currency: SGD
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Spam Control Act / PDPA
@@ -234,7 +234,7 @@ countries:
   currency: JPY
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: Specified Electronic Mail Act
@@ -248,7 +248,7 @@ countries:
   currency: NZD
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Unsolicited Electronic Messages Act 2007
@@ -262,7 +262,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / ePrivacy SI 336
@@ -276,7 +276,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / LSSI-CE
@@ -290,7 +290,7 @@ countries:
   currency: EUR
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / Codice Privacy
@@ -304,7 +304,7 @@ countries:
   currency: CHF
   language: en
   daily_quota: 10
-  enabled: false
+  enabled: true
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Swiss FADP / UWG Art 3

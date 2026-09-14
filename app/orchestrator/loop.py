@@ -73,20 +73,51 @@ class AutonomousCycleOrchestrator:
             logger.info("Step 1: Discovering and evaluating global market opportunities...")
             opportunities = await market_intelligence_engine.scan_and_rank_markets(session)
             
-            # Filter opportunities by sending window and campaign enablement
+            # Filter opportunities by sending window, campaign enablement, and daily country capacity
             from app.campaigns.scheduler import campaign_scheduler
             from app.campaigns.config import campaign_config_loader
+            from app.core.config import settings
+
+            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             active_window_opportunities = []
+            uncapped_opportunities = []
+
             for opp in opportunities:
                 cc = (opp.country_code or "US").upper()
                 c_prof = campaign_config_loader.get_country(cc)
                 if c_prof and not c_prof.enabled:
                     continue
+
+                # Check if corridor has already reached its daily qualified prospect quota
+                country_quota = c_prof.daily_quota if c_prof else 10
+                codes_to_match = [cc]
+                if cc == "UK":
+                    codes_to_match.append("GB")
+                elif cc == "GB":
+                    codes_to_match.append("UK")
+
+                q_cntry_check = select(func.count(Business.id)).where(
+                    Business.country.in_(codes_to_match),
+                    Business.pipeline_stage.in_([
+                        PipelineStage.APPROVAL.value,
+                        PipelineStage.OUTREACH_READY.value,
+                        PipelineStage.CONTACTED.value,
+                        PipelineStage.WON.value
+                    ]),
+                    Business.created_at >= today_start
+                )
+                cntry_today = (await session.execute(q_cntry_check)).scalar() or 0
+                if cntry_today >= country_quota and getattr(settings, "APP_ENV", "") != "test":
+                    continue
+
+                uncapped_opportunities.append(opp)
                 in_win, _, _, _ = campaign_scheduler.is_within_sending_window(cc)
                 if in_win:
                     active_window_opportunities.append(opp)
 
-            candidate_markets = active_window_opportunities if active_window_opportunities else opportunities
+            candidate_markets = active_window_opportunities if active_window_opportunities else uncapped_opportunities
+            if not candidate_markets:
+                candidate_markets = opportunities
             top_markets = candidate_markets[:max_opportunities_to_mine]
             best_market = top_markets[0]
             cycle_summary["selected_market"] = {
@@ -136,7 +167,7 @@ class AutonomousCycleOrchestrator:
                     )
                     break
 
-                # 2b. Lead Discovery: Check daily country (max 10) and global (max 180) qualified prospect ceilings
+                # 2b. Lead Discovery: Check daily country and global qualified prospect ceilings
                 today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
                 from sqlalchemy import select, func
                 q_glob = select(func.count(Business.id)).where(
@@ -149,12 +180,22 @@ class AutonomousCycleOrchestrator:
                     Business.created_at >= today_start
                 )
                 glob_qualified_today = (await session.execute(q_glob)).scalar() or 0
-                if glob_qualified_today >= 180:
-                    logger.info(f"[DiscoveryCeiling] Global daily qualified prospect ceiling reached ({glob_qualified_today}/180). Halting discovery.")
+                max_global_outreach = int(getattr(settings, "MAX_OUTREACH_PER_DAY", 200))
+                if glob_qualified_today >= max_global_outreach:
+                    logger.info(f"[DiscoveryCeiling] Global daily qualified prospect ceiling reached ({glob_qualified_today}/{max_global_outreach}). Halting discovery.")
                     break
 
+                bm_cc = (best_market.country_code or "US").upper()
+                c_prof = campaign_config_loader.get_country(bm_cc)
+                country_quota = c_prof.daily_quota if c_prof else 10
+                codes_to_match = [bm_cc]
+                if bm_cc == "UK":
+                    codes_to_match.append("GB")
+                elif bm_cc == "GB":
+                    codes_to_match.append("UK")
+
                 q_cntry = select(func.count(Business.id)).where(
-                    Business.country == best_market.country_code,
+                    Business.country.in_(codes_to_match),
                     Business.pipeline_stage.in_([
                         PipelineStage.APPROVAL.value,
                         PipelineStage.OUTREACH_READY.value,
@@ -164,8 +205,8 @@ class AutonomousCycleOrchestrator:
                     Business.created_at >= today_start
                 )
                 cntry_qualified_today = (await session.execute(q_cntry)).scalar() or 0
-                if cntry_qualified_today >= 10 and getattr(settings, "APP_ENV", "") != "test":
-                    logger.info(f"[DiscoveryCeiling] Country {best_market.country_code} daily qualified prospect ceiling reached ({cntry_qualified_today}/10). Skipping further discovery in this corridor today.")
+                if cntry_qualified_today >= country_quota and getattr(settings, "APP_ENV", "") != "test":
+                    logger.info(f"[DiscoveryCeiling] Country {bm_cc} daily qualified prospect ceiling reached ({cntry_qualified_today}/{country_quota}). Skipping further discovery in this corridor today.")
                     break
 
                 logger.info(f"--> [Prospect {prospect_idx + 1}/{total_targets}] Requesting discovery of exactly 1 real prospect (target=1)...")

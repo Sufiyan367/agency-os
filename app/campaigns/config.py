@@ -115,7 +115,10 @@ class CampaignConfigLoader:
         return list(self._countries.values())
 
     def get_country(self, code: str) -> Optional[CountryProfileDTO]:
-        return self._countries.get((code or "").strip().upper())
+        c = (code or "").strip().upper()
+        if c == "GB":
+            c = "UK"
+        return self._countries.get(c)
 
     def get_rollout_config(self) -> RolloutConfigDTO:
         lvl = self._rollout_levels.get(self._current_rollout_level)

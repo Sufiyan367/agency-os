@@ -38,6 +38,10 @@ EXPANDED_CITIES = {
         "London", "Manchester", "Birmingham", "Leeds", "Glasgow",
         "Liverpool", "Newcastle", "Sheffield", "Bristol", "Edinburgh"
     ],
+    "UK": [
+        "London", "Manchester", "Birmingham", "Leeds", "Glasgow",
+        "Liverpool", "Newcastle", "Sheffield", "Bristol", "Edinburgh"
+    ],
     "CA": [
         "Toronto", "Vancouver", "Calgary", "Montreal", "Ottawa",
         "Edmonton", "Winnipeg", "Mississauga"
@@ -69,6 +73,36 @@ EXPANDED_CITIES = {
     ],
     "JO": [
         "Amman", "Zarqa", "Irbid", "Aqaba", "Salt"
+    ],
+    "DE": [
+        "Berlin", "Munich", "Frankfurt", "Hamburg", "Cologne", "Stuttgart", "Dusseldorf"
+    ],
+    "FR": [
+        "Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", "Bordeaux"
+    ],
+    "NL": [
+        "Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"
+    ],
+    "SE": [
+        "Stockholm", "Gothenburg", "Malmo", "Uppsala"
+    ],
+    "JP": [
+        "Tokyo", "Osaka", "Yokohama", "Nagoya", "Fukuoka", "Sapporo"
+    ],
+    "NZ": [
+        "Auckland", "Wellington", "Christchurch", "Hamilton"
+    ],
+    "IE": [
+        "Dublin", "Cork", "Galway", "Limerick"
+    ],
+    "ES": [
+        "Madrid", "Barcelona", "Valencia", "Seville", "Bilbao", "Malaga"
+    ],
+    "IT": [
+        "Milan", "Rome", "Turin", "Bologna", "Florence", "Naples"
+    ],
+    "CH": [
+        "Zurich", "Geneva", "Basel", "Lausanne", "Bern"
     ]
 }
 
