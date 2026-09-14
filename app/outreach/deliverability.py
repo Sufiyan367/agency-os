@@ -213,40 +213,125 @@ class DeliverabilityMonitor:
             reasons=reasons
         )
 
+    def get_canonical_auth_readiness(self) -> Dict[str, Any]:
+        """
+        Single canonical source of truth for email outbound authorization status.
+        Never exposes raw passwords or secrets in outputs or error strings.
+        Returns:
+            {
+                "provider": "Titan Email",
+                "outbound_authorization": "READY" | "BLOCKED",
+                "outbound_auth_blocker": Optional[str],
+                "status_label": "TITAN / READY" | "TITAN / BLOCKED",
+                "healthy": bool,
+                "authenticated_email": Optional[str],
+                "details": Dict[str, Any]
+            }
+        """
+        provider_name = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or getattr(settings, "EMAIL_PROVIDER", None) or "titan").lower().strip()
+
+        if provider_name in ("titan", "titan_smtp"):
+            from app.outreach.providers.titan_provider import TitanEmailProvider
+            tp = TitanEmailProvider()
+            has_pw = bool(getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None))
+            sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
+            if not has_pw:
+                return {
+                    "provider": "Titan Email",
+                    "outbound_authorization": "BLOCKED",
+                    "outbound_auth_blocker": "TITAN_SMTP_PASSWORD is missing in configuration",
+                    "status_label": "TITAN / BLOCKED",
+                    "healthy": False,
+                    "authenticated_email": sender,
+                    "details": {"status": "UNCONFIGURED", "error": "TITAN_SMTP_PASSWORD is missing in configuration"}
+                }
+            auth_check = tp.check_auth_health()
+            if auth_check.get("healthy"):
+                return {
+                    "provider": "Titan Email",
+                    "outbound_authorization": "READY",
+                    "outbound_auth_blocker": None,
+                    "status_label": "TITAN / READY",
+                    "healthy": True,
+                    "authenticated_email": auth_check.get("authenticated_email") or sender,
+                    "details": auth_check
+                }
+            else:
+                err_msg = auth_check.get("error") or "SMTP authentication check failed"
+                return {
+                    "provider": "Titan Email",
+                    "outbound_authorization": "BLOCKED",
+                    "outbound_auth_blocker": err_msg,
+                    "status_label": "TITAN / BLOCKED",
+                    "healthy": False,
+                    "authenticated_email": auth_check.get("authenticated_email") or sender,
+                    "details": auth_check
+                }
+
+        elif provider_name in ("gmail", "gmail_oauth"):
+            try:
+                from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
+                gp = GmailOAuthEmailProvider()
+                g_check = gp.check_auth_health()
+                sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None)
+                if g_check.get("healthy"):
+                    return {
+                        "provider": "Gmail OAuth",
+                        "outbound_authorization": "READY",
+                        "outbound_auth_blocker": None,
+                        "status_label": "GMAIL / READY",
+                        "healthy": True,
+                        "authenticated_email": sender,
+                        "details": g_check
+                    }
+                else:
+                    return {
+                        "provider": "Gmail OAuth",
+                        "outbound_authorization": "BLOCKED",
+                        "outbound_auth_blocker": g_check.get("error", "Gmail OAuth verification failed"),
+                        "status_label": "GMAIL / BLOCKED",
+                        "healthy": False,
+                        "authenticated_email": sender,
+                        "details": g_check
+                    }
+            except Exception as e:
+                return {
+                    "provider": "Gmail OAuth",
+                    "outbound_authorization": "BLOCKED",
+                    "outbound_auth_blocker": str(e),
+                    "status_label": "GMAIL / BLOCKED",
+                    "healthy": False,
+                    "authenticated_email": None,
+                    "details": {"error": str(e)}
+                }
+
+        else:
+            is_dry_run = getattr(settings, "EMAIL_DRY_RUN", True)
+            label_prefix = provider_name.upper()
+            return {
+                "provider": label_prefix,
+                "outbound_authorization": "READY" if not is_dry_run else "BLOCKED",
+                "outbound_auth_blocker": "Configured in dry-run mode" if is_dry_run else None,
+                "status_label": f"{label_prefix} / {'READY' if not is_dry_run else 'DRY_RUN'}",
+                "healthy": not is_dry_run,
+                "authenticated_email": getattr(settings, "EMAIL_FROM", None),
+                "details": {}
+            }
+
     def check_provider_auth_state(self) -> str:
         """
-        Safely checks Titan SMTP authentication state without sending an email.
-        Returns: 'READY', 'MISSING_CREDENTIALS', 'AUTH_FAILED', or 'NOT_APPLICABLE'
+        Safely checks email provider authentication state using canonical readiness.
+        Returns: 'READY', 'MISSING_CREDENTIALS', 'AUTH_FAILED', or 'BLOCKED'
         """
-        provider_name = (getattr(settings, "PRIMARY_EMAIL_PROVIDER", None) or settings.EMAIL_PROVIDER or "titan").lower().strip()
-        if provider_name not in ("titan", "titan_smtp"):
+        canon = self.get_canonical_auth_readiness()
+        if canon["outbound_authorization"] == "READY":
             return "READY"
-
-        username = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or "hello@automatedagencyos.tech"
-        password = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
-
-        if not password or str(password).strip() == "":
+        blocker = (canon.get("outbound_auth_blocker") or "").lower()
+        if "missing" in blocker or "not populated" in blocker:
             return "MISSING_CREDENTIALS"
-
-        host = getattr(settings, "TITAN_SMTP_HOST", "smtp.titan.email")
-        port = int(getattr(settings, "TITAN_SMTP_PORT", 465))
-
-        try:
-            context = ssl.create_default_context()
-            if port == 465:
-                with smtplib.SMTP_SSL(host, port, context=context, timeout=8) as server:
-                    server.login(username, password)
-            else:
-                with smtplib.SMTP(host, port, timeout=8) as server:
-                    server.starttls(context=context)
-                    server.login(username, password)
-            return "READY"
-        except smtplib.SMTPAuthenticationError:
-            logger.error(f"[DeliverabilityMonitor] Titan SMTP authentication failed for user {username}")
+        if "handshake" in blocker or "auth" in blocker or "failed" in blocker:
             return "AUTH_FAILED"
-        except Exception as e:
-            logger.warning(f"[DeliverabilityMonitor] Titan SMTP connection check error: {e}")
-            return "CONNECTION_ERROR"
+        return "BLOCKED"
 
 
 deliverability_monitor = DeliverabilityMonitor()

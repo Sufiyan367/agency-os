@@ -1322,17 +1322,11 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
         except Exception as e:
             gmail_health = {"status": "ERROR", "healthy": False, "error": str(e)}
 
-    # Outbound authorization status:
-    has_titan_pw = bool(getattr(settings, "TITAN_SMTP_PASSWORD", None))
-    if not has_titan_pw:
-        outbound_auth = "BLOCKED"
-        auth_blocker = "TITAN_SMTP_PASSWORD is missing in configuration"
-    elif titan_smtp_health.get("healthy"):
-        outbound_auth = "READY"
-        auth_blocker = None
-    else:
-        outbound_auth = "BLOCKED"
-        auth_blocker = titan_smtp_health.get("error", "SMTP authentication check failed")
+    # Outbound authorization status (Canonical Single Source of Truth):
+    from app.outreach.deliverability import deliverability_monitor
+    canon_readiness = deliverability_monitor.get_canonical_auth_readiness()
+    outbound_auth = canon_readiness["outbound_authorization"]
+    auth_blocker = canon_readiness["outbound_auth_blocker"]
 
     sender_email = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
     reply_to_email = getattr(settings, "EMAIL_REPLY_TO", None) or sender_email
@@ -2240,16 +2234,25 @@ async def get_ceo_control_center_overview(
             ]
         })
 
-    # C. Turnkey Demos ready for review
+    # C. Turnkey Demos ready for review (Active prospects requiring operator review)
     latest_demos = (await db.execute(
         select(Artifact).where(
             Artifact.artifact_type == "DEMO_PACKAGE"
-        ).order_by(desc(Artifact.created_at)).limit(5)
+        ).order_by(desc(Artifact.created_at)).limit(10)
     )).scalars().all()
     for art in latest_demos:
         b = await db.get(Business, art.business_id) if art.business_id else None
         if not b:
             continue
+        # Demos must NOT be treated as ACTION REQUIRED unless linked to an active lead whose stage
+        # explicitly requires human demo review (DEMO_REQUESTED, DEMO_SPEC_READY, DEMO_REQUIREMENTS_REQUIRED)
+        if b.pipeline_stage not in (
+            PipelineStage.DEMO_REQUESTED.value,
+            PipelineStage.DEMO_SPEC_READY.value,
+            PipelineStage.DEMO_REQUIREMENTS_REQUIRED.value
+        ):
+            continue
+
         b_name = b.name or b.domain or f"Lead #{art.business_id}"
         meta = art.metadata_json or {}
         qa_meta = meta.get("qa_result") or {}
@@ -2678,17 +2681,13 @@ async def get_ceo_control_center_overview(
     from app.infrastructure.production_activation import production_activation_manager
     email_readiness_checklist = production_activation_manager.get_email_readiness_checklist()
 
-    # Safe Email & Deliverability Status
+    # Safe Email & Deliverability Status (Canonical Single Source of Truth)
     from app.outreach.deliverability import deliverability_monitor
+    canon_email = deliverability_monitor.get_canonical_auth_readiness()
+    email_status_str = canon_email["status_label"]
+    email_auth_blocker = canon_email["outbound_auth_blocker"]
+    outbound_authorization = canon_email["outbound_authorization"]
     deliv_summary = await deliverability_monitor.calculate_metrics(db)
-    if deliv_summary.provider_auth_state == "READY":
-        email_status_str = "TITAN / READY"
-    elif deliv_summary.provider_auth_state == "MISSING_CREDENTIALS":
-        email_status_str = "TITAN / MISSING CREDENTIALS"
-    elif deliv_summary.health.value == "PAUSED":
-        email_status_str = "TITAN / BLOCKED"
-    else:
-        email_status_str = f"TITAN / {deliv_summary.provider_auth_state}"
 
     worker_running = getattr(agency_worker, "is_running", False)
     loop_autonomous = getattr(settings, "AUTONOMOUS_OUTREACH", True) and not getattr(settings, "EMERGENCY_STOP", False)
@@ -2698,6 +2697,8 @@ async def get_ceo_control_center_overview(
         "worker_status": "RUNNING" if worker_running else "OFFLINE",
         "revenue_loop": "AUTONOMOUS" if loop_autonomous else "PAUSED",
         "email_status": email_status_str,
+        "email_auth_blocker": email_auth_blocker,
+        "outbound_authorization": outbound_authorization,
         "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
         "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
         "email_mode": "DRY RUN" if is_dry_run else "LIVE",

@@ -501,19 +501,44 @@ async function loadCeoControlCenter() {
         setElText('ceo-backend-health-text', sysStatus.system_status || 'RUNNING');
         setElText('obs-worker-status', sysStatus.worker_status || 'RUNNING');
         setElText('obs-loop-status', sysStatus.revenue_loop || 'AUTONOMOUS');
-        setElText('obs-email-status', sysStatus.email_status || 'TITAN / READY');
+        const emailStatus = sysStatus.email_status || (sysStatus.outbound_authorization === 'READY' ? 'TITAN / READY' : 'TITAN / BLOCKED');
+        setElText('obs-email-status', emailStatus);
 
+        const emailPill = document.getElementById('obs-email-pill');
         const emailDot = document.getElementById('obs-email-dot');
+        const emailStatusEl = document.getElementById('obs-email-status');
+        const isEmailReady = emailStatus.includes('READY');
+
         if (emailDot) {
-            if (sysStatus.email_status && sysStatus.email_status.includes('READY')) {
-                emailDot.style.background = '#10b981';
-                emailDot.style.boxShadow = '0 0 6px #10b981';
-            } else if (sysStatus.email_status && sysStatus.email_status.includes('MISSING')) {
-                emailDot.style.background = '#f59e0b';
-                emailDot.style.boxShadow = '0 0 6px #f59e0b';
+            emailDot.style.background = isEmailReady ? '#10b981' : '#ef4444';
+            emailDot.style.boxShadow = isEmailReady ? '0 0 6px #10b981' : '0 0 6px #ef4444';
+        }
+        if (emailStatusEl) {
+            emailStatusEl.style.color = isEmailReady ? '#10b981' : '#ef4444';
+        }
+        if (emailPill) {
+            emailPill.style.background = isEmailReady ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)';
+            emailPill.style.borderColor = isEmailReady ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)';
+            emailPill.style.color = isEmailReady ? '#10b981' : '#ef4444';
+            const blocker = sysStatus.email_auth_blocker ? ` (${sysStatus.email_auth_blocker})` : '';
+            emailPill.title = `Email Provider Delivery Channel: ${isEmailReady ? 'READY' : 'BLOCKED'}${blocker}`;
+        }
+
+        const simBadge = document.getElementById('ceo-simulation-badge');
+        if (simBadge) {
+            if (sysStatus.environment === 'LIVE') {
+                simBadge.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span><span>LIVE OPS</span>';
+                simBadge.style.background = 'rgba(16,185,129,0.08)';
+                simBadge.style.borderColor = 'rgba(16,185,129,0.25)';
+                simBadge.style.color = '#10b981';
+                simBadge.title = 'Live System Operations';
             } else {
-                emailDot.style.background = '#ef4444';
-                emailDot.style.boxShadow = '0 0 6px #ef4444';
+                const emailMode = sysStatus.email_mode || 'DRY RUN';
+                simBadge.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:#f59e0b; display:inline-block;"></span><span>SAFEGUARDED (${emailMode})</span>`;
+                simBadge.style.background = 'rgba(245,158,11,0.08)';
+                simBadge.style.borderColor = 'rgba(245,158,11,0.22)';
+                simBadge.style.color = '#fbbf24';
+                simBadge.title = 'Safe dry-run safeguards active for outreach and payments';
             }
         }
 
