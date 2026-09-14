@@ -340,7 +340,6 @@
                     <span id="worker-hud-last-tick" style="display:none;"></span>
                     <span id="worker-hud-status" style="display:none;">ONLINE</span>
                     <span id="worker-hud-ticks" style="display:none;">ACTIVE</span>
-                    <button id="btn-run-cycle" style="display:none;" onclick="runAutonomousCycle()"></button>
                     <button id="btn-agent-pause" style="display:none;" onclick="pauseAutonomousController()"></button>
                     <button id="btn-agent-resume" style="display:none;" onclick="resumeAutonomousController()"></button>
                     <button id="btn-agent-emergency-stop" style="display:none;" onclick="triggerEmergencyStop()"></button>
@@ -361,34 +360,84 @@
                     <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
                 </div>
 
-                <!-- MISSION CONTROL: OPERATOR COMMAND CENTER HERO -->
-                <!-- MISSION CONTROL: COMPACT OPERATIONAL COMMAND HEADER -->
+                <!-- MISSION CONTROL: CONTINUOUS OBSERVABILITY COMMAND HEADER -->
                 <div class="ops-command-header">
                     <div class="ops-header-main">
                         <div class="ops-header-identity">
                             <h1 class="ops-header-title">Agency Operations</h1>
                             <p class="ops-header-subtitle">
-                                Autonomous Execution Engine &bull; <span id="ceo-dynamic-greeting" style="color:#a1a1aa;">Good evening, Operator</span>
+                                Continuous Autonomous Platform &bull; <span id="ceo-dynamic-greeting" style="color:#a1a1aa;">Good evening, Operator</span>
                             </p>
                         </div>
-                        <div class="ops-header-status-cluster">
-                            <div class="ops-status-pill operational" id="ceo-backend-health-pill">
+                        <div class="ops-header-status-cluster" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <div class="ops-status-pill operational" id="ceo-backend-health-pill" title="Core System Status">
                                 <span class="ops-status-dot pulse" id="ceo-backend-health-dot"></span>
-                                <span id="ceo-backend-health-text">SYSTEM OPERATIONAL</span>
+                                <span>SYSTEM: <strong id="ceo-backend-health-text" style="color:#10b981;">RUNNING</strong></span>
                             </div>
-                            <span class="ops-badge environment" id="ceo-env-badge">SIMULATION (DRY RUN)</span>
-                            <span class="ops-badge lock">OUTREACH LOCK: 1 ACTIVE</span>
+                            <div class="ops-status-pill operational" id="obs-worker-pill" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); color:#38bdf8;" title="Continuous Background Worker Engine">
+                                <span class="ops-status-dot pulse" style="background:#38bdf8; box-shadow:0 0 6px #38bdf8;"></span>
+                                <span>WORKER: <strong id="obs-worker-status" style="color:#38bdf8;">RUNNING</strong></span>
+                            </div>
+                            <div class="ops-status-pill operational" id="obs-loop-pill" style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); color:#c084fc;" title="Autonomous Revenue Progression Loop">
+                                <span class="ops-status-dot pulse" style="background:#a855f7; box-shadow:0 0 6px #a855f7;"></span>
+                                <span>REVENUE LOOP: <strong id="obs-loop-status" style="color:#c084fc;">AUTONOMOUS</strong></span>
+                            </div>
+                            <div class="ops-status-pill operational" id="obs-email-pill" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); color:#10b981;" title="Email Provider Delivery Channel">
+                                <span class="ops-status-dot" id="obs-email-dot" style="background:#10b981; box-shadow:0 0 6px #10b981;"></span>
+                                <span>EMAIL: <strong id="obs-email-status" style="color:#10b981;">TITAN / READY</strong></span>
+                            </div>
+                            <span class="ops-badge lock" id="obs-outreach-lock" style="font-size:0.68rem;">OUTREACH LOCK: IDLE</span>
                         </div>
                         <div class="ops-header-actions">
-                            <button type="button" class="ops-btn ops-btn-primary" id="btn-run-cycle" onclick="runAutonomousCycle()" title="Trigger autonomous prospecting tick">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                <span>Run Cycle</span>
-                            </button>
                             <button type="button" class="ops-btn ops-btn-secondary" onclick="retryCeoConnection()" title="Refresh operational telemetry">
                                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                                 <span>Refresh</span>
                             </button>
+                            <button type="button" class="ops-btn ops-btn-secondary" onclick="navToView('infra')" title="Open System Infrastructure & Diagnostics" style="border-color:rgba(255,255,255,0.12); color:#94a3b8;">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <span>System Diagnostics</span>
+                            </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- AUTONOMOUS OBSERVABILITY METRIC STRIP -->
+                <div class="agency-observability-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin-bottom:12px; background:#09090b; border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:10px 14px;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Daily Outbound</span>
+                        <span id="obs-daily-outbound" style="font-size:0.88rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0 / 70</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Qualified</span>
+                        <span id="obs-qualified" style="font-size:0.88rem; font-weight:700; color:#f4f4f5; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Waiting Reply</span>
+                        <span id="obs-waiting-reply" style="font-size:0.88rem; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Positive Leads</span>
+                        <span id="obs-positive-leads" style="font-size:0.88rem; font-weight:700; color:#34d399; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Demos</span>
+                        <span id="obs-demos" style="font-size:0.88rem; font-weight:700; color:#a78bfa; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Proposals</span>
+                        <span id="obs-proposals" style="font-size:0.88rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Payments</span>
+                        <span id="obs-payments" style="font-size:0.88rem; font-weight:700; color:#f59e0b; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Customers</span>
+                        <span id="obs-customers" style="font-size:0.88rem; font-weight:700; color:#10b981; font-family:var(--font-mono);">0</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Action Required</span>
+                        <span id="obs-action-required" style="font-size:0.88rem; font-weight:700; color:#f87171; font-family:var(--font-mono);">0</span>
                     </div>
                 </div>
 
@@ -466,12 +515,12 @@
                                 <span id="val-won-count" style="display:none;">0</span>
                             </div>
 
-                            <!-- 8. Revenue Collected (Dry Run) -->
+                            <!-- 8. Real Revenue & Payment Processing Status -->
                             <div class="agency-kpi-block">
                                 <span class="agency-kpi-heading">Revenue Collected</span>
                                 <div class="agency-kpi-big-val" id="ceo-val-revenue-dryrun" style="font-size:1.25rem; color:#34d399;">$0.00</div>
                                 <div class="agency-kpi-bottom-row">
-                                    <span class="agency-kpi-subtext" style="color:#fbbf24; font-weight:700;">Dry Run Mode</span>
+                                    <span class="agency-kpi-subtext" id="ceo-subtext-revenue-status" style="color:#71717a; font-weight:600;">PAYMENTS NOT ACTIVE</span>
                                     <span class="agency-kpi-trend-tag neutral" id="ceo-val-revenue">$0</span>
                                 </div>
                                 <span id="val-collected-revenue" style="display:none;">$0</span>
@@ -2716,6 +2765,32 @@
             </div>
 
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:20px;">
+                <!-- Operator Diagnostic & Emergency Recovery Card -->
+                <div class="panel-card" style="grid-column: 1 / -1; background:#0d0d0f; border:1px solid rgba(245,158,11,0.25);">
+                    <div class="panel-header" style="border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">
+                        <div class="panel-title-wrap" style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1rem;">🛠️</span>
+                            <span class="panel-title" style="font-size:0.88rem; font-weight:700; color:#f8fafc;">Operator Diagnostic &amp; Emergency Recovery</span>
+                        </div>
+                        <span class="badge" style="font-size:0.65rem; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">MANUAL RECOVERY ONLY</span>
+                    </div>
+                    <div style="padding:12px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div style="max-width:580px;">
+                            <p style="color:#94a3b8; font-size:0.75rem; margin:0 0 6px;">
+                                Agency OS runs continuously in the background via the persistent worker engine. Manual cycle triggers are not needed for normal operation. Use this control only for emergency recovery, pipeline reconciliation, or diagnostic test execution.
+                            </p>
+                            <div style="display:flex; gap:16px; font-size:0.72rem; color:#71717a;">
+                                <span>Worker Engine: <strong id="adv-worker-status" style="color:#10b981;">Running</strong></span>
+                                <span>Revenue Loop: <strong id="adv-loop-status" style="color:#38bdf8;">Continuous Autonomous</strong></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="btn-run-cycle" onclick="runAutonomousCycle()" style="font-size:0.78rem; font-weight:600; padding:8px 16px; border:1px solid rgba(245,158,11,0.4); background:rgba(245,158,11,0.08); color:#fbbf24; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span>Run Cycle Now (Diagnostic Recovery)</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Subsystems Card -->
                 <div class="panel-card">
                     <div class="panel-header">

@@ -478,12 +478,51 @@ async function loadCeoControlCenter() {
         const data = await res.json();
         hideCeoError();
 
-        // 1. Executive Metrics
+        // 1. Executive Metrics & Observability Strip
         const metrics = data.executive_metrics || {};
+        const sysStatus = data.system_status || {};
         const setElText = (id, val) => {
             const el = document.getElementById(id);
             if (el) el.textContent = val;
         };
+
+        // Populate Continuous Observability Strip
+        setElText('obs-daily-outbound', `${metrics.daily_outbound_sent ?? 0} / ${metrics.daily_outbound_cap ?? 70}`);
+        setElText('obs-qualified', metrics.qualified_prospects ?? 0);
+        setElText('obs-waiting-reply', metrics.waiting_for_reply ?? 0);
+        setElText('obs-positive-leads', metrics.positive_leads ?? 0);
+        setElText('obs-demos', metrics.active_demos ?? 0);
+        setElText('obs-proposals', metrics.proposals_awaiting_action ?? 0);
+        setElText('obs-payments', metrics.payments_count ?? metrics.payments_awaiting_authorization ?? 0);
+        setElText('obs-customers', metrics.customers_count ?? metrics.active_projects ?? 0);
+        setElText('obs-action-required', metrics.action_required_count ?? (data.action_required ? data.action_required.length : 0));
+
+        // Header Status Pills
+        setElText('ceo-backend-health-text', sysStatus.system_status || 'RUNNING');
+        setElText('obs-worker-status', sysStatus.worker_status || 'RUNNING');
+        setElText('obs-loop-status', sysStatus.revenue_loop || 'AUTONOMOUS');
+        setElText('obs-email-status', sysStatus.email_status || 'TITAN / READY');
+
+        const emailDot = document.getElementById('obs-email-dot');
+        if (emailDot) {
+            if (sysStatus.email_status && sysStatus.email_status.includes('READY')) {
+                emailDot.style.background = '#10b981';
+                emailDot.style.boxShadow = '0 0 6px #10b981';
+            } else if (sysStatus.email_status && sysStatus.email_status.includes('MISSING')) {
+                emailDot.style.background = '#f59e0b';
+                emailDot.style.boxShadow = '0 0 6px #f59e0b';
+            } else {
+                emailDot.style.background = '#ef4444';
+                emailDot.style.boxShadow = '0 0 6px #ef4444';
+            }
+        }
+
+        const lockBadge = document.getElementById('obs-outreach-lock');
+        if (lockBadge) {
+            const lk = (data.outreach_telemetry && data.outreach_telemetry.active_lock_status) || 'IDLE';
+            lockBadge.textContent = `OUTREACH LOCK: ${lk}`;
+            lockBadge.style.color = lk === 'ACTIVE' ? '#fbbf24' : '#10b981';
+        }
 
         setElText('ceo-val-total-prospects', metrics.total_prospects ?? 0);
         setElText('val-leads', metrics.total_prospects ?? 0);
@@ -501,8 +540,10 @@ async function loadCeoControlCenter() {
         setElText('ceo-val-payments-auth', metrics.payments_awaiting_authorization ?? 0);
         setElText('ceo-val-deals-won', metrics.payments_awaiting_authorization ?? 0);
 
-        setElText('ceo-val-revenue-dryrun', metrics.revenue_label || '$0.00 (Dry Run)');
-        setElText('ceo-val-revenue', metrics.revenue_label || '$0.00 (Dry Run)');
+        // Revenue Display & Payment Status (strictly truthful, never fake)
+        setElText('ceo-val-revenue-dryrun', metrics.revenue_label || '$0.00');
+        setElText('ceo-val-revenue', metrics.revenue_label || '$0.00');
+        setElText('ceo-subtext-revenue-status', metrics.payment_status || 'PAYMENTS NOT ACTIVE');
         setElText('ceo-core-active-work', (metrics.outreach_awaiting_approval ?? 0) + (metrics.interested_leads ?? 0));
         setElText('ceo-core-pipeline-val', metrics.qualified_prospects ?? metrics.total_prospects ?? 0);
         setElText('ceo-core-revenue-val', metrics.revenue_label || '$0.00');
@@ -2865,7 +2906,7 @@ async function runAutonomousCycle() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>⚡</span><span>Run Prospecting Cycle</span>';
+            btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>Run Cycle Now (Diagnostic Recovery)</span>';
         }
     }
 }

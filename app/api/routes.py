@@ -2123,27 +2123,59 @@ async def get_ceo_control_center_overview(
     from app.campaigns.sender_registry import sender_registry
     sender_cap = await sender_registry.get_sender_capacity_summary(db)
 
-    revenue_collected = 0.0
-    revenue_label = "$0.00 (Dry Run)"
+    # Calculate real completed revenue
+    q_rev = select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status.in_(["COMPLETED", "PAID", "SETTLED"]))
+    real_revenue = (await db.execute(q_rev)).scalar() or 0.0
+    revenue_collected = float(real_revenue)
+
+    payments_enabled = getattr(settings, "PAYMENTS_ENABLED", False)
+    stripe_key_exists = bool(os.getenv("STRIPE_SECRET_KEY") or os.getenv("STRIPE_API_KEY"))
+    if not payments_enabled:
+        payment_status = "PAYMENTS NOT ACTIVE"
+        revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
+    elif not stripe_key_exists and getattr(settings, "PAYMENT_PROVIDER", "") == "stripe":
+        payment_status = "PAYMENT PROVIDER NOT CONFIGURED"
+        revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
+    else:
+        payment_status = "LIVE"
+        revenue_label = f"${revenue_collected:,.2f}"
+
+    # Calculate real funnel & observability metrics
+    q_waiting_reply = select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.CONTACTED.value)
+    waiting_for_reply = (await db.execute(q_waiting_reply)).scalar() or 0
+
+    q_positive_leads = select(func.count(Business.id)).where(
+        Business.pipeline_stage.in_([PipelineStage.QUALIFIED_REPLY.value, PipelineStage.DEMO_REQUESTED.value])
+    )
+    positive_leads_count = (await db.execute(q_positive_leads)).scalar() or 0
+
+    daily_outbound_cap = sender_cap.get("rollout_daily_cap", 70)
 
     metrics = {
         "total_prospects": total_prospects,
         "qualified_prospects": qualified_prospects,
+        "waiting_for_reply": waiting_for_reply,
+        "positive_leads": positive_leads_count,
         "outreach_awaiting_approval": outreach_awaiting_approval,
         "outreach_sent": total_outreach_sent,
         "outreach_sent_lifetime": total_outreach_sent,
         "outreach_sent_today": sent_today,
+        "daily_outbound_sent": sent_today,
+        "daily_outbound_cap": daily_outbound_cap,
         "queued_qualified": queued_qualified,
         "available_capacity": sender_cap.get("available_capacity", 0),
         "interested_leads": interested_leads,
         "active_demos": active_demos,
         "proposals_awaiting_action": proposals_awaiting_action,
         "payments_awaiting_authorization": payments_awaiting_authorization,
+        "payments_count": payments_awaiting_authorization,
         "active_projects": active_projects,
+        "customers_count": active_projects,
         "open_support_tickets": open_support_tickets,
         "open_incidents": open_incidents,
         "revenue_collected": revenue_collected,
-        "revenue_label": revenue_label
+        "revenue_label": revenue_label,
+        "payment_status": payment_status
     }
 
     # --- 2. Action Required (Executive Action Feed) ---
@@ -2646,14 +2678,33 @@ async def get_ceo_control_center_overview(
     from app.infrastructure.production_activation import production_activation_manager
     email_readiness_checklist = production_activation_manager.get_email_readiness_checklist()
 
+    # Safe Email & Deliverability Status
+    from app.outreach.deliverability import deliverability_monitor
+    deliv_summary = await deliverability_monitor.calculate_metrics(db)
+    if deliv_summary.provider_auth_state == "READY":
+        email_status_str = "TITAN / READY"
+    elif deliv_summary.provider_auth_state == "MISSING_CREDENTIALS":
+        email_status_str = "TITAN / MISSING CREDENTIALS"
+    elif deliv_summary.health.value == "PAUSED":
+        email_status_str = "TITAN / BLOCKED"
+    else:
+        email_status_str = f"TITAN / {deliv_summary.provider_auth_state}"
+
+    worker_running = getattr(agency_worker, "is_running", False)
+    loop_autonomous = getattr(settings, "AUTONOMOUS_OUTREACH", True) and not getattr(settings, "EMERGENCY_STOP", False)
+
     system_status = {
+        "system_status": "RUNNING",
+        "worker_status": "RUNNING" if worker_running else "OFFLINE",
+        "revenue_loop": "AUTONOMOUS" if loop_autonomous else "PAUSED",
+        "email_status": email_status_str,
         "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
         "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
         "email_mode": "DRY RUN" if is_dry_run else "LIVE",
-        "payment_mode": "DISABLED",
+        "payment_mode": payment_status,
         "environment": "SIMULATION" if is_dry_run else "LIVE",
-        "worker_status": "Running" if getattr(agency_worker, "is_running", False) else "Idle",
         "last_activity": last_activity_str,
+        "last_cycle_at": agency_worker.last_cycle_at.isoformat() if getattr(agency_worker, "last_cycle_at", None) else None,
         "email_readiness": email_readiness_checklist,
         "production_readiness": {
             "sender_email": email_readiness_checklist["sender_identity"]["value"],
