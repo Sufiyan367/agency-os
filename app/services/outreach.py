@@ -119,6 +119,16 @@ class OutreachService:
                 f"Cannot send outreach: Human takeover is ACTIVE for lead {lead.id} ({lead.human_takeover_reason})"
             )
 
+        # Suppression / Opt-Out Check
+        from app.outreach.compliance import compliance_guard
+        from app.core.config import settings
+        if msg.recipient and await compliance_guard.is_suppressed(db, email=msg.recipient):
+            raise ValueError(f"Recipient {msg.recipient} is on the suppression list. Sending aborted.")
+
+        # Daily Quota Guard
+        if not await compliance_guard.can_send_today(db):
+            raise ValueError(f"Daily outreach quota ({getattr(settings, 'MAX_OUTREACH_PER_DAY', 70)}) reached. Sending aborted.")
+
         # Mark Approved
         now = datetime.utcnow()
         msg.status = MessageStatus.APPROVED.value

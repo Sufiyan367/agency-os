@@ -26,9 +26,9 @@ rollout:
       daily_max_real_emails: 50
       description: Regional expansion across active international corridors (50/day).
     6:
-      name: Broad International Rollout
-      daily_max_real_emails: 100
-      description: Broad rollout across international corridors (100/day).
+      name: Target Operational Capacity (70/day)
+      daily_max_real_emails: 70
+      description: Scaled qualified outbound emails up to 70/day focused on Middle East markets.
     7:
       name: All 18 Countries Live
       daily_max_real_emails: 180
@@ -95,7 +95,7 @@ countries:
   timezone: Asia/Dubai
   currency: AED
   language: en
-  daily_quota: 10
+  daily_quota: 15
   enabled: true
   sending_window_start: 9
   sending_window_end: 18
@@ -103,12 +103,31 @@ countries:
   requires_postal_address: true
   requires_opt_out_link: true
   b2b_exemption_notes: Direct corporate inquiry regarding observable technical infrastructure.
+  target_cities:
+  - Dubai
+  - Abu Dhabi
+  - Sharjah
+  - Ajman
+  - Ras Al Khaimah
+  - Fujairah
+  - Umm Al Quwain
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: SA
   name: Saudi Arabia
   timezone: Asia/Riyadh
   currency: SAR
   language: en
-  daily_quota: 10
+  daily_quota: 15
   enabled: true
   sending_window_start: 9
   sending_window_end: 18
@@ -116,6 +135,29 @@ countries:
   requires_postal_address: true
   requires_opt_out_link: true
   b2b_exemption_notes: Commercial electronic messages adhering to CITC Anti-Spam Regulations.
+  target_cities:
+  - Riyadh
+  - Jeddah
+  - Dammam
+  - Khobar
+  - Mecca
+  - Medina
+  - Taif
+  - Abha
+  - Tabuk
+  - Jubail
+  - Yanbu
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: DE
   name: Germany
   timezone: Europe/Berlin
@@ -282,8 +324,23 @@ countries:
   compliance_framework: Law No. 13 of 2016 PDP
   requires_postal_address: true
   requires_opt_out_link: true
-  b2b_exemption_notes: Direct B2B commercial electronic communications for corporate
-    entities.
+  b2b_exemption_notes: Direct B2B commercial electronic communications for corporate entities.
+  target_cities:
+  - Doha
+  - Al Rayyan
+  - Al Wakrah
+  - Lusail
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: KW
   name: Kuwait
   timezone: Asia/Kuwait
@@ -297,6 +354,22 @@ countries:
   requires_postal_address: true
   requires_opt_out_link: true
   b2b_exemption_notes: Public corporate inquiries with clear identity and direct opt-out.
+  target_cities:
+  - Kuwait City
+  - Hawalli
+  - Salmiya
+  - Al Ahmadi
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: OM
   name: Oman
   timezone: Asia/Muscat
@@ -310,6 +383,23 @@ countries:
   requires_postal_address: true
   requires_opt_out_link: true
   b2b_exemption_notes: Direct B2B commercial inquiries regarding observable technical assets.
+  target_cities:
+  - Muscat
+  - Salalah
+  - Sohar
+  - Nizwa
+  - Seeb
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: BH
   name: Bahrain
   timezone: Asia/Bahrain
@@ -323,6 +413,22 @@ countries:
   requires_postal_address: true
   requires_opt_out_link: true
   b2b_exemption_notes: Commercial electronic communication with verified sender and opt-out.
+  target_cities:
+  - Manama
+  - Riffa
+  - Muharraq
+  - Hamad Town
+  target_niches:
+  - hvac
+  - home-services
+  - roofing
+  - plumbing
+  - electrical
+  - automotive
+  - dental-clinics
+  - aesthetic-medical-clinics
+  - real-estate
+  - property-services
 - code: JO
   name: Jordan
   timezone: Asia/Amman

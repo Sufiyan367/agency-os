@@ -53,7 +53,7 @@ EXPANDED_CITIES = {
         "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"
     ],
     "SA": [
-        "Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina"
+        "Riyadh", "Jeddah", "Dammam", "Al Khobar", "Khobar", "Mecca", "Medina"
     ],
     "QA": [
         "Doha", "Al Rayyan", "Al Wakrah", "Lusail"
@@ -74,17 +74,24 @@ EXPANDED_CITIES = {
 
 NICHE_SEARCH_MAP = {
     # Traditional & Home Services
+    "roofing": "roofing contractor repair",
     "roofing-contractors": "roofing contractor",
     "hvac": "hvac air conditioning service",
     "hvac-services": "hvac air conditioning service",
     "hvac-home-services": "hvac home maintenance",
+    "home-services": "home improvement maintenance services",
+    "plumbing": "plumbing contractor repair",
     "plumbing-services": "plumbing contractor",
+    "electrical": "electrical contractor electrician",
     "commercial-electricians": "commercial electrical",
 
     # Medical & Wellness
     "dental-practices": "dental clinic",
+    "dental-clinics": "dental clinic dentistry",
     "dental-medical-clinics": "dental medical clinic",
+    "aesthetic-clinics": "aesthetic dermatology clinic",
     "cosmetic-clinics": "aesthetic dermatology clinic",
+    "medical-clinics": "medical clinic healthcare",
     "fitness": "fitness gym wellness club",
 
     # Professional & Business Services
@@ -96,6 +103,7 @@ NICHE_SEARCH_MAP = {
     # Local Commercial, Hospitality & Retail
     "restaurants-cafes": "restaurant cafe dining",
     "real-estate": "real estate agency brokerage",
+    "property-services": "property management services",
     "salons-barbers": "hair salon barbershop",
     "automotive": "auto repair garage car service",
     "hotels": "boutique hotel hospitality resort",

@@ -84,7 +84,12 @@ class SenderRegistry:
 
         if is_live_send:
             prov = resolved["provider"]
-            if prov in ("gmail", "gmail_oauth"):
+            if prov in ("titan", "titan_smtp"):
+                titan_user = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or settings.EMAIL_FROM
+                titan_pass = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
+                if not titan_user or not titan_pass:
+                    return False, "Live send blocked: Titan SMTP credentials not configured in environment (TITAN_SMTP_PASSWORD missing).", resolved
+            elif prov in ("gmail", "gmail_oauth"):
                 if not getattr(settings, "GMAIL_CLIENT_ID", None) or not getattr(settings, "GMAIL_REFRESH_TOKEN", None):
                     return False, "Live send blocked: Gmail OAuth credentials not configured in environment.", resolved
             elif prov == "resend":
@@ -106,6 +111,7 @@ class SenderRegistry:
         Evaluates configuration-driven sender capacity across active outbound accounts.
         Never assumes a single Gmail account can safely send 180 cold emails/day.
         Safe cold outreach volume per personal/standard Gmail is capped (default: 20/day).
+        For business domain email via Titan (with dedicated SPF/DKIM), capacity scales to MAX_OUTREACH_PER_DAY (70/day).
         """
         from datetime import datetime
         from sqlalchemy import select, func
@@ -117,7 +123,7 @@ class SenderRegistry:
         is_titan = provider_name in ("titan", "titan_smtp")
 
         # Configuration-driven safe per-sender daily limit
-        safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else 50
+        safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else int(getattr(settings, "MAX_OUTREACH_PER_DAY", 70))
         if is_titan:
             from_email = getattr(settings, "TITAN_SMTP_USER", None) or settings.EMAIL_FROM or "hello@automatedagencyos.tech"
         elif is_gmail:
@@ -156,7 +162,7 @@ class SenderRegistry:
             "rollout_daily_cap": rollout_cap,
             "available_capacity": available_capacity,
             "capacity_exhausted": available_capacity <= 0,
-            "is_single_account_safe": safe_per_sender_daily <= 30,
+            "is_single_account_safe": (safe_per_sender_daily <= 30) if is_gmail else (safe_per_sender_daily <= 100),
             "target_production_volume": target_production_volume,
             "accounts_needed_for_180_daily": accounts_needed_for_target,
             "senders": [

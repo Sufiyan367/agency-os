@@ -125,8 +125,8 @@ class DomainValidator:
             }
 
         resolver = dns.resolver.Resolver()
-        resolver.timeout = 3.0
-        resolver.lifetime = 3.0
+        resolver.timeout = 5.0
+        resolver.lifetime = 10.0
 
         # 1. A / AAAA
         a_present = False

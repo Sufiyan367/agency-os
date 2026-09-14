@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # Pipeline Safeguards & Compliance
     DRY_RUN: bool = True
     RESEARCH_ONLY: bool = os.getenv("RESEARCH_ONLY", "true").lower() in ("true", "1", "yes")
-    MAX_OUTREACH_PER_DAY: int = 50
+    MAX_OUTREACH_PER_DAY: int = int(os.getenv("MAX_OUTREACH_PER_DAY", "70"))
     MAX_FOLLOWUPS: int = 3
     REPLY_STOP_RULE: bool = True
     BOUNCE_STOP_RULE: bool = True

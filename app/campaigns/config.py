@@ -36,7 +36,7 @@ DEFAULT_ROLLOUT_LEVELS: Dict[int, Dict[str, Any]] = {
     3: {"name": "1 Country Live", "daily_max_real_emails": 10, "description": "Single-country full quota proof."},
     4: {"name": "Multi-Corridor Scaling", "daily_max_real_emails": 20, "description": "Gradual expansion across active corridors (20/day)."},
     5: {"name": "Regional Expansion", "daily_max_real_emails": 50, "description": "Regional expansion across active international corridors (50/day)."},
-    6: {"name": "Broad International Rollout", "daily_max_real_emails": 100, "description": "Broad rollout across international corridors (100/day)."},
+    6: {"name": "Target Operational Capacity (70/day)", "daily_max_real_emails": 70, "description": "Qualified outbound emails scaled up to 70/day focused on Middle East markets."},
     7: {"name": "All 18 Countries Live", "daily_max_real_emails": 180, "description": "10 qualified prospects/day across all 18 configured international countries (180/day)."}
 }
 
@@ -44,8 +44,8 @@ DEFAULT_ROLLOUT_LEVELS: Dict[int, Dict[str, Any]] = {
 class CampaignConfigLoader:
     """Loads and caches international campaign configurations from YAML."""
 
-    # First-client live validation guard: By default, rollout level cannot exceed Level 1 (Canary: max 1 real send)
-    FIRST_CLIENT_VALIDATION_ACTIVE: bool = True
+    # First-client live validation guard: By default, disabled unless explicitly set to True
+    FIRST_CLIENT_VALIDATION_ACTIVE: bool = os.getenv("FIRST_CLIENT_VALIDATION_ACTIVE", "false").lower() in ("true", "1", "yes")
 
     def __init__(self, config_path: str = "config/international_campaigns.yaml"):
         if not os.path.exists(config_path) and not os.path.isabs(config_path):

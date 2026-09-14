@@ -4754,13 +4754,17 @@ async def submit_contact_inquiry(
 
 
 class OnboardingConsultationRequest(BaseModel):
-    name: str
-    email: str
+    name: Optional[str] = ""
+    fullName: Optional[str] = ""
+    email: Optional[str] = ""
+    businessEmail: Optional[str] = ""
     phone: Optional[str] = ""
     agency_name: Optional[str] = ""
     company: Optional[str] = ""
+    companyName: Optional[str] = ""
     niche: Optional[str] = "enterprise"
     current_process: Optional[str] = ""
+    notes: Optional[str] = ""
     message: Optional[str] = ""
 
 
@@ -4775,10 +4779,10 @@ async def submit_onboarding_consultation(
     Validates submission, logs the consultation into the activity event stream,
     and returns a verified confirmation.
     """
-    name = (payload.name or "").strip()
-    email = (payload.email or "").strip()
-    company = (payload.company or payload.agency_name or "").strip()
-    note = (payload.current_process or payload.message or "Architecture Consultation Request").strip()
+    name = (payload.name or payload.fullName or "").strip()
+    email = (payload.email or payload.businessEmail or "").strip()
+    company = (payload.company or payload.companyName or payload.agency_name or "").strip()
+    note = (payload.notes or payload.current_process or payload.message or "Architecture Consultation Request").strip()
 
     if not name or not email:
         raise HTTPException(status_code=400, detail="Name and email are required.")

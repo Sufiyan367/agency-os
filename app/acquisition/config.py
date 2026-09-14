@@ -155,8 +155,8 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "language": "en",
         "currency": "AED",
         "timezone": "Asia/Dubai",
-        "target_cities": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_cities": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, UAE",
             "{city} commercial {niche} firms",
@@ -169,7 +169,7 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
             "max_initial_deal_size_usd": 6000.0,
         },
         "outreach_rules": {
-            "max_messages_per_day": 10,
+            "max_messages_per_day": 15,
             "preferred_contact_channel": "email",
             "working_hours_start": 9,
             "working_hours_end": 18,
@@ -189,8 +189,8 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "language": "en",
         "currency": "SAR",
         "timezone": "Asia/Riyadh",
-        "target_cities": ["Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_cities": ["Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina", "Taif", "Abha", "Tabuk", "Jubail", "Yanbu"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, Saudi Arabia",
             "{city} verified {niche} companies",
@@ -224,7 +224,7 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "currency": "QAR",
         "timezone": "Asia/Qatar",
         "target_cities": ["Doha", "Al Rayyan", "Al Wakrah", "Lusail"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, Qatar",
             "{city} top {niche} firms",
@@ -258,7 +258,7 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "currency": "KWD",
         "timezone": "Asia/Kuwait",
         "target_cities": ["Kuwait City", "Hawalli", "Salmiya", "Al Ahmadi"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, Kuwait",
             "{city} leading {niche} businesses",
@@ -292,7 +292,7 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "currency": "OMR",
         "timezone": "Asia/Muscat",
         "target_cities": ["Muscat", "Salalah", "Sohar", "Seeb", "Nizwa"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, Oman",
             "{city} commercial {niche} services",
@@ -326,7 +326,7 @@ DEFAULT_COUNTRY_PROFILES: Dict[str, Dict[str, Any]] = {
         "currency": "BHD",
         "timezone": "Asia/Bahrain",
         "target_cities": ["Manama", "Riffa", "Muharraq", "Hamad Town"],
-        "target_niches": ["restaurants-cafes", "dental-medical-clinics", "real-estate", "salons-barbers", "automotive", "hvac-home-services", "hotels", "fitness", "professional-services", "local-retail"],
+        "target_niches": ["hvac", "home-services", "roofing", "plumbing", "electrical", "automotive", "dental-clinics", "aesthetic-medical-clinics", "real-estate", "property-services", "restaurants-cafes", "salons-barbers", "hotels", "fitness", "professional-services", "local-retail"],
         "discovery_query_templates": [
             "{niche} in {city}, Bahrain",
             "{city} top rated {niche} providers",

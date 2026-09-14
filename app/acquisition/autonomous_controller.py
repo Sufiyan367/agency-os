@@ -202,6 +202,11 @@ class AutonomousAcquisitionController:
         # STEP 1: If slot is IDLE -> SELECT next best prospect
         # -------------------------------------------------------------
         if lock.status in ("IDLE", "RELEASED") or lock.business_id is None:
+            if lock.business_id is not None and lock.current_stage in ("SENT", "WAITING_FOR_REPLY", "NONE"):
+                lock.business_id = None
+                lock.current_stage = "NONE"
+                await session.commit()
+
             self.current_action = "Selecting highest-EV qualified candidate from global pool"
             logger.info("[AutonomousController] Slot 1 is idle. Querying top candidate.")
             top_cand = await global_ranker.get_top_candidate(session)
@@ -329,9 +334,16 @@ class AutonomousAcquisitionController:
                 metadata_json={"research_only": getattr(settings, "RESEARCH_ONLY", True)}
             )
 
+            # Release the slot lock so subsequent qualified prospects can be selected and processed
+            await active_prospect_controller.release_active_slot(
+                session=session,
+                terminal_reason="SENT",
+                notes=f"Outreach dispatched via {send_res.get('send_result', {}).get('provider', 'dry_run')}. Slot freed for next candidate."
+            )
+
             return {"status": "DISPATCHED", "send_result": send_res}
 
-        # STAGE: WAITING_FOR_REPLY / SENT -> Waiting or Process Reply (Non-blocking)
+        # STAGE: WAITING_FOR_REPLY / SENT -> Process reply or free slot for next candidate
         if lock.current_stage in ("SENT", "WAITING_FOR_REPLY"):
             reply_q = select(Reply).where(Reply.business_id == biz.id).order_by(Reply.id.desc())
             latest_reply = (await session.execute(reply_q)).scalars().first()
@@ -343,8 +355,14 @@ class AutonomousAcquisitionController:
                     reply_body=latest_reply.raw_body
                 )
 
-            self.current_action = f"Awaiting prospect reply from {biz.domain} (lock IDLE, non-blocking)"
-            return {"status": "WAITING_FOR_REPLY", "domain": biz.domain}
+            # Slot lock freed to prevent single-prospect pipeline bottleneck
+            logger.info(f"[AutonomousController] Prospect {biz.domain} already dispatched ({lock.current_stage}). Freeing slot for next candidate.")
+            await active_prospect_controller.release_active_slot(
+                session=session,
+                terminal_reason="SENT",
+                notes="Released dispatched prospect to allow continuous acquisition pipeline processing."
+            )
+            return {"status": "RELEASED_AFTER_SEND", "domain": biz.domain}
 
         # STAGE: NEGOTIATING / PROPOSAL_READY -> Awaiting proposal acceptance
         if lock.current_stage in ("REPLIED", "NEGOTIATING", "PROPOSAL_READY"):

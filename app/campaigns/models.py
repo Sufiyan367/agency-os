@@ -17,6 +17,8 @@ class CountryProfileDTO(BaseModel):
     requires_postal_address: bool = True
     requires_opt_out_link: bool = True
     b2b_exemption_notes: str = ""
+    target_cities: List[str] = Field(default_factory=list)
+    target_niches: List[str] = Field(default_factory=list)
 
 
 class RolloutLevelDTO(BaseModel):

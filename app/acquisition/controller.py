@@ -453,6 +453,7 @@ class ActiveProspectController:
                 "SUPPRESSED": PipelineStage.REJECTED.value,
                 "UNREACHABLE": PipelineStage.LOST.value,
                 "FOLLOW_UP_EXHAUSTED": PipelineStage.LOST.value,
+                "SENT": biz.pipeline_stage,
                 "MANUAL_RELEASE": biz.pipeline_stage,
                 "LEASE_EXPIRED": biz.pipeline_stage,
             }

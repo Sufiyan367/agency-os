@@ -83,9 +83,9 @@ class QuotaEngine:
 
         country_quota = country_profile.daily_quota if country_profile else 10
         campaign_quota = campaign.daily_quota if campaign else country_quota
-        global_quota = getattr(settings, "MAX_OUTREACH_PER_DAY", 50)
+        global_quota = getattr(settings, "MAX_OUTREACH_PER_DAY", 70)
         provider_quota = getattr(settings, "PROVIDER_DAILY_LIMIT", 500)
-        sender_quota = getattr(settings, "SENDER_DAILY_LIMIT", 50)
+        sender_quota = getattr(settings, "SENDER_DAILY_LIMIT", getattr(settings, "MAX_OUTREACH_PER_DAY", 70))
         rollout_limit = rollout.daily_max_real_emails
 
         counts = await self.get_today_sent_counts(
