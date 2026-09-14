@@ -42,9 +42,11 @@ async def test_ceo_command_center_rendering_and_elements(monkeypatch):
         assert r.status_code == 200
         html = r.text
 
-        # Verify stylesheet and script integration
-        assert 'href="/static/dashboard_3d.css"' in html
-        assert 'src="/static/dashboard_3d.js"' in html
+        # Verify stylesheet and script integration (zero 3D / zero orbits)
+        assert 'href="/static/dashboard.css' in html
+        assert 'three.min.js' not in html
+        assert 'core-ring-1' not in html
+        assert 'core-ring-2' not in html
 
         # Verify 5 Canonical Navigation Groups
         assert "COMMAND" in html
@@ -53,15 +55,9 @@ async def test_ceo_command_center_rendering_and_elements(monkeypatch):
         assert "INTELLIGENCE" in html
         assert "SYSTEM" in html
 
-        # Verify 3D Hero and Autonomous Core elements
-        assert 'class="ceo-command-hero"' in html
+        # Verify Compact Operational Command Header
+        assert 'class="ops-command-header"' in html
         assert 'id="ceo-dynamic-greeting"' in html
-        assert 'class="ceo-core-stage"' in html
-        assert 'class="agency-os-3d-core"' in html
-        assert 'class="core-center-nucleus"' in html
-        assert 'class="core-ring core-ring-1"' in html
-        assert 'class="core-ring core-ring-2"' in html
-        assert 'class="core-domain-node node-acq"' in html
 
         # Verify all 8 core views are preserved
         expected_views = [

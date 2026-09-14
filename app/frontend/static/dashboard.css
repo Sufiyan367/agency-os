@@ -1,0 +1,1369 @@
+/* ==============================================================================
+   AGENCY OS — OPERATIONAL COMMAND CENTER DESIGN SYSTEM
+   Professional Enterprise Operations Platform (Linear x Vercel x Stripe x Palantir)
+   High Information Density, Clean 1px Borders, Zero 3D / Zero Orbits
+   ============================================================================== */
+
+:root {
+  /* Layout Dimensions */
+  --sidebar-width: 240px;
+  --topbar-height: 52px;
+  --content-max-width: 1600px;
+
+  /* Color Palette — True Command Center Dark */
+  --bg: #070707;
+  --bg-page: #070707;
+  --surface: #0B0B0C;
+  --surface-base: #0B0B0C;
+  --surface-elevated: #101012;
+  --surface-raised: #151517;
+  --surface-hover: #17171A;
+  --surface-card: #0B0B0C;
+  --surface-card-inner: #070707;
+
+  /* Precise Border Contrast */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(0, 212, 239, 0.35);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typography Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --text-dim: #52525B;
+
+  /* Signal Accents (Restrained & Functional) */
+  --accent: #00D4EF;
+  --accent-soft: rgba(0, 212, 239, 0.08);
+  --accent-blue: #38BDF8;
+  --accent-blue-soft: rgba(56, 189, 248, 0.08);
+  
+  --success: #10B981;
+  --success-soft: rgba(16, 185, 129, 0.08);
+  --warning: #F59E0B;
+  --warning-soft: rgba(245, 158, 11, 0.08);
+  --danger: #EF4444;
+  --danger-soft: rgba(239, 68, 68, 0.08);
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  /* Shadows — Subtle, Zero Glow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.85);
+  --shadow-dropdown: 0 12px 32px rgba(0, 0, 0, 0.9);
+}
+
+/* ==============================================================================
+   1. GLOBAL RESET & NATURAL DOCUMENT SCROLL ARCHITECTURE
+   ============================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  min-height: 100%;
+  height: 100%;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100%;
+  width: 100%;
+  background-color: var(--bg) !important;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+.agency-app-wrapper {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  background-color: var(--bg) !important;
+  position: relative;
+}
+
+/* ==============================================================================
+   2. DESKTOP STABLE SIDEBAR (240px Fixed/Sticky)
+   ============================================================================== */
+.sidebar, .agency-sidebar, #app-sidebar {
+  width: var(--sidebar-width) !important;
+  min-width: var(--sidebar-width) !important;
+  max-width: var(--sidebar-width) !important;
+  height: 100vh !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  background-color: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  z-index: 100 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px 12px 14px 12px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-raised) transparent;
+}
+
+.sidebar::-webkit-scrollbar,
+.agency-sidebar::-webkit-scrollbar,
+#app-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.agency-sidebar::-webkit-scrollbar-thumb,
+#app-sidebar::-webkit-scrollbar-thumb {
+  background: var(--surface-raised);
+  border-radius: 4px;
+}
+
+/* Sidebar Brand Header */
+.agency-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 16px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+
+.agency-brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.agency-brand-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.agency-brand-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.agency-brand-subtitle {
+  font-size: 0.65rem;
+  color: var(--success);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Navigation Lists */
+.agency-nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.agency-nav-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 8px 4px 8px;
+  margin-top: 6px;
+  user-select: none;
+}
+
+.agency-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.80rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  position: relative;
+  text-decoration: none;
+}
+
+.agency-nav-item svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.agency-nav-item:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.agency-nav-item:hover svg {
+  color: var(--text-primary);
+}
+
+.agency-nav-item.active {
+  background-color: var(--surface-elevated);
+  color: #FFFFFF;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.agency-nav-item.active svg {
+  color: var(--accent);
+}
+
+.agency-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background-color: var(--accent);
+  border-radius: 2px;
+}
+
+/* Sidebar Footer & Operator Account */
+.agency-sidebar-footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
+  position: relative;
+}
+
+.agency-account-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.agency-account-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+
+.agency-account-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.agency-account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.agency-account-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agency-account-role {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* Dropdown Menu */
+.agency-account-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dropdown);
+  padding: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 110;
+}
+
+.agency-dropdown-action {
+  padding: 7px 10px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  transition: all 0.1s ease;
+}
+
+.agency-dropdown-action:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.agency-dropdown-action.danger {
+  color: var(--danger);
+}
+
+.agency-dropdown-action.danger:hover {
+  background: var(--danger-soft);
+}
+
+/* ==============================================================================
+   3. MAIN CONTENT AREA & TOP COMMAND BAR
+   ============================================================================== */
+.main-wrapper, .agency-content-area {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: var(--bg) !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+/* Top Command Bar (52px Sticky) */
+.top-bar, .agency-topbar {
+  height: var(--topbar-height) !important;
+  min-height: var(--topbar-height) !important;
+  max-height: var(--topbar-height) !important;
+  background-color: rgba(11, 14, 19, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid var(--border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 24px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 90 !important;
+  box-sizing: border-box !important;
+}
+
+.agency-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.agency-topbar-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.agency-topbar-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.agency-topbar-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Search Input Pill */
+.agency-search-pill {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #000000 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 5px 10px !important;
+  width: 310px !important;
+  transition: all 0.15s ease !important;
+}
+
+.agency-search-pill:focus-within {
+  border-color: var(--border-accent) !important;
+  box-shadow: 0 0 0 1px var(--border-accent), 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.agency-search-pill svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.agency-search-pill input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.80rem !important;
+  width: 100% !important;
+}
+
+.agency-search-pill input::placeholder {
+  color: var(--text-muted);
+}
+
+.agency-search-badge {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Topbar Actions Cluster */
+.agency-topbar-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 1200px) {
+  .agency-search-pill {
+    width: 200px !important;
+  }
+  .agency-search-badge {
+    display: none !important;
+  }
+  #top-last-updated {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .agency-search-pill {
+    width: 150px !important;
+  }
+  #ceo-simulation-badge {
+    display: none !important;
+  }
+  #top-date-display {
+    display: none !important;
+  }
+  .top-greeting {
+    display: none !important;
+  }
+  #deliverability-readiness-hud-container {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .agency-search-pill {
+    display: none !important;
+  }
+  #ceo-backend-health-text {
+    display: none !important;
+  }
+  #ceo-backend-health-pill {
+    padding: 4px 6px !important;
+    margin-right: 2px !important;
+  }
+  .agency-topbar {
+    padding: 0 12px !important;
+  }
+  .agency-topbar-user-status {
+    display: none !important;
+  }
+  .agency-avatar {
+    display: none !important;
+  }
+  .agency-mobile-menu-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .agency-topbar-actions {
+    gap: 4px !important;
+  }
+}
+
+.agency-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.agency-icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* ==============================================================================
+   4. VIEW CONTAINERS & OPERATIONAL VIEWS
+   ============================================================================== */
+.view-container {
+  display: none;
+  padding: 20px 24px;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  box-sizing: border-box;
+  animation: viewFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.view-container.active {
+  display: block !important;
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==============================================================================
+   5. COMPACT OPERATIONAL COMMAND HEADER
+   ============================================================================== */
+.ops-command-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ops-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ops-header-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ops-header-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.ops-header-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ops-header-status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ops-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.ops-status-pill.operational {
+  background: var(--success-soft);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--success);
+}
+
+.ops-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+}
+
+.ops-status-dot.pulse {
+  animation: statusPulse 2s infinite ease-in-out;
+}
+
+@keyframes statusPulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.ops-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+}
+
+.ops-badge.environment {
+  background: var(--warning-soft);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--warning);
+}
+
+.ops-badge.lock {
+  background: var(--accent-blue-soft);
+  border-color: rgba(56, 189, 248, 0.25);
+  color: var(--accent-blue);
+}
+
+.ops-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ops-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+}
+
+.ops-btn-primary {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.ops-btn-primary:hover {
+  background: #F4F4F5;
+  transform: translateY(-1px);
+}
+
+.ops-btn-secondary {
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.ops-btn-secondary:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* ==============================================================================
+   6. HIGH-DENSITY 8-CARD KPI GRID
+   ============================================================================== */
+.ops-kpi-grid, .agency-eight-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(8, 1fr) !important;
+  gap: 10px !important;
+  margin-bottom: 16px !important;
+}
+
+@media (max-width: 1440px) {
+  .ops-kpi-grid, .agency-eight-kpi-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ops-kpi-grid, .agency-eight-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+.ops-kpi-card, .agency-kpi-block {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 96px !important;
+  cursor: pointer !important;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease !important;
+  box-shadow: var(--shadow-sm) !important;
+  text-decoration: none !important;
+}
+
+.ops-kpi-card:hover, .agency-kpi-block:hover {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border-strong) !important;
+  transform: translateY(-1px) !important;
+}
+
+.ops-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ops-kpi-label, .agency-kpi-heading {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-kpi-tag, .agency-kpi-trend-tag {
+  font-size: 0.65rem !important;
+  font-family: var(--font-mono) !important;
+  font-weight: 600 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+}
+
+.ops-kpi-tag.positive, .agency-kpi-trend-tag.positive {
+  background: var(--success-soft) !important;
+  color: var(--success) !important;
+}
+
+.ops-kpi-tag.warning, .agency-kpi-trend-tag.warning {
+  background: var(--warning-soft) !important;
+  color: var(--warning) !important;
+}
+
+.ops-kpi-tag.cyan {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+.ops-kpi-tag.neutral, .agency-kpi-trend-tag.neutral {
+  background: var(--surface-raised) !important;
+  color: var(--text-secondary) !important;
+}
+
+.ops-kpi-value, .agency-kpi-big-val {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--text-primary) !important;
+  line-height: 1.2 !important;
+  margin: 4px 0 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.ops-kpi-value.warning { color: var(--warning) !important; }
+.ops-kpi-value.emerald { color: var(--success) !important; }
+.ops-kpi-value.cyan { color: var(--accent) !important; }
+
+.ops-kpi-footer, .agency-kpi-bottom-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+  margin-top: 2px !important;
+}
+
+.ops-kpi-sub, .agency-kpi-subtext {
+  font-size: 0.68rem !important;
+  color: var(--text-muted) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.ops-kpi-arrow {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.ops-kpi-card:hover .ops-kpi-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+  color: var(--accent);
+}
+
+/* ==============================================================================
+   7. CANONICAL REVENUE PIPELINE STRIP
+   ============================================================================== */
+.ops-pipeline-strip, .ceo-pipeline-funnel-bar, .ceo-funnel-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 14px !important;
+  margin-bottom: 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  scrollbar-width: thin !important;
+}
+
+.ops-pipeline-strip::-webkit-scrollbar,
+.ceo-pipeline-funnel-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.ops-pipeline-strip::-webkit-scrollbar-thumb,
+.ceo-pipeline-funnel-bar::-webkit-scrollbar-thumb {
+  background: var(--surface-raised);
+  border-radius: 4px;
+}
+
+.ops-pipeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ops-pipeline-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.ops-pipeline-meta {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.ops-pipeline-stages {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding-bottom: 2px !important;
+  width: 100% !important;
+}
+
+.ops-stage-step, .ceo-funnel-step {
+  flex: 1 1 0 !important;
+  min-width: 90px !important;
+  background: #000000 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 6px 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  flex-shrink: 0 !important;
+}
+
+.ops-stage-step:hover, .ceo-funnel-step:hover {
+  background: var(--surface-hover) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.ops-stage-step.active, .ceo-funnel-step.active {
+  border-color: var(--border-accent) !important;
+  background: rgba(0, 212, 239, 0.04) !important;
+}
+
+.ops-step-num {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ops-step-name, .ceo-funnel-step span:first-child {
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+  letter-spacing: 0.02em !important;
+}
+
+.ops-step-count, .ceo-funnel-step-count {
+  font-size: 0.70rem !important;
+  font-family: var(--font-mono) !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-raised) !important;
+  padding: 1px 6px !important;
+  border-radius: 3px !important;
+}
+
+.ops-stage-arrow, .ceo-funnel-arrow {
+  color: var(--text-dim) !important;
+  font-size: 0.70rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* ==============================================================================
+   8. OPERATIONAL 2-COLUMN COCKPIT (Left: Tables/Records, Right: Control/Ops)
+   ============================================================================== */
+.ops-cockpit-grid, .agency-dashboard-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 340px !important;
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1100px) {
+  .ops-cockpit-grid, .agency-dashboard-grid {
+    grid-template-columns: 100% !important;
+  }
+}
+
+.ops-col-left, .agency-dashboard-main-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.ops-col-right, .agency-dashboard-rail {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+  width: 340px !important;
+  max-width: 100% !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1100px) {
+  .ops-col-right, .agency-dashboard-rail {
+    width: 100% !important;
+  }
+}
+
+/* Standard Operational Panel Card */
+.agency-panel-card, .ops-panel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  position: relative !important;
+  min-width: 0 !important;
+}
+
+.agency-panel-card-header, .ops-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.agency-panel-title, .ops-panel-title {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ops-panel-meta {
+  font-size: 0.70rem;
+  color: var(--text-muted);
+}
+
+/* ==============================================================================
+   9. HIGH-DENSITY OPERATIONAL DATA TABLES
+   ============================================================================== */
+.ops-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: #000000;
+}
+
+.ops-table, .agency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.ops-table th, .agency-table th {
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.ops-table td, .agency-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.ops-table tr:last-child td, .agency-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ops-table tbody tr:hover, .agency-table tbody tr:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.ops-badge-tag, .agency-stage-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.ops-badge-tag.qualified {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.ops-badge-tag.pending {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.ops-badge-tag.discovered {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+/* Off-canvas notification drawer visibility management */
+.notification-drawer:not(.open),
+.notification-drawer[aria-hidden="true"] {
+  display: none !important;
+}
+
+.notification-drawer.open,
+.notification-drawer[aria-hidden="false"] {
+  display: flex !important;
+  transform: translateX(0%) !important;
+}
+
+/* ==============================================================================
+   10. LIVE OPERATIONS & WORKERS TELEMETRY
+   ============================================================================== */
+.ops-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ops-event-row, .live-ops-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 7px 10px !important;
+  background: #000000 !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.75rem !important;
+}
+
+.ops-event-row:hover, .live-ops-item:hover {
+  border-color: var(--border) !important;
+  background: var(--surface-elevated) !important;
+}
+
+.ops-event-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ops-event-time {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Worker Status Rows */
+.ops-worker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #000000;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+
+.ops-worker-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ops-worker-status-badge {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ops-worker-status-badge.running {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.ops-worker-status-badge.idle {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.ops-worker-status-badge.waiting {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.ops-worker-status-badge.disabled {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Outreach Safety Notice Box */
+.ops-safety-box {
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--warning);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* ==============================================================================
+   11. MOBILE BOTTOM BAR & DRAWER
+   ============================================================================== */
+@media (max-width: 768px) {
+  .sidebar, .agency-sidebar, #app-sidebar {
+    display: none !important;
+  }
+
+  .sidebar.open, .agency-sidebar.open, #app-sidebar.open {
+    display: flex !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 260px !important;
+    z-index: 1000 !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .agency-topbar {
+    padding: 0 14px !important;
+  }
+
+  .agency-search-pill {
+    display: none !important;
+  }
+
+  .view-container {
+    padding: 14px !important;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 56px !important;
+    background: rgba(11, 14, 19, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    border-top: 1px solid var(--border) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    z-index: 95 !important;
+  }
+
+  .bottom-nav-item {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted) !important;
+    font-size: 0.68rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 3px !important;
+    cursor: pointer !important;
+    padding: 6px 12px !important;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+  }
+
+  body {
+    padding-bottom: 60px !important;
+  }
+}
+
+/* ==============================================================================
+   12. ACCESSIBILITY & PREFERS-REDUCED-MOTION
+   ============================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

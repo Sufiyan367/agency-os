@@ -118,7 +118,9 @@ function initGlobalSearch() {
             }
         });
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Escape') {
+                searchInput.blur();
+            } else if (e.key === 'Enter') {
                 const query = searchInput.value.trim();
                 if (query) {
                     navToView('leads');
@@ -247,14 +249,15 @@ const VIEW_ALIASES = {
     'prospects': 'leads',
     'research': 'markets',
     'outreach': 'queue',
-    'actions': 'queue',
+    'actions': 'runs',
     'sales': 'pipeline',
     'deals': 'pipeline',
     'demos': 'demos',
     'proposals': 'pipeline',
     'clients': 'payments',
-    'customers': 'payments',
+    'customers': 'client-intelligence',
     'analytics': 'decision-analytics',
+    'optimization': 'decision-analytics',
     'inbox': 'replies',
     'signals': 'replies',
     'system': 'runs',
@@ -265,7 +268,6 @@ const VIEW_ALIASES = {
     'support-ops': 'support-ops',
     'maintenance': 'support-ops',
     'intelligence': 'intelligence',
-    'optimization': 'intelligence',
     'ai': 'intelligence'
 };
 
@@ -275,7 +277,7 @@ function switchView(viewName) {
 
     document.querySelectorAll('.agency-nav-item, .nav-item, .bottom-nav-item').forEach(n => {
         const dv = n.getAttribute('data-view');
-        if (dv === canonicalView || dv === viewName || (VIEW_ALIASES[dv] && VIEW_ALIASES[dv] === canonicalView)) {
+        if (dv === viewName || dv === canonicalView) {
             n.classList.add('active');
         } else {
             n.classList.remove('active');
