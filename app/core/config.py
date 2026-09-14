@@ -44,13 +44,20 @@ class Settings(BaseSettings):
     API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "")
     SESSION_SECRET: str = os.getenv("SESSION_SECRET", "")
     SESSION_MAX_AGE_DAYS: int = 14
-    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
+    ALLOWED_ORIGINS: str = os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://automatedagencyos.tech,https://app.automatedagencyos.tech,http://localhost:8000,http://127.0.0.1:8000"
+    )
     RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("true", "1", "yes")
     WEBHOOK_REPLAY_WINDOW_SECONDS: int = int(os.getenv("WEBHOOK_REPLAY_WINDOW_SECONDS", "300"))
     WEBHOOK_SHARED_SECRET: Optional[str] = os.getenv("WEBHOOK_SHARED_SECRET")
 
     # Cloud VPS & Domain Configuration
-    DOMAIN: str = os.getenv("DOMAIN", "localhost")
+    DOMAIN: str = os.getenv("DOMAIN", "automatedagencyos.tech")
+    PUBLIC_HOST: str = os.getenv("PUBLIC_HOST", "automatedagencyos.tech")
+    ADMIN_HOST: str = os.getenv("ADMIN_HOST", "app.automatedagencyos.tech")
+    PUBLIC_BASE_URL: str = os.getenv("PUBLIC_BASE_URL", "https://automatedagencyos.tech")
+    ADMIN_BASE_URL: str = os.getenv("ADMIN_BASE_URL", "https://app.automatedagencyos.tech")
     TLS_EMAIL: str = os.getenv("TLS_EMAIL", "admin@localhost")
     BACKUP_DIR: str = os.getenv("BACKUP_DIR", "backups")
     BACKUP_RETENTION_DAYS: int = 30
@@ -173,8 +180,9 @@ class Settings(BaseSettings):
 
     # Payment Architecture & Provider Strategy
     PREFERRED_PAYMENT_METHOD: str = os.getenv("PREFERRED_PAYMENT_METHOD", "google_pay_manual")
-    GOOGLE_PAY_UPI_ID: str = os.getenv("GOOGLE_PAY_UPI_ID", os.getenv("GOOGLE_PAY_VPA", "agencyos@okhdfcbank"))
-    GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", os.getenv("GOOGLE_PAY_UPI_ID", "agencyos@okhdfcbank"))
+    GOOGLE_PAY_PAYMENT_UPI_ID: str = os.getenv("GOOGLE_PAY_PAYMENT_UPI_ID", os.getenv("GOOGLE_PAY_UPI_ID", "mrsufiyansurve@okaxis"))
+    GOOGLE_PAY_UPI_ID: str = os.getenv("GOOGLE_PAY_UPI_ID", os.getenv("GOOGLE_PAY_PAYMENT_UPI_ID", "mrsufiyansurve@okaxis"))
+    GOOGLE_PAY_VPA: str = os.getenv("GOOGLE_PAY_VPA", os.getenv("GOOGLE_PAY_UPI_ID", "mrsufiyansurve@okaxis"))
     GOOGLE_PAY_MERCHANT_NAME: str = os.getenv("GOOGLE_PAY_MERCHANT_NAME", "Autonomous Agency OS")
     GOOGLE_PAY_MERCHANT_ID: Optional[str] = os.getenv("GOOGLE_PAY_MERCHANT_ID")
     PAYMENT_INSTRUCTIONS_EXPIRY_DAYS: int = int(os.getenv("PAYMENT_INSTRUCTIONS_EXPIRY_DAYS", "7"))

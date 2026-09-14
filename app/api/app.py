@@ -123,12 +123,35 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
     if any(lower_path.endswith(ext) for ext in (".env", ".db", ".sqlite", ".sqlite3", ".py", ".pyc", ".bak", ".log")) or "/.git" in lower_path or "/.." in lower_path:
         return JSONResponse(status_code=404, content={"detail": "Not found", "status_code": 404})
 
+    # Normalize path to prevent double slash or traversal bypasses
+    clean_parts = [p for p in path.split("/") if p and p != "."]
+    normalized_path = "/" + "/".join(clean_parts) if clean_parts else "/"
+
+    # --- Host-Based Separation: Public Website vs. Authenticated Admin Console ---
+    req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    admin_host = getattr(settings, "ADMIN_HOST", "app.automatedagencyos.tech").strip().lower()
+    public_host = getattr(settings, "PUBLIC_HOST", "automatedagencyos.tech").strip().lower()
+    admin_base_url = getattr(settings, "ADMIN_BASE_URL", "https://app.automatedagencyos.tech").rstrip("/")
+    public_base_url = getattr(settings, "PUBLIC_BASE_URL", "https://automatedagencyos.tech").rstrip("/")
+
+    if req_host == public_host:
+        # Prevent access to admin dashboard / portal from public apex domain
+        if normalized_path in ("/dashboard", "/app", "/index.html", "/login", "/setup", "/reset-password", "/client") or normalized_path.startswith("/dashboard/"):
+            query_str = f"?{request.url.query}" if request.url.query else ""
+            return RedirectResponse(url=f"{admin_base_url}{normalized_path}{query_str}", status_code=307)
+    elif req_host == admin_host:
+        # Admin host robots.txt: prevent all search engine indexing
+        if normalized_path == "/robots.txt":
+            return HTMLResponse("User-agent: *\nDisallow: /\n", media_type="text/plain")
+        # Admin root: redirect directly into dashboard entrypoint
+        if normalized_path in ("/", "/website"):
+            return RedirectResponse(url="/dashboard", status_code=307)
+        # Marketing pages: route back to the public website
+        if normalized_path in ("/about", "/services", "/contact", "/pricing", "/who-we-help", "/how-it-works", "/deliverables"):
+            return RedirectResponse(url=f"{public_base_url}{normalized_path}", status_code=307)
+
     # Authentication & RBAC enforcement when AUTH_ENABLED is True
     if getattr(settings, "AUTH_ENABLED", False):
-        # Normalize path to prevent double slash or traversal bypasses
-        clean_parts = [p for p in path.split("/") if p and p != "."]
-        normalized_path = "/" + "/".join(clean_parts) if clean_parts else "/"
-
         public_exact_paths = {
             "/",
             "/website",
@@ -400,11 +423,15 @@ async def serve_manifest():
 
 
 @app.get("/robots.txt")
-async def serve_robots_txt():
+async def serve_robots_txt(request: Request):
+    req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    admin_host = getattr(settings, "ADMIN_HOST", "app.automatedagencyos.tech").strip().lower()
+    if req_host == admin_host:
+        return HTMLResponse("User-agent: *\nDisallow: /\n", media_type="text/plain")
     robots_path = os.path.join(STATIC_DIR, "robots.txt")
     if os.path.exists(robots_path):
         return FileResponse(robots_path, media_type="text/plain")
-    return HTMLResponse("User-agent: *\nDisallow: /dashboard\n", media_type="text/plain")
+    return HTMLResponse("User-agent: *\nDisallow: /dashboard\nDisallow: /app\nDisallow: /login\nDisallow: /setup\n", media_type="text/plain")
 
 
 @app.get("/sitemap.xml")
@@ -510,6 +537,10 @@ async def serve_reset_password(request: Request):
 @app.get("/", response_class=HTMLResponse)
 @app.get("/website", response_class=HTMLResponse)
 async def serve_website(request: Request):
+    req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    admin_host = getattr(settings, "ADMIN_HOST", "app.automatedagencyos.tech").strip().lower()
+    if req_host == admin_host:
+        return RedirectResponse(url="/dashboard", status_code=307)
     if templates:
         return templates.TemplateResponse(
             request=request,
@@ -560,6 +591,14 @@ async def serve_client_portal(request: Request):
 @app.get("/dashboard", response_class=HTMLResponse)
 @app.get("/app", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
+    req_host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+    public_host = getattr(settings, "PUBLIC_HOST", "automatedagencyos.tech").strip().lower()
+    admin_base_url = getattr(settings, "ADMIN_BASE_URL", "https://app.automatedagencyos.tech").rstrip("/")
+    if req_host == public_host:
+        clean_path = request.url.path.rstrip("/")
+        query_str = f"?{request.url.query}" if request.url.query else ""
+        return RedirectResponse(url=f"{admin_base_url}{clean_path}{query_str}", status_code=307)
+
     if not settings.AUTH_ENABLED:
         if templates:
             return templates.TemplateResponse(

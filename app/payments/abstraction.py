@@ -315,7 +315,7 @@ class GooglePayPaymentProvider(BasePaymentProvider):
         provider_name: Optional[str] = None,
         expiry_days: Optional[int] = None
     ):
-        self.vpa = vpa or getattr(settings, "GOOGLE_PAY_UPI_ID", None) or getattr(settings, "GOOGLE_PAY_VPA", "agencyos@okhdfcbank")
+        self.vpa = vpa or getattr(settings, "GOOGLE_PAY_PAYMENT_UPI_ID", None) or getattr(settings, "GOOGLE_PAY_UPI_ID", None) or getattr(settings, "GOOGLE_PAY_VPA", "mrsufiyansurve@okaxis")
         self.merchant_name = merchant_name or getattr(settings, "GOOGLE_PAY_MERCHANT_NAME", "Automated Agency OS")
         self.merchant_id = merchant_id or getattr(settings, "GOOGLE_PAY_MERCHANT_ID", None)
         self._provider_name = provider_name or getattr(settings, "PAYMENT_PROVIDER", "google_pay_manual")
