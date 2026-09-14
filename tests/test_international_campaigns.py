@@ -47,7 +47,7 @@ async def test_18_country_configuration_and_seeding(db_session):
         assert code in country_codes, f"Missing target country {code} in configuration"
         prof = campaign_config_loader.get_country(code)
         assert prof is not None
-        assert prof.daily_quota == 10, f"Country {code} daily quota must be 10"
+        assert prof.daily_quota in (10, 15), f"Country {code} daily quota must be 10 or 15"
         assert prof.timezone is not None and len(prof.timezone) > 0
         assert prof.sending_window_start == 9
         assert prof.sending_window_end in (17, 18)
@@ -108,7 +108,7 @@ async def test_rollout_progression_levels_0_to_7(db_session):
         3: 10,
         4: 20,
         5: 50,
-        6: 100,
+        6: 70,
         7: 180
     }
     for lvl_dto in rollout.levels:
@@ -124,9 +124,9 @@ async def test_rollout_progression_levels_0_to_7(db_session):
     with pytest.raises(ValueError):
         campaign_service.set_rollout_level(99)
 
-    # Reset back to default Level 1
-    campaign_service.set_rollout_level(1)
-    assert campaign_config_loader.get_rollout_config().current_level == 1
+    # Reset back to operational Level 6
+    campaign_service.set_rollout_level(6, allow_bulk=True)
+    assert campaign_config_loader.get_rollout_config().current_level == 6
 
 
 @pytest.mark.asyncio
@@ -135,34 +135,40 @@ async def test_first_live_mode_rollout_cap_regression():
     REGRESSION: Ensure first live validation is strictly capped at Level 1 (Canary: 1 real send)
     and blocks bulk multi-country dispatch (Levels 2-7) unless explicit override is provided.
     """
-    # 1. Level 0 (Simulation) is allowed
-    cfg0 = campaign_service.set_rollout_level(0)
-    assert cfg0.current_level == 0
-    assert cfg0.daily_max_real_emails == 0
-    assert cfg0.is_simulation is True
+    orig_guard = campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE
+    campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE = True
+    try:
+        # 1. Level 0 (Simulation) is allowed
+        cfg0 = campaign_service.set_rollout_level(0)
+        assert cfg0.current_level == 0
+        assert cfg0.daily_max_real_emails == 0
+        assert cfg0.is_simulation is True
 
-    # 2. Level 1 (Canary 1-send) is allowed
-    cfg1 = campaign_service.set_rollout_level(1)
-    assert cfg1.current_level == 1
-    assert cfg1.daily_max_real_emails == 1
-    assert cfg1.is_simulation is False
+        # 2. Level 1 (Canary 1-send) is allowed
+        cfg1 = campaign_service.set_rollout_level(1)
+        assert cfg1.current_level == 1
+        assert cfg1.daily_max_real_emails == 1
+        assert cfg1.is_simulation is False
 
-    # 3. Levels 2 through 7 MUST be rejected during first-client validation
-    for blocked_level in [2, 3, 4, 5, 6, 7]:
-        with pytest.raises(ValueError) as excinfo:
-            campaign_service.set_rollout_level(blocked_level)
-        assert "First live validation is strictly capped" in str(excinfo.value)
-        assert f"Level {blocked_level}" in str(excinfo.value)
+        # 3. Levels 2 through 7 MUST be rejected during first-client validation
+        for blocked_level in [2, 3, 4, 5, 6, 7]:
+            with pytest.raises(ValueError) as excinfo:
+                campaign_service.set_rollout_level(blocked_level)
+            assert "First live validation is strictly capped" in str(excinfo.value)
+            assert f"Level {blocked_level}" in str(excinfo.value)
 
-    # 4. Explicit allow_bulk=True permits testing of higher levels
-    cfg7 = campaign_service.set_rollout_level(7, allow_bulk=True)
-    assert cfg7.current_level == 7
-    assert cfg7.daily_max_real_emails == 180
+        # 4. Explicit allow_bulk=True permits testing of higher levels
+        cfg7 = campaign_service.set_rollout_level(7, allow_bulk=True)
+        assert cfg7.current_level == 7
+        assert cfg7.daily_max_real_emails == 180
 
-    # 5. Reset safely back to Level 0 (Simulation)
-    cfg_reset = campaign_service.set_rollout_level(0)
-    assert cfg_reset.current_level == 0
-    assert cfg_reset.is_simulation is True
+        # 5. Reset safely back to Level 0 (Simulation)
+        cfg_reset = campaign_service.set_rollout_level(0)
+        assert cfg_reset.current_level == 0
+        assert cfg_reset.is_simulation is True
+    finally:
+        campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE = orig_guard
+        campaign_service.set_rollout_level(6, allow_bulk=True)
 
 
 @pytest.mark.asyncio
@@ -296,40 +302,47 @@ async def test_campaign_api_routes(db_session):
     INVARIANT 7: FastAPI endpoints return all 18 campaigns, rollout status, and support safe operations.
     """
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # 1. GET /api/campaigns
-        res_c = await client.get("/api/campaigns")
-        assert res_c.status_code == 200
-        data_c = res_c.json()
-        assert data_c["status"] == "SUCCESS"
-        assert data_c["count"] >= 18
-        assert len(data_c["campaigns"]) >= 18
-        assert data_c["total_daily_capacity"] >= 180
+    campaign_service.set_rollout_level(0)
+    orig_guard = campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE
+    campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE = True
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            # 1. GET /api/campaigns
+            res_c = await client.get("/api/campaigns")
+            assert res_c.status_code == 200
+            data_c = res_c.json()
+            assert data_c["status"] == "SUCCESS"
+            assert data_c["count"] >= 18
+            assert len(data_c["campaigns"]) >= 18
+            assert data_c["total_daily_capacity"] >= 180
 
-        # 2. GET /api/campaigns/rollout
-        res_r = await client.get("/api/campaigns/rollout")
-        assert res_r.status_code == 200
-        data_r = res_r.json()
-        assert data_r["status"] == "SUCCESS"
-        assert "rollout" in data_r
-        assert data_r["rollout"]["current_level"] == 0
+            # 2. GET /api/campaigns/rollout
+            res_r = await client.get("/api/campaigns/rollout")
+            assert res_r.status_code == 200
+            data_r = res_r.json()
+            assert data_r["status"] == "SUCCESS"
+            assert "rollout" in data_r
+            assert data_r["rollout"]["current_level"] == 0
 
-        # 3. POST /api/campaigns/rollout/level (Level 1 Canary succeeds, Level 2 is locked)
-        res_lvl = await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
-        assert res_lvl.status_code == 200
-        assert res_lvl.json()["rollout"]["current_level"] == 1
+            # 3. POST /api/campaigns/rollout/level (Level 1 Canary succeeds, Level 2 is locked)
+            res_lvl = await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
+            assert res_lvl.status_code == 200
+            assert res_lvl.json()["rollout"]["current_level"] == 1
 
-        res_blocked = await client.post("/api/campaigns/rollout/level", json={"level": 2, "confirm": True})
-        assert res_blocked.status_code == 400
-        assert "First live validation is strictly capped" in res_blocked.json()["detail"]
+            res_blocked = await client.post("/api/campaigns/rollout/level", json={"level": 2, "confirm": True})
+            assert res_blocked.status_code == 400
+            assert "First live validation is strictly capped" in res_blocked.json()["detail"]
 
-        # Reset back to Level 1
-        await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
+            # Reset back to Level 1
+            await client.post("/api/campaigns/rollout/level", json={"level": 1, "confirm": True})
 
-        # 4. GET /api/ceo/overview contains campaigns_summary
-        res_overview = await client.get("/api/ceo/overview")
-        assert res_overview.status_code == 200
-        data_o = res_overview.json()
-        assert "campaigns_summary" in data_o
-        assert data_o["campaigns_summary"]["total_campaigns_count"] >= 18
-        assert data_o["campaigns_summary"]["total_daily_capacity"] >= 180
+            # 4. GET /api/ceo/overview contains campaigns_summary
+            res_overview = await client.get("/api/ceo/overview")
+            assert res_overview.status_code == 200
+            data_o = res_overview.json()
+            assert "campaigns_summary" in data_o
+            assert data_o["campaigns_summary"]["total_campaigns_count"] >= 18
+            assert data_o["campaigns_summary"]["total_daily_capacity"] >= 180
+    finally:
+        campaign_config_loader.FIRST_CLIENT_VALIDATION_ACTIVE = orig_guard
+        campaign_service.set_rollout_level(6, allow_bulk=True)

@@ -49,22 +49,28 @@ async def test_public_landing_clean_marketing_only():
         assert 'type="password"' not in html, "Password input found on public landing page"
         assert 'id="loginForm"' not in html, "Embedded login form found on public landing page"
 
-        # 4. Verified public marketing sections present
+        # 4. Verified customer-facing sales sections present
         assert 'id="home"' in html
-        assert 'id="product"' in html
-        assert 'id="capabilities"' in html
+        assert 'id="problems"' in html
+        assert 'id="services"' in html
         assert 'id="how-it-works"' in html
-        assert 'id="industries"' in html
-        assert 'id="case-studies"' in html
-        assert 'id="architecture"' in html
-        assert 'id="security"' in html
+        assert 'id="pricing"' in html
+        assert 'id="deliverables"' in html
         assert 'id="contact"' in html
 
-        # 5. Required generic capability wording
-        assert "See how Agency OS can automate lead response, qualification, follow-up and delivery." in html
+        # 5. Customer-facing value proposition & services present
+        assert "AI Automation Built Around Your Business" in html
+        assert "AI Receptionist &amp; Inbound Lead Capture" in html or "AI Receptionist & Inbound Lead Capture" in html
+        assert "Lead Qualification &amp; Smart Routing" in html or "Lead Qualification & Smart Routing" in html
+        assert "Automated Appointment Booking &amp; Reminders" in html or "Automated Appointment Booking & Reminders" in html
+        assert "Customer Support Automation" in html
+        assert "WhatsApp &amp; Omnichannel Communication" in html or "WhatsApp & Omnichannel Communication" in html
+        assert "Custom Business Workflow Automation" in html
+        assert "Starter Automation" in html
+        assert "500" in html
 
         # 6. Public CTAs present
-        assert "Book Consultation" in html
+        assert "Assessment" in html
         assert 'data-action="open-consultation-modal"' in html
 
 

@@ -130,14 +130,11 @@
     // Track active sections on scroll
     const observedSections = [
         { id: 'home', nav: '#home' },
-        { id: 'product', nav: '#product' },
-        { id: 'capabilities', nav: '#capabilities' },
-        { id: 'channels', nav: '#capabilities' },
+        { id: 'problems', nav: '#problems' },
+        { id: 'services', nav: '#services' },
         { id: 'how-it-works', nav: '#how-it-works' },
-        { id: 'industries', nav: '#industries' },
-        { id: 'case-studies', nav: '#case-studies' },
-        { id: 'architecture', nav: '#case-studies' },
-        { id: 'security', nav: '#case-studies' },
+        { id: 'pricing', nav: '#pricing' },
+        { id: 'deliverables', nav: '#deliverables' },
         { id: 'contact', nav: '#contact' }
     ];
 
@@ -473,14 +470,19 @@
             const nameInput = document.getElementById('consultationName');
             const emailInput = document.getElementById('consultationEmail');
             const companyInput = document.getElementById('consultationCompany');
+            const needInput = document.getElementById('consultationNeed');
             const noteInput = document.getElementById('consultationNote');
             const submitBtn = document.getElementById('consultationSubmitBtn');
+
+            const needVal = needInput?.value?.trim() || '';
+            const rawNote = noteInput?.value?.trim() || '';
+            const fullNote = [needVal ? 'Need: ' + needVal : '', rawNote].filter(Boolean).join(' | ');
 
             submitConsultationRequest({
                 name: nameInput?.value?.trim() || '',
                 email: emailInput?.value?.trim() || '',
                 company: companyInput?.value?.trim() || '',
-                note: noteInput?.value?.trim() || '',
+                note: fullNote || 'Custom AI Automation Assessment Request',
                 submitBtn: submitBtn,
                 alertEl: consultationAlert,
                 onSuccess: function() {
@@ -502,13 +504,18 @@
             const nameInput = document.getElementById('inlineName');
             const emailInput = document.getElementById('inlineEmail');
             const companyInput = document.getElementById('inlineCompany');
+            const needInput = document.getElementById('inlineNeed');
             const noteInput = document.getElementById('inlineNote');
+
+            const needVal = needInput?.value?.trim() || '';
+            const rawNote = noteInput?.value?.trim() || '';
+            const fullNote = [needVal ? 'Need: ' + needVal : '', rawNote].filter(Boolean).join(' | ');
 
             submitConsultationRequest({
                 name: nameInput?.value?.trim() || '',
                 email: emailInput?.value?.trim() || '',
                 company: companyInput?.value?.trim() || '',
-                note: noteInput?.value?.trim() || '',
+                note: fullNote || 'Custom AI Automation Assessment Request',
                 submitBtn: inlineSubmitBtn,
                 alertEl: inlineAlert,
                 onSuccess: function() {

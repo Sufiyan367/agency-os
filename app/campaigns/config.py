@@ -69,6 +69,12 @@ class CampaignConfigLoader:
                 # Rollout config
                 rollout_data = data.get("rollout", {})
                 loaded_level = int(rollout_data.get("current_level", 0))
+                env_level = os.getenv("ROLLOUT_LEVEL") or os.getenv("CAMPAIGN_ROLLOUT_LEVEL")
+                if env_level is not None:
+                    try:
+                        loaded_level = int(env_level)
+                    except ValueError:
+                        pass
                 if self.FIRST_CLIENT_VALIDATION_ACTIVE and loaded_level > 1:
                     logger.warning(f"[CampaignConfigLoader] Clamping rollout level from {loaded_level} to Level 1 (Canary 1-send lock for live validation).")
                     loaded_level = 1
