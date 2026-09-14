@@ -48,7 +48,7 @@ async def db_setup():
 
 @pytest.mark.asyncio
 async def test_canonical_email_status_when_password_missing(monkeypatch):
-    """When TITAN_SMTP_PASSWORD is missing, both endpoints must report BLOCKED and identical non-secret blocker."""
+    """When TITAN_SMTP_PASSWORD is missing, /health, /api/ceo/overview, and /api/email/deliverability-readiness must all report BLOCKED and identical non-secret blocker."""
     monkeypatch.setattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
     monkeypatch.setattr(settings, "EMAIL_PROVIDER", "titan")
     monkeypatch.setattr(settings, "TITAN_SMTP_PASSWORD", None)
@@ -56,26 +56,47 @@ async def test_canonical_email_status_when_password_missing(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. /api/email/deliverability-readiness
         deliv_res = await client.get("/api/email/deliverability-readiness")
         assert deliv_res.status_code == 200
         deliv_data = deliv_res.json()
 
+        # 2. /api/ceo/overview
         overview_res = await client.get("/api/ceo/overview")
         assert overview_res.status_code == 200
         overview_data = overview_res.json()
 
-        assert deliv_data["outbound_authorization"] == "BLOCKED"
-        assert "TITAN_SMTP_PASSWORD is missing" in deliv_data["outbound_auth_blocker"]
+        # 3. /health
+        health_res = await client.get("/health")
+        assert health_res.status_code == 200
+        health_data = health_res.json()
 
+        # Verify Deliverability Readiness
+        assert deliv_data["outbound_authorization"] == "BLOCKED"
+        assert deliv_data["auth_status"] == "BLOCKED"
+        assert deliv_data["readiness"] == "BLOCKED"
+        assert "TITAN_SMTP_PASSWORD is missing" in deliv_data["outbound_auth_blocker"]
+        assert deliv_data["reason"] == deliv_data["outbound_auth_blocker"]
+
+        # Verify Overview
         sys_status = overview_data["system_status"]
         assert sys_status["outbound_authorization"] == "BLOCKED"
         assert sys_status["email_status"] == "TITAN / BLOCKED"
         assert sys_status["email_auth_blocker"] == deliv_data["outbound_auth_blocker"]
+        assert sys_status["canonical_email"]["auth_status"] == "BLOCKED"
+        assert sys_status["canonical_email"]["readiness"] == "BLOCKED"
+
+        # Verify /health
+        email_health = health_data["email"]
+        assert email_health["auth_status"] == "BLOCKED"
+        assert email_health["readiness"] == "BLOCKED"
+        assert email_health["reason"] == deliv_data["outbound_auth_blocker"]
+        assert health_data["deliverability"]["provider_auth"] == "BLOCKED"
 
 
 @pytest.mark.asyncio
 async def test_canonical_email_status_when_verified(monkeypatch):
-    """When Titan authentication succeeds, both endpoints must report READY and no blocker."""
+    """When Titan authentication succeeds, /health, /api/ceo/overview, and /api/email/deliverability-readiness must all report READY and no blocker."""
     monkeypatch.setattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
     monkeypatch.setattr(settings, "EMAIL_PROVIDER", "titan")
     monkeypatch.setattr(settings, "TITAN_SMTP_PASSWORD", "secret_test_pw")
@@ -90,21 +111,42 @@ async def test_canonical_email_status_when_verified(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. /api/email/deliverability-readiness
         deliv_res = await client.get("/api/email/deliverability-readiness")
         assert deliv_res.status_code == 200
         deliv_data = deliv_res.json()
 
+        # 2. /api/ceo/overview
         overview_res = await client.get("/api/ceo/overview")
         assert overview_res.status_code == 200
         overview_data = overview_res.json()
 
-        assert deliv_data["outbound_authorization"] == "READY"
-        assert deliv_data["outbound_auth_blocker"] is None
+        # 3. /health
+        health_res = await client.get("/health")
+        assert health_res.status_code == 200
+        health_data = health_res.json()
 
+        # Verify Deliverability Readiness
+        assert deliv_data["outbound_authorization"] == "READY"
+        assert deliv_data["auth_status"] == "READY"
+        assert deliv_data["readiness"] == "READY"
+        assert deliv_data["outbound_auth_blocker"] is None
+        assert deliv_data["reason"] is None
+
+        # Verify Overview
         sys_status = overview_data["system_status"]
         assert sys_status["outbound_authorization"] == "READY"
         assert sys_status["email_status"] == "TITAN / READY"
         assert sys_status["email_auth_blocker"] is None
+        assert sys_status["canonical_email"]["auth_status"] == "READY"
+        assert sys_status["canonical_email"]["readiness"] == "READY"
+
+        # Verify /health
+        email_health = health_data["email"]
+        assert email_health["auth_status"] == "READY"
+        assert email_health["readiness"] == "READY"
+        assert email_health["reason"] is None
+        assert health_data["deliverability"]["provider_auth"] == "READY"
 
 
 @pytest.mark.asyncio

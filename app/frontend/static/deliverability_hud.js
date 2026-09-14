@@ -62,23 +62,25 @@ export class DeliverabilityHUDController {
      * Renders deliverability readiness status badge into specified container.
      */
     renderReadinessBadge(container, report) {
-        const isAuthBlocked = report.outbound_authorization === 'BLOCKED';
+        const authStatus = report.auth_status || report.outbound_authorization || 'BLOCKED';
+        const isAuthBlocked = authStatus === 'BLOCKED';
+        const authBlocker = report.reason || report.outbound_auth_blocker;
         const lockStatus = report.outreach_lock || 'IDLE';
         const cap = report.daily_cap;
         const provLabel = report.primary_provider || (report.active_provider ? report.active_provider.toUpperCase() : 'Titan Email');
-        const sender = report.sender || 'hello@automatedagencyos.tech';
+        const sender = report.address || report.sender || 'hello@automatedagencyos.tech';
         const spf = report.spf ? report.spf.status : 'Verified';
         const dkim = report.dkim ? report.dkim.status : 'Verified';
         const dmarc = report.dmarc ? report.dmarc.status : 'Not Verified';
 
         const badgeHtml = `
-            <div class="deliverability-hud-pill" title="Sender: ${sender} | SPF: ${spf} | DKIM: ${dkim} | DMARC: ${dmarc} | Outbound: ${report.outbound_authorization || 'BLOCKED'}${report.outbound_auth_blocker ? ` (${report.outbound_auth_blocker})` : ''}" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(24, 24, 27, 0.85); border:1px solid ${isAuthBlocked ? '#ef4444' : '#10b981'}; border-radius:20px; font-size:0.75rem; font-family:'JetBrains Mono', monospace; cursor:help;">
+            <div class="deliverability-hud-pill" title="Sender: ${sender} | SPF: ${spf} | DKIM: ${dkim} | DMARC: ${dmarc} | Outbound: ${authStatus}${authBlocker ? ` (${authBlocker})` : ''}" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(24, 24, 27, 0.85); border:1px solid ${isAuthBlocked ? '#ef4444' : '#10b981'}; border-radius:20px; font-size:0.75rem; font-family:'JetBrains Mono', monospace; cursor:help;">
                 <span style="width:8px; height:8px; border-radius:50%; background:${isAuthBlocked ? '#ef4444' : '#10b981'}; display:inline-block;"></span>
                 <span style="color:#e4e4e7; font-weight:600;">${provLabel} (Primary)</span>
                 <span style="color:#71717a;">|</span>
                 <span style="color:#a1a1aa;">${sender}</span>
                 <span style="color:#71717a;">|</span>
-                <span style="color:${isAuthBlocked ? '#f87171' : '#10b981'};">Auth: ${report.outbound_authorization || 'BLOCKED'}${isAuthBlocked && report.outbound_auth_blocker ? ` (${report.outbound_auth_blocker})` : ''}</span>
+                <span style="color:${isAuthBlocked ? '#f87171' : '#10b981'};">Auth: ${authStatus}${isAuthBlocked && authBlocker ? ` (${authBlocker})` : ''}</span>
                 <span style="color:#71717a;">|</span>
                 <span style="color:${lockStatus === 'IDLE' ? '#10b981' : '#f59e0b'};">Lock: ${lockStatus}</span>
             </div>

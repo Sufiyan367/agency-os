@@ -68,23 +68,17 @@ class ProductionHealthService:
             credentials_present=True
         )
 
-        # 2. Email Delivery Check
-        email_prov = getattr(settings, "EMAIL_PROVIDER", "dry_run")
+        # 2. Email Delivery Check (Canonical Single Source of Truth)
+        from app.outreach.deliverability import deliverability_monitor
+        canon_email = deliverability_monitor.get_canonical_auth_readiness()
+        email_prov = canon_email.get("provider", "Titan Email")
         email_dry_run = getattr(settings, "EMAIL_DRY_RUN", True)
-        resend_key = getattr(settings, "RESEND_API_KEY", None)
-        sendgrid_key = getattr(settings, "SENDGRID_API_KEY", None)
-        smtp_host = getattr(settings, "SMTP_HOST", None)
+        has_email_creds = canon_email.get("auth_status") == "READY"
+        email_status = "READY" if has_email_creds else ("DRY_RUN" if email_dry_run else "BLOCKED")
 
-        has_email_creds = bool(resend_key or sendgrid_key or (smtp_host and getattr(settings, "SMTP_PASSWORD", None)))
-        email_status = "DRY_RUN" if email_dry_run else ("READY" if has_email_creds else "NOT_CONFIGURED")
-
-        email_details = f"Provider: {email_prov.upper()} | Dry Run: {email_dry_run}"
-        if email_prov == "resend" and resend_key:
-            if not resend_key.startswith("re_"):
-                email_details += " (Warning: Resend API key usually begins with 're_')"
-        elif email_prov == "sendgrid" and sendgrid_key:
-            if not sendgrid_key.startswith("SG."):
-                email_details += " (Warning: SendGrid key usually begins with 'SG.')"
+        email_details = f"Provider: {email_prov} | Auth: {canon_email.get('auth_status')} | Dry Run: {email_dry_run}"
+        if canon_email.get("reason"):
+            email_details += f" ({canon_email.get('reason')})"
 
         email_health = ComponentHealth(
             name="Email Delivery",
@@ -94,7 +88,7 @@ class ProductionHealthService:
             credentials_present=has_email_creds
         )
         if not has_email_creds and not email_dry_run:
-            recommendations.append("Email is in live mode but no valid API key or SMTP server is configured.")
+            recommendations.append(f"Email delivery is blocked: {canon_email.get('reason') or 'authentication failed'}.")
 
         # 3. Voice Telephony Check
         voice_prov = getattr(settings, "VOICE_PROVIDER", "dry_run")

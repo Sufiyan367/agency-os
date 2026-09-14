@@ -345,13 +345,16 @@ async def health(db: AsyncSession = Depends(get_db)):
 
     worker_status = agency_worker.get_status()
 
-    # 1. Safe Email & Titan/Gmail telemetry without secrets
-    primary_email_provider = getattr(settings, "PRIMARY_EMAIL_PROVIDER", "titan")
+    # 1. Safe Email & Titan/Gmail telemetry without secrets (Canonical Single Source of Truth)
+    from app.outreach.deliverability import deliverability_monitor
+    canon_email = deliverability_monitor.get_canonical_auth_readiness()
+
+    primary_email_provider = canon_email.get("provider", "Titan Email")
     email_provider = getattr(settings, "EMAIL_PROVIDER", "titan")
     fallback_email_provider = getattr(settings, "FALLBACK_EMAIL_PROVIDER", None)
     email_dry_run = getattr(settings, "EMAIL_DRY_RUN", True) or getattr(settings, "DRY_RUN", True)
 
-    primary_sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
+    primary_sender = canon_email.get("address") or getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
     masked_email = None
     if primary_sender and "@" in str(primary_sender):
         parts = str(primary_sender).split("@")
@@ -364,6 +367,18 @@ async def health(db: AsyncSession = Depends(get_db)):
     gmail_configured = bool(gmail_client_id and gmail_refresh_token)
 
     email_telemetry = {
+        "provider": canon_email["provider"],
+        "address": canon_email["address"],
+        "auth_status": canon_email["auth_status"],
+        "readiness": canon_email["readiness"],
+        "reason": canon_email["reason"],
+        "canonical": {
+            "provider": canon_email["provider"],
+            "address": canon_email["address"],
+            "auth_status": canon_email["auth_status"],
+            "readiness": canon_email["readiness"],
+            "reason": canon_email["reason"]
+        },
         "primary_provider": primary_email_provider,
         "active_provider": email_provider,
         "fallback_provider": fallback_email_provider,
@@ -424,14 +439,14 @@ async def health(db: AsyncSession = Depends(get_db)):
             "active_lock_status": lock_status_val
         }
 
-    # 4. Deliverability Telemetry
+    # 4. Deliverability Telemetry (Synchronized with Canonical Readiness)
     deliverability_telemetry = {
         "status": "HEALTHY",
         "bounce_rate": 0.0,
         "complaint_rate": 0.0,
         "unsubscribe_rate": 0.0,
         "reply_rate": 0.0,
-        "provider_auth": "MISSING_CREDENTIALS" if not getattr(settings, "TITAN_SMTP_PASSWORD", None) else "READY"
+        "provider_auth": canon_email["auth_status"]
     }
     try:
         from app.outreach.deliverability import deliverability_monitor
@@ -442,7 +457,7 @@ async def health(db: AsyncSession = Depends(get_db)):
             "complaint_rate": deliv.complaint_rate,
             "unsubscribe_rate": deliv.unsubscribe_rate,
             "reply_rate": deliv.reply_rate,
-            "provider_auth": deliv.provider_auth_state,
+            "provider_auth": canon_email["auth_status"],
             "sent_count": deliv.sent_count,
             "bounced_count": deliv.bounced_count,
             "replied_count": deliv.replied_count,
@@ -1325,13 +1340,25 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
     # Outbound authorization status (Canonical Single Source of Truth):
     from app.outreach.deliverability import deliverability_monitor
     canon_readiness = deliverability_monitor.get_canonical_auth_readiness()
-    outbound_auth = canon_readiness["outbound_authorization"]
-    auth_blocker = canon_readiness["outbound_auth_blocker"]
+    outbound_auth = canon_readiness["auth_status"]
+    auth_blocker = canon_readiness["reason"]
 
-    sender_email = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
+    sender_email = canon_readiness.get("address") or getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
     reply_to_email = getattr(settings, "EMAIL_REPLY_TO", None) or sender_email
 
     return {
+        "provider": canon_readiness["provider"],
+        "address": canon_readiness["address"],
+        "auth_status": canon_readiness["auth_status"],
+        "readiness": canon_readiness["readiness"],
+        "reason": canon_readiness["reason"],
+        "canonical": {
+            "provider": canon_readiness["provider"],
+            "address": canon_readiness["address"],
+            "auth_status": canon_readiness["auth_status"],
+            "readiness": canon_readiness["readiness"],
+            "reason": canon_readiness["reason"]
+        },
         "primary_provider": "Titan Email",
         "role": "PRIMARY BUSINESS OUTBOUND",
         "sender": sender_email,
@@ -1339,7 +1366,7 @@ async def get_deliverability_readiness(db: AsyncSession = Depends(get_db)):
         "active_provider": email_prov,
         "fallback_provider": fallback_prov,
         "dry_run": getattr(settings, "EMAIL_DRY_RUN", True),
-        "smtp_readiness": "CONFIGURED" if prov_state.get("overall_status") == "READY FOR CONTROLLED TEST" else "BLOCKED",
+        "smtp_readiness": canon_readiness["readiness"],
         "outbound_authorization": outbound_auth,
         "outbound_auth_blocker": auth_blocker,
         "titan_smtp": titan_smtp_health,
@@ -2699,6 +2726,13 @@ async def get_ceo_control_center_overview(
         "email_status": email_status_str,
         "email_auth_blocker": email_auth_blocker,
         "outbound_authorization": outbound_authorization,
+        "canonical_email": {
+            "provider": canon_email["provider"],
+            "address": canon_email["address"],
+            "auth_status": canon_email["auth_status"],
+            "readiness": canon_email["readiness"],
+            "reason": canon_email["reason"]
+        },
         "inbox_polling": bool(getattr(inbox_poller, "is_running", False)),
         "inbox_polling_label": "Active" if getattr(inbox_poller, "is_running", False) else "Inactive",
         "email_mode": "DRY RUN" if is_dry_run else "LIVE",

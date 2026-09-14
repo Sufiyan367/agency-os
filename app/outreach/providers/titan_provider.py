@@ -141,14 +141,40 @@ class TitanEmailProvider(BaseEmailProvider):
                 "host": self.smtp_host,
                 "port": self.smtp_port
             }
-        except Exception as e:
+        except smtplib.SMTPAuthenticationError as e:
             safe_err = _sanitize_error(e, [self.smtp_password])
             return {
                 "status": "ERROR",
                 "healthy": False,
-                "error": safe_err,
+                "error": f"Titan SMTP authentication failed: {safe_err}",
                 "authenticated_email": self.smtp_user
             }
+        except Exception as e:
+            # If connection on primary port failed, attempt alternate standard Titan port (465 vs 587)
+            alt_port = 587 if int(self.smtp_port) == 465 else 465
+            try:
+                if alt_port == 465:
+                    with smtplib.SMTP_SSL(self.smtp_host, alt_port, timeout=8) as server:
+                        server.login(self.smtp_user, self.smtp_password)
+                else:
+                    with smtplib.SMTP(self.smtp_host, alt_port, timeout=8) as server:
+                        server.starttls()
+                        server.login(self.smtp_user, self.smtp_password)
+                return {
+                    "status": "OK",
+                    "healthy": True,
+                    "authenticated_email": self.smtp_user,
+                    "host": self.smtp_host,
+                    "port": alt_port
+                }
+            except Exception:
+                safe_err = _sanitize_error(e, [self.smtp_password])
+                return {
+                    "status": "ERROR",
+                    "healthy": False,
+                    "error": safe_err,
+                    "authenticated_email": self.smtp_user
+                }
 
     def check_imap_health(self) -> Dict[str, Any]:
         """Validates Titan IMAP credentials and inbox read capability."""

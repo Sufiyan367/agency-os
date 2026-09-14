@@ -220,9 +220,13 @@ class DeliverabilityMonitor:
         Returns:
             {
                 "provider": "Titan Email",
+                "address": "hello@automatedagencyos.tech",
+                "auth_status": "READY" | "BLOCKED",
+                "readiness": "READY" | "BLOCKED",
+                "reason": Optional[str],
+                "status_label": "TITAN / READY" | "TITAN / BLOCKED",
                 "outbound_authorization": "READY" | "BLOCKED",
                 "outbound_auth_blocker": Optional[str],
-                "status_label": "TITAN / READY" | "TITAN / BLOCKED",
                 "healthy": bool,
                 "authenticated_email": Optional[str],
                 "details": Dict[str, Any]
@@ -236,35 +240,49 @@ class DeliverabilityMonitor:
             has_pw = bool(getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None))
             sender = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
             if not has_pw:
+                reason = "TITAN_SMTP_PASSWORD is missing in configuration"
                 return {
                     "provider": "Titan Email",
-                    "outbound_authorization": "BLOCKED",
-                    "outbound_auth_blocker": "TITAN_SMTP_PASSWORD is missing in configuration",
+                    "address": sender,
+                    "auth_status": "BLOCKED",
+                    "readiness": "BLOCKED",
+                    "reason": reason,
                     "status_label": "TITAN / BLOCKED",
+                    "outbound_authorization": "BLOCKED",
+                    "outbound_auth_blocker": reason,
                     "healthy": False,
                     "authenticated_email": sender,
-                    "details": {"status": "UNCONFIGURED", "error": "TITAN_SMTP_PASSWORD is missing in configuration"}
+                    "details": {"status": "UNCONFIGURED", "error": reason}
                 }
             auth_check = tp.check_auth_health()
             if auth_check.get("healthy"):
+                authenticated_addr = auth_check.get("authenticated_email") or sender
                 return {
                     "provider": "Titan Email",
+                    "address": authenticated_addr,
+                    "auth_status": "READY",
+                    "readiness": "READY",
+                    "reason": None,
+                    "status_label": "TITAN / READY",
                     "outbound_authorization": "READY",
                     "outbound_auth_blocker": None,
-                    "status_label": "TITAN / READY",
                     "healthy": True,
-                    "authenticated_email": auth_check.get("authenticated_email") or sender,
+                    "authenticated_email": authenticated_addr,
                     "details": auth_check
                 }
             else:
                 err_msg = auth_check.get("error") or "SMTP authentication check failed"
                 return {
                     "provider": "Titan Email",
+                    "address": sender,
+                    "auth_status": "BLOCKED",
+                    "readiness": "BLOCKED",
+                    "reason": err_msg,
+                    "status_label": "TITAN / BLOCKED",
                     "outbound_authorization": "BLOCKED",
                     "outbound_auth_blocker": err_msg,
-                    "status_label": "TITAN / BLOCKED",
                     "healthy": False,
-                    "authenticated_email": auth_check.get("authenticated_email") or sender,
+                    "authenticated_email": sender,
                     "details": auth_check
                 }
 
@@ -273,48 +291,68 @@ class DeliverabilityMonitor:
                 from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
                 gp = GmailOAuthEmailProvider()
                 g_check = gp.check_auth_health()
-                sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None)
+                sender = getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None) or ""
                 if g_check.get("healthy"):
                     return {
                         "provider": "Gmail OAuth",
+                        "address": sender,
+                        "auth_status": "READY",
+                        "readiness": "READY",
+                        "reason": None,
+                        "status_label": "GMAIL / READY",
                         "outbound_authorization": "READY",
                         "outbound_auth_blocker": None,
-                        "status_label": "GMAIL / READY",
                         "healthy": True,
                         "authenticated_email": sender,
                         "details": g_check
                     }
                 else:
+                    err_msg = g_check.get("error", "Gmail OAuth verification failed")
                     return {
                         "provider": "Gmail OAuth",
-                        "outbound_authorization": "BLOCKED",
-                        "outbound_auth_blocker": g_check.get("error", "Gmail OAuth verification failed"),
+                        "address": sender,
+                        "auth_status": "BLOCKED",
+                        "readiness": "BLOCKED",
+                        "reason": err_msg,
                         "status_label": "GMAIL / BLOCKED",
+                        "outbound_authorization": "BLOCKED",
+                        "outbound_auth_blocker": err_msg,
                         "healthy": False,
                         "authenticated_email": sender,
                         "details": g_check
                     }
             except Exception as e:
+                err_msg = str(e)
                 return {
                     "provider": "Gmail OAuth",
-                    "outbound_authorization": "BLOCKED",
-                    "outbound_auth_blocker": str(e),
+                    "address": getattr(settings, "GMAIL_SENDER_EMAIL", None) or getattr(settings, "EMAIL_FROM", None) or "",
+                    "auth_status": "BLOCKED",
+                    "readiness": "BLOCKED",
+                    "reason": err_msg,
                     "status_label": "GMAIL / BLOCKED",
+                    "outbound_authorization": "BLOCKED",
+                    "outbound_auth_blocker": err_msg,
                     "healthy": False,
                     "authenticated_email": None,
-                    "details": {"error": str(e)}
+                    "details": {"error": err_msg}
                 }
 
         else:
             is_dry_run = getattr(settings, "EMAIL_DRY_RUN", True)
             label_prefix = provider_name.upper()
+            sender = getattr(settings, "EMAIL_FROM", "hello@automatedagencyos.tech")
+            reason = "Configured in dry-run mode" if is_dry_run else None
             return {
                 "provider": label_prefix,
-                "outbound_authorization": "READY" if not is_dry_run else "BLOCKED",
-                "outbound_auth_blocker": "Configured in dry-run mode" if is_dry_run else None,
+                "address": sender,
+                "auth_status": "READY" if not is_dry_run else "BLOCKED",
+                "readiness": "READY" if not is_dry_run else "BLOCKED",
+                "reason": reason,
                 "status_label": f"{label_prefix} / {'READY' if not is_dry_run else 'DRY_RUN'}",
+                "outbound_authorization": "READY" if not is_dry_run else "BLOCKED",
+                "outbound_auth_blocker": reason,
                 "healthy": not is_dry_run,
-                "authenticated_email": getattr(settings, "EMAIL_FROM", None),
+                "authenticated_email": sender,
                 "details": {}
             }
 
