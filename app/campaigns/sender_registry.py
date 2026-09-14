@@ -111,7 +111,7 @@ class SenderRegistry:
         Evaluates configuration-driven sender capacity across active outbound accounts.
         Never assumes a single Gmail account can safely send 180 cold emails/day.
         Safe cold outreach volume per personal/standard Gmail is capped (default: 20/day).
-        For business domain email via Titan (with dedicated SPF/DKIM), capacity scales to MAX_OUTREACH_PER_DAY (70/day).
+        For business domain email via Titan (with dedicated SPF/DKIM), capacity scales to MAX_OUTREACH_PER_DAY (up to 200/day).
         """
         from datetime import datetime
         from sqlalchemy import select, func
@@ -123,7 +123,7 @@ class SenderRegistry:
         is_titan = provider_name in ("titan", "titan_smtp")
 
         # Configuration-driven safe per-sender daily limit
-        safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else int(getattr(settings, "MAX_OUTREACH_PER_DAY", 70))
+        safe_per_sender_daily = int(getattr(settings, "GMAIL_DAILY_CAPACITY", 20)) if is_gmail else int(getattr(settings, "MAX_OUTREACH_PER_DAY", 200))
         if is_titan:
             from_email = getattr(settings, "TITAN_SMTP_USER", None) or settings.EMAIL_FROM or "hello@automatedagencyos.tech"
         elif is_gmail:
@@ -163,7 +163,7 @@ class SenderRegistry:
             "rollout_daily_cap": rollout_cap,
             "available_capacity": available_capacity,
             "capacity_exhausted": available_capacity <= 0,
-            "is_single_account_safe": (safe_per_sender_daily <= 30) if is_gmail else (safe_per_sender_daily <= 100),
+            "is_single_account_safe": (safe_per_sender_daily <= 30) if is_gmail else (safe_per_sender_daily <= 300),
             "target_production_volume": target_production_volume,
             "accounts_needed_for_180_daily": accounts_needed_for_target,
             "senders": [

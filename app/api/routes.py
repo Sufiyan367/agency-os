@@ -406,10 +406,10 @@ async def health(db: AsyncSession = Depends(get_db)):
         "registered_providers": [p.name for p in discovery_registry.providers],
         "available_providers": [p.name for p in discovery_registry.providers if p.is_available()],
         "zyte_mode": getattr(settings, "ZYTE_MODE", "evaluation"),
-        "me_phase1_target_daily": 70
+        "me_phase1_target_daily": int(getattr(settings, "MAX_OUTREACH_PER_DAY", 200))
     }
 
-    # 3. Outbound Queue & Stage-1 Canary Capacity State
+    # 3. Outbound Queue & Operational Capacity State
     from app.campaigns.sender_registry import sender_registry
     from app.acquisition.controller import active_prospect_controller
     lock_status_val = "IDLE"
@@ -422,19 +422,19 @@ async def health(db: AsyncSession = Depends(get_db)):
     try:
         cap_summary = await sender_registry.get_sender_capacity_summary(db)
         outreach_telemetry = {
-            "rollout_stage": cap_summary.get("rollout_stage_name", "Target Operational Capacity (70/day)"),
-            "daily_cap": cap_summary.get("rollout_daily_cap", 70),
+            "rollout_stage": cap_summary.get("rollout_stage_name", "Operational Scale (200/day)"),
+            "daily_cap": cap_summary.get("rollout_daily_cap", 200),
             "sent_today": cap_summary.get("sent_today", cap_summary.get("total_sent_today", 0)),
-            "available_capacity": cap_summary.get("available_capacity", 70),
+            "available_capacity": cap_summary.get("available_capacity", 200),
             "commercial_floor_usd": getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0),
             "active_lock_status": lock_status_val
         }
     except Exception:
         outreach_telemetry = {
-            "rollout_stage": "Target Operational Capacity (70/day)",
-            "daily_cap": 70,
+            "rollout_stage": "Operational Scale (200/day)",
+            "daily_cap": 200,
             "sent_today": 0,
-            "available_capacity": 70,
+            "available_capacity": 200,
             "commercial_floor_usd": 500.0,
             "active_lock_status": lock_status_val
         }

@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     # Pipeline Safeguards & Compliance
     DRY_RUN: bool = True
     RESEARCH_ONLY: bool = os.getenv("RESEARCH_ONLY", "true").lower() in ("true", "1", "yes")
-    MAX_OUTREACH_PER_DAY: int = int(os.getenv("MAX_OUTREACH_PER_DAY", "70"))
+    MAX_OUTREACH_PER_DAY: int = int(os.getenv("MAX_OUTREACH_PER_DAY", "200"))
     MAX_FOLLOWUPS: int = 3
     REPLY_STOP_RULE: bool = True
     BOUNCE_STOP_RULE: bool = True
@@ -247,7 +247,7 @@ class Settings(BaseSettings):
 
     # Live Canary Outreach Settings
     CANARY_START_TIME: Optional[str] = os.getenv("CANARY_START_TIME")
-    CANARY_DAILY_LIMIT: int = int(os.getenv("CANARY_DAILY_LIMIT", "5"))
+    CANARY_DAILY_LIMIT: int = int(os.getenv("CANARY_DAILY_LIMIT", "200"))
 
 settings = Settings()
 

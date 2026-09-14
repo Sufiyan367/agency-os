@@ -37,7 +37,7 @@ DEFAULT_ROLLOUT_LEVELS: Dict[int, Dict[str, Any]] = {
     4: {"name": "Multi-Corridor Scaling", "daily_max_real_emails": 20, "description": "Gradual expansion across active corridors (20/day)."},
     5: {"name": "Regional Expansion", "daily_max_real_emails": 50, "description": "Regional expansion across active international corridors (50/day)."},
     6: {"name": "Target Operational Capacity (70/day)", "daily_max_real_emails": 70, "description": "Qualified outbound emails scaled up to 70/day focused on Middle East markets."},
-    7: {"name": "All 18 Countries Live", "daily_max_real_emails": 180, "description": "10 qualified prospects/day across all 18 configured international countries (180/day)."}
+    7: {"name": "Operational Scale (200/day)", "daily_max_real_emails": 200, "description": "Scaled qualified outbound emails up to 200/day operational ceiling across international corridors."}
 }
 
 

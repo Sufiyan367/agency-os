@@ -1,5 +1,5 @@
 rollout:
-  current_level: 6
+  current_level: 7
   levels:
     0:
       name: Simulation (Dry Run)
@@ -30,9 +30,9 @@ rollout:
       daily_max_real_emails: 70
       description: Scaled qualified outbound emails up to 70/day focused on Middle East markets.
     7:
-      name: All 18 Countries Live
-      daily_max_real_emails: 180
-      description: 10 qualified prospects/day across all 18 configured international countries (180/day).
+      name: Operational Scale (200/day)
+      daily_max_real_emails: 200
+      description: Scaled qualified outbound emails up to 200/day operational ceiling across international corridors.
 countries:
 - code: US
   name: United States
