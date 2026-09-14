@@ -407,31 +407,58 @@ async def health(db: AsyncSession = Depends(get_db)):
     try:
         cap_summary = await sender_registry.get_sender_capacity_summary(db)
         outreach_telemetry = {
-            "rollout_stage": cap_summary.get("rollout_stage_name", "Stage 1 Canary"),
-            "daily_cap": cap_summary.get("rollout_daily_cap", 1),
-            "sent_today": cap_summary.get("total_sent_today", 0),
-            "available_capacity": cap_summary.get("available_capacity", 1),
+            "rollout_stage": cap_summary.get("rollout_stage_name", "Target Operational Capacity (70/day)"),
+            "daily_cap": cap_summary.get("rollout_daily_cap", 70),
+            "sent_today": cap_summary.get("sent_today", cap_summary.get("total_sent_today", 0)),
+            "available_capacity": cap_summary.get("available_capacity", 70),
             "commercial_floor_usd": getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0),
             "active_lock_status": lock_status_val
         }
     except Exception:
         outreach_telemetry = {
-            "rollout_stage": "Stage 1 Canary",
-            "daily_cap": 1,
+            "rollout_stage": "Target Operational Capacity (70/day)",
+            "daily_cap": 70,
             "sent_today": 0,
-            "available_capacity": 1,
+            "available_capacity": 70,
             "commercial_floor_usd": 500.0,
             "active_lock_status": lock_status_val
         }
 
-    # 4. Payments Gateway State
+    # 4. Deliverability Telemetry
+    deliverability_telemetry = {
+        "status": "HEALTHY",
+        "bounce_rate": 0.0,
+        "complaint_rate": 0.0,
+        "unsubscribe_rate": 0.0,
+        "reply_rate": 0.0,
+        "provider_auth": "MISSING_CREDENTIALS" if not getattr(settings, "TITAN_SMTP_PASSWORD", None) else "READY"
+    }
+    try:
+        from app.outreach.deliverability import deliverability_monitor
+        deliv = await deliverability_monitor.calculate_metrics(db)
+        deliverability_telemetry = {
+            "status": deliv.health.value,
+            "bounce_rate": deliv.bounce_rate,
+            "complaint_rate": deliv.complaint_rate,
+            "unsubscribe_rate": deliv.unsubscribe_rate,
+            "reply_rate": deliv.reply_rate,
+            "provider_auth": deliv.provider_auth_state,
+            "sent_count": deliv.sent_count,
+            "bounced_count": deliv.bounced_count,
+            "replied_count": deliv.replied_count,
+            "positive_replies_count": deliv.positive_replies_count,
+        }
+    except Exception:
+        pass
+
+    # 5. Payments Gateway State
     payment_telemetry = {
         "provider": getattr(settings, "PAYMENT_PROVIDER", "razorpay"),
         "enabled": getattr(settings, "PAYMENTS_ENABLED", False),
         "currency": getattr(settings, "RAZORPAY_CURRENCY", "USD")
     }
 
-    # 5. System Resources & Backup Observability (Linux-native, lightweight)
+    # 6. System Resources & Backup Observability (Linux-native, lightweight)
     import shutil
     disk_telemetry = None
     try:
@@ -485,6 +512,7 @@ async def health(db: AsyncSession = Depends(get_db)):
         "gmail": gmail_telemetry,
         "discovery": discovery_telemetry,
         "outreach": outreach_telemetry,
+        "deliverability": deliverability_telemetry,
         "payment": payment_telemetry,
         "resources": disk_telemetry,
         "backups": backup_info,

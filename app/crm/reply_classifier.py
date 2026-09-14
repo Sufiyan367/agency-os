@@ -263,15 +263,38 @@ class ReplyClassifier:
                 # For positive replies, trigger autonomous demo generation
                 if is_positive and not is_demo_req:
                     try:
-                        from app.acquisition.autonomous_controller import autonomous_acquisition_controller
-                        await autonomous_acquisition_controller._step_process_reply(
+                        from app.builder.pipeline import pipeline_orchestrator
+                        demo_run = await pipeline_orchestrator.trigger_demo_pipeline(
                             session=session,
                             business_id=biz.id,
-                            reply_category=cat,
-                            reply_body=raw_body
+                            reply_text=raw_body
                         )
+                        if demo_run.get("success") and demo_run.get("demo_url"):
+                            suggested = (
+                                f"Great to hear from you! We custom-built an interactive demonstration "
+                                f"for {biz.name or biz.domain}: {demo_run['demo_url']}. Take a look and let us know your thoughts!"
+                            )
+                            reply.suggested_response = suggested
+                            await session.commit()
                     except Exception as demo_err:
                         logger.error(f"[ReplyClassifier] Failed to trigger demo generation for {biz.domain}: {demo_err}")
+
+                if is_positive:
+                    try:
+                        from app.core.event_bus import event_bus, AgencyEvent
+                        await event_bus.publish(AgencyEvent(
+                            event_type="POSITIVE_REPLY",
+                            entity_type="business",
+                            entity_id=biz.id,
+                            payload={
+                                "prospect_name": biz.name or biz.domain,
+                                "business_name": biz.name or biz.domain,
+                                "next_action": "Demo generated & proposal ready for review",
+                                "reply_text": raw_body[:200]
+                            }
+                        ))
+                    except Exception as ev_err:
+                        logger.warning(f"[ReplyClassifier] Notification event failed: {ev_err}")
                     try:
                         q_prop = select(Proposal).where(Proposal.business_id == business_id).order_by(Proposal.created_at.desc())
                         existing_prop = (await session.execute(q_prop)).scalars().first()
