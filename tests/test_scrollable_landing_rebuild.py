@@ -35,9 +35,12 @@ async def test_scrollable_landing_sections_and_content():
         # 3. Navigation
         assert 'href="#home"' in html
         assert 'href="#product"' in html
+        assert 'href="#capabilities"' in html
+        assert 'href="#how-it-works"' in html
+        assert 'href="#industries"' in html
         assert 'href="#case-studies"' in html
         assert 'href="#contact"' in html
-        assert 'href="/login"' in html
+        assert 'Book Consultation' in html
         assert 'id="burgerBtn"' in html
         assert 'id="mobileMenu"' in html
 
@@ -87,16 +90,17 @@ async def test_scrollable_landing_sections_and_content():
         assert "Aesthetic Clinics" in html
         assert "Real Estate" in html
 
-        # 9. Case Studies / Demonstrations Section (#case-studies)
+        # 9. Operational Workflows Section (#case-studies)
         assert 'id="case-studies"' in html
-        assert "Demonstration Systems" in html
-        assert "Orange Auto" in html
-        assert 'href="/demo/orange-auto"' in html
-        assert "Apex Mechanical" in html
-        assert "Precision Dental Care" in html
-        assert "Summit Facilities Group" in html
-        assert "Interactive Demonstration" in html
-        assert "Example Workflow" in html
+        assert "Enterprise Automation Workflows" in html
+        assert "See how Agency OS can automate lead response, qualification, follow-up and delivery" in html
+        assert "Orange Auto" not in html
+        assert 'href="/demo/orange-auto"' not in html
+        assert "Interactive Demonstration" not in html
+        assert "Automotive Service &amp; Diagnostics" not in html
+        assert "Diagnostic Audit Engine" not in html
+        assert "Appointment Intake" not in html
+        assert "Instant SMS/Email Confirmation" not in html
 
         # 10. Architecture Section (#architecture)
         assert 'id="architecture"' in html
@@ -181,7 +185,22 @@ async def test_onboarding_consultation_api_endpoint():
         assert "consultation" in data
         assert data["consultation"]["name"] == "Alex Mercer"
 
-        # 2. Missing required fields
+        # 2. Valid aliased consultation request (fullName, businessEmail, companyName, notes)
+        aliased_payload = {
+            "fullName": "Jordan Vance",
+            "businessEmail": "jordan@vanceholdings.com",
+            "companyName": "Vance Holdings",
+            "notes": "Autonomous workflow deployment"
+        }
+        r_alias = await client.post("/api/v1/onboarding/consultation", json=aliased_payload)
+        assert r_alias.status_code == 200
+        data_alias = r_alias.json()
+        assert data_alias.get("success") is True
+        assert data_alias["consultation"]["name"] == "Jordan Vance"
+        assert data_alias["consultation"]["email"] == "jordan@vanceholdings.com"
+        assert data_alias["consultation"]["company"] == "Vance Holdings"
+
+        # 3. Missing required fields
         r_missing = await client.post("/api/v1/onboarding/consultation", json={"name": "", "email": ""})
         assert r_missing.status_code == 400
 

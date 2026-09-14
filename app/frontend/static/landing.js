@@ -13,7 +13,7 @@
     const mobileMenu = document.getElementById('mobileMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
     const siteHeaderContainer = document.getElementById('siteHeaderContainer');
-    const menuLinks = document.querySelectorAll('.mobile-menu-link, .mobile-signin-btn');
+    const menuLinks = document.querySelectorAll('.mobile-menu-link, .mobile-signin-btn, .mobile-cta-btn');
 
     function openMobileMenu() {
         if (!burgerBtn || !mobileMenu || !mobileOverlay) return;
@@ -54,6 +54,11 @@
     menuLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             closeMobileMenu();
+            if (link.classList.contains('mobile-cta-btn')) {
+                e.preventDefault();
+                openConsultationModal(link);
+                return;
+            }
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
                 e.preventDefault();
@@ -126,10 +131,10 @@
     const observedSections = [
         { id: 'home', nav: '#home' },
         { id: 'product', nav: '#product' },
-        { id: 'capabilities', nav: '#product' },
-        { id: 'channels', nav: '#product' },
-        { id: 'how-it-works', nav: '#product' },
-        { id: 'industries', nav: '#product' },
+        { id: 'capabilities', nav: '#capabilities' },
+        { id: 'channels', nav: '#capabilities' },
+        { id: 'how-it-works', nav: '#how-it-works' },
+        { id: 'industries', nav: '#industries' },
         { id: 'case-studies', nav: '#case-studies' },
         { id: 'architecture', nav: '#case-studies' },
         { id: 'security', nav: '#case-studies' },

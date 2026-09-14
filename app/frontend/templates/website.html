@@ -40,7 +40,9 @@
   </script>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/webp" href="assets/logo.webp">
+  <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+  <link rel="shortcut icon" href="/static/assets/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/assets/favicon.png">
 
   <!-- Inter Font -->
   <link
@@ -64,7 +66,7 @@
   />
 
   <!-- Landing Styles -->
-  <link rel="stylesheet" href="/static/landing.css">
+  <link rel="stylesheet" href="/static/landing.css?v=20260914c">
 </head>
 <body>
 
@@ -82,21 +84,24 @@
   <!-- Persistent Floating Navigation Header -->
   <header class="site-header-container" id="siteHeaderContainer">
     <div class="site-header">
-      <!-- Circular Logo -->
+      <!-- Square Logo Container -->
       <a href="#home" class="logo-button" aria-label="Agency OS Home">
-        <img src="assets/logo.webp" alt="Agency OS Logo" width="52" height="52">
+        <img src="assets/logo.webp" alt="Agency OS Logo" width="44" height="44">
       </a>
 
       <!-- Desktop Navigation Pill -->
       <nav class="nav-pill" aria-label="Main Navigation">
         <a href="#home" class="nav-link active">Home</a>
         <a href="#product" class="nav-link">Product</a>
-        <a href="#case-studies" class="nav-link">Case Studies</a>
+        <a href="#capabilities" class="nav-link">Capabilities</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#industries" class="nav-link">Industries</a>
+        <a href="#case-studies" class="nav-link">Solutions</a>
         <a href="#contact" class="nav-link">Contact</a>
       </nav>
 
-      <!-- Desktop Sign In Pill -->
-      <a href="/login" class="sign-in-btn">Sign in</a>
+      <!-- Desktop Consultation CTA Button -->
+      <button type="button" class="nav-cta-btn" data-action="open-consultation-modal">Book Consultation</button>
 
       <!-- Mobile Hamburger Button -->
       <button class="burger-btn" id="burgerBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">
@@ -111,9 +116,12 @@
     <div class="mobile-menu-sheet" id="mobileMenu" hidden>
       <a href="#home" class="mobile-menu-link active">Home</a>
       <a href="#product" class="mobile-menu-link">Product</a>
-      <a href="#case-studies" class="mobile-menu-link">Case Studies</a>
+      <a href="#capabilities" class="mobile-menu-link">Capabilities</a>
+      <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+      <a href="#industries" class="mobile-menu-link">Industries</a>
+      <a href="#case-studies" class="mobile-menu-link">Solutions</a>
       <a href="#contact" class="mobile-menu-link">Contact</a>
-      <a href="/login" class="mobile-signin-btn">Sign in</a>
+      <button type="button" class="mobile-cta-btn" data-action="open-consultation-modal">Book Consultation</button>
     </div>
   </header>
 
@@ -523,7 +531,7 @@
             <div class="industry-icon"><i class="fa-solid fa-car-side"></i></div>
             <h3 class="industry-title">Automotive</h3>
             <p class="industry-text">Service centers, specialty repair, detailing, and dealership facilities requiring automated appointment booking and diagnostic lead recovery.</p>
-            <div class="industry-tag">Demo: Orange Auto</div>
+            <div class="industry-tag">Automotive &amp; Diagnostics</div>
           </div>
 
           <div class="industry-card">
@@ -567,51 +575,32 @@
 
 
     <!-- ====================================================================
-         SECTION 7: CASE STUDIES / DEMONSTRATIONS (#case-studies)
+         SECTION 7: OPERATIONAL WORKFLOWS (#case-studies)
          ==================================================================== -->
     <section id="case-studies" class="site-section case-studies-section scroll-reveal">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-tag">Interactive Proof</span>
-          <h2 class="section-title">Demonstration Systems</h2>
+          <span class="section-tag">Operational Architecture</span>
+          <h2 class="section-title">Enterprise Automation Workflows</h2>
           <p class="section-desc">
-            Explore live representative demonstration environments compiled by Agency OS workflows. These interactive systems illustrate real platform capabilities without fabricated claims.
+            See how Agency OS can automate lead response, qualification, follow-up and delivery.
           </p>
         </div>
 
         <div class="demos-grid">
           
-          <!-- Demo 1: Orange Auto -->
-          <div class="demo-card featured-demo">
-            <div class="demo-badge interactive">Interactive Demonstration</div>
-            <div class="demo-meta">Automotive Service &amp; Diagnostics</div>
-            <h3 class="demo-title">Orange Auto</h3>
-            <p class="demo-desc">
-              A comprehensive demonstration instance featuring automated repair diagnostics, interactive booking calendars, customer support assistant, and customized proposal generation.
-            </p>
-            <div class="demo-highlights">
-              <span class="demo-chip">Diagnostic Audit Engine</span>
-              <span class="demo-chip">Appointment Intake</span>
-              <span class="demo-chip">Instant SMS/Email Confirmation</span>
-            </div>
-            <a href="/demo/orange-auto" class="demo-btn" target="_blank" rel="noopener">
-              <span>Launch Live Demonstration</span>
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            </a>
-          </div>
-
-          <!-- Demo 2: Home Services -->
+          <!-- Workflow 1: Lead Discovery & Verification -->
           <div class="demo-card">
-            <div class="demo-badge example">Example Workflow</div>
-            <div class="demo-meta">Home Services &amp; HVAC</div>
-            <h3 class="demo-title">Apex Mechanical</h3>
+            <div class="demo-badge example">Core Workflow</div>
+            <div class="demo-meta">Discovery Engine</div>
+            <h3 class="demo-title">Lead Discovery &amp; Verification</h3>
             <p class="demo-desc">
-              Representative workflow modeling emergency dispatch intake, seasonal maintenance scheduling, and technician routing with multi-channel confirmations.
+              Autonomous web crawlers scan targeted regional directories, extract key decision-maker signals, verify contact records, and calculate qualification metrics without manual research.
             </p>
             <div class="demo-highlights">
-              <span class="demo-chip">Emergency Triage</span>
-              <span class="demo-chip">SMS Scheduling</span>
-              <span class="demo-chip">Dispatch Briefing</span>
+              <span class="demo-chip">Directory Crawling</span>
+              <span class="demo-chip">Contact Verification</span>
+              <span class="demo-chip">Intent Scoring</span>
             </div>
             <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
               <span>Request System Architecture</span>
@@ -619,18 +608,18 @@
             </button>
           </div>
 
-          <!-- Demo 3: Dental Care -->
+          <!-- Workflow 2: Inbound Triage & Booking -->
           <div class="demo-card">
-            <div class="demo-badge example">Example Workflow</div>
-            <div class="demo-meta">Healthcare &amp; Dental</div>
-            <h3 class="demo-title">Precision Dental Care</h3>
+            <div class="demo-badge example">Core Workflow</div>
+            <div class="demo-meta">Inbound Automation</div>
+            <h3 class="demo-title">Inquiry Triage &amp; Intake</h3>
             <p class="demo-desc">
-              Patient intake automation demo illustrating hygiene recall notifications, missed appointment recovery, and secure digital consultation requests.
+              Multi-channel inquiry routing immediately captures inbound interest, assesses service requirements, checks availability, and coordinates booking reservations with instantaneous confirmations.
             </p>
             <div class="demo-highlights">
-              <span class="demo-chip">Intake Triage</span>
-              <span class="demo-chip">Recall Pipelines</span>
-              <span class="demo-chip">Calendar Locks</span>
+              <span class="demo-chip">Instant Triage</span>
+              <span class="demo-chip">Calendar Synchronization</span>
+              <span class="demo-chip">Multi-Channel Dispatch</span>
             </div>
             <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
               <span>Request System Architecture</span>
@@ -638,18 +627,37 @@
             </button>
           </div>
 
-          <!-- Demo 4: Commercial Facilities -->
+          <!-- Workflow 3: Cadence & Proposal Automation -->
           <div class="demo-card">
-            <div class="demo-badge example">Example Workflow</div>
-            <div class="demo-meta">Commercial Facilities</div>
-            <h3 class="demo-title">Summit Facilities Group</h3>
+            <div class="demo-badge example">Core Workflow</div>
+            <div class="demo-meta">Conversion Pipeline</div>
+            <h3 class="demo-title">Cadence &amp; Proposal Automation</h3>
             <p class="demo-desc">
-              Multi-property maintenance request automation showcasing work order routing, vendor compliance tracking, and automated client status updates.
+              Context-aware cadence management coordinates follow-ups across email and messaging channels with strict human-in-the-loop approval gates before commercial dispatch.
             </p>
             <div class="demo-highlights">
-              <span class="demo-chip">Multi-Location State</span>
-              <span class="demo-chip">Vendor Gateways</span>
-              <span class="demo-chip">Audit Logs</span>
+              <span class="demo-chip">Human Approval Gate</span>
+              <span class="demo-chip">Multi-Touch Cadence</span>
+              <span class="demo-chip">Proposal Generation</span>
+            </div>
+            <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
+              <span>Request System Architecture</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <!-- Workflow 4: Autonomous Project Delivery -->
+          <div class="demo-card">
+            <div class="demo-badge example">Core Workflow</div>
+            <div class="demo-meta">Delivery Architecture</div>
+            <h3 class="demo-title">Autonomous Project Delivery</h3>
+            <p class="demo-desc">
+              Automated deliverable compilation, milestone notifications, dedicated client portal provisioning, and payment reconciliation without administrative drag.
+            </p>
+            <div class="demo-highlights">
+              <span class="demo-chip">Client Gateways</span>
+              <span class="demo-chip">Milestone Automation</span>
+              <span class="demo-chip">Audit Trails</span>
             </div>
             <button type="button" class="demo-btn-alt" data-action="open-consultation-modal">
               <span>Request System Architecture</span>
@@ -932,19 +940,22 @@
           <ul class="footer-links-list">
             <li><a href="#home">Home</a></li>
             <li><a href="#product">Product</a></li>
-            <li><a href="#case-studies">Case Studies</a></li>
+            <li><a href="#capabilities">Capabilities</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#industries">Industries</a></li>
+            <li><a href="#case-studies">Solutions</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
         </div>
 
-        <!-- Platform Links -->
+        <!-- Resources Links -->
         <div class="footer-links-group">
-          <h4 class="footer-col-title">Platform</h4>
+          <h4 class="footer-col-title">Resources</h4>
           <ul class="footer-links-list">
-            <li><a href="/login">Sign in</a></li>
-            <li><a href="/dashboard">Operations Command Center</a></li>
-            <li><a href="/demo/orange-auto" target="_blank" rel="noopener">Interactive Demonstration</a></li>
-            <li><a href="/health">System Health</a></li>
+            <li><a href="#architecture">System Architecture</a></li>
+            <li><a href="#security">Enterprise Governance</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
           </ul>
         </div>
       </div>

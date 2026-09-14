@@ -32,7 +32,7 @@ async def test_cinematic_landing_page_rendering():
         assert "BubbledotICG-FinePos" in html
         assert "Inter" in html
         assert "font-awesome" in html
-        assert 'href="/static/landing.css"' in html
+        assert '/static/landing.css' in html
         assert 'src="/static/landing.js"' in html
 
         # 5. Zero references to old 3D/orbit visual language

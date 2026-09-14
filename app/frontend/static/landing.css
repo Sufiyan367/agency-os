@@ -144,8 +144,8 @@ body.menu-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(18px, 2.8vw, 28px);
-    max-width: 720px;
+    gap: clamp(14px, 2.2vw, 24px);
+    max-width: clamp(760px, 92vw, 1060px);
     width: 100%;
     margin: 0 auto;
     animation: slideDown 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -165,50 +165,57 @@ body.menu-open {
 .logo-button {
     width: clamp(40px, 4.4vw, 46px);
     height: clamp(40px, 4.4vw, 46px);
-    border-radius: 50%;
-    background: #fff;
+    border-radius: 10px;
+    background: #080c14;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: var(--nav-shadow);
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
     text-decoration: none;
-    transition: transform .2s ease;
+    transition: transform .2s ease, border-color .2s ease;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .logo-button:hover {
     transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.32);
 }
 
 .logo-button img {
-    width: 72%;
-    height: 72%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     display: block;
 }
 
 .nav-pill {
     height: clamp(44px, 5.2vw, 48px);
-    max-width: 430px;
+    max-width: clamp(540px, 68vw, 760px);
     flex: 1;
-    padding: 4px 8px;
+    padding: 4px 12px;
     border-radius: 999px;
     background: #fff;
     box-shadow: var(--nav-shadow);
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: space-evenly;
+    gap: 2px;
 }
 
 .nav-link {
     position: relative;
     font-family: var(--font-sans);
     font-weight: 500;
-    font-size: clamp(13px, 1.4vw, 15px);
+    font-size: clamp(12px, 1.15vw, 14px);
     letter-spacing: -0.01em;
     color: var(--nav-text);
     text-decoration: none;
-    opacity: 0.5;
-    padding: 8px 12px;
+    opacity: 0.55;
+    padding: 6px 10px;
+    white-space: nowrap;
     transition: opacity .2s ease, color .2s ease;
     display: inline-flex;
     align-items: center;
@@ -236,27 +243,51 @@ body.menu-open {
     box-shadow: -5px 0 0 #000, 5px 0 0 #000;
 }
 
-.sign-in-btn {
+.nav-cta-btn {
     height: clamp(44px, 5.2vw, 48px);
     background: var(--pill-dark);
-    color: var(--sign-in-text);
-    padding: 0 clamp(16px, 2vw, 24px);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0 clamp(16px, 1.8vw, 24px);
     border-radius: 999px;
     box-shadow: var(--nav-shadow);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    text-decoration: none;
+    cursor: pointer;
     font-family: var(--font-sans);
-    font-size: clamp(13px, 1.4vw, 15px);
-    font-weight: 500;
-    transition: background .2s ease, color .2s ease, transform .2s ease;
+    font-size: clamp(12.5px, 1.2vw, 14px);
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background .2s ease, transform .2s ease, border-color .2s ease;
     flex-shrink: 0;
 }
 
-.sign-in-btn:hover {
-    background: #323234;
-    color: #fff;
+.nav-cta-btn:hover {
+    background: #343438;
+    border-color: rgba(255, 255, 255, 0.38);
+    transform: translateY(-1px);
+}
+
+.mobile-cta-btn {
+    width: 100%;
+    padding: 13px 18px;
+    background: #000000;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+.mobile-cta-btn:hover {
+    opacity: 0.9;
     transform: translateY(-1px);
 }
 
@@ -1855,7 +1886,8 @@ body.menu-open {
     }
 
     .nav-pill,
-    .sign-in-btn {
+    .sign-in-btn,
+    .nav-cta-btn {
         display: none !important;
     }
 
