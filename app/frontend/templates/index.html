@@ -18,42 +18,42 @@
     <!-- Inline Critical Layout Styles to Guarantee Visual Structure -->
     <style>
         :root {
-            /* Canonical Design Tokens — Premium 3D Minimal AI Command Center Theme */
-            --bg: #090b0e;
-            --surface: #0e1217;
-            --surface-elevated: #131820;
-            --surface-raised: #18202c;
-            --surface-hover: #1e2736;
-            --surface-card: #11151c;
-            --surface-card-inner: #0b0e13;
+            /* Command Center Design Tokens — Palantir x Linear x Vercel Dark */
+            --bg: #070707;
+            --surface: #0B0B0C;
+            --surface-elevated: #101012;
+            --surface-raised: #151517;
+            --surface-hover: #151517;
+            --surface-card: #0B0B0C;
+            --surface-card-inner: #070707;
 
             /* Controlled Inset Lighting & Border Contrast */
-            --border: rgba(255, 255, 255, 0.07);
-            --border-strong: rgba(255, 255, 255, 0.14);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-strong: rgba(255, 255, 255, 0.10);
             --border-subtle: rgba(255, 255, 255, 0.04);
-            --border-accent: rgba(0, 212, 239, 0.35);
+            --border-accent: rgba(0, 212, 239, 0.4);
 
-            /* Tactical 3D Lighting Shadows & Inset Highlights */
-            --elevation-1: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-            --elevation-2: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
-            --elevation-3: 0 10px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-            --elevation-inset: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 0 0 rgba(255, 255, 255, 0.03);
+            /* Shadows */
+            --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.7);
+            --elevation-2: 0 4px 12px rgba(0, 0, 0, 0.8);
+            --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.85);
+            --elevation-inset: inset 0 1px 2px rgba(0, 0, 0, 0.8);
 
             /* Typography & Contrast */
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --text-accent: #00d4ef;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A1A1AA;
+            --text-muted: #71717A;
+            --text-accent: #00D4EF;
 
             /* Controlled Signal Accents */
-            --accent: #00d4ef;
-            --accent-soft: rgba(0, 212, 239, 0.12);
-            --success: #10b981;
-            --success-soft: rgba(16, 185, 129, 0.12);
-            --warning: #f59e0b;
-            --warning-soft: rgba(245, 158, 11, 0.12);
-            --danger: #ef4444;
-            --danger-soft: rgba(239, 68, 68, 0.12);
+            --accent: #00D4EF;
+            --accent-soft: rgba(0, 212, 239, 0.10);
+            --success: #10B981;
+            --success-soft: rgba(16, 185, 129, 0.10);
+            --warning: #F59E0B;
+            --warning-soft: rgba(245, 158, 11, 0.10);
+            --danger: #EF4444;
+            --danger-soft: rgba(239, 68, 68, 0.10);
 
             /* Spacing Scale */
             --space-1: 4px;
@@ -86,7 +86,7 @@
         body {
             display: flex;
             flex-direction: row;
-            background: radial-gradient(circle at 50% 0%, rgba(0, 212, 239, 0.03) 0%, transparent 60%), var(--bg);
+            background-color: #070707 !important;
         }
 
         /* 1. Dimensional Desktop Sidebar (Stable 240px Rail) */
@@ -96,7 +96,7 @@
                 min-width: var(--sidebar-width, 240px) !important;
                 max-width: var(--sidebar-width, 240px) !important;
                 flex-shrink: 0 !important;
-                background-color: #0b0e13 !important;
+                background-color: #0B0B0C !important;
                 border-right: 1px solid var(--border) !important;
                 box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
                 display: flex !important;
@@ -687,7 +687,7 @@
                 </div>
                 <div class="agency-brand-text">
                     <span class="agency-brand-title">AGENCY OS</span>
-                    <span class="agency-brand-subtitle">AI &amp; Automation</span>
+                    <span class="agency-brand-subtitle" style="display:flex; align-items:center; gap:5px; color:#10b981; font-weight:600;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> SYSTEM ONLINE</span>
                     <!-- Compatibility hidden span for tests -->
                     <span class="brand-title" style="display:none;">JARVIS // AG</span>
                     <span class="brand-sub" style="display:none;">Revenue Operations</span>
@@ -735,6 +735,14 @@
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
                     <span>Prospects</span>
+                </li>
+                <li class="agency-nav-item" data-view="markets" onclick="navToView('markets')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                        <line x1="8" y1="2" x2="8" y2="18"/>
+                        <line x1="16" y1="6" x2="16" y2="22"/>
+                    </svg>
+                    <span>Markets</span>
                 </li>
                 <li class="agency-nav-item" data-view="queue" onclick="navToView('queue')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -833,12 +841,19 @@
                 <li class="agency-nav-section-label" style="margin-top:12px;">
                     <span>SYSTEM</span>
                 </li>
-                <li class="agency-nav-item" data-view="infra" onclick="navToView('infra')">
+                <li class="agency-nav-item" data-view="system" onclick="navToView('system')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
                         <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
                         <line x1="6" y1="6" x2="6.01" y2="6"/>
                         <line x1="6" y1="18" x2="6.01" y2="18"/>
+                    </svg>
+                    <span>Workers</span>
+                </li>
+                <li class="agency-nav-item" data-view="infra" onclick="navToView('infra')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
                     </svg>
                     <span>System Health</span>
                 </li>
@@ -859,6 +874,10 @@
             </ul>
 
             <div class="agency-sidebar-bottom">
+                <div class="agency-system-status-indicator" style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.68rem; color:var(--text-muted); margin-bottom:6px;">
+                    <span>SYSTEM STATUS</span>
+                    <span style="color:#10b981; font-weight:600; display:flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> Operational</span>
+                </div>
                 <div class="agency-account-ctrl" id="sidebar-account-ctrl">
                     <button class="agency-account-btn" onclick="toggleAccountMenu(event)" title="Owner Account &amp; Session" type="button">
                         <div class="agency-account-meta">
@@ -888,18 +907,32 @@
             <!-- Hidden compatibility elements for existing tests -->
             <span id="sidebar-status-text" style="display:none;">ENGINE ONLINE</span>
             <button class="btn-logout" style="display:none;" onclick="handleLogout()">Sign Out</button>
-            <div id="mobile-drawer" class="mobile-drawer" style="display: none !important;" aria-hidden="true"></div>
-            <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" style="display: none !important;" onclick="toggleMobileDrawer()"></div>
+            <div id="mobile-drawer" class="mobile-drawer" style="display: none;" aria-hidden="true"></div>
+            <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" onclick="toggleMobileDrawer()"></div>
         </aside>
 
         <!-- Main Viewport Area -->
         <main class="agency-content-area">
             <!-- 2. Clean Top Bar -->
             <header class="agency-topbar">
-                <div class="agency-search-pill">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="global-search-input" placeholder="Search prospects, clients, or anything..." aria-label="Global search">
-                    <span class="agency-search-badge">Ctrl + K</span>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button class="agency-mobile-menu-btn" id="agency-mobile-menu-toggle" onclick="toggleMobileDrawer()" aria-label="Toggle navigation drawer" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#FFFFFF; letter-spacing:-0.01em;">Dashboard</span>
+                        <span style="font-size:0.68rem; font-weight:600; color:var(--text-muted); background:#101012; border:1px solid var(--border); padding:2px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:4px; height:4px;"></span> Live Operations</span>
+                        <span id="top-last-updated" style="font-size:0.68rem; color:var(--text-muted); display:inline-flex; align-items:center; margin-left:4px;">Last updated: <span id="top-last-updated-val" style="margin-left:3px;">just now</span></span>
+                    </div>
+                    <div class="agency-search-pill">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="global-search-input" placeholder="Search prospects, clients, or anything..." aria-label="Global search">
+                        <span class="agency-search-badge">Ctrl + K</span>
+                    </div>
                 </div>
 
                 <div class="agency-topbar-actions">
@@ -928,6 +961,11 @@
                             <span id="notif-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#ffffff; font-size:10px; font-weight:700; border-radius:10px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px; box-shadow:0 0 8px rgba(239,68,68,0.8);">0</span>
                         </button>
                     </div>
+
+                    <!-- Live Refresh Button -->
+                    <button class="agency-icon-btn" onclick="if(typeof loadCeoControlCenter==='function')loadCeoControlCenter(); if(typeof loadDashboardMetrics==='function')loadDashboardMetrics();" title="Refresh Live Operations" type="button" style="background:transparent; border:1px solid var(--border); border-radius:6px; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-secondary); cursor:pointer; margin-right:4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    </button>
 
                     <div class="agency-avatar" style="width:28px; height:28px; font-size:0.75rem; font-weight:600; border-radius:5px; background:#18181b; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#f4f4f5;">A</div>
                     <div class="agency-topbar-user-status">
@@ -962,12 +1000,12 @@
                     <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
                 </div>
 
-                <!-- MISSION CONTROL: LIVE AUTONOMOUS CORE HERO -->
-                <div class="ceo-command-hero live-autonomous-core-hero">
+                <!-- MISSION CONTROL: OPERATOR COMMAND CENTER HERO -->
+                <div class="ceo-command-hero">
                     <div class="ceo-hero-topline">
                         <div>
-                            <h1 class="ceo-greeting-title" id="ceo-dynamic-greeting">Good evening, CEO.</h1>
-                            <p class="ceo-operating-sub">Agency OS Autonomous Mission Control &bull; Operating Core Active</p>
+                            <h1 class="ceo-greeting-title" id="ceo-dynamic-greeting">Good evening, Operator</h1>
+                            <p class="ceo-operating-sub">Your agency is running autonomously &bull; <span style="color:#10b981; font-weight:600; display:inline-flex; align-items:center; gap:5px;"><span class="pulse-dot" style="background:#10b981; width:6px; height:6px;"></span> ALL SYSTEMS OPERATIONAL</span></p>
                         </div>
                         <div class="ceo-hero-status-row">
                             <div class="agency-welcome-stat-pill" id="ceo-backend-health-pill" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:6px; padding:4px 10px; display:flex; align-items:center; gap:6px;">
@@ -985,7 +1023,7 @@
                         <div class="core-satellite-col left">
                             <!-- Satellite 1: ACTIVE WORK -->
                             <div class="core-satellite-card">
-                                <div class="satellite-tag">01 // ACTIVE WORK</div>
+                                <div class="satellite-tag">ACTIVE WORK</div>
                                 <div class="satellite-val-row">
                                     <span class="satellite-big-val" id="ceo-core-active-work">0</span>
                                     <span class="satellite-badge active">RUNNING</span>
@@ -995,7 +1033,7 @@
 
                             <!-- Satellite 2: PIPELINE -->
                             <div class="core-satellite-card">
-                                <div class="satellite-tag">02 // PIPELINE</div>
+                                <div class="satellite-tag">PIPELINE DEALS</div>
                                 <div class="satellite-val-row">
                                     <span class="satellite-big-val" id="ceo-core-pipeline-val">0</span>
                                     <span class="satellite-trend">&rarr; Active Deals</span>
@@ -1004,17 +1042,14 @@
                             </div>
                         </div>
 
-                        <!-- Center: 3D Central Operating Core Visual Object -->
-                        <div class="ceo-core-stage" id="ceo-core-stage" aria-label="Autonomous 3D Operating Core">
+                        <!-- Center: Dormant Operating Core Compatibility Object -->
+                        <div class="ceo-core-stage" id="ceo-core-stage" style="display:none;" aria-hidden="true">
                             <canvas id="dashboard-3d-canvas" class="dashboard-3d-canvas"></canvas>
-                            <div class="agency-os-3d-core" id="agency-os-core-fallback" style="display:none;">
-                                <div class="core-center-nucleus" title="Agency OS Autonomous Core">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                        <polyline points="2 17 12 22 22 17"></polyline>
-                                        <polyline points="2 12 12 17 22 12"></polyline>
-                                    </svg>
-                                </div>
+                            <div class="agency-os-3d-core" id="agency-os-core-fallback">
+                                <div class="core-center-nucleus"></div>
+                                <div class="core-ring core-ring-1"></div>
+                                <div class="core-ring core-ring-2"></div>
+                                <div class="core-domain-node node-acq"></div>
                             </div>
                         </div>
 
@@ -1022,7 +1057,7 @@
                         <div class="core-satellite-col right">
                             <!-- Satellite 3: REVENUE -->
                             <div class="core-satellite-card">
-                                <div class="satellite-tag">03 // REVENUE</div>
+                                <div class="satellite-tag">SETTLED REVENUE</div>
                                 <div class="satellite-val-row">
                                     <span class="satellite-big-val" id="ceo-core-revenue-val">$0</span>
                                     <span class="satellite-badge success">SETTLED</span>
@@ -1032,7 +1067,7 @@
 
                             <!-- Satellite 4: SYSTEM HEALTH -->
                             <div class="core-satellite-card">
-                                <div class="satellite-tag">04 // SYSTEM HEALTH</div>
+                                <div class="satellite-tag">SYSTEM HEALTH</div>
                                 <div class="satellite-val-row">
                                     <span class="satellite-big-val" style="color:#10b981; font-size:1.15rem;">99.98%</span>
                                     <span class="satellite-badge success">OPTIMAL</span>
@@ -1155,12 +1190,12 @@
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
                             <div class="ceo-funnel-step" id="funnel-step-interested">
-                                <span>4. INTERESTED</span>
+                                <span>4. RESPONSE</span>
                                 <span class="ceo-funnel-step-count" id="step-cnt-interested">0</span>
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
                             <div class="ceo-funnel-step" id="funnel-step-requirements">
-                                <span>5. REQUIREMENTS</span>
+                                <span>5. POSITIVE</span>
                                 <span class="ceo-funnel-step-count" id="step-cnt-requirements">0</span>
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
@@ -1170,7 +1205,7 @@
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
                             <div class="ceo-funnel-step" id="funnel-step-qa">
-                                <span>7. QA</span>
+                                <span>7. AUDIT &amp; QA</span>
                                 <span class="ceo-funnel-step-count" id="step-cnt-qa">0</span>
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
@@ -1180,7 +1215,7 @@
                             </div>
                             <span class="ceo-funnel-arrow">➔</span>
                             <div class="ceo-funnel-step" id="funnel-step-payment">
-                                <span>9. PAYMENT</span>
+                                <span>9. PAYMENT &amp; DELIVERY</span>
                                 <span class="ceo-funnel-step-count" id="step-cnt-payment">0</span>
                             </div>
                         </div>
@@ -1355,6 +1390,86 @@
                             </div>
                             <div id="ceo-recent-activity-list" style="display:flex; flex-direction:column; gap:6px; min-height:120px;">
                                 <div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Connecting to operational event feed...</div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3.5 — AGENCY WORKERS PANEL -->
+                        <div class="agency-panel-card" id="agency-workers-panel">
+                            <div class="agency-panel-card-header" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                                    <span class="agency-panel-title" style="font-size:0.85rem; font-weight:700;">Agency Workers</span>
+                                    <span style="font-size:0.72rem; color:#71717a; font-weight:400;">Autonomous Subsystems</span>
+                                </div>
+                                <span class="badge" style="font-size:0.65rem; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#10b981;">ALL OPERATIONAL</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Discovery Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#10b981; display:flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> RUNNING</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Audit Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#10b981; display:flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> RUNNING</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Outreach Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#fbbf24; display:flex; align-items:center; gap:4px;"><span style="background:#fbbf24; width:5px; height:5px; border-radius:50%; display:inline-block;"></span> IDLE</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Response Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#10b981; display:flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> RUNNING</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Demo Factory</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:4px;"><span style="background:#38bdf8; width:5px; height:5px; border-radius:50%; display:inline-block;"></span> READY</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Payment Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#71717a; display:flex; align-items:center; gap:4px;"><span style="background:#71717a; width:5px; height:5px; border-radius:50%; display:inline-block;"></span> DISABLED</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:0.75rem; color:#f4f4f5; font-weight:500;">Delivery Worker</span>
+                                    <span style="font-size:0.68rem; font-weight:700; color:#10b981; display:flex; align-items:center; gap:4px;"><span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span> READY</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3.6 — OUTREACH CONTROL PANEL -->
+                        <div class="agency-panel-card" id="outreach-control-panel">
+                            <div class="agency-panel-card-header" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span class="agency-panel-title" style="font-size:0.85rem; font-weight:700;">Outreach Control</span>
+                                    <span style="font-size:0.72rem; color:#71717a; font-weight:400;">Governance & Safety Limits</span>
+                                </div>
+                                <span class="badge" style="font-size:0.65rem; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); color:#fbbf24;">APPROVAL GATES ENFORCED</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Today's Outbound</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0 / 1 <span style="font-size:0.68rem; color:#71717a; font-weight:400;">(Canary limit)</span></span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Approval Queue</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">Approval Required</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Active Lock</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#10b981; font-family:var(--font-mono);">ACTIVE (1 Slot)</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Email Provider</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#10b981; font-family:var(--font-mono);">READY (Dry Run)</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">WhatsApp Channel</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">CONFIGURED (Opt-in)</span>
+                                </div>
+                                <div style="background:#101012; border:1px solid var(--border); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase;">Voice Channel</span>
+                                    <span style="font-size:0.82rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">ENABLED (Dry Run)</span>
+                                </div>
                             </div>
                         </div>
                     </div>

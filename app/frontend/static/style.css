@@ -5,18 +5,18 @@
    ============================================================================== */
 
 :root {
-  /* Canonical Design Tokens — Premium 3D Minimal AI Command Center Theme */
-  --bg: #090b0e;
-  --surface: #0e1217;
-  --surface-elevated: #131820;
-  --surface-raised: #18202c;
-  --surface-hover: #1e2736;
-  --surface-card: #11151c;
-  --surface-card-inner: #0b0e13;
+  /* Command Center Design Tokens — Palantir x Linear x Vercel Console */
+  --bg: #070707;
+  --surface: #0B0B0C;
+  --surface-elevated: #101012;
+  --surface-raised: #151517;
+  --surface-hover: #151517;
+  --surface-card: #0B0B0C;
+  --surface-card-inner: #070707;
 
   /* Controlled Inset Lighting & Border Contrast */
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.10);
   --border-subtle: rgba(255, 255, 255, 0.04);
   --border-accent: rgba(0, 212, 239, 0.35);
 
