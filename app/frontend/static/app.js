@@ -1267,6 +1267,12 @@ function renderCeoMiddleEastPanel(me) {
 function renderCeoCampaigns(summary) {
     if (!summary) return;
 
+    // Update panel title with dynamic corridor count
+    const panelTitle = document.getElementById('ceo-campaigns-panel-title');
+    if (panelTitle && summary.campaigns) {
+        panelTitle.textContent = `International Outbound Campaigns (${summary.campaigns.length} Corridors)`;
+    }
+
     // Update Rollout Label
     const rolloutLabel = document.getElementById('campaigns-rollout-label');
     if (rolloutLabel) {
@@ -1291,7 +1297,7 @@ function renderCeoCampaigns(summary) {
         } else if (rolloutLvl === 1) {
             capacityBadge.textContent = `${sent}/1 REAL SEND CANARY (TODAY: ${sent} · TOTAL: ${total})`;
         } else {
-            const cap = summary.total_daily_capacity || 180;
+            const cap = summary.total_daily_capacity || 230;
             capacityBadge.textContent = `${sent}/${cap}/DAY MAX CAPACITY (TODAY: ${sent} · TOTAL: ${total})`;
         }
     }
@@ -1349,11 +1355,6 @@ function renderCeoCampaigns(summary) {
 
 async function handleRolloutLevelChange(level) {
     const levelInt = parseInt(level, 10);
-    if (levelInt > 1) {
-        alert('[FIRST-LIVE VALIDATION LOCK]\n\nAdvancement beyond Level 1 is disabled during initial client validation.\nMaximum permitted live volume is strictly 1 real outbound email (Level 1: Canary).');
-        await loadCeoControlCenter();
-        return;
-    }
     const confirmed = window.confirm(
         `[CEO AUTHORIZATION REQUIRED]\n\nDo you explicitly authorize adjusting the Outbound Campaign Rollout to Level ${levelInt}?\n\n` +
         (levelInt > 0 ? `WARNING: Level ${levelInt} enables real outbound transmissions up to that stage limit when live mode is engaged.` : 'Level 0 enforces 100% Simulation Mode (0 real sends).')

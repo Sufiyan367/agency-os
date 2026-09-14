@@ -1171,7 +1171,7 @@
                     <div class="agency-panel-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <svg style="width:16px; height:16px; color:#38bdf8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                            <span class="agency-panel-title" style="margin-bottom:0; font-size:0.85rem; font-weight:700; letter-spacing:0.02em;">International Outbound Campaigns (18 Corridors)</span>
+                            <span class="agency-panel-title" id="ceo-campaigns-panel-title" style="margin-bottom:0; font-size:0.85rem; font-weight:700; letter-spacing:0.02em;">International Outbound Campaigns (22 Corridors)</span>
                             <span class="badge" id="campaigns-capacity-badge" style="background:rgba(56,189,248,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); font-size:0.65rem; font-weight:600;">CANARY LIMIT: 1 EMAIL MAX</span>
                         </div>
                         
@@ -1182,12 +1182,12 @@
                             <select id="campaigns-rollout-select" onchange="handleRolloutLevelChange(this.value)" style="background:#09090b; color:#f4f4f5; border:1px solid rgba(255,255,255,0.12); border-radius:6px; font-size:0.72rem; padding:4px 8px; outline:none; cursor:pointer;">
                                 <option value="0">Level 0: Simulation (0 real sends)</option>
                                 <option value="1">Level 1: Canary (1 real send max)</option>
-                                <option value="2" disabled>Level 2: Initial Batch (5 sends) [Locked]</option>
-                                <option value="3" disabled>Level 3: 1 Country (10/day) [Locked]</option>
-                                <option value="4" disabled>Level 4: 3 Countries (30/day) [Locked]</option>
-                                <option value="5" disabled>Level 5: 6 Countries (60/day) [Locked]</option>
-                                <option value="6" disabled>Level 6: 12 Countries (120/day) [Locked]</option>
-                                <option value="7" disabled>Level 7: All 18 Countries (180/day) [Locked]</option>
+                                <option value="2">Level 2: Controlled Low Volume (5/day)</option>
+                                <option value="3">Level 3: Target Base Tier (10/day)</option>
+                                <option value="4">Level 4: Multi-Corridor Scaling (20/day)</option>
+                                <option value="5">Level 5: Regional Expansion (50/day)</option>
+                                <option value="6">Level 6: Target Operational Capacity (70/day)</option>
+                                <option value="7">Level 7: Operational Scale (200/day)</option>
                             </select>
                         </div>
                     </div>

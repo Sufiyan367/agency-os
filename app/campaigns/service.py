@@ -45,10 +45,11 @@ class CampaignService:
                 campaigns.append(camp)
             else:
                 target_status = "ACTIVE" if c.enabled else "PAUSED"
-                if existing.enabled != c.enabled or existing.status != target_status:
+                if existing.enabled != c.enabled or existing.status != target_status or existing.daily_quota != c.daily_quota:
                     existing.enabled = c.enabled
                     existing.status = target_status
-                    logger.info(f"[CampaignService] Synced campaign '{existing.name}' ({c.code}): enabled={c.enabled}, status={target_status}")
+                    existing.daily_quota = c.daily_quota
+                    logger.info(f"[CampaignService] Synced campaign '{existing.name}' ({c.code}): enabled={c.enabled}, status={target_status}, quota={c.daily_quota}")
                 campaigns.append(existing)
 
         await session.commit()
