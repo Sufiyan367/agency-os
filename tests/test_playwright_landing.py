@@ -128,6 +128,14 @@ def test_playwright_all_criteria(live_server):
         page.wait_for_timeout(300)
         assert "active" not in (modal.get_attribute("class") or "")
 
+        # Test active navigation indicator switching
+        nav_links = page.locator(".nav-link")
+        assert "active" in (nav_links.nth(0).get_attribute("class") or "")
+        nav_links.nth(1).click() # Click Product
+        page.wait_for_timeout(100)
+        assert "active" in (nav_links.nth(1).get_attribute("class") or "")
+        assert "active" not in (nav_links.nth(0).get_attribute("class") or "")
+
         # 2. Mobile test at 390x844
         mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
         mobile_page.goto(live_server)
@@ -145,6 +153,7 @@ def test_playwright_all_criteria(live_server):
         burger.click()
         mobile_page.wait_for_timeout(300)
         assert burger.get_attribute("aria-expanded") == "true"
+        assert mobile_page.locator("body.menu-open").count() == 1
         menu = mobile_page.locator("#mobileMenu")
         assert menu.is_visible()
 
@@ -194,12 +203,34 @@ def test_playwright_all_criteria(live_server):
             cw = vp_page.evaluate("document.documentElement.clientWidth")
             assert sw <= cw + 1, f"Horizontal scroll detected at {w}x{h}: sw={sw}, cw={cw}"
 
+            sh = vp_page.evaluate("document.documentElement.scrollHeight")
+            ch = vp_page.evaluate("document.documentElement.clientHeight")
+            assert sh <= ch + 1, f"Vertical page scroll detected at {w}x{h}: sh={sh}, ch={ch}"
+
             # Ensure primary elements visible
             assert vp_page.locator(".site-header").is_visible(), f"Header not visible at {w}x{h}"
             assert vp_page.locator(".headline").is_visible(), f"Headline not visible at {w}x{h}"
             assert vp_page.locator(".cta-button").is_visible(), f"CTA not visible at {w}x{h}"
             assert vp_page.locator("#statsSection").is_visible(), f"Stats not visible at {w}x{h}"
             vp_page.close()
+
+        # 24. Height-specific responsiveness at <=700px height
+        height_tests = [(1024, 600), (800, 600)]
+        for w, h in height_tests:
+            h_page = browser.new_page(viewport={"width": w, "height": h})
+            h_page.goto(live_server)
+            h_page.wait_for_timeout(200)
+            h_sw = h_page.evaluate("document.documentElement.scrollWidth")
+            h_cw = h_page.evaluate("document.documentElement.clientWidth")
+            assert h_sw <= h_cw + 1, f"Horizontal overflow at {w}x{h}"
+            h_sh = h_page.evaluate("document.documentElement.scrollHeight")
+            h_ch = h_page.evaluate("document.documentElement.clientHeight")
+            assert h_sh <= h_ch + 1, f"Vertical scroll at {w}x{h}"
+            assert h_page.locator(".site-header").is_visible()
+            assert h_page.locator(".headline").is_visible()
+            assert h_page.locator(".cta-button").is_visible()
+            assert h_page.locator("#statsSection").is_visible()
+            h_page.close()
 
         # 25. Reduced-motion test
         rm_page = browser.new_page(
@@ -209,6 +240,12 @@ def test_playwright_all_criteria(live_server):
         rm_page.emulate_media(reduced_motion="reduce")
         rm_page.goto(live_server)
         assert rm_page.locator(".headline").is_visible()
+        # Ensure stat values are immediately rendered without waiting
+        rm_stats = rm_page.locator(".stat-value").all_inner_texts()
+        assert "120" in rm_stats[0]
+        assert "99.99" in rm_stats[1]
+        assert "24" in rm_stats[2]
+        assert "2.4" in rm_stats[3]
         rm_page.close()
 
         assert len(console_errors) == 0, f"Console errors detected: {console_errors}"

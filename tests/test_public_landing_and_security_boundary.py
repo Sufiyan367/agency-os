@@ -5,23 +5,16 @@ from app.core.config import settings
 
 @pytest.mark.asyncio
 async def test_public_landing_page_rendering():
-    """Verify GET / renders public 3D landing page with 8 scenes and no internal controls."""
+    """Verify GET / renders public cinematic landing page and no internal controls."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         r = await client.get("/")
         assert r.status_code == 200
         assert "Agency OS" in r.text
-        assert "Your Business Shouldn't Lose Revenue" in r.text
-        assert "website_3d.css" in r.text
-        assert "website_scroll_3d.js" in r.text
-        assert "scene-hero" in r.text
-        assert "scene-find" in r.text
-        assert "scene-audit" in r.text
-        assert "scene-persuade" in r.text
-        assert "scene-sell" in r.text
-        assert "scene-build" in r.text
-        assert "scene-maintain" in r.text
-        assert "scene-cta" in r.text
+        assert "Intelligence Designed To Evolve" in r.text
+        assert "landing.css" in r.text
+        assert "landing.js" in r.text
+        assert "bg-video" in r.text
         # Ensure CEO dashboard internal controls are not exposed
         assert "CEO Command Center" not in r.text
         assert "Kill Switch" not in r.text
@@ -74,16 +67,16 @@ async def test_sitemap_xml():
 
 @pytest.mark.asyncio
 async def test_static_assets_serving():
-    """Verify website_3d.css and website_scroll_3d.js are served statically."""
+    """Verify landing.css and landing.js are served statically."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        r_css = await client.get("/static/website_3d.css")
+        r_css = await client.get("/static/landing.css")
         assert r_css.status_code == 200
-        assert "scene-section" in r_css.text
+        assert "--font-display" in r_css.text
 
-        r_js = await client.get("/static/website_scroll_3d.js")
+        r_js = await client.get("/static/landing.js")
         assert r_js.status_code == 200
-        assert "initAuditModal" in r_js.text
+        assert "easeOutCubic" in r_js.text
 
 @pytest.mark.asyncio
 async def test_unauthenticated_dashboard_redirect(monkeypatch):

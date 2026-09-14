@@ -15,30 +15,27 @@ async def test_public_landing_page_renders_200():
 
 
 @pytest.mark.asyncio
-async def test_public_landing_no_portal_link():
-    """Verify 'Portal', 'Dashboard', 'Control Center', 'Login' are strictly absent from public page."""
+async def test_public_landing_navigation_and_auth():
+    """Verify header navigation contains specified links, Sign in, and CEO dashboard controls are absent."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
         assert response.status_code == 200
-        html = response.text.lower()
+        html = response.text
         
-        # Absolute Rule: ZERO mentions of portal, dashboard, control center, login
-        assert "portal" not in html
-        assert "dashboard" not in html
-        assert "control center" not in html
-        assert "login" not in html
-        assert 'class="btn-portal-link"' not in html
+        # Ensure internal CEO dashboard controls are strictly absent
+        assert "CEO Command Center" not in html
+        assert "Kill Switch" not in html
+        assert "portal-link" not in html
         
-        # Ensure header navigation strictly contains expected labels:
-        # OSAI, Solutions, How It Works, Services, Industries, Contact, Book a Strategy Call
-        assert "osai" in html
-        assert ">solutions<" in html
-        assert ">how it works<" in html
-        assert ">services<" in html
-        assert ">industries<" in html
-        assert ">contact<" in html
-        assert "book a strategy call" in html
+        # Ensure header navigation strictly contains specified links:
+        # Home, Product, Case Studies, Contact, Sign in
+        assert ">Home<" in html
+        assert ">Product<" in html
+        assert ">Case Studies<" in html
+        assert ">Contact<" in html
+        assert "Sign in" in html
+        assert "/login" in html
 
 
 @pytest.mark.asyncio
@@ -57,47 +54,35 @@ async def test_public_landing_no_raw_svg_text():
 
 @pytest.mark.asyncio
 async def test_public_landing_required_sections():
-    """Verify all 6 core sections and 3D canvas exist in DOM."""
+    """Verify single-viewport cinematic layout: header, hero, stats, and background video."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
         assert response.status_code == 200
         html = response.text
 
-        # Canvas
-        assert 'id="bg-canvas-3d"' in html
+        # Full-Bleed Video Background
+        exact_url = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4"
+        assert exact_url in html
+        assert 'class="bg-video"' in html
+
         # Hero
-        assert 'id="hero"' in html
-        assert 'id="hero-core-widget"' in html
-        # Solutions / Delivery Journey
-        assert 'id="how-it-works"' in html
-        assert 'id="solutions"' in html
-        assert '01 // AUDIT' in html
-        assert '02 // DESIGN' in html
-        assert '03 // BUILD' in html
-        assert '04 // TEST' in html
-        assert '05 // DEPLOY' in html
-        assert '06 // IMPROVE' in html
-        # Interactive Simulator
-        assert 'id="interactive-demo"' in html
-        assert 'data-sim="missed_call"' in html
-        assert 'data-sim="web_enquiry"' in html
-        assert 'data-sim="lead_form"' in html
-        assert 'data-sim="support_request"' in html
-        # Services (6 cards)
-        assert 'id="services"' in html
-        assert 'service-card' in html
-        assert html.count('class="service-card"') == 6
-        # Industries (6 cards)
-        assert 'id="industries"' in html
-        assert 'industry-card' in html
-        assert html.count('class="industry-card"') == 6
-        # Contact Form
-        assert 'id="contact"' in html
-        assert 'id="contactForm"' in html
-        # Consultation Modal
-        assert 'id="consultationModal"' in html
-        assert 'id="modalForm"' in html
+        assert "Trusted by 2000+ Enterprises" in html
+        assert "Intelligence" in html
+        assert "Designed To Evolve" in html
+        assert "Build applications that reason, adapt and collaborate" in html
+        assert "Get Started" in html
+
+        # Stats
+        assert "Inference Time" in html
+        assert "Platform Uptime" in html
+        assert "Autonomous Runtime" in html
+        assert "Context Windows" in html
+
+        # Zero 3D canvas / orbit leftovers
+        assert "bg-canvas-3d" not in html
+        assert "spatial-grid-mesh" not in html
+        assert "three.min.js" not in html
 
 
 @pytest.mark.asyncio
@@ -113,7 +98,7 @@ async def test_public_landing_seo_and_schema():
         assert 'name="description"' in html
         assert 'property="og:title"' in html
         assert 'application/ld+json' in html
-        assert '"@type": "Organization"' in html
+        assert '"name": "Agency OS"' in html
 
 
 @pytest.mark.asyncio
