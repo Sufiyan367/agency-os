@@ -1,6 +1,8 @@
 import asyncio
 import smtplib
 import imaplib
+import time
+from email.utils import make_msgid, formatdate
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Optional
@@ -28,7 +30,7 @@ class TitanEmailProvider(BaseEmailProvider):
     Supports secure transactional dispatch via Titan SMTP:
     - Port 465 (SSL/TLS direct)
     - Port 587 (STARTTLS)
-    And IMAP inbox health auditing (Port 993 SSL).
+    And IMAP inbox health auditing & Sent folder archiving (Port 993 SSL).
     Never logs or leaks credentials.
     """
     provider_name: str = "titan"
@@ -79,6 +81,11 @@ class TitanEmailProvider(BaseEmailProvider):
         else:
             msg = MIMEText(body, "plain", "utf-8")
 
+        # Deterministic RFC 5322 Message-ID and Date
+        domain_part = sender_addr.split("@")[1] if "@" in sender_addr else "automatedagencyos.tech"
+        msg_id = make_msgid(domain=domain_part)
+        msg["Message-ID"] = msg_id
+        msg["Date"] = formatdate(localtime=False)
         msg["Subject"] = subject
         msg["From"] = f"{sender_name} <{sender_addr}>"
         msg["To"] = to_email
@@ -102,17 +109,41 @@ class TitanEmailProvider(BaseEmailProvider):
             logger.error(f"[TitanEmailProvider] Delivery failed to {to_email}: {safe_err}")
             raise RuntimeError(f"Titan SMTP delivery error: {safe_err}")
 
-        logger.info(f"[TitanEmailProvider] Email successfully delivered to {to_email} via {self.smtp_host}:{self.smtp_port}")
+        logger.info(f"[TitanEmailProvider] Email accepted by Titan SMTP for {to_email} via {self.smtp_host}:{self.smtp_port}")
+
+        # Safe post-send IMAP Sent folder copy (non-fatal if IMAP is slow/unavailable)
+        sent_folder_copied = False
+        def _sync_append_sent():
+            nonlocal sent_folder_copied
+            if self.imap_host and self.imap_user and self.imap_password:
+                try:
+                    with imaplib.IMAP4_SSL(self.imap_host, int(self.imap_port), timeout=8) as imap_client:
+                        imap_client.login(self.imap_user, self.imap_password)
+                        imap_client.append('Sent', '(\\\\Seen)', imaplib.Time2Internaldate(time.time()), msg.as_bytes())
+                        sent_folder_copied = True
+                except Exception as imap_err:
+                    safe_imap_err = _sanitize_error(imap_err, [self.imap_password])
+                    logger.warning(f"[TitanEmailProvider] Could not copy message to Sent folder: {safe_imap_err}")
+
+        try:
+            await asyncio.to_thread(_sync_append_sent)
+        except Exception:
+            pass
+
         return {
             "status": "SUCCESS",
             "provider": "titan",
-            "message_id": f"titan_{to_email}_{subject[:12]}",
+            "message_id": msg_id,
             "event": "email_dispatched",
+            "delivery_status": "PROVIDER_ACCEPTED",
+            "sent_folder_copied": sent_folder_copied,
             "details": {
                 "host": self.smtp_host,
                 "port": self.smtp_port,
                 "sender": sender_addr,
-                "recipient": to_email
+                "recipient": to_email,
+                "message_id": msg_id,
+                "sent_folder_copied": sent_folder_copied
             }
         }
 

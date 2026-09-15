@@ -8239,4 +8239,559 @@ async function runDataQualityAudit() {
     }
 }
 
+/* =========================================================================
+   KPI DRILL-DOWN AUDIT CONTROLLER (Phase 16 - Auditable KPI Engine)
+   ========================================================================= */
+
+let currentKpiModalState = {
+    kpi: 'total_prospects',
+    page: 1,
+    limit: 25,
+    status: 'ALL',
+    search: '',
+    searchTimeout: null,
+    totalRecords: 0,
+    totalPages: 1
+};
+
+const KPI_ICONS = {
+    total_prospects: '🏢',
+    qualified_pipeline: '🎯',
+    outreach_approved: '✉️',
+    interested_leads: '💬',
+    active_demos: '💻',
+    proposals_action: '📄',
+    payments_auth: '💳',
+    revenue_collected: '💰'
+};
+
+async function openKpiDetailModal(kpiType, page = 1, status = 'ALL') {
+    currentKpiModalState.kpi = kpiType;
+    currentKpiModalState.page = page;
+    currentKpiModalState.status = status;
+    currentKpiModalState.search = '';
+
+    const backdrop = document.getElementById('kpi-modal-backdrop');
+    const drawer = document.getElementById('kpi-detail-modal');
+    const searchInput = document.getElementById('kpi-search-input');
+    const searchClear = document.getElementById('kpi-search-clear');
+
+    if (searchInput) searchInput.value = '';
+    if (searchClear) searchClear.style.display = 'none';
+
+    if (backdrop) backdrop.classList.add('open');
+    if (drawer) drawer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Update icon
+    const iconEl = document.getElementById('kpi-drawer-icon');
+    if (iconEl) iconEl.textContent = KPI_ICONS[kpiType] || '📊';
+
+    await fetchAndRenderKpiDetails();
+}
+
+function closeKpiDetailModal() {
+    const backdrop = document.getElementById('kpi-modal-backdrop');
+    const drawer = document.getElementById('kpi-detail-modal');
+    if (backdrop) backdrop.classList.remove('open');
+    if (drawer) drawer.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+async function refreshCurrentKpiModal() {
+    await fetchAndRenderKpiDetails();
+}
+
+function handleKpiSearchInput(event) {
+    const val = event.target.value.trim();
+    currentKpiModalState.search = val;
+    currentKpiModalState.page = 1;
+
+    const searchClear = document.getElementById('kpi-search-clear');
+    if (searchClear) searchClear.style.display = val ? 'inline-block' : 'none';
+
+    if (currentKpiModalState.searchTimeout) {
+        clearTimeout(currentKpiModalState.searchTimeout);
+    }
+    currentKpiModalState.searchTimeout = setTimeout(() => {
+        fetchAndRenderKpiDetails();
+    }, 280);
+}
+
+function clearKpiSearch() {
+    const searchInput = document.getElementById('kpi-search-input');
+    const searchClear = document.getElementById('kpi-search-clear');
+    if (searchInput) searchInput.value = '';
+    if (searchClear) searchClear.style.display = 'none';
+    currentKpiModalState.search = '';
+    currentKpiModalState.page = 1;
+    fetchAndRenderKpiDetails();
+}
+
+function setKpiFilterTab(status) {
+    currentKpiModalState.status = status;
+    currentKpiModalState.page = 1;
+    fetchAndRenderKpiDetails();
+}
+
+function changeKpiPage(delta) {
+    const target = currentKpiModalState.page + delta;
+    if (target >= 1 && target <= currentKpiModalState.totalPages) {
+        currentKpiModalState.page = target;
+        fetchAndRenderKpiDetails();
+    }
+}
+
+async function fetchAndRenderKpiDetails() {
+    const loader = document.getElementById('kpi-drawer-loader');
+    const tableContainer = document.getElementById('kpi-table-container');
+    const emptyState = document.getElementById('kpi-empty-state');
+
+    if (loader) loader.style.display = 'flex';
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+
+    try {
+        const { kpi, page, limit, status, search } = currentKpiModalState;
+        let url = `/api/dashboard/kpi-details?kpi=${encodeURIComponent(kpi)}&page=${page}&limit=${limit}`;
+        if (status && status !== 'ALL') {
+            url += `&status=${encodeURIComponent(status)}`;
+        }
+        if (search) {
+            url += `&search=${encodeURIComponent(search)}`;
+        }
+
+        const res = await fetch(url);
+        if (res.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: Failed to load KPI details`);
+        }
+
+        const data = await res.json();
+        currentKpiModalState.totalRecords = data.count || 0;
+        currentKpiModalState.totalPages = data.pagination?.total_pages || 1;
+
+        // Render Header & Definitions
+        const titleEl = document.getElementById('kpi-drawer-title');
+        if (titleEl) titleEl.textContent = data.title || 'KPI Audit Details';
+
+        const countBadge = document.getElementById('kpi-drawer-count-badge');
+        if (countBadge) {
+            countBadge.textContent = `${data.count} Records`;
+        }
+
+        const defEl = document.getElementById('kpi-exp-definition');
+        if (defEl) defEl.textContent = data.definition || '—';
+
+        const whyEl = document.getElementById('kpi-exp-why');
+        if (whyEl) whyEl.textContent = data.why_counted || '—';
+
+        // Render Summary Strip if available
+        renderKpiSummaryStrip(data.kpi, data.summary);
+
+        // Render Filter Tabs
+        renderKpiFilterTabs(data.kpi, currentKpiModalState.status);
+
+        // Render Table or Empty State
+        if (!data.records || data.records.length === 0) {
+            if (emptyState) {
+                emptyState.style.display = 'flex';
+                const emptyTitle = document.getElementById('kpi-empty-title');
+                const emptyDesc = document.getElementById('kpi-empty-desc');
+                if (data.kpi === 'revenue_collected') {
+                    if (emptyTitle) emptyTitle.textContent = 'Zero Verified Revenue';
+                    if (emptyDesc) emptyDesc.textContent = 'Zero confirmed payments received to date. Safe dry-run / manual verification active. Real revenue updates automatically upon bank/UTR reconciliation.';
+                } else if (data.kpi === 'payments_auth') {
+                    if (emptyTitle) emptyTitle.textContent = 'Zero Payments Pending Verification';
+                    if (emptyDesc) emptyDesc.textContent = 'No client payments are currently awaiting verification or authorization. Client submitted transactions enter this queue automatically.';
+                } else if (data.kpi === 'interested_leads') {
+                    if (emptyTitle) emptyTitle.textContent = 'Zero Positive Inbound Replies';
+                    if (emptyDesc) emptyDesc.textContent = 'No inbound replies classified as interested, meeting requests, or price inquiries have arrived yet. Inbound reply monitor checks server mailbox continuously.';
+                } else {
+                    if (emptyTitle) emptyTitle.textContent = 'Zero Records Matching Filter';
+                    if (emptyDesc) emptyDesc.textContent = search ? `No ${data.title} match the query "${search}".` : `No records currently found in this stage.`;
+                }
+            }
+        } else {
+            if (tableContainer) tableContainer.style.display = 'block';
+            renderKpiDataTable(data.kpi, data.records);
+        }
+
+        // Render Pagination
+        renderKpiPagination(data.pagination);
+
+    } catch (err) {
+        console.error('Error in fetchAndRenderKpiDetails:', err);
+        if (emptyState) {
+            emptyState.style.display = 'flex';
+            const emptyTitle = document.getElementById('kpi-empty-title');
+            const emptyDesc = document.getElementById('kpi-empty-desc');
+            if (emptyTitle) emptyTitle.textContent = 'Error Loading KPI Data';
+            if (emptyDesc) emptyDesc.textContent = err.message || 'Unable to connect to live database.';
+        }
+    } finally {
+        if (loader) loader.style.display = 'none';
+    }
+}
+
+function renderKpiSummaryStrip(kpi, summary) {
+    const strip = document.getElementById('kpi-summary-strip');
+    if (!strip) return;
+    if (!summary || Object.keys(summary).length === 0) {
+        strip.style.display = 'none';
+        strip.innerHTML = '';
+        return;
+    }
+
+    strip.style.display = 'flex';
+    if (kpi === 'outreach_approved') {
+        strip.innerHTML = `
+            <span class="kpi-summary-pill" style="border-color:rgba(245,158,11,0.3); color:#fbbf24;">Pending Approval: <strong>${summary.pending_approval || 0}</strong></span>
+            <span class="kpi-summary-pill" style="border-color:rgba(56,189,248,0.3); color:#38bdf8;">Approved to Send: <strong>${summary.approved || 0}</strong></span>
+            <span class="kpi-summary-pill" style="border-color:rgba(16,185,129,0.3); color:#10b981;">Dispatched Sent: <strong>${summary.sent || 0}</strong></span>
+            <span class="kpi-summary-pill" style="border-color:rgba(239,68,68,0.3); color:#f87171;">Failed/Blocked: <strong>${summary.failed || 0}</strong></span>
+        `;
+    } else if (kpi === 'revenue_collected') {
+        strip.innerHTML = `
+            <span class="kpi-summary-pill" style="border-color:rgba(16,185,129,0.3); color:#10b981;">Verified Collected: <strong>${summary.revenue_label || '$0.00'}</strong></span>
+            <span class="kpi-summary-pill" style="border-color:rgba(245,158,11,0.3); color:#fbbf24;">Status: <strong>Safe Dry-Run / Manual Verification</strong></span>
+        `;
+    } else {
+        strip.style.display = 'none';
+    }
+}
+
+function renderKpiFilterTabs(kpi, activeStatus) {
+    const container = document.getElementById('kpi-status-filters');
+    if (!container) return;
+
+    if (kpi === 'outreach_approved') {
+        const tabs = ['ALL', 'PENDING_APPROVAL', 'APPROVED', 'SENT'];
+        container.innerHTML = tabs.map(t => {
+            const activeClass = (activeStatus || 'ALL') === t ? 'active' : '';
+            const label = t === 'ALL' ? 'All' : (t === 'PENDING_APPROVAL' ? 'Pending' : (t === 'APPROVED' ? 'Approved' : 'Sent'));
+            return `<button class="kpi-filter-tab ${activeClass}" onclick="setKpiFilterTab('${t}')">${label}</button>`;
+        }).join('');
+    } else if (kpi === 'proposals_action') {
+        const tabs = ['ALL', 'DRAFT', 'SENT', 'ACCEPTED'];
+        container.innerHTML = tabs.map(t => {
+            const activeClass = (activeStatus || 'ALL') === t ? 'active' : '';
+            return `<button class="kpi-filter-tab ${activeClass}" onclick="setKpiFilterTab('${t}')">${t}</button>`;
+        }).join('');
+    } else {
+        container.innerHTML = '';
+    }
+}
+
+function renderKpiDataTable(kpi, records) {
+    const thead = document.getElementById('kpi-table-head');
+    const tbody = document.getElementById('kpi-table-body');
+    if (!thead || !tbody) return;
+
+    if (kpi === 'total_prospects') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Business Name</th>
+                <th>Domain / Website</th>
+                <th>Country</th>
+                <th>Niche</th>
+                <th>Source</th>
+                <th>Pipeline Stage</th>
+                <th>Ingestion Date</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map((r, i) => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.name)}</strong></td>
+                <td><a href="${escapeHtml(r.website_url)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:none;">${escapeHtml(r.domain)} ↗</a></td>
+                <td><span class="badge badge-stage">${escapeHtml(r.country)}</span></td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.niche)}</span></td>
+                <td><span style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.source)}</span></td>
+                <td><span class="badge ${getStageBadgeClass(r.stage)}">${escapeHtml(r.stage)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.created_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-secondary btn-xs" onclick="closeKpiDetailModal(); viewLeadDetails(${r.id});">Inspect</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'qualified_pipeline') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Business Name</th>
+                <th>Corridor</th>
+                <th>Niche</th>
+                <th>Stage</th>
+                <th>Score</th>
+                <th>Audit Status</th>
+                <th>Channel</th>
+                <th>Qualified Date</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.name)}</strong></td>
+                <td><span class="badge badge-stage">${escapeHtml(r.country)}</span></td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.niche)}</span></td>
+                <td><span class="badge ${getStageBadgeClass(r.stage)}">${escapeHtml(r.stage)}</span></td>
+                <td><strong style="color:#34d399; font-family:var(--font-mono);">${r.qualification_score ? r.qualification_score.toFixed(1) : '75.0'}</strong></td>
+                <td><span class="badge ${r.audit_status === 'AUDITED' ? 'badge-emerald' : 'badge-stage'}">${escapeHtml(r.audit_status)}</span></td>
+                <td><span style="font-size:0.72rem; color:#38bdf8; font-family:var(--font-mono);">${escapeHtml(r.channel)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.qualified_date)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-secondary btn-xs" onclick="closeKpiDetailModal(); viewLeadDetails(${r.id});">Inspect</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'outreach_approved') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Prospect / Lead</th>
+                <th>Recipient Email</th>
+                <th>Subject Line</th>
+                <th>Status</th>
+                <th>Compliance Basis</th>
+                <th>Dispatched / Created</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td style="font-family:var(--font-mono); color:#38bdf8;">${escapeHtml(r.recipient_email)}</td>
+                <td><span title="${escapeHtml(r.body_preview)}">${escapeHtml(r.subject)}</span></td>
+                <td><span class="badge ${getOutreachStatusBadge(r.status)}">${escapeHtml(r.status)}</span></td>
+                <td><span style="font-size:0.72rem; color:#a1a1aa;">${escapeHtml(r.compliance_basis)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.sent_at_fmt !== '—' ? r.sent_at_fmt : r.created_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-secondary btn-xs" onclick="closeKpiDetailModal(); showOutreachInspector(${r.id});">Review</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'interested_leads') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Prospect</th>
+                <th>Sender</th>
+                <th>Classification</th>
+                <th>Confidence</th>
+                <th>Message Snippet</th>
+                <th>Received Date</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td style="font-family:var(--font-mono); color:#38bdf8;">${escapeHtml(r.sender_email)}</td>
+                <td><span class="badge badge-emerald">${escapeHtml(r.classification)}</span></td>
+                <td style="font-family:var(--font-mono); color:#34d399;">${(r.confidence * 100).toFixed(0)}%</td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.body_snippet)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.received_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-primary btn-xs" onclick="closeKpiDetailModal(); switchView('replies');">Reply</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'active_demos') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Prospect</th>
+                <th>Demo Name</th>
+                <th>QA Gates</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td><span>${escapeHtml(r.demo_name)}</span></td>
+                <td><span class="badge badge-emerald">✓ ${escapeHtml(r.qa_status)}</span></td>
+                <td><span class="badge badge-cyan">${escapeHtml(r.status)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.created_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <a href="${escapeHtml(r.preview_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs" style="text-decoration:none; display:inline-block;">Preview ↗</a>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'proposals_action') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Prospect</th>
+                <th>Proposal Title</th>
+                <th>Service Scope</th>
+                <th>Total Value</th>
+                <th>Advance Required</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td><span>${escapeHtml(r.title)}</span></td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.service_type)}</span></td>
+                <td><strong style="color:#34d399; font-family:var(--font-mono);">${escapeHtml(r.total_value_fmt)}</strong></td>
+                <td><span style="color:#fbbf24; font-family:var(--font-mono);">${escapeHtml(r.advance_fmt)}</span></td>
+                <td><span class="badge ${r.status === 'ACCEPTED' ? 'badge-emerald' : 'badge-amber'}">${escapeHtml(r.status)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.created_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <a href="${escapeHtml(r.action_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs" style="text-decoration:none; display:inline-block;">View ↗</a>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'payments_auth') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Customer / Lead</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Reference / UTR</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+                <th style="text-align:right;">Action</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td><strong style="color:#34d399; font-family:var(--font-mono);">${escapeHtml(r.amount_fmt)}</strong></td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.provider)}</span></td>
+                <td style="font-family:var(--font-mono); font-size:0.75rem; color:#38bdf8;">${escapeHtml(r.reference_id)}</td>
+                <td><span class="badge badge-amber">${escapeHtml(r.status)}</span></td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.created_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-primary btn-xs" onclick="closeKpiDetailModal(); verifyPaymentModal(${r.id});">Verify</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } else if (kpi === 'revenue_collected') {
+        thead.innerHTML = `
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Customer / Lead</th>
+                <th>Verified Amount</th>
+                <th>Currency</th>
+                <th>Rail / Provider</th>
+                <th>Transaction Ref</th>
+                <th>Settlement Date</th>
+                <th style="text-align:right;">Receipt</th>
+            </tr>
+        `;
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td style="color:#71717A; font-family:var(--font-mono);">${r.id}</td>
+                <td><strong>${escapeHtml(r.business_name)}</strong></td>
+                <td><strong style="color:#34d399; font-family:var(--font-mono); font-size:0.95rem;">${escapeHtml(r.amount_fmt)}</strong></td>
+                <td><span class="badge badge-stage">${escapeHtml(r.currency)}</span></td>
+                <td><span style="font-size:0.75rem; color:#A1A1AA;">${escapeHtml(r.provider)}</span></td>
+                <td style="font-family:var(--font-mono); font-size:0.75rem; color:#38bdf8;">${escapeHtml(r.reference_id)}</td>
+                <td style="font-size:0.72rem; color:#71717A; font-family:var(--font-mono);">${escapeHtml(r.paid_at_fmt)}</td>
+                <td style="text-align:right;">
+                    <button class="btn btn-secondary btn-xs" onclick="alert('Transaction Verified: ' + ${r.id});">Receipt</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+}
+
+function renderKpiPagination(pagination) {
+    const infoEl = document.getElementById('kpi-pagination-info');
+    const prevBtn = document.getElementById('kpi-prev-btn');
+    const nextBtn = document.getElementById('kpi-next-btn');
+    const pageInd = document.getElementById('kpi-page-indicator');
+
+    if (!pagination) return;
+    const { page, limit, total_records, total_pages } = pagination;
+    const start = total_records === 0 ? 0 : (page - 1) * limit + 1;
+    const end = Math.min(page * limit, total_records);
+
+    if (infoEl) {
+        infoEl.textContent = `Showing ${start}–${end} of ${total_records} records`;
+    }
+    if (pageInd) {
+        pageInd.textContent = `Page ${page} of ${total_pages}`;
+    }
+    if (prevBtn) {
+        prevBtn.disabled = page <= 1;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = page >= total_pages;
+    }
+}
+
+function getStageBadgeClass(stage) {
+    if (!stage) return 'badge-stage';
+    if (['WON', 'COMPLETED'].includes(stage)) return 'badge-emerald';
+    if (['QUALIFIED', 'QUALIFIED_REPLY', 'APPROVAL', 'OUTREACH_READY'].includes(stage)) return 'badge-cyan';
+    if (['CONTACTED', 'REPLIED', 'CALL', 'MEETING', 'PROPOSAL'].includes(stage)) return 'badge-amber';
+    if (['REJECTED', 'DEAD', 'LOST'].includes(stage)) return 'badge-crimson';
+    return 'badge-stage';
+}
+
+function getOutreachStatusBadge(status) {
+    if (!status) return 'badge-stage';
+    if (status === 'SENT') return 'badge-emerald';
+    if (status === 'APPROVED') return 'badge-cyan';
+    if (status === 'PENDING_APPROVAL') return 'badge-amber';
+    if (status === 'FAILED' || status === 'OUTBOUND_BLOCKED') return 'badge-crimson';
+    return 'badge-stage';
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Global keydown listener for Esc key closing drawer
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const drawer = document.getElementById('kpi-detail-modal');
+        if (drawer && drawer.classList.contains('open')) {
+            closeKpiDetailModal();
+        }
+    }
+});
+
+// Explicit Global Window Bindings for Inline HTML & Mobile Touch Event Handlers
+window.openKpiDetailModal = openKpiDetailModal;
+window.closeKpiDetailModal = closeKpiDetailModal;
+window.refreshCurrentKpiModal = refreshCurrentKpiModal;
+window.handleKpiSearchInput = handleKpiSearchInput;
+window.changeKpiPage = changeKpiPage;
+
+
 

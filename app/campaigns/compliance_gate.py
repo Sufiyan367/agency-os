@@ -4,13 +4,16 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
-from app.database.models import OutreachMessage, OutreachStatus, Business, Campaign, SuppressionList
+from app.database.models import OutreachMessage, OutreachStatus, Business, Campaign, SuppressionList, Contact
 from app.core.config import settings
 from app.outreach.compliance import compliance_guard
 from app.campaigns.models import ComplianceGateResult, ComplianceCheckItem
 from app.campaigns.scheduler import campaign_scheduler
 from app.campaigns.sender_registry import sender_registry
 from app.campaigns.quota_engine import quota_engine
+from app.compliance.recipient_classifier import classify_recipient, RecipientClassification
+from app.compliance.negative_disclaimer import contains_prohibited_contact_notice
+from app.compliance.provenance import build_jurisdiction_provenance, STRICT_OPT_IN_JURISDICTIONS
 
 
 class CampaignComplianceGate:
@@ -253,6 +256,131 @@ class CampaignComplianceGate:
             failure_reasons.append(
                 f"Sender capacity exhausted ({cap_summary['sent_today']} sent today, safe limit {cap_summary['safe_per_sender_daily_limit']}). Message queued."
             )
+
+        # Check 14: Hard Safety Brake — Jurisdiction Sanction / Strict Consent Policy
+        # Strict opt-in jurisdictions (DE, IT, ES, CH) strictly blocked without verifiable prior consent
+        is_strict_opt_in = country_code in STRICT_OPT_IN_JURISDICTIONS
+        has_verified_consent = getattr(message, "has_verified_consent", False) or False
+        jurisdiction_ok = (not is_strict_opt_in) or has_verified_consent
+        jurisdiction_detail = (
+            f"Jurisdiction '{country_code}' compliant"
+            if jurisdiction_ok
+            else f"Jurisdiction '{country_code}' strictly prohibited without prior explicit consent (OUTBOUND_BLOCKED)"
+        )
+        checks.append(ComplianceCheckItem(
+            check_name="JURISDICTION_SANCTION_POLICY",
+            passed=jurisdiction_ok,
+            detail=jurisdiction_detail
+        ))
+        if not jurisdiction_ok:
+            failure_reasons.append(
+                f"OUTBOUND_BLOCKED / jurisdiction_requires_consent: Jurisdiction '{country_code}' strictly prohibits unsolicited commercial email without verifiable prior explicit consent."
+            )
+
+        # Retrieve associated contact if available
+        contact = None
+        if biz:
+            c_stmt = select(Contact).where(
+                and_(Contact.business_id == biz.id, Contact.email == email)
+            ).limit(1)
+            contact = (await session.execute(c_stmt)).scalar_one_or_none()
+
+        # Check 15: Recipient Classification & Entity Discrimination
+        recipient_class = classify_recipient(
+            email=email,
+            business_name=biz.name if biz else None,
+            business_domain=biz.domain if biz else None,
+            contact_name=contact.name if contact else None,
+            contact_title=contact.title if contact else None
+        )
+
+        recipient_class_ok = True
+        recipient_class_detail = f"Recipient entity classified as: {recipient_class.value}"
+        if recipient_class == RecipientClassification.PERSONAL_WEBMAIL and country_code in ("UK", "CA", "AU", "FR", "NL", "SE", "IE", "NZ"):
+            recipient_class_ok = False
+            recipient_class_detail = f"Personal webmail ineligible for B2B commercial outreach in jurisdiction '{country_code}' (OUTBOUND_BLOCKED)"
+            failure_reasons.append(
+                f"OUTBOUND_BLOCKED / personal_webmail_ineligible: Recipient uses personal webmail in jurisdiction '{country_code}' which requires corporate subscriber or explicit opt-in."
+            )
+        elif recipient_class == RecipientClassification.SOLE_TRADER and country_code in ("UK", "FR", "NL", "SE", "IE"):
+            recipient_class_ok = False
+            recipient_class_detail = f"Sole trader in jurisdiction '{country_code}' requires prior opt-in under PECR/ePrivacy (OUTBOUND_BLOCKED)"
+            failure_reasons.append(
+                f"OUTBOUND_BLOCKED / sole_trader_requires_consent: Recipient is a sole trader / natural person in jurisdiction '{country_code}', requiring prior opt-in under PECR/ePrivacy."
+            )
+        elif recipient_class == RecipientClassification.UNKNOWN and country_code != "US":
+            recipient_class_ok = False
+            recipient_class_detail = f"Cannot verify recipient domain matches business entity in jurisdiction '{country_code}' (OUTBOUND_BLOCKED)"
+            failure_reasons.append(
+                f"OUTBOUND_BLOCKED / unverified_recipient_entity: Cannot verify recipient domain matches business entity in '{country_code}'."
+            )
+
+        checks.append(ComplianceCheckItem(
+            check_name="RECIPIENT_CLASSIFICATION_GATE",
+            passed=recipient_class_ok,
+            detail=recipient_class_detail
+        ))
+
+        # Check 16: Negative Disclaimer Detection
+        evidence_texts = []
+        if biz:
+            if biz.contact_page_url:
+                evidence_texts.append(biz.contact_page_url)
+            if biz.website_url:
+                evidence_texts.append(biz.website_url)
+            if getattr(biz, "address", None):
+                evidence_texts.append(biz.address)
+        if message.auto_approval_eligibility and isinstance(message.auto_approval_eligibility, dict):
+            extra_snippets = message.auto_approval_eligibility.get("page_snippets") or []
+            if isinstance(extra_snippets, list):
+                evidence_texts.extend(extra_snippets)
+
+        has_negative_disclaimer, matched_phrase = contains_prohibited_contact_notice(
+            page_text=" ".join(evidence_texts) if evidence_texts else None
+        )
+        checks.append(ComplianceCheckItem(
+            check_name="NEGATIVE_DISCLAIMER_CHECK",
+            passed=not has_negative_disclaimer,
+            detail="Clean contact page without anti-marketing disclaimers" if not has_negative_disclaimer else f"Prohibited contact disclaimer detected: '{matched_phrase}'"
+        ))
+        if has_negative_disclaimer:
+            failure_reasons.append(
+                f"OUTBOUND_BLOCKED / prohibited_contact_disclaimer: Source page contains explicit notice forbidding unsolicited commercial inquiries ('{matched_phrase}')."
+            )
+
+        # Check 17: Jurisdiction Provenance & Lawful Basis Tracking
+        audit_summary = None
+        if biz and getattr(biz, "audits", None) and len(biz.audits) > 0:
+            audit_summary = biz.audits[0].summary
+
+        provenance = build_jurisdiction_provenance(
+            country_code=country_code,
+            email=email,
+            business_name=biz.name if biz else None,
+            business_domain=biz.domain if biz else None,
+            source_url=(biz.contact_page_url or biz.website_url) if biz else None,
+            observed_at=biz.created_at if biz else None,
+            recipient_role=contact.title if contact else "Owner / Lead",
+            recipient_classification=recipient_class,
+            audit_summary=audit_summary,
+            has_explicit_consent=has_verified_consent
+        )
+
+        # Persist rich provenance directly to message record
+        message.compliance_notes = f"Jurisdiction: {country_code} | Recipient: {recipient_class.value} | Lawful Basis: {provenance.lawful_basis} | Decision: {provenance.compliance_decision}"
+        if message.auto_approval_eligibility is None or not isinstance(message.auto_approval_eligibility, dict):
+            message.auto_approval_eligibility = {}
+        message.auto_approval_eligibility["jurisdiction_provenance"] = provenance.to_dict()
+
+        provenance_ok = provenance.compliance_decision == "PERMITTED" and (not has_negative_disclaimer) and jurisdiction_ok and recipient_class_ok
+        checks.append(ComplianceCheckItem(
+            check_name="PROVENANCE_AND_LAWFUL_BASIS",
+            passed=provenance_ok,
+            detail=f"Statutory basis: {provenance.lawful_basis} (Decision: {provenance.compliance_decision})"
+        ))
+        if not provenance_ok and provenance.blocking_reason:
+            if not any(provenance.blocking_reason in fr for fr in failure_reasons):
+                failure_reasons.append(f"OUTBOUND_BLOCKED / {provenance.blocking_reason}")
 
         is_eligible = len(failure_reasons) == 0
         return ComplianceGateResult(

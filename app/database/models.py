@@ -64,6 +64,7 @@ class OutreachStatus(str, enum.Enum):
     HELD = "HELD"
     SENT = "SENT"
     FAILED = "FAILED"
+    OUTBOUND_BLOCKED = "OUTBOUND_BLOCKED"
 
 class ReplyClassification(str, enum.Enum):
     INTERESTED = "INTERESTED"
@@ -415,7 +416,7 @@ class OutreachMessage(Base):
     status: Mapped[str] = mapped_column(String(50), default=OutreachStatus.PENDING_APPROVAL.value, index=True)
     sequence_step: Mapped[int] = mapped_column(Integer, default=1)
     confidence: Mapped[float] = mapped_column(Float, default=0.9)
-    compliance_notes: Mapped[str] = mapped_column(Text, default="Complies with CAN-SPAM / GDPR B2B public legitimate interest")
+    compliance_notes: Mapped[str] = mapped_column(Text, default="Pending jurisdiction & recipient compliance verification")
     
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

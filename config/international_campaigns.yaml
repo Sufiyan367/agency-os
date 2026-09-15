@@ -163,15 +163,14 @@ countries:
   timezone: Europe/Berlin
   currency: EUR
   language: en
-  daily_quota: 10
-  enabled: true
+  daily_quota: 0
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: EU-GDPR / UWG
   requires_postal_address: true
   requires_opt_out_link: true
-  b2b_exemption_notes: Strict professional interest standard; verified corporate contact
-    channel.
+  b2b_exemption_notes: STRICT OPT-IN ONLY (UWG § 7(2) No. 3). Unsolicited commercial email strictly prohibited without prior explicit consent.
 - code: FR
   name: France
   timezone: Europe/Paris
@@ -275,43 +274,40 @@ countries:
   timezone: Europe/Madrid
   currency: EUR
   language: en
-  daily_quota: 10
-  enabled: true
+  daily_quota: 0
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / LSSI-CE
   requires_postal_address: true
   requires_opt_out_link: true
-  b2b_exemption_notes: Direct B2B communication on technical assessment of observable
-    public assets.
+  b2b_exemption_notes: STRICT OPT-IN ONLY (LSSI-CE Art. 21). Unsolicited commercial communications prohibited without prior express authorization.
 - code: IT
   name: Italy
   timezone: Europe/Rome
   currency: EUR
   language: en
-  daily_quota: 10
-  enabled: true
+  daily_quota: 0
+  enabled: false
   sending_window_start: 9
   sending_window_end: 18
   compliance_framework: EU-GDPR / Codice Privacy
   requires_postal_address: true
   requires_opt_out_link: true
-  b2b_exemption_notes: Corporate communications strictly limited to demonstrated technical
-    audit.
+  b2b_exemption_notes: STRICT OPT-IN ONLY (Codice Privacy Art. 130). Prior consent mandatory for direct electronic marketing.
 - code: CH
   name: Switzerland
   timezone: Europe/Zurich
   currency: CHF
   language: en
-  daily_quota: 10
-  enabled: true
+  daily_quota: 0
+  enabled: false
   sending_window_start: 9
   sending_window_end: 17
   compliance_framework: Swiss FADP / UWG Art 3
   requires_postal_address: true
   requires_opt_out_link: true
-  b2b_exemption_notes: Specific business inquiries with sender postal identification
-    and immediate exclusion.
+  b2b_exemption_notes: STRICT OPT-IN ONLY (Swiss UWG Art. 3(1)(o)). Direct commercial email prohibited without prior consent or customer relationship.
 - code: QA
   name: Qatar
   timezone: Asia/Qatar

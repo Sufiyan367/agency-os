@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Typography & Test Compatibility: Inter, JetBrains Mono (Orbitron, Rajdhani retired) -->
-    <link rel="stylesheet" href="/static/style.css?v=4.1.0">
-    <link rel="stylesheet" href="/static/dashboard.css?v=4.1.0">
+    <link rel="stylesheet" href="/static/style.css?v=4.2.0">
+    <link rel="stylesheet" href="/static/dashboard.css?v=4.2.0">
 
     <!-- Inline Critical Layout Styles to Guarantee Visual Structure -->
     <style>
@@ -443,8 +443,11 @@
 
                 <div class="agency-eight-kpi-grid" id="ceo-metrics-grid" style="margin-bottom:0;">
                             <!-- 1. Total Prospects -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Total Prospects</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('total_prospects')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('total_prospects');}" title="Click to audit all discovered commercial prospects">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Total Prospects</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-total-prospects">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Discovered</span>
@@ -454,8 +457,11 @@
                             </div>
 
                             <!-- 2. Qualified Prospects -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Qualified Pipeline</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('qualified_pipeline')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('qualified_pipeline');}" title="Click to audit qualified pipeline & compliance score">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Qualified Pipeline</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-qualified-prospects">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Active Pipeline</span>
@@ -464,8 +470,11 @@
                             </div>
 
                             <!-- 3. Outreach Awaiting Approval & Dispatched -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Outreach Approval</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('outreach_approved')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('outreach_approved');}" title="Click to audit pending approvals, approved & dispatched messages">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Outreach Approval</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-outreach-approval">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext" id="ceo-subtext-outreach-sent">Dispatched</span>
@@ -474,8 +483,11 @@
                             </div>
 
                             <!-- 4. Interested Leads -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Interested Leads</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('interested_leads')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('interested_leads');}" title="Click to view verified positive commercial replies">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Interested Leads</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-interested-leads">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Pending Action</span>
@@ -485,8 +497,11 @@
                             </div>
 
                             <!-- 5. Active Demos -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Active Demos</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('active_demos')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('active_demos');}" title="Click to inspect generated turnkey demos & 8/8 QA gates">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Active Demos</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-active-demos">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Quality Gates</span>
@@ -495,8 +510,11 @@
                             </div>
 
                             <!-- 6. Proposals Awaiting Action -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Proposals Action</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('proposals_action')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('proposals_action');}" title="Click to inspect commercial proposals & delivery contracts">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Proposals Action</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-proposals-action">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Commercial</span>
@@ -505,8 +523,11 @@
                             </div>
 
                             <!-- 7. Payments Awaiting Auth -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Payments Auth</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('payments_auth')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('payments_auth');}" title="Click to verify transactions awaiting authorization">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Payments Auth</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-payments-auth">0</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext">Won Deals</span>
@@ -516,8 +537,11 @@
                             </div>
 
                             <!-- 8. Real Revenue & Payment Processing Status -->
-                            <div class="agency-kpi-block">
-                                <span class="agency-kpi-heading">Revenue Collected</span>
+                            <div class="agency-kpi-block agency-kpi-clickable" onclick="openKpiDetailModal('revenue_collected')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openKpiDetailModal('revenue_collected');}" title="Click to audit verified settlements and receipts">
+                                <div class="agency-kpi-header-row">
+                                    <span class="agency-kpi-heading">Revenue Collected</span>
+                                    <span class="agency-kpi-drill-hint">↗</span>
+                                </div>
                                 <div class="agency-kpi-big-val" id="ceo-val-revenue-dryrun" style="font-size:1.25rem; color:#34d399;">$0.00</div>
                                 <div class="agency-kpi-bottom-row">
                                     <span class="agency-kpi-subtext" id="ceo-subtext-revenue-status" style="color:#71717a; font-weight:600;">PAYMENTS NOT ACTIVE</span>
@@ -3715,11 +3739,98 @@
             </div>
         </div>
     </aside>
+    <!-- ======================================================= -->
+    <!-- KPI DRILL-DOWN AUDIT MODAL (SLIDE-OVER DRAWER) -->
+    <!-- ======================================================= -->
+    <div id="kpi-modal-backdrop" class="kpi-modal-backdrop" onclick="closeKpiDetailModal()"></div>
+    <div id="kpi-detail-modal" class="kpi-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="kpi-drawer-title">
+        <!-- Drawer Header -->
+        <div class="kpi-drawer-header">
+            <div class="kpi-drawer-title-group">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="kpi-drawer-icon" style="font-size:1.25rem;">🔍</span>
+                    <h2 id="kpi-drawer-title" class="kpi-drawer-title">Total Prospects</h2>
+                    <span id="kpi-drawer-count-badge" class="badge badge-cyan" style="font-size:0.75rem; font-family:var(--font-mono);">0 Records</span>
+                </div>
+                <div class="kpi-drawer-subtitle" id="kpi-drawer-subtitle">Audited production database records</div>
+            </div>
+            <button class="kpi-drawer-close-btn" onclick="closeKpiDetailModal()" aria-label="Close modal">×</button>
+        </div>
+
+        <!-- Metric Explanation / Counting Rules Card -->
+        <div class="kpi-explanation-card">
+            <div class="kpi-exp-row">
+                <span class="kpi-exp-label">DETERMINISTIC DEFINITION:</span>
+                <span class="kpi-exp-val" id="kpi-exp-definition">Loading definition...</span>
+            </div>
+            <div class="kpi-exp-row" style="margin-top:6px;">
+                <span class="kpi-exp-label">WHY COUNTED:</span>
+                <span class="kpi-exp-val" id="kpi-exp-why">Loading qualification criteria...</span>
+            </div>
+            <div id="kpi-summary-strip" class="kpi-summary-strip" style="display:none; margin-top:8px;">
+                <!-- Populated dynamically (e.g. Outreach breakdown or Revenue totals) -->
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="kpi-toolbar">
+            <div class="kpi-search-box">
+                <span style="opacity:0.6;">🔍</span>
+                <input type="text" id="kpi-search-input" placeholder="Search by business, domain, or email..." oninput="handleKpiSearchInput(event)">
+                <button id="kpi-search-clear" onclick="clearKpiSearch()" style="display:none; background:transparent; border:none; color:var(--text-muted); cursor:pointer;">×</button>
+            </div>
+            <div id="kpi-status-filters" class="kpi-status-filters">
+                <!-- Status pills populated dynamically when applicable -->
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="refreshCurrentKpiModal()" title="Refresh records from database" style="margin-left:auto; display:flex; align-items:center; gap:5px;">
+                <span>🔄</span> <span>Refresh</span>
+            </button>
+        </div>
+
+        <!-- Table / Record Container -->
+        <div class="kpi-drawer-body">
+            <div id="kpi-drawer-loader" class="kpi-drawer-loader" style="display:none;">
+                <div class="spinner"></div>
+                <p style="margin-top:10px; font-size:0.85rem;">Querying verified records...</p>
+            </div>
+
+            <div id="kpi-empty-state" class="kpi-empty-state" style="display:none;">
+                <div style="font-size:2rem; margin-bottom:8px; opacity:0.8;">🛡️</div>
+                <h4 id="kpi-empty-title" style="margin:0 0 6px 0; color:#fff; font-size:1rem;">Zero Records Matching Criteria</h4>
+                <p id="kpi-empty-desc" style="margin:0; font-size:0.85rem; color:#a1a1aa; max-width:480px; line-height:1.5;">
+                    No operational records currently meet this metric's strict database conditions. Fake or synthetic records are never manufactured.
+                </p>
+            </div>
+
+            <div id="kpi-table-container" class="kpi-table-container">
+                <table class="kpi-data-table">
+                    <thead id="kpi-table-head">
+                        <!-- Populated dynamically -->
+                    </thead>
+                    <tbody id="kpi-table-body">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="kpi-drawer-footer">
+            <div class="kpi-pagination-info" id="kpi-pagination-info">
+                Showing 0–0 of 0 records
+            </div>
+            <div class="kpi-pagination-controls">
+                <button id="kpi-prev-btn" class="btn btn-secondary btn-xs" onclick="changeKpiPage(-1)" disabled>Previous</button>
+                <span id="kpi-page-indicator" style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); padding:0 8px;">Page 1</span>
+                <button id="kpi-next-btn" class="btn btn-secondary btn-xs" onclick="changeKpiPage(1)" disabled>Next</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="/static/deliverability_hud.js?v=4.1.0"></script>
     <script type="module" src="/static/project_pipeline_hud.js?v=4.1.0"></script>
     <script type="module" src="/static/notification_center.js?v=4.1.0"></script>
-    <script src="/static/app.js?v=4.1.0"></script>
+    <script src="/static/app.js?v=4.2.0"></script>
     <script>
       // Mobile More Sheet Controller
       window.toggleMobileMoreSheet = function(e) {

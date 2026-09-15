@@ -141,7 +141,11 @@ class OutreachSenderAdapter:
             enforce_window=enforce_window
         )
         if not gate_res.is_eligible:
-            msg.status = OutreachStatus.FAILED.value
+            is_jurisdiction_blocked = any(
+                "OUTBOUND_BLOCKED" in r or "jurisdiction_requires_consent" in r or "personal_webmail_ineligible" in r or "prohibited_contact" in r
+                for r in gate_res.failure_reasons
+            )
+            msg.status = "OUTBOUND_BLOCKED" if is_jurisdiction_blocked else OutreachStatus.FAILED.value
             await session.commit()
             raise ValueError(f"Send cancelled: {'; '.join(gate_res.failure_reasons)}")
 
@@ -203,7 +207,7 @@ class OutreachSenderAdapter:
                 "provider": provider.__class__.__name__,
                 "message_id": delivery_res.get("message_id"),
                 "thread_id": delivery_res.get("details", {}).get("gmail_thread_id") or delivery_res.get("details", {}).get("thread_id"),
-                "delivery_status": "DELIVERED",
+                "delivery_status": delivery_res.get("delivery_status") or "PROVIDER_ACCEPTED",
                 "campaign_id": msg.campaign_id,
                 "compliance_result": gate_res.is_eligible,
                 "approval_record": {
@@ -222,6 +226,9 @@ class OutreachSenderAdapter:
         # 2. Update status and log event
         msg.status = OutreachStatus.SENT.value
         msg.sent_at = datetime.utcnow()
+        if delivery_res.get("message_id"):
+            msg.provider_message_id = delivery_res.get("message_id")
+        msg.provider = provider_name
 
         event_log = OutreachEvent(
             outreach_message_id=msg.id,

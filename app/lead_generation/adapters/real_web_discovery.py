@@ -10,6 +10,7 @@ from app.lead_generation.adapters.verified_registry import REAL_COMMERCIAL_BUSIN
 from app.core.security import normalize_domain, is_safe_url, validate_email_syntax
 from app.core.rate_limiter import default_rate_limiter
 from app.core.logging import logger
+from app.compliance.negative_disclaimer import detect_negative_disclaimer
 
 BLOCKED_DOMAINS = {
     "yelp.com", "yellowpages.com", "angi.com", "bbb.org", "thumbtack.com",
@@ -336,6 +337,12 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 if validate_email_syntax(e) and not any(ext in e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org", "domain.com", "bootstrap", "wordpress"])
             ]
 
+            # Check for express negative disclaimer on homepage
+            has_hp_disclaimer, matched_hp = detect_negative_disclaimer(resp.text)
+            if has_hp_disclaimer:
+                valid_emails = []
+                logger.info(f"[LeadDiscovery] Prohibited contact disclaimer on homepage for {domain}: '{matched_hp}'. Suppressing harvested emails.")
+
             # Extract phone numbers if not already provided
             if not phone:
                 phones = PHONE_REGEX.findall(resp.text)
@@ -351,23 +358,28 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                         contact_page_url = f"https://{domain}/{href.lstrip('/')}"
                     break
 
-            if contact_page_url and not valid_emails:
+            has_cp_disclaimer = False
+            if contact_page_url and not valid_emails and not has_hp_disclaimer:
                 try:
                     c_resp = await client.get(contact_page_url, headers=headers, timeout=4.0)
                     if c_resp.status_code == 200:
-                        c_emails = set(EMAIL_REGEX.findall(c_resp.text))
-                        valid_c_emails = [
-                            e for e in c_emails 
-                            if validate_email_syntax(e) and not any(ext in e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"])
-                        ]
-                        if valid_c_emails:
-                            valid_emails = valid_c_emails
+                        has_cp_disclaimer, matched_cp = detect_negative_disclaimer(c_resp.text)
+                        if has_cp_disclaimer:
+                            logger.info(f"[LeadDiscovery] Prohibited contact disclaimer on contact page for {domain}: '{matched_cp}'. Suppressing harvested emails.")
+                        else:
+                            c_emails = set(EMAIL_REGEX.findall(c_resp.text))
+                            valid_c_emails = [
+                                e for e in c_emails 
+                                if validate_email_syntax(e) and not any(ext in e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"])
+                            ]
+                            if valid_c_emails:
+                                valid_emails = valid_c_emails
                 except Exception:
                     pass
 
-            candidate_email = candidate.get("email")
+            candidate_email = candidate.get("email") if not (has_hp_disclaimer or has_cp_disclaimer) else None
             chosen_email = valid_emails[0] if valid_emails else candidate_email
-            email_status = "verified" if chosen_email else "unknown"
+            email_status = "prohibited_contact" if (has_hp_disclaimer or has_cp_disclaimer) else ("verified" if chosen_email else "unknown")
 
             return DiscoveredLeadRaw(
                 name=clean_name[:150],
