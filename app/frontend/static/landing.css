@@ -81,49 +81,23 @@ body.menu-open {
 }
 
 /* ==========================================================================
-   BACKGROUND PERSISTENT VIDEO & ATMOSPHERIC LIGHTING
+   BACKGROUND CLEAN OBSIDIAN CANVAS (RESTRAINED, ZERO CYBERPUNK CLUTTER)
    ========================================================================== */
 .bg {
   position: fixed;
   inset: 0;
-  background: #000000;
+  background: #080809;
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
 }
 
-.bg-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.55;
-  filter: saturate(0.85) contrast(1.08);
-  pointer-events: none;
-  z-index: 0;
-}
-
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 30%, rgba(7, 7, 7, 0.25) 0%, rgba(7, 7, 7, 0.85) 75%, #070707 100%);
+  background: radial-gradient(ellipse at 50% 20%, rgba(20, 24, 33, 0.45) 0%, rgba(8, 8, 9, 0.95) 70%, #080809 100%);
   pointer-events: none;
   z-index: 1;
-}
-
-.bg-atmospheric-glow {
-  position: absolute;
-  top: 40%;
-  left: 50%;
-  width: 800px;
-  height: 500px;
-  transform: translate(-50%, -50%) translate3d(var(--mouse-shift-x, 0px), var(--mouse-shift-y, 0px), 0);
-  background: radial-gradient(ellipse at center, rgba(0, 212, 239, 0.12) 0%, rgba(56, 189, 248, 0.04) 45%, transparent 70%);
-  pointer-events: none;
-  z-index: 1;
-  will-change: transform;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ==========================================================================

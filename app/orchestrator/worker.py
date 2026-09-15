@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from app.database.connection import AsyncSessionLocal
 from app.database.models import (
     SystemRun, Business, PipelineStage, OutreachMessage, OutreachStatus,
-    Reply, ReplyClassification, FollowupStatus
+    Reply, ReplyClassification, FollowupStatus, CustomerProject, ProjectStatus
 )
 from app.crm.inbox_poller import inbox_poller
 from app.crm.attention_engine import attention_engine
@@ -281,6 +281,10 @@ class PersistentAgencyWorker:
                 summary["scored_backlog"] = scored_n
                 summary["drafted_backlog"] = drafted_n
 
+                # Job 3c: Autonomous Demo Build Backlog Drainage (Persistent & Idempotent)
+                demos_n = await self.drain_demo_backlog(session, limit=5)
+                summary["demos_built"] = demos_n
+
                 # Job 4: Lead Discovery (CONTINUOUS WORKER) & Audit/Scoring (AUTOMATIC) & Outreach (QUEUE + APPROVAL)
                 cycle_interval_mins = settings.WORKER_CYCLE_INTERVAL_MINUTES
                 should_run_cycle = False
@@ -338,6 +342,7 @@ class PersistentAgencyWorker:
                     summary["inbox_replies_processed"]
                     + summary["followups_dispatched"]
                     + summary.get("approved_queue_processed", 0)
+                    + summary.get("demos_built", 0)
                 )
             except Exception as e:
                 run_record.status = "FAILED"
@@ -448,6 +453,69 @@ class PersistentAgencyWorker:
                 logger.error(f"[PersistentWorker:Draft] Failed to draft outreach for {domain_name}: {e}")
                 await session.rollback()
         return drafted_count
+
+    async def drain_demo_backlog(self, session: AsyncSession, limit: int = 5) -> int:
+        """
+        Processes pending DEMO_REQUESTED build jobs autonomously.
+        Ensures customer projects are loaded, specs generated, projects built, QA'd, repaired, and deployed.
+        Survives worker restarts and executes idempotently.
+        """
+        from app.builder.pipeline import pipeline_orchestrator
+
+        # 1. First, check for businesses in DEMO_REQUESTED that need a CustomerProject initialized
+        biz_stmt = (
+            select(Business.id)
+            .where(
+                Business.pipeline_stage == PipelineStage.DEMO_REQUESTED.value,
+                ~Business.customer_projects.any()
+            )
+            .order_by(Business.created_at.asc())
+            .limit(limit)
+        )
+        uninit_biz_ids = (await session.execute(biz_stmt)).scalars().all()
+        for biz_id in uninit_biz_ids:
+            try:
+                await pipeline_orchestrator.get_or_create_project(session, biz_id)
+                logger.info(f"[PersistentWorker:Demo] Created initial CustomerProject for DEMO_REQUESTED biz #{biz_id}")
+            except Exception as e:
+                logger.error(f"[PersistentWorker:Demo] Failed to create project for biz #{biz_id}: {e}")
+                await session.rollback()
+
+        # 2. Pick up pending customer projects in DEMO_REQUESTED or REQUESTED state
+        proj_stmt = (
+            select(CustomerProject)
+            .where(
+                CustomerProject.status.in_([
+                    ProjectStatus.DEMO_REQUESTED.value,
+                    ProjectStatus.REQUESTED.value
+                ])
+            )
+            .order_by(CustomerProject.created_at.asc())
+            .limit(limit)
+        )
+        pending_projects = (await session.execute(proj_stmt)).scalars().all()
+        demos_completed = 0
+
+        for project in pending_projects:
+            pid = project.project_id
+            try:
+                logger.info(f"[PersistentWorker:Demo] Autonomously running demo build pipeline for {pid}...")
+                res = await pipeline_orchestrator.run_pipeline(session, pid)
+                if res.get("success"):
+                    demos_completed += 1
+                    logger.info(
+                        f"[PersistentWorker:Demo] Successfully built demo {pid}: "
+                        f"URL={res.get('demo_url')} QA={res.get('qa_score')}%"
+                    )
+                else:
+                    logger.warning(
+                        f"[PersistentWorker:Demo] Demo build for {pid} did not pass QA: {res.get('status')}"
+                    )
+            except Exception as pe:
+                logger.error(f"[PersistentWorker:Demo] Error running pipeline for {pid}: {pe}", exc_info=True)
+                await session.rollback()
+
+        return demos_completed
 
     def get_status(self) -> Dict[str, Any]:
         """Returns the live worker operational status."""
