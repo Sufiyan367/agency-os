@@ -1,0 +1,23 @@
+{
+  "template_id": "AGY-ONBOARD-ClientWelcome-SetupJourney-v1.0",
+  "category": "customer onboarding",
+  "use_case": "Automated welcome packet, workspace provisioning, and client setup verification",
+  "version": "1.0.0",
+  "provenance": {
+    "source_repository": "https://github.com/enescingoz/awesome-n8n-templates",
+    "source_file": "onboarding/client_welcome_flow.json",
+    "source_license": "CC-BY-4.0",
+    "attribution_required": true
+  },
+  "security": {
+    "credential_status": "ZERO_HARDCODED_SECRETS",
+    "environment_variables_required": [
+      "AGENCY_ONBOARDING_TOKEN",
+      "AGENCY_PORTAL_DOMAIN"
+    ]
+  },
+  "compatibility": {
+    "n8n_version_minimum": "1.0.0",
+    "agency_os_version": "1.0.0"
+  }
+}

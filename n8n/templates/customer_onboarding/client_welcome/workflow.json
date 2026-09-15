@@ -1,0 +1,73 @@
+{
+  "name": "AGY-ONBOARD-ClientWelcome-SetupJourney-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-onboard-init",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Client Onboarding Bundle\nconst body = $input.first().json.body || $input.first().json;\nconst clientName = body.client_name || 'Valued Client';\nconst email = body.email || 'client@example.com';\nconst tier = body.service_tier || 'turnkey_growth';\n\nreturn [{\n  json: {\n    client_name: clientName,\n    client_email: email,\n    service_tier: tier,\n    portal_url: 'https://automatedagencyos.tech/portal',\n    checklist: [\n      'Domain DNS Configuration',\n      'Lead Notification Phone Setup',\n      'Payment & Invoice Verification'\n    ],\n    initialized_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-code-bundle",
+      "name": "Create Onboarding Bundle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"INITIALIZED\",\n  \"client\": \"{{ $json.client_name }}\",\n  \"tier\": \"{{ $json.service_tier }}\",\n  \"checklist_count\": {{ $json.checklist.length }},\n  \"ready_for_handover\": true\n}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Onboarding Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Onboarding Bundle": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "template_id": "AGY-CRM-PipelineSyncer-AuditLog-v1.0",
+  "category": "crm automation",
+  "use_case": "Two-way pipeline synchronization with external CRM records and audit log generation",
+  "version": "1.0.0",
+  "provenance": {
+    "source_repository": "https://github.com/Zie619/n8n-workflows",
+    "source_file": "crm/hubspot_webhook_sync.json",
+    "source_license": "MIT",
+    "attribution_required": false
+  },
+  "security": {
+    "credential_status": "ZERO_HARDCODED_SECRETS",
+    "environment_variables_required": [
+      "AGENCY_CRM_API_KEY",
+      "AGENCY_WEBHOOK_SECRET"
+    ]
+  },
+  "compatibility": {
+    "n8n_version_minimum": "1.0.0",
+    "agency_os_version": "1.0.0"
+  }
+}

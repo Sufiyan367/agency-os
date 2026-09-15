@@ -32,7 +32,12 @@ class PipelineStage(str, enum.Enum):
     DEMO_REQUESTED = "DEMO_REQUESTED"
     DEMO_REQUIREMENTS_REQUIRED = "DEMO_REQUIREMENTS_REQUIRED"
     DEMO_SPEC_READY = "DEMO_SPEC_READY"
+    DEMO_SPEC_CREATED = "DEMO_SPEC_CREATED"
     DEMO_BUILDING = "DEMO_BUILDING"
+    DEMO_BUILD_FAILED = "DEMO_BUILD_FAILED"
+    DEMO_QA = "DEMO_QA"
+    DEMO_QA_FAILED = "DEMO_QA_FAILED"
+    DEMO_DEPLOYING = "DEMO_DEPLOYING"
     DEMO_READY = "DEMO_READY"
     DEMO_DELIVERED = "DEMO_DELIVERED"
     COLD = "COLD"
@@ -87,14 +92,23 @@ class ReplyClassification(str, enum.Enum):
 
 class ProjectStatus(str, enum.Enum):
     REQUESTED = "REQUESTED"
+    DEMO_REQUESTED = "DEMO_REQUESTED"
     SPEC_READY = "SPEC_READY"
+    DEMO_SPEC_CREATED = "DEMO_SPEC_CREATED"
     DESIGNING = "DESIGNING"
     AI_PROTOTYPING = "AI_PROTOTYPING"
     BUILDING = "BUILDING"
+    DEMO_BUILDING = "DEMO_BUILDING"
+    DEMO_BUILD_FAILED = "DEMO_BUILD_FAILED"
     QA = "QA"
+    DEMO_QA = "DEMO_QA"
+    DEMO_QA_FAILED = "DEMO_QA_FAILED"
     REPAIRING = "REPAIRING"
     DEPLOYING = "DEPLOYING"
+    DEMO_DEPLOYING = "DEMO_DEPLOYING"
     READY = "READY"
+    DEMO_READY = "DEMO_READY"
+    DEMO_DELIVERED = "DEMO_DELIVERED"
     FAILED = "FAILED"
     BLOCKED = "BLOCKED"
 
@@ -267,6 +281,7 @@ class Business(Base):
     whatsapp_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
     whatsapp_consent_status: Mapped[str] = mapped_column(String(50), default="INELIGIBLE_NO_CONSENT")
     whatsapp_status_reason: Mapped[Optional[str]] = mapped_column(String(255), default="Public phone without opt-in consent")
+    demo_requested: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -1442,6 +1457,7 @@ class CustomerProject(Base):
     industry: Mapped[str] = mapped_column(String(100), default="General")
     status: Mapped[str] = mapped_column(String(50), default=ProjectStatus.REQUESTED.value, index=True)
     current_stage: Mapped[str] = mapped_column(String(50), default="SPEC", index=True)
+    demo_requested: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

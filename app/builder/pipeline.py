@@ -16,7 +16,7 @@ from sqlalchemy import select
 from app.database.models import (
     Business, CustomerProject, ProjectSpecification, DesignSpecification,
     AIFeatureSpecification, ProjectBuild, BuildQA, ProjectDeployment,
-    ProjectEvent, PipelineStage, PipelineEvent, Offer, Proposal
+    ProjectEvent, PipelineStage, ProjectStatus, PipelineEvent, Offer, Proposal
 )
 from app.builder.spec_engine import spec_engine
 from app.builder.providers.stitch_provider import StitchDesignProvider
@@ -87,8 +87,8 @@ class BuildPipelineOrchestrator:
             customer_slug=slug,
             title=biz_name,
             industry=biz.niche or "Commercial Services",
-            status="REQUESTED",
-            current_stage="REQUESTED",
+            status=ProjectStatus.DEMO_REQUESTED.value,
+            current_stage="DEMO_REQUESTED",
             created_at=datetime.utcnow()
         )
         session.add(project)
@@ -98,7 +98,7 @@ class BuildPipelineOrchestrator:
         event = ProjectEvent(
             project_id=project.id,
             event_type="PROJECT_INITIALIZED",
-            stage="REQUESTED",
+            stage="DEMO_REQUESTED",
             details={"reply_text": reply_text, "industry": project.industry}
         )
         session.add(event)
@@ -142,7 +142,8 @@ class BuildPipelineOrchestrator:
             # Update status to DEMO_BUILDING
             if biz:
                 biz.pipeline_stage = PipelineStage.DEMO_BUILDING.value
-            project.status = "BUILDING"
+            project.status = ProjectStatus.DEMO_BUILDING.value
+            project.current_stage = "DEMO_BUILDING"
             await session.commit()
 
             # -------------------------------------------------------------
@@ -237,9 +238,11 @@ class BuildPipelineOrchestrator:
             # -------------------------------------------------------------
             # STAGE 5: DEPLOY TO SANDBOX (Write artifacts for QA inspection)
             # -------------------------------------------------------------
-            project.current_stage = "DEPLOY"
-            project.status = "DEPLOYING"
-            session.add(ProjectEvent(project_id=project.id, event_type="DEPLOYMENT_STARTED", stage="DEPLOY"))
+            project.current_stage = "DEMO_DEPLOYING"
+            project.status = ProjectStatus.DEMO_DEPLOYING.value
+            if biz:
+                biz.pipeline_stage = PipelineStage.DEMO_DEPLOYING.value
+            session.add(ProjectEvent(project_id=project.id, event_type="DEPLOYMENT_STARTED", stage="DEMO_DEPLOYING"))
             await session.commit()
 
             deployment = await deployment_engine.deploy_demo(
@@ -252,9 +255,11 @@ class BuildPipelineOrchestrator:
             # -------------------------------------------------------------
             # STAGE 6: 20-GATE QA ENGINE EVALUATION
             # -------------------------------------------------------------
-            project.current_stage = "QA"
-            project.status = "QA"
-            session.add(ProjectEvent(project_id=project.id, event_type="QA_STARTED", stage="QA"))
+            project.current_stage = "DEMO_QA"
+            project.status = ProjectStatus.DEMO_QA.value
+            if biz:
+                biz.pipeline_stage = PipelineStage.DEMO_QA.value
+            session.add(ProjectEvent(project_id=project.id, event_type="QA_STARTED", stage="DEMO_QA"))
             await session.commit()
 
             qa_res = BuildQAEngine.evaluate_build(
@@ -280,6 +285,7 @@ class BuildPipelineOrchestrator:
             # -------------------------------------------------------------
             if qa_res.overall_status == "FAIL":
                 project.current_stage = "REPAIR"
+                project.status = ProjectStatus.REPAIRING.value
                 session.add(ProjectEvent(project_id=project.id, event_type="REPAIR_LOOP_STARTED", stage="REPAIR"))
                 await session.commit()
 
@@ -296,17 +302,17 @@ class BuildPipelineOrchestrator:
             # STAGE 8: SALES STATE MACHINE ALIGNMENT & PROPOSAL
             # -------------------------------------------------------------
             if qa_res.overall_status in ("PASS", "WARN"):
-                project.status = "READY"
-                project.current_stage = "DEPLOYED"
+                project.status = ProjectStatus.DEMO_READY.value
+                project.current_stage = "DEMO_READY"
                 if biz:
                     old_st = biz.pipeline_stage
-                    biz.pipeline_stage = PipelineStage.DEMO_DELIVERED.value
+                    biz.pipeline_stage = PipelineStage.DEMO_READY.value
                     session.add(PipelineEvent(
                         business_id=biz.id,
                         from_stage=old_st,
-                        to_stage=PipelineStage.DEMO_DELIVERED.value,
+                        to_stage=PipelineStage.DEMO_READY.value,
                         deal_value=650.0,
-                        note=f"Demo delivered successfully at {deployment.deployment_url}. QA score: {qa_res.score}%"
+                        note=f"Demo ready at {deployment.deployment_url}. QA score: {qa_res.score}%"
                     ))
 
                     # Create or ensure commercial proposal
@@ -327,7 +333,7 @@ class BuildPipelineOrchestrator:
                 session.add(ProjectEvent(
                     project_id=project.id,
                     event_type="DEMO_DELIVERY_COMPLETE",
-                    stage="READY",
+                    stage="DEMO_READY",
                     details={"url": deployment.deployment_url, "qa_score": qa_res.score}
                 ))
                 await session.commit()
@@ -341,26 +347,34 @@ class BuildPipelineOrchestrator:
                     "customer_slug": project.customer_slug,
                     "demo_id": deployment.demo_id,
                     "demo_url": deployment.deployment_url,
-                    "status": "READY",
+                    "status": ProjectStatus.DEMO_READY.value,
                     "qa_score": qa_res.score,
                     "gate_results": qa_res.gate_results
                 }
             else:
-                project.status = "FAILED"
+                project.status = ProjectStatus.DEMO_BUILD_FAILED.value
+                project.current_stage = "DEMO_BUILD_FAILED"
+                if biz:
+                    biz.pipeline_stage = PipelineStage.DEMO_BUILD_FAILED.value
                 session.add(ProjectEvent(
                     project_id=project.id,
                     event_type="DEMO_BUILD_FAILED",
-                    stage="FAILED",
-                    details={"critical_violations": qa_res.critical_violations}
+                    stage="DEMO_BUILD_FAILED",
+                    details={"critical_violations": qa_res.critical_violations, "alert": "CEO_REQUIRED"}
                 ))
                 await session.commit()
+                logger.error(
+                    f"[BuildPipelineOrchestrator] Demo build failed for {project_id} with violations: "
+                    f"{qa_res.critical_violations} - CEO_REQUIRED"
+                )
                 return {
                     "success": False,
                     "project_id": project.project_id,
                     "customer_slug": project.customer_slug,
-                    "status": "FAILED",
+                    "status": ProjectStatus.DEMO_BUILD_FAILED.value,
                     "qa_score": qa_res.score,
-                    "critical_violations": qa_res.critical_violations
+                    "critical_violations": qa_res.critical_violations,
+                    "requires_action": "CEO_REQUIRED"
                 }
 
     async def trigger_demo_pipeline(

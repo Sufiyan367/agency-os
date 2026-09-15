@@ -358,14 +358,24 @@
             const name = document.getElementById('contactName')?.value.trim() || '';
             const email = document.getElementById('contactEmail')?.value.trim() || '';
             const company = document.getElementById('contactCompany')?.value.trim() || '';
-            const service = document.getElementById('contactService')?.value || '';
-            const message = document.getElementById('contactMessage')?.value.trim() || '';
+            const website = document.getElementById('contactWebsite')?.value.trim() || '';
+            const problem = document.getElementById('contactProblem')?.value.trim() || '';
+            const whatAutomated = document.getElementById('contactAutomated')?.value.trim() || '';
 
             submitLead(
-                { name, email, company, service_interest: service, message },
+                {
+                    name,
+                    email,
+                    company,
+                    website,
+                    problem,
+                    what_they_want_automated: whatAutomated,
+                    service_interest: 'Demo & Architecture Assessment',
+                    message: `Problem: ${problem}\nWhat to Automate: ${whatAutomated}`
+                },
                 inlineAlert,
                 contactSubmitBtn,
-                'Send Consultation Request',
+                'Request a Demo',
                 contactForm
             );
         });
@@ -382,17 +392,24 @@
             const name = consultationForm.querySelector('[name="name"]')?.value.trim() || '';
             const email = consultationForm.querySelector('[name="email"]')?.value.trim() || '';
             const company = consultationForm.querySelector('[name="company"]')?.value.trim() || '';
-            const phone = consultationForm.querySelector('[name="phone"]')?.value.trim() || '';
-            const service = consultationForm.querySelector('[name="service_interest"]')?.value || 'sales_automation';
-            const note = consultationForm.querySelector('[name="message"]')?.value.trim() || '';
-
-            const fullMsg = phone ? `Phone: ${phone} | Note: ${note}` : note;
+            const website = consultationForm.querySelector('[name="website"]')?.value.trim() || '';
+            const problem = consultationForm.querySelector('[name="problem"]')?.value.trim() || '';
+            const whatAutomated = consultationForm.querySelector('[name="what_they_want_automated"]')?.value.trim() || '';
 
             submitLead(
-                { name, email, company, service_interest: service, message: fullMsg },
+                {
+                    name,
+                    email,
+                    company,
+                    website,
+                    problem,
+                    what_they_want_automated: whatAutomated,
+                    service_interest: 'Demo & Architecture Assessment',
+                    message: `Problem: ${problem}\nWhat to Automate: ${whatAutomated}`
+                },
                 consultationAlert,
                 consultationSubmitBtn,
-                'Request Assessment',
+                'Request Demo',
                 consultationForm,
                 function () {
                     setTimeout(() => closeModal(consultationModal), 3000);

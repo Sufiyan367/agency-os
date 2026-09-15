@@ -5259,74 +5259,7 @@ async def evaluate_retraining_policy(
     return {"status": "SUCCESS", "retraining_policy": policy_decision}
 
 
-# ============================================================
-# Public Business Website Inquiries
-# ============================================================
-
-class ContactInquiryRequest(BaseModel):
-    name: str
-    email: str
-    company: str
-    service_interest: str
-    message: str
-
-
-@router.post("/api/contact")
-async def submit_contact_inquiry(
-    payload: ContactInquiryRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Public business contact inquiry endpoint.
-    Validates submission, logs the inquiry safely, and returns a verified confirmation.
-    Zero outgoing emails are dispatched directly to respect EMAIL_DRY_RUN / outbound safety rules.
-    """
-    name = (payload.name or "").strip()
-    email = (payload.email or "").strip()
-    company = (payload.company or "").strip()
-    service_interest = (payload.service_interest or "").strip()
-    message = (payload.message or "").strip()
-
-    if not name or not email or not company or not service_interest or not message:
-        raise HTTPException(status_code=400, detail="All contact inquiry fields are required.")
-
-    if "@" not in email or "." not in email.split("@")[-1]:
-        raise HTTPException(status_code=400, detail="Please enter a valid business email address.")
-
-    logger.info(f"[ContactInquiry] Received inquiry from {name} <{email}> at {company} regarding {service_interest}")
-
-    try:
-        activity = AgentActivityEvent(
-            run_id="public_inquiry",
-            event_type="CONTACT_INQUIRY",
-            status="SUCCESS",
-            message=f"Contact inquiry received from {name} ({company}) - {service_interest}",
-            metadata_json={
-                "name": name,
-                "email": email,
-                "company": company,
-                "service_interest": service_interest,
-                "message_length": len(message),
-                "client_ip": request.client.host if request.client else "unknown",
-                "received_at": datetime.utcnow().isoformat()
-            }
-        )
-        db.add(activity)
-        await db.commit()
-    except Exception as e:
-        logger.warning(f"[ContactInquiry] Failed to record activity event in DB: {e}")
-
-    return {
-        "success": True,
-        "message": "Thank you for reaching out. We have received your inquiry and our team will get back to you within 24 business hours.",
-        "inquiry": {
-            "name": name,
-            "company": company,
-            "service_interest": service_interest,
-            "received_at": datetime.utcnow().isoformat()
-        }
-    }
+# Public Business Inquiries handled via unified lead persistence below
 
 
 class OnboardingConsultationRequest(BaseModel):
@@ -5609,6 +5542,78 @@ async def submit_onboarding_consultation(
             "need": need,
             "additional_details": note,
             "received_at": now.isoformat()
+        }
+    }
+
+
+# ============================================================
+# Public Business Website & Demo Contact Inquiries
+# ============================================================
+
+class ContactInquiryRequest(BaseModel):
+    name: str
+    email: str
+    company: Optional[str] = ""
+    business: Optional[str] = ""
+    service_interest: Optional[str] = "AI Automation & System Integration"
+    message: Optional[str] = ""
+    website: Optional[str] = ""
+    problem: Optional[str] = ""
+    what_they_want_automated: Optional[str] = ""
+
+
+@router.post("/api/contact")
+async def submit_contact_inquiry(
+    payload: ContactInquiryRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Public business contact & demo request endpoint.
+    Persists lead directly into Business SQLite database, records inbound Reply,
+    updates ProspectMemory, and triggers acquisition telemetry.
+    """
+    name = (payload.name or "").strip()
+    email = (payload.email or "").strip()
+    company = (payload.company or payload.business or "").strip()
+    service_interest = (payload.service_interest or "AI Automation & System Integration").strip()
+    message = (payload.message or "").strip()
+    website = (payload.website or "").strip()
+    problem = (payload.problem or "").strip()
+    what_automated = (payload.what_they_want_automated or "").strip()
+
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="Name and email are required.")
+
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Please enter a valid business email address.")
+
+    combined_notes = message
+    if problem:
+        combined_notes = f"{combined_notes}\nOperational Problem: {problem}".strip()
+    if what_automated:
+        combined_notes = f"{combined_notes}\nWhat To Automate: {what_automated}".strip()
+
+    onboard_req = OnboardingConsultationRequest(
+        name=name,
+        email=email,
+        company=company or name,
+        website=website,
+        industry=service_interest,
+        need=service_interest,
+        notes=combined_notes or "Demo and consultation inquiry",
+        current_process=problem or message
+    )
+
+    result = await submit_onboarding_consultation(payload=onboard_req, request=request, db=db)
+    return {
+        "success": True,
+        "message": "Thank you for reaching out. We have received your inquiry and our team will get back to you within 24 business hours.",
+        "inquiry": {
+            "name": name,
+            "company": company or name,
+            "service_interest": service_interest,
+            "lead_id": result.get("lead_id")
         }
     }
 

@@ -1,0 +1,73 @@
+{
+  "name": "AGY-SUPPORT-TicketTriage-AutoResponder-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-inbound-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify Support Ticket\nconst body = $input.first().json.body || $input.first().json;\nconst inquiry = (body.message || body.ticket_text || '').toLowerCase();\n\nlet priority = 'MEDIUM';\nlet category = 'GENERAL_INQUIRY';\n\nif (inquiry.includes('down') || inquiry.includes('urgent') || inquiry.includes('broken')) {\n  priority = 'HIGH';\n  category = 'OUTAGE_INCIDENT';\n} else if (inquiry.includes('billing') || inquiry.includes('invoice') || inquiry.includes('payment')) {\n  priority = 'MEDIUM';\n  category = 'BILLING';\n}\n\nreturn [{\n  json: {\n    ticket_id: body.ticket_id || 'TCK-' + Math.floor(Math.random() * 90000 + 10000),\n    category: category,\n    priority: priority,\n    requires_operator: priority === 'HIGH',\n    triage_time: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-code-triage",
+      "name": "Evaluate & Triage Ticket",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"TRIAGED\",\n  \"ticket_id\": \"{{ $json.ticket_id }}\",\n  \"category\": \"{{ $json.category }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"routed_to_ceo\": {{ $json.requires_operator }}\n}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Evaluate & Triage Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate & Triage Ticket": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

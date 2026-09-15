@@ -31,6 +31,18 @@ class CanonicalSpec(BaseModel):
     framework: str = "react"
     backend_framework: str = "fastapi"
     styling_library: str = "tailwind"
+    # Machine-Readable Demo Spec Fields (driven by actual requirements)
+    customer: Dict[str, Any] = Field(default_factory=dict)
+    business: Dict[str, Any] = Field(default_factory=dict)
+    problem: str = ""
+    requirements: List[str] = Field(default_factory=list)
+    required_pages: List[Dict[str, Any]] = Field(default_factory=list)
+    required_features: List[Dict[str, Any]] = Field(default_factory=list)
+    branding: Dict[str, Any] = Field(default_factory=dict)
+    integrations: List[str] = Field(default_factory=list)
+    constraints: List[str] = Field(default_factory=list)
+    success_criteria: List[str] = Field(default_factory=list)
+
     facts: List[RequirementFact] = Field(default_factory=list)
     customer_requests: List[CustomerRequestItem] = Field(default_factory=list)
     ai_inferences: List[AIInferenceItem] = Field(default_factory=list)

@@ -1,0 +1,73 @@
+{
+  "name": "AGY-CRM-PipelineSyncer-AuditLog-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-sync-event",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize CRM Payload\nconst body = $input.first().json.body || $input.first().json;\nconst leadId = body.lead_id || body.business_id;\nconst stage = (body.stage || 'DISCOVERED').toUpperCase();\nconst dealValue = parseFloat(body.deal_value || 0);\n\nif (!leadId) {\n  throw new Error('lead_id is required');\n}\n\nreturn [{\n  json: {\n    lead_id: leadId,\n    company_name: body.company_name || 'Client',\n    stage: stage,\n    deal_value: dealValue,\n    timestamp: new Date().toISOString(),\n    audit_event: `STAGE_TRANSITION_${stage}`\n  }\n}];"
+      },
+      "id": "node-code-normalize",
+      "name": "Normalize CRM Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"SUCCESS\",\n  \"event\": \"CRM_SYNC_COMMITTED\",\n  \"lead_id\": {{ $json.lead_id }},\n  \"current_stage\": \"{{ $json.stage }}\",\n  \"synced_at\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize CRM Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize CRM Event": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -180,7 +180,7 @@
       "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
       "commercialization_status": "COMMERCIAL_READY",
       "template_dir": null,
-      "notes": "Licensed under CC-BY-4.0. Must attribute Enes Cingöz and state changes made in template documentation."
+      "notes": "Licensed under CC-BY-4.0. Must attribute Enes Cing\u00f6z and state changes made in template documentation."
     },
     {
       "workflow_name": "REF-RAG-MultiSourceResearch-v0.5",
@@ -201,6 +201,60 @@
       "commercialization_status": "BLOCKED_LICENSE",
       "template_dir": null,
       "notes": "COMMERCIALIZATION STRICTLY FORBIDDEN: Upstream repo has no license file. Kept as architectural concept reference only."
+    },
+    {
+      "workflow_name": "AGY-CRM-PipelineSyncer-AuditLog-v1.0",
+      "category": "crm automation",
+      "use_case": "Two-way pipeline synchronization with external CRM records and audit log generation",
+      "source_repo": "https://github.com/Zie619/n8n-workflows",
+      "source_path": "crm/hubspot_webhook_sync.json",
+      "source_license": "MIT",
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "template_dir": "n8n/templates/crm_automation/pipeline_syncer",
+      "adaptation_status": "ADAPTED_FROM_REFERENCE",
+      "test_status": "PASSED_STRICT_AUDIT",
+      "commercialization_status": "COMMERCIAL_READY",
+      "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution."
+    },
+    {
+      "workflow_name": "AGY-ONBOARD-ClientWelcome-SetupJourney-v1.0",
+      "category": "customer onboarding",
+      "use_case": "Automated welcome packet, workspace provisioning, and client setup verification",
+      "source_repo": "https://github.com/enescingoz/awesome-n8n-templates",
+      "source_path": "onboarding/client_welcome_flow.json",
+      "source_license": "CC-BY-4.0",
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "template_dir": "n8n/templates/customer_onboarding/client_welcome",
+      "adaptation_status": "ADAPTED_FROM_REFERENCE",
+      "test_status": "PASSED_STRICT_AUDIT",
+      "commercialization_status": "COMMERCIAL_READY",
+      "notes": "Adapted under CC-BY-4.0 with explicit attribution in metadata and README.md."
+    },
+    {
+      "workflow_name": "AGY-SUPPORT-TicketTriage-AutoResponder-v1.0",
+      "category": "ai support automation",
+      "use_case": "Automated ticket categorization, urgency scoring, auto-response draft, and human escalation",
+      "source_repo": "https://github.com/Zie619/n8n-workflows",
+      "source_path": "support/ai_ticket_routing.json",
+      "source_license": "MIT",
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "template_dir": "n8n/templates/ai_support_automation/ticket_triage",
+      "adaptation_status": "ADAPTED_FROM_REFERENCE",
+      "test_status": "PASSED_STRICT_AUDIT",
+      "commercialization_status": "COMMERCIAL_READY",
+      "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution."
     }
   ]
 }

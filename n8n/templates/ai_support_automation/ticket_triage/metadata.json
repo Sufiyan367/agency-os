@@ -1,0 +1,22 @@
+{
+  "template_id": "AGY-SUPPORT-TicketTriage-AutoResponder-v1.0",
+  "category": "ai support automation",
+  "use_case": "Automated ticket categorization, urgency scoring, auto-response draft, and human escalation",
+  "version": "1.0.0",
+  "provenance": {
+    "source_repository": "https://github.com/Zie619/n8n-workflows",
+    "source_file": "support/ai_ticket_routing.json",
+    "source_license": "MIT",
+    "attribution_required": false
+  },
+  "security": {
+    "credential_status": "ZERO_HARDCODED_SECRETS",
+    "environment_variables_required": [
+      "AGENCY_SUPPORT_WEBHOOK_SECRET"
+    ]
+  },
+  "compatibility": {
+    "n8n_version_minimum": "1.0.0",
+    "agency_os_version": "1.0.0"
+  }
+}

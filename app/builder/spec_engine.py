@@ -16,7 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database.models import (
-    Business, CustomerProject, ProjectSpecification, Offer, AuditRun
+    Business, CustomerProject, ProjectSpecification, Offer, AuditRun,
+    PipelineStage, ProjectStatus
 )
 from app.builder.models import (
     CanonicalSpec, RequirementFact, CustomerRequestItem, AIInferenceItem
@@ -391,8 +392,10 @@ class CanonicalSpecEngine:
         )
 
         session.add(spec_model)
-        customer_project.status = "SPEC_READY"
-        customer_project.current_stage = "SPEC"
+        customer_project.status = ProjectStatus.DEMO_SPEC_CREATED.value
+        customer_project.current_stage = "DEMO_SPEC_CREATED"
+        if biz:
+            biz.pipeline_stage = PipelineStage.DEMO_SPEC_CREATED.value
         await session.commit()
         await session.refresh(spec_model)
 
@@ -401,6 +404,70 @@ class CanonicalSpecEngine:
             f"for project {customer_project.project_id} (checksum: {checksum[:8]}...)"
         )
         return spec_model
+
+    @classmethod
+    def to_canonical_spec(
+        cls,
+        spec_model: ProjectSpecification,
+        customer_project: CustomerProject,
+        biz: Optional[Business] = None
+    ) -> CanonicalSpec:
+        """Converts a persisted ProjectSpecification into a rich, typed CanonicalSpec."""
+        biz_name = (biz.name if biz else None) or customer_project.title or "Client Partner"
+        domain = (biz.domain if biz else None) or f"{customer_project.customer_slug}.com"
+        industry = customer_project.industry or (biz.niche if biz else "Commercial Services") or "General"
+
+        facts = [RequirementFact(**f) if isinstance(f, dict) else f for f in (spec_model.facts or [])]
+        requests = [CustomerRequestItem(**r) if isinstance(r, dict) else r for r in (spec_model.customer_requests or [])]
+        inferences = [AIInferenceItem(**i) if isinstance(i, dict) else i for i in (spec_model.ai_inferences or [])]
+
+        problem = f"Modernizing digital customer acquisition and appointment booking for {biz_name}."
+        if requests:
+            problem = f"Addressing high customer drop-off by automating: {', '.join(r.request_text for r in requests[:2])}."
+
+        return CanonicalSpec(
+            project_id=customer_project.project_id,
+            customer_slug=customer_project.customer_slug,
+            business_name=biz_name,
+            domain=domain,
+            industry=industry,
+            version=spec_model.version,
+            architecture_style=spec_model.architecture_style or "modular_monolith",
+            primary_language=spec_model.primary_language or "typescript",
+            framework=spec_model.framework or "react",
+            backend_framework=spec_model.backend_framework or "fastapi",
+            styling_library=spec_model.styling_library or "tailwind",
+            customer={
+                "slug": customer_project.customer_slug,
+                "project_id": customer_project.project_id,
+                "title": customer_project.title
+            },
+            business={
+                "name": biz_name,
+                "domain": domain,
+                "industry": industry,
+                "phone": biz.phone if biz else None,
+                "location": f"{biz.city}, {biz.country}" if (biz and (biz.city or biz.country)) else None
+            },
+            problem=problem,
+            requirements=[r.request_text for r in requests] if requests else ["Interactive digital booking & qualification"],
+            required_pages=spec_model.required_screens or [],
+            required_features=spec_model.ai_features or [],
+            branding={
+                "primary_color": "#2563EB",
+                "font_family": "Inter",
+                "theme": "dark_ops"
+            },
+            integrations=["fastapi", "gemini_ai", "sqlite", "calendar"],
+            constraints=["mobile-responsive", "sub-second paint", "zero layout shift"],
+            success_criteria=["20 QA gates pass", "functional intake booking", "zero placeholder leak", "valid deployment url"],
+            facts=facts,
+            customer_requests=requests,
+            ai_inferences=inferences,
+            required_screens=spec_model.required_screens or [],
+            ai_features=spec_model.ai_features or [],
+            checksum=spec_model.checksum or ""
+        )
 
 
 spec_engine = CanonicalSpecEngine()
