@@ -18,7 +18,7 @@ from typing import Dict, Any, List, Tuple
 
 
 SECRET_PATTERNS = [
-    (r"sk-[a-zA-Z0-9]{20,}", "OpenAI API Key"),
+    (r"sk-[a-zA-Z0-9\-_]{20,}", "API Key (OpenAI / Stripe)"),
     (r"AIza[0-9A-Za-z\-_]{35}", "Google API Key"),
     (r"ghp_[a-zA-Z0-9]{36}", "GitHub Personal Access Token"),
     (r"xox[baprs]-[0-9a-zA-Z]{10,}", "Slack Token"),

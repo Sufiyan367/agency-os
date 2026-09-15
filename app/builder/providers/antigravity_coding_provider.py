@@ -87,6 +87,53 @@ class AntigravityCodingProvider(BaseCodingProvider):
             "sample_dialogue": ai_proto.interactive_hooks.get("sample_dialogue", [])
         }, indent=2)
 
+        # 6. Generate n8n_automation.json (B6: n8n automation worker inside demos)
+        n8n_automation_content = json.dumps({
+            "workflow_name": f"{biz_name} Automated Lead Intake & Intelligent Router",
+            "trigger": {
+                "type": "n8n-nodes-base.webhook",
+                "webhook_path": f"/webhook/demos/{customer_project.customer_slug}/inquiry",
+                "http_method": "POST",
+                "response_mode": "onReceived"
+            },
+            "nodes": [
+                {
+                    "name": "Intake Webhook",
+                    "type": "n8n-nodes-base.webhook",
+                    "position": [250, 300]
+                },
+                {
+                    "name": "Commercial Intent Classifier",
+                    "type": "n8n-nodes-base.code",
+                    "position": [450, 300],
+                    "parameters": {
+                        "mode": "runOnceForAllItems",
+                        "jsCode": "// Classifies incoming prospect inquiry urgency and commercial intent\nconst item = $input.first().json;\nreturn [{ json: { ...item, priority: item.urgent ? 'HIGH' : 'STANDARD', routed_to: 'AGENCY_OS_DISPATCH' } }];"
+                    }
+                },
+                {
+                    "name": "Agency OS Dispatch Notification",
+                    "type": "n8n-nodes-base.emailSend",
+                    "position": [650, 300],
+                    "parameters": {
+                        "toEmail": "={{ $env.AGENCY_NOTIFICATION_EMAIL }}",
+                        "subject": f"New Inquiry Captured for {biz_name}",
+                        "text": "Automated inbound lead processed and queued in Agency OS CRM."
+                    }
+                }
+            ],
+            "connections": {
+                "Intake Webhook": {
+                    "main": [[{"node": "Commercial Intent Classifier", "type": "main", "index": 0}]]
+                },
+                "Commercial Intent Classifier": {
+                    "main": [[{"node": "Agency OS Dispatch Notification", "type": "main", "index": 0}]]
+                }
+            },
+            "status": "CONFIGURED",
+            "license": "MIT"
+        }, indent=2)
+
         files = [
             BuildArtifactItem(
                 file_path="index.html",
@@ -122,6 +169,13 @@ class AntigravityCodingProvider(BaseCodingProvider):
                 size_bytes=len(ai_config_content.encode("utf-8")),
                 sha256=hashlib.sha256(ai_config_content.encode("utf-8")).hexdigest(),
                 content=ai_config_content
+            ),
+            BuildArtifactItem(
+                file_path="n8n_automation.json",
+                file_type="application/json",
+                size_bytes=len(n8n_automation_content.encode("utf-8")),
+                sha256=hashlib.sha256(n8n_automation_content.encode("utf-8")).hexdigest(),
+                content=n8n_automation_content
             )
         ]
 

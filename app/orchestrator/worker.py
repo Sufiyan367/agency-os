@@ -461,8 +461,10 @@ class PersistentAgencyWorker:
         Survives worker restarts and executes idempotently.
         """
         from app.builder.pipeline import pipeline_orchestrator
+        from app.delivery.demo_job_manager import DemoJobManager
+        from app.database.models import DemoBuildJob
 
-        # 1. First, check for businesses in DEMO_REQUESTED that need a CustomerProject initialized
+        # 1. First, check for businesses in DEMO_REQUESTED that need a CustomerProject and DemoBuildJob initialized
         biz_stmt = (
             select(Business.id)
             .where(
@@ -475,8 +477,9 @@ class PersistentAgencyWorker:
         uninit_biz_ids = (await session.execute(biz_stmt)).scalars().all()
         for biz_id in uninit_biz_ids:
             try:
+                await DemoJobManager.create_or_get_job(session, biz_id, force=True)
                 await pipeline_orchestrator.get_or_create_project(session, biz_id)
-                logger.info(f"[PersistentWorker:Demo] Created initial CustomerProject for DEMO_REQUESTED biz #{biz_id}")
+                logger.info(f"[PersistentWorker:Demo] Created initial CustomerProject & DemoBuildJob for DEMO_REQUESTED biz #{biz_id}")
             except Exception as e:
                 logger.error(f"[PersistentWorker:Demo] Failed to create project for biz #{biz_id}: {e}")
                 await session.rollback()

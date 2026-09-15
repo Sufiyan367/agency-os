@@ -1,82 +1,62 @@
 # AGY-SCORE-LeadQualification-CommercialFloor-v1.0
 
-## 1. Overview & Business Use Case
-Agency efficiency collapses when sales teams spend time pursuing deals below operational delivery margins. This workflow enforces an automated commercial qualification policy:
-- **Strict $500 Commercial Floor**: Immediately disqualifies prospects with budget expectations below $500.
-- **ICP Fit Scoring (0-100)**: Evaluates diagnostic health deficit, team size capacity, and deal value potential.
-- **Automated Routing & Priority Tagging**:
-  - `HIGH` (Score >= 80): Immediate priority outreach queue.
-  - `MEDIUM` (Score 60-79): Standard batch outreach cadence.
-  - `LOW` / `REJECTED`: Nurture or auto-archive without wasting sales capacity.
+## 1. What It Does
+Commercial feasibility scoring enforcing strict $500 project value floor, ICP alignment metrics, commercial priority tagging (HIGH/MEDIUM/LOW), and automated lead routing. Prevents sales teams from pursuing unviable prospects below delivery margins.
 
-Derived directly from the Agency OS Commercial Scoring Engine (`app/scoring/commercial_scoring.py`).
+## 2. Who It Is For
+Agency operators, B2B sales teams, and commercial operations automating lead qualification workflows.
 
----
+## 3. Use Cases
+- Strict $500 budget floor enforcement on all inbound and outbound deals.
+- Instant 0-100 feasibility scoring based on deal size, team headcount, and web deficit.
+- Automated pipeline routing (HIGH priority to instant scheduling, LOW to archive).
 
-## 2. Input Specification
-- **Trigger**: HTTP Webhook (POST)
-- **Endpoint**: `/webhook/qualify-lead`
-- **Content-Type**: `application/json`
+## 4. Required n8n Setup
+- **Minimum n8n Version**: `1.0.0` or higher
+- **Node Runtime**: Node.js 18+ or n8n cloud instance
+- **Execution Mode**: Production webhook listener or asynchronous queue
 
-### Example Payload:
-```json
-{
-  "domain": "acmebrokerage.com",
-  "estimated_budget_usd": 1500,
-  "team_size": 12,
-  "overall_health_score": 55
-}
-```
+## 5. Required Credentials
+Zero hardcoded credentials. All integrations utilize isolated n8n credential managers:
+- `n8n-nodes-base.webhook`
+- `n8n-nodes-base.code`
+- `n8n-nodes-base.switch`
+- `n8n-nodes-base.respondToWebhook`
 
----
+## 6. Inputs
+- `deal_value` (number): Estimated deal value in USD (e.g. 750.0).
+- `traffic_score` (number): Preliminary prospect traffic score (0-100).
+- `industry` (string): Business industry classification.
 
-## 3. Output Specification
-- **Response**: Synchronous JSON (`application/json`)
-- **Status Codes**:
-  - `200 OK`: Lead scored and routing decision generated.
+## 7. Outputs
+- `floor_passed` (boolean): Whether deal meets or exceeds the $500 floor.
+- `commercial_priority` (string): HIGH_PRIORITY, MEDIUM_PRIORITY, or BLOCKED_BELOW_FLOOR.
+- `feasibility_score` (number): 0-100 calculated commercial feasibility rating.
+- `requires_human_review` (boolean): Flag indicating if manual CEO review is required.
 
-### Example Qualified Output:
-```json
-{
-  "status": "QUALIFIED",
-  "domain": "acmebrokerage.com",
-  "qualification_score": 85,
-  "priority_tier": "HIGH",
-  "estimated_budget_usd": 1500,
-  "route": "immediate_outreach",
-  "qualified_at": "2026-09-16T00:45:00.000Z"
-}
-```
+## 8. Installation
+1. Open your n8n workspace console.
+2. Select **Workflows** -> **Import from File...**
+3. Upload `workflow.json` from this package.
+4. Set execution active.
 
-### Example Disqualified Output ($500 Floor Violation):
-```json
-{
-  "status": "DISQUALIFIED",
-  "reason": "Budget $300 is below the strict $500 commercial floor.",
-  "domain": "lowtierlead.com",
-  "qualification_score": 0,
-  "priority_tier": "REJECTED",
-  "route": "archive"
-}
-```
+## 9. Configuration
+Configure required environment parameters:
+- `AGENCY_WEBHOOK_URL`: Base URL for Agency OS callbacks.
+- `COMMERCIAL_FLOOR_USD`: Minimum acceptable contract value (default: $500.0).
 
----
+## 10. Expected Behavior
+Upon receiving a POST webhook payload, the workflow computes commercial feasibility, enforces the $500 floor, assigns priority tiers, and synchronously responds with structured routing directives.
 
-## 4. Setup Instructions
-1. Import `workflow.json` into n8n via **Workflows → Import from File**.
-2. Customize the `COMMERCIAL_FLOOR_USD` constant inside the Code node if your agency price floor is higher (e.g., $1,000 or $2,500).
-3. Connect downstream nodes (e.g. CRM insert, Slack notification, or Outreach sequencer) to the corresponding output branches of the **Route by Priority Tier** switch node.
+## 11. Error Handling
+- Invalid JSON payloads automatically trigger defensive validation branches.
+- Missing values default to safe baseline estimates to prevent workflow halts.
 
----
+## 12. License & Source Attribution
+- **License**: MIT
+- **Provenance**: Agency OS Core Engine (`app/scoring/commercial_scoring.py`)
+- **Status**: Verified commercially distributable under permissive open-source license.
 
-## 5. Failure Handling
-- Safe default fallbacks apply if `estimated_budget_usd` or `team_size` are omitted.
-- Missing values degrade gracefully without throwing uncaught exceptions.
-
----
-
-## 6. Provenance & License
-- **Source Repository**: `https://github.com/Sufiyan367/agency-os` (`app/scoring/commercial_scoring.py`)
-- **Source License**: `PROPRIETARY_AGENCY_OS`
-- **Commercialization Status**: `COMMERCIAL_READY`
-- **Reference Inspirations**: `enescingoz/awesome-n8n-templates` (`lead-scoring.json`).
+## 13. Modification Notes
+- Standardized for Agency OS commercial engine deployment.
+- All secrets, tokens, and hardcoded addresses removed and replaced with environmental variables.

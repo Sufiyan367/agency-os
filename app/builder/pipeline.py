@@ -16,7 +16,8 @@ from sqlalchemy import select
 from app.database.models import (
     Business, CustomerProject, ProjectSpecification, DesignSpecification,
     AIFeatureSpecification, ProjectBuild, BuildQA, ProjectDeployment,
-    ProjectEvent, PipelineStage, ProjectStatus, PipelineEvent, Offer, Proposal
+    ProjectEvent, PipelineStage, ProjectStatus, PipelineEvent, Offer, Proposal,
+    DemoBuildJob
 )
 from app.builder.spec_engine import spec_engine
 from app.builder.providers.stitch_provider import StitchDesignProvider
@@ -139,11 +140,19 @@ class BuildPipelineOrchestrator:
 
             biz = await session.get(Business, project.business_id)
 
+            # Query existing DemoBuildJob if present
+            q_job = select(DemoBuildJob).where(
+                DemoBuildJob.business_id == project.business_id
+            ).order_by(DemoBuildJob.created_at.desc())
+            demo_job = (await session.execute(q_job)).scalars().first()
+
             # Update status to DEMO_BUILDING
             if biz:
                 biz.pipeline_stage = PipelineStage.DEMO_BUILDING.value
             project.status = ProjectStatus.DEMO_BUILDING.value
             project.current_stage = "DEMO_BUILDING"
+            if demo_job:
+                demo_job.status = ProjectStatus.DEMO_BUILDING.value
             await session.commit()
 
             # -------------------------------------------------------------
@@ -158,6 +167,17 @@ class BuildPipelineOrchestrator:
                 customer_project=project,
                 reply_text=reply_text
             )
+
+            project.status = ProjectStatus.DEMO_SPEC_CREATED.value
+            project.current_stage = "DEMO_SPEC_CREATED"
+            if demo_job:
+                demo_job.status = ProjectStatus.DEMO_SPEC_CREATED.value
+                demo_job.spec_summary = {
+                    "screens": [getattr(s, "name", str(s)) for s in (spec.required_screens or [])],
+                    "facts_count": len(spec.facts or []),
+                    "checksum": spec.checksum
+                }
+            await session.commit()
 
             # -------------------------------------------------------------
             # STAGE 2: DESIGN (Stitch Provider)
@@ -242,6 +262,8 @@ class BuildPipelineOrchestrator:
             project.status = ProjectStatus.DEMO_DEPLOYING.value
             if biz:
                 biz.pipeline_stage = PipelineStage.DEMO_DEPLOYING.value
+            if demo_job:
+                demo_job.status = ProjectStatus.DEMO_DEPLOYING.value
             session.add(ProjectEvent(project_id=project.id, event_type="DEPLOYMENT_STARTED", stage="DEMO_DEPLOYING"))
             await session.commit()
 
@@ -259,6 +281,8 @@ class BuildPipelineOrchestrator:
             project.status = ProjectStatus.DEMO_QA.value
             if biz:
                 biz.pipeline_stage = PipelineStage.DEMO_QA.value
+            if demo_job:
+                demo_job.status = ProjectStatus.DEMO_QA.value
             session.add(ProjectEvent(project_id=project.id, event_type="QA_STARTED", stage="DEMO_QA"))
             await session.commit()
 
@@ -304,6 +328,10 @@ class BuildPipelineOrchestrator:
             if qa_res.overall_status in ("PASS", "WARN"):
                 project.status = ProjectStatus.DEMO_READY.value
                 project.current_stage = "DEMO_READY"
+                if demo_job:
+                    demo_job.status = ProjectStatus.DEMO_READY.value
+                    demo_job.deployment_url = deployment.deployment_url
+                    demo_job.completed_at = datetime.utcnow()
                 if biz:
                     old_st = biz.pipeline_stage
                     biz.pipeline_stage = PipelineStage.DEMO_READY.value
@@ -354,6 +382,10 @@ class BuildPipelineOrchestrator:
             else:
                 project.status = ProjectStatus.DEMO_BUILD_FAILED.value
                 project.current_stage = "DEMO_BUILD_FAILED"
+                if demo_job:
+                    demo_job.status = ProjectStatus.DEMO_BUILD_FAILED.value
+                    demo_job.error_details = str(qa_res.critical_violations)
+                    demo_job.retry_count += 1
                 if biz:
                     biz.pipeline_stage = PipelineStage.DEMO_BUILD_FAILED.value
                 session.add(ProjectEvent(

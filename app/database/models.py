@@ -2068,6 +2068,37 @@ class NotificationDelivery(Base):
     device: Mapped["NotificationDevice"] = relationship("NotificationDevice", back_populates="deliveries", lazy="selectin")
 
 
+class DemoBuildJob(Base):
+    """
+    Persistent demo build job tracking and deduplication table.
+    Enforces B1 Trigger Gate & B2 Deduplication for Demo Factory.
+    """
+    __tablename__ = "demo_build_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    demo_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    request_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    customer_slug: Mapped[str] = mapped_column(String(150), index=True)
+    status: Mapped[str] = mapped_column(String(50), default=ProjectStatus.DEMO_REQUESTED.value, index=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    spec_summary: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    deployment_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    error_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    business: Mapped["Business"] = relationship("Business", lazy="selectin")
+
+    __table_args__ = (
+        Index("ix_demo_jobs_biz_status", "business_id", "status"),
+        Index("ix_demo_jobs_slug", "customer_slug"),
+    )
+
+
+
 
 
 
