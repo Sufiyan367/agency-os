@@ -37,10 +37,7 @@
         const container = document.getElementById('hero-command-container');
         const wrapper = document.getElementById('hero-avatar-wrapper');
         const mantle = document.getElementById('hero-avatar-mantle');
-        const directiveInput = document.getElementById('hero-ai-directive-input');
         const globalSearch = document.getElementById('global-search-input');
-        const directiveBtn = document.getElementById('hero-ai-directive-btn');
-        const directiveHint = document.getElementById('hero-directive-hint');
 
         if (!container || !wrapper || !mantle) {
             return;
@@ -124,70 +121,11 @@
             }, { passive: true });
         }
 
-        bindInputEvents(directiveInput);
         bindInputEvents(globalSearch);
 
-        // Directive submission handling
-        function handleDirectiveSubmit() {
-            if (!directiveInput) return;
-            const val = directiveInput.value.trim();
-            triggerPulse();
-
-            if (!val) {
-                directiveInput.focus();
-                return;
-            }
-
-            if (directiveHint) {
-                directiveHint.innerHTML = `<span style="color:#38bdf8; font-weight:600;">Processing directive:</span> "${escapeHtml(val.slice(0, 45))}"...`;
-            }
-
-            // Route search to global filter or leads view
-            const lower = val.toLowerCase();
-            if (lower.startsWith('find ') || lower.startsWith('search ') || lower.includes('lead') || lower.includes('hvac') || lower.includes('roof')) {
-                const cleanQuery = val.replace(/^(find|search|show|get)\s+/i, '');
-                if (globalSearch) {
-                    globalSearch.value = cleanQuery;
-                    globalSearch.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-                const leadsFilter = document.getElementById('leads-filter-search');
-                if (leadsFilter) {
-                    leadsFilter.value = cleanQuery;
-                    leadsFilter.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-                if (typeof window.navToView === 'function') {
-                    setTimeout(() => window.navToView('leads'), 350);
-                }
-                setTimeout(() => {
-                    if (directiveHint) {
-                        directiveHint.innerHTML = `Dispatched to pipeline filter for <strong style="color:#10b981;">"${escapeHtml(cleanQuery)}"</strong>`;
-                    }
-                }, 700);
-            } else {
-                setTimeout(() => {
-                    if (directiveHint) {
-                        directiveHint.innerHTML = `Autonomous directive received &bull; Ready for operator command`;
-                    }
-                }, 1200);
-            }
-        }
-
-        if (directiveBtn) {
-            directiveBtn.addEventListener('click', handleDirectiveSubmit);
-        }
-        if (directiveInput) {
-            directiveInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleDirectiveSubmit();
-                }
-            });
-        }
-
-        // Avatar click also triggers affirmative pulse
+        // Avatar click triggers affirmative energy ripple pulse
         wrapper.addEventListener('click', () => {
             triggerPulse();
-            if (directiveInput) directiveInput.focus();
         });
 
         // 3. Animation Loop (requestAnimationFrame)

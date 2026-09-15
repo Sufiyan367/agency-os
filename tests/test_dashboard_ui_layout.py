@@ -164,10 +164,10 @@ async def test_hero_avatar_elements_rendered_in_dashboard():
         assert 'id="hero-avatar-mantle"' in html
         assert 'id="hero-avatar-nucleus"' in html
 
-        # Verify Command / Directive Input
-        assert 'id="hero-ai-directive-input"' in html
-        assert 'id="hero-directive-submit-btn"' in html
-        assert 'id="hero-directive-status"' in html
+        # Verify Command / Directive Input is removed per operator specification
+        assert 'id="hero-ai-directive-input"' not in html
+        assert 'id="hero-directive-submit-btn"' not in html
+        assert 'id="hero-directive-status"' not in html
 
         # Verify script inclusion
         assert 'src="/static/hero_avatar.js' in html
@@ -190,6 +190,6 @@ async def test_hero_avatar_static_assets_served():
         css_text = css_res.text
         assert ".hero-avatar-wrapper" in css_text
         assert ".hero-avatar-mantle" in css_text
-        assert ".hero-directive-bar" in css_text
+        assert ".hero-directive-bar" not in css_text
         assert "avatarRipple" in css_text
 

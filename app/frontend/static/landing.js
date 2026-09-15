@@ -375,7 +375,7 @@
                 },
                 inlineAlert,
                 contactSubmitBtn,
-                'Request a Demo',
+                'Get Your Automation Built',
                 contactForm
             );
         });
@@ -404,12 +404,12 @@
                     website,
                     problem,
                     what_they_want_automated: whatAutomated,
-                    service_interest: 'Demo & Architecture Assessment',
+                    service_interest: 'Custom AI Automation & Software',
                     message: `Problem: ${problem}\nWhat to Automate: ${whatAutomated}`
                 },
                 consultationAlert,
                 consultationSubmitBtn,
-                'Request Demo',
+                'Get Your Automation Built',
                 consultationForm,
                 function () {
                     setTimeout(() => closeModal(consultationModal), 3000);

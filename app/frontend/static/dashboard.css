@@ -1780,7 +1780,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* Hero Centerpiece: Avatar + Command Bar */
+/* Hero Centerpiece: Neural Avatar */
 .hero-ai-centerpiece {
   position: relative;
   z-index: 2;
@@ -1788,8 +1788,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 0 12px 0;
-  gap: 16px;
+  padding: 4px 0 8px 0;
+  gap: 0;
 }
 
 /* Avatar Wrapper */
@@ -1899,128 +1899,13 @@ body {
   pointer-events: none;
 }
 
-/* Integrated Limora-Style Command & Directive Bar */
-.hero-directive-container {
-  width: 100%;
-  max-width: 580px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.hero-directive-bar {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(16, 16, 18, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 999px;
-  padding: 7px 10px 7px 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.hero-directive-bar:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(21, 21, 23, 0.85);
-}
-
-.hero-directive-bar:focus-within {
-  border-color: rgba(0, 212, 239, 0.45);
-  background: rgba(21, 21, 23, 0.95);
-  box-shadow: 0 4px 24px rgba(0, 212, 239, 0.18), 0 0 0 1px rgba(0, 212, 239, 0.3);
-}
-
-.hero-directive-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.hero-ai-directive-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: var(--font-sans);
-  font-size: 0.84rem;
-  color: #FFFFFF;
-  letter-spacing: -0.01em;
-  padding: 4px 0;
-  min-width: 0;
-}
-
-.hero-ai-directive-input::placeholder {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-
-.hero-directive-submit-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  padding: 4px 10px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 0.72rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.hero-directive-submit-btn:hover {
-  background: rgba(0, 212, 239, 0.15);
-  border-color: rgba(0, 212, 239, 0.4);
-  color: #FFFFFF;
-}
-
-.directive-kbd {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-
-.hero-directive-subtext {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  letter-spacing: -0.01em;
-  transition: color 0.2s ease;
-}
-
-.hero-status-pulse {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 6px #10B981;
-  display: inline-block;
-}
-
-/* Responsiveness */
-@media (max-width: 900px) {
-  .hero-directive-container {
-    max-width: 100%;
-  }
-}
-
 @media (max-width: 768px) {
   .ops-command-header {
     padding: 16px;
   }
   .hero-ai-centerpiece {
-    padding: 6px 0 10px 0;
-    gap: 14px;
+    padding: 4px 0 8px 0;
+    gap: 0;
   }
   .hero-avatar-wrapper {
     width: 80px;
@@ -2033,12 +1918,6 @@ body {
   .hero-avatar-nucleus {
     width: 22px;
     height: 22px;
-  }
-  .hero-ai-directive-input {
-    font-size: 0.78rem;
-  }
-  .hero-directive-bar {
-    padding: 6px 8px 6px 12px;
   }
 }
 
