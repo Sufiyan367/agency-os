@@ -420,6 +420,9 @@ class OutreachMessage(Base):
     
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    provider: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reply_to: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     actor_type: Mapped[str] = mapped_column(String(50), default="HUMAN")
     auto_approval_eligibility: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -91,16 +91,32 @@ class TitanEmailProvider(BaseEmailProvider):
         msg["To"] = to_email
         msg["Reply-To"] = reply_to_addr
 
+        smtp_response = None
         def _sync_send():
+            nonlocal smtp_response
             if int(self.smtp_port) == 465:
-                with smtplib.SMTP_SSL(self.smtp_host, int(self.smtp_port), timeout=12) as server:
+                with smtplib.SMTP_SSL(self.smtp_host, int(self.smtp_port), timeout=15) as server:
                     server.login(self.smtp_user, self.smtp_password)
-                    server.send_message(msg)
+                    server.mail(sender_addr)
+                    (rcpt_code, rcpt_resp) = server.rcpt(to_email)
+                    if rcpt_code not in (250, 251):
+                        raise smtplib.SMTPRecipientsRefused({to_email: (rcpt_code, rcpt_resp)})
+                    (data_code, data_resp) = server.data(msg.as_bytes())
+                    if data_code != 250:
+                        raise smtplib.SMTPDataError(data_code, data_resp)
+                    smtp_response = f"{data_code} {data_resp.decode('utf-8', errors='ignore').strip()}"
             else:
-                with smtplib.SMTP(self.smtp_host, int(self.smtp_port), timeout=12) as server:
+                with smtplib.SMTP(self.smtp_host, int(self.smtp_port), timeout=15) as server:
                     server.starttls()
                     server.login(self.smtp_user, self.smtp_password)
-                    server.send_message(msg)
+                    server.mail(sender_addr)
+                    (rcpt_code, rcpt_resp) = server.rcpt(to_email)
+                    if rcpt_code not in (250, 251):
+                        raise smtplib.SMTPRecipientsRefused({to_email: (rcpt_code, rcpt_resp)})
+                    (data_code, data_resp) = server.data(msg.as_bytes())
+                    if data_code != 250:
+                        raise smtplib.SMTPDataError(data_code, data_resp)
+                    smtp_response = f"{data_code} {data_resp.decode('utf-8', errors='ignore').strip()}"
 
         try:
             await asyncio.to_thread(_sync_send)
@@ -109,7 +125,7 @@ class TitanEmailProvider(BaseEmailProvider):
             logger.error(f"[TitanEmailProvider] Delivery failed to {to_email}: {safe_err}")
             raise RuntimeError(f"Titan SMTP delivery error: {safe_err}")
 
-        logger.info(f"[TitanEmailProvider] Email accepted by Titan SMTP for {to_email} via {self.smtp_host}:{self.smtp_port}")
+        logger.info(f"[TitanEmailProvider] Email accepted by Titan SMTP for {to_email} via {self.smtp_host}:{self.smtp_port}: {smtp_response}")
 
         # Safe post-send IMAP Sent folder copy (non-fatal if IMAP is slow/unavailable)
         sent_folder_copied = False
@@ -117,10 +133,12 @@ class TitanEmailProvider(BaseEmailProvider):
             nonlocal sent_folder_copied
             if self.imap_host and self.imap_user and self.imap_password:
                 try:
-                    with imaplib.IMAP4_SSL(self.imap_host, int(self.imap_port), timeout=8) as imap_client:
+                    with imaplib.IMAP4_SSL(self.imap_host, int(self.imap_port), timeout=10) as imap_client:
                         imap_client.login(self.imap_user, self.imap_password)
-                        imap_client.append('Sent', '(\\\\Seen)', imaplib.Time2Internaldate(time.time()), msg.as_bytes())
-                        sent_folder_copied = True
+                        res, data = imap_client.append('Sent', r'(\Seen)', imaplib.Time2Internaldate(time.time()), msg.as_bytes())
+                        if res == 'OK':
+                            sent_folder_copied = True
+                            logger.info(f"[TitanEmailProvider] Successfully copied message {msg_id} to Titan Sent folder.")
                 except Exception as imap_err:
                     safe_imap_err = _sanitize_error(imap_err, [self.imap_password])
                     logger.warning(f"[TitanEmailProvider] Could not copy message to Sent folder: {safe_imap_err}")
@@ -137,12 +155,14 @@ class TitanEmailProvider(BaseEmailProvider):
             "event": "email_dispatched",
             "delivery_status": "PROVIDER_ACCEPTED",
             "sent_folder_copied": sent_folder_copied,
+            "smtp_response": smtp_response or "250 OK",
             "details": {
                 "host": self.smtp_host,
                 "port": self.smtp_port,
                 "sender": sender_addr,
                 "recipient": to_email,
                 "message_id": msg_id,
+                "smtp_response": smtp_response or "250 OK",
                 "sent_folder_copied": sent_folder_copied
             }
         }

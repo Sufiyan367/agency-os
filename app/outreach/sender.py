@@ -229,6 +229,8 @@ class OutreachSenderAdapter:
         if delivery_res.get("message_id"):
             msg.provider_message_id = delivery_res.get("message_id")
         msg.provider = provider_name
+        if reply_to:
+            msg.reply_to = reply_to
 
         event_log = OutreachEvent(
             outreach_message_id=msg.id,
