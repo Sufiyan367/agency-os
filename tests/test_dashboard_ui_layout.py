@@ -144,3 +144,52 @@ async def test_settings_and_onboarding_ui_rendering():
         assert 'id="prop-advance-pct"' in html
         assert 'id="prop-calc-advance"' in html
         assert 'id="prop-calc-remaining"' in html
+
+@pytest.mark.asyncio
+async def test_hero_avatar_elements_rendered_in_dashboard():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/dashboard")
+        assert res.status_code == 200
+        html = res.text
+
+        # Verify centerpiece wrapper and atmospheric light
+        assert 'id="hero-command-container"' in html
+        assert 'class="hero-atmospheric-light"' in html
+        assert 'id="hero-ai-centerpiece"' in html
+
+        # Verify Avatar blob components
+        assert 'id="hero-avatar"' in html
+        assert 'id="hero-avatar-glow"' in html
+        assert 'id="hero-avatar-mantle"' in html
+        assert 'id="hero-avatar-nucleus"' in html
+
+        # Verify Command / Directive Input
+        assert 'id="hero-ai-directive-input"' in html
+        assert 'id="hero-directive-submit-btn"' in html
+        assert 'id="hero-directive-status"' in html
+
+        # Verify script inclusion
+        assert 'src="/static/hero_avatar.js' in html
+
+@pytest.mark.asyncio
+async def test_hero_avatar_static_assets_served():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Verify hero_avatar.js static file
+        js_res = await client.get("/static/hero_avatar.js")
+        assert js_res.status_code == 200
+        js_text = js_res.text
+        assert "agencyHeroAvatar" in js_text
+        assert "requestAnimationFrame" in js_text
+        assert "prefers-reduced-motion" in js_text
+
+        # Verify dashboard.css contains avatar styling
+        css_res = await client.get("/static/dashboard.css")
+        assert css_res.status_code == 200
+        css_text = css_res.text
+        assert ".hero-avatar-wrapper" in css_text
+        assert ".hero-avatar-mantle" in css_text
+        assert ".hero-directive-bar" in css_text
+        assert "avatarRipple" in css_text
+
