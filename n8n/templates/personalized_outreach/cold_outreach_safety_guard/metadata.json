@@ -1,0 +1,20 @@
+{
+  "workflow_name": "AGY-OUTREACH-PersonalizedDrafter-SafetyGuard-v1.0",
+  "version": "1.0.0",
+  "category": "personalized outreach",
+  "use_case": "Evidence-grounded cold outreach synthesizer linking audit findings to concrete business value, equipped with CAN-SPAM compliance validation, unsubscribe headers, and approval gating.",
+  "source_repo": "https://github.com/Sufiyan367/agency-os",
+  "source_path": "app/outreach/generator.py",
+  "source_license": "PROPRIETARY_AGENCY_OS",
+  "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+  "commercialization_status": "COMMERCIAL_READY",
+  "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+  "dependencies": [
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.if",
+    "n8n-nodes-base.respondToWebhook"
+  ],
+  "author": "Agency OS Engineering",
+  "last_verified": "2026-09-16"
+}

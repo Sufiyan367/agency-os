@@ -1,0 +1,151 @@
+{
+  "name": "AGY-SCORE-LeadQualification-CommercialFloor-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qualify-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-score-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2: Commercial Floor & Rubric Scoring Engine\nconst body = $input.first().json.body || $input.first().json;\n\nconst domain = (body.domain || '').trim().toLowerCase();\nconst budgetUsd = Number(body.estimated_budget_usd || body.deal_value || 0);\nconst teamSize = Number(body.team_size || 1);\nconst hasDigitalPresence = Boolean(body.has_website || domain);\nconst healthScore = Number(body.overall_health_score || 70);\n\n// Non-negotiable Agency OS rule: $500 Commercial Floor\nconst COMMERCIAL_FLOOR_USD = 500;\nif (budgetUsd > 0 && budgetUsd < COMMERCIAL_FLOOR_USD) {\n  return [{\n    json: {\n      status: 'DISQUALIFIED',\n      reason: `Budget $${budgetUsd} is below the strict $${COMMERCIAL_FLOOR_USD} commercial floor.`,\n      domain: domain,\n      qualification_score: 0,\n      priority_tier: 'REJECTED',\n      route: 'archive'\n    }\n  }];\n}\n\n// Calculate 0-100 ICP Scoring Rubric\nlet score = 50; // base score\n\n// Health deficit opportunity: sites with problems need more agency services\nif (healthScore < 60) score += 20;\nelse if (healthScore < 80) score += 10;\n\n// Team capacity factor\nif (teamSize >= 5 && teamSize <= 100) score += 15;\nelse if (teamSize > 100) score += 10;\n\n// Budget bonus\nif (budgetUsd >= 2000) score += 15;\nelse if (budgetUsd >= 1000) score += 10;\n\nscore = Math.min(100, Math.max(0, score));\n\nlet priority = 'LOW';\nlet route = 'nurture';\nif (score >= 80) {\n  priority = 'HIGH';\n  route = 'immediate_outreach';\n} else if (score >= 60) {\n  priority = 'MEDIUM';\n  route = 'standard_queue';\n}\n\nreturn [{\n  json: {\n    status: 'QUALIFIED',\n    domain: domain,\n    qualification_score: score,\n    priority_tier: priority,\n    estimated_budget_usd: budgetUsd || 1200,\n    route: route,\n    qualified_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-scoring-logic",
+      "name": "Commercial Floor & ICP Evaluator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority_tier }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority_tier }}",
+                    "rightValue": "MEDIUM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-routing-switch",
+      "name": "Route by Priority Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-score",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Commercial Floor & ICP Evaluator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commercial Floor & ICP Evaluator": {
+      "main": [
+        [
+          {
+            "node": "Route by Priority Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Priority Tier": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

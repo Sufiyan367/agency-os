@@ -1,0 +1,151 @@
+{
+  "name": "AGY-CRM-InboundReply-IntentClassifier-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "classify-reply",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-reply-trigger",
+      "name": "Inbound Reply Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2: Inbound Email Intent Classification Engine\nconst body = $input.first().json.body || $input.first().json;\n\nconst rawText = String(body.message_body || body.text || '').trim();\nconst senderEmail = (body.sender_email || body.from || '').trim().toLowerCase();\nconst businessId = body.business_id || body.lead_id || null;\n\nif (!rawText) {\n  throw new Error('Validation failed: \"message_body\" or \"text\" parameter is required.');\n}\n\nconst lower = rawText.toLowerCase();\nlet intent = 'QUESTION';\nlet action = 'NEEDS_HUMAN_REVIEW';\nlet autoCancelFollowups = true;\nlet suggestedReply = '';\n\n// 1. Unsubscribe Detection\nif (/unsubscribe|remove me|opt[ -]?out|stop emailing|cease/i.test(lower)) {\n  intent = 'UNSUBSCRIBE';\n  action = 'SUPPRESS_AND_CANCEL';\n  suggestedReply = 'Understood. You have been removed from all future communications.';\n}\n// 2. Explicit Negative / Not Interested\nelse if (/not interested|no thanks|pass|wrong person|not right now|stop/i.test(lower)) {\n  intent = 'NOT_INTERESTED';\n  action = 'CLOSE_LEAD_CANCEL_FOLLOWUPS';\n  suggestedReply = 'Thank you for letting us know. Wishing your business all the best.';\n}\n// 3. Positive / Discovery Interest\nelse if (/send info|interested|tell me more|sounds good|demo|pricing|cost|call|meet|schedule|zoom/i.test(lower)) {\n  intent = 'POSITIVE';\n  // Strict Agency OS Rule: Demo generation is HELD until requirements are gathered\n  action = 'NOTIFY_CEO_REQUIREMENTS_GATHERING';\n  suggestedReply = 'Glad to connect! To ensure we prepare the exact right solution for your team, could you share your primary goals or let us know a convenient time for a brief 10-minute discovery call?';\n}\n// 4. Commercial Objection\nelse if (/too expensive|already have|competitor|no budget/i.test(lower)) {\n  intent = 'OBJECTION';\n  action = 'ROUTE_TO_SALES_REBUTTAL';\n  suggestedReply = 'Understood completely. Just out of curiosity, are you currently handling this internally or with an existing partner?';\n}\n\nreturn [{\n  json: {\n    status: 'PROCESSED',\n    business_id: businessId,\n    sender_email: senderEmail,\n    intent: intent,\n    action_required: action,\n    auto_cancel_followups: autoCancelFollowups,\n    demo_generation_held: true,\n    suggested_response: suggestedReply,\n    classified_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-intent-engine",
+      "name": "Intent Classifier & Safety Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "POSITIVE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "UNSUBSCRIBE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-intent-switch",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-reply",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Inbound Reply Webhook": {
+      "main": [
+        [
+          {
+            "node": "Intent Classifier & Safety Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classifier & Safety Gate": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

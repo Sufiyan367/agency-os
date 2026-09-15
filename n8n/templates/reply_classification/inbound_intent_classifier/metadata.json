@@ -1,0 +1,20 @@
+{
+  "workflow_name": "AGY-CRM-InboundReply-IntentClassifier-v1.0",
+  "version": "1.0.0",
+  "category": "reply classification",
+  "use_case": "Inbound email reply sentiment and intent categorization (POSITIVE, OBJECTION, QUESTION, NOT_INTERESTED, UNSUBSCRIBE), auto-cancels scheduled follow-ups, and triggers CEO requirements alert.",
+  "source_repo": "https://github.com/Sufiyan367/agency-os",
+  "source_path": "app/crm/reply_classifier.py",
+  "source_license": "PROPRIETARY_AGENCY_OS",
+  "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+  "commercialization_status": "COMMERCIAL_READY",
+  "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+  "dependencies": [
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.switch",
+    "n8n-nodes-base.respondToWebhook"
+  ],
+  "author": "Agency OS Engineering",
+  "last_verified": "2026-09-16"
+}

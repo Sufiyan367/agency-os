@@ -1,0 +1,115 @@
+{
+  "name": "AGY-OUTREACH-PersonalizedDrafter-SafetyGuard-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "draft-outreach",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-draft-trigger",
+      "name": "Draft Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2: Evidence-Grounded Outreach Drafter & Compliance Guard\nconst body = $input.first().json.body || $input.first().json;\n\nconst domain = (body.domain || '').trim().toLowerCase();\nconst businessName = body.business_name || domain;\nconst contactEmail = (body.contact_email || '').trim().toLowerCase();\nconst auditFindings = body.audit_findings || [];\nconst offeredService = body.offered_service || 'Integrated AI Client Operations System';\nconst postalAddress = body.postal_address || 'Agency OS Services, 100 Congress Ave, Suite 2000, Austin, TX 78701, USA';\n\nif (!domain || !contactEmail) {\n  throw new Error('Validation failed: Both \"domain\" and \"contactEmail\" are strictly required.');\n}\n\n// Format primary observation\nlet observation = 'noted opportunities to optimize your digital customer conversion flow';\nif (Array.isArray(auditFindings) && auditFindings.length > 0) {\n  observation = `noted that ${auditFindings[0].toLowerCase()}`;\n}\n\n// Draft personalized message\nconst subject = `Quick observation regarding ${businessName}`;\nconst bodyText = `Hi ${businessName} Team,\\n\\nWhile reviewing ${domain} today, I ${observation}.\\n\\nWe help commercial firms install an ${offeredService} that resolves these issues and recaptures lost prospect inquiries automatically.\\n\\nWould you be open to a brief 10-minute discovery call this Thursday to explore if this fits your current priorities?\\n\\nBest regards,\\nAgency OS Client Solutions Team\\n\\n---\\n${postalAddress}\\nTo opt out, reply with 'unsubscribe'.`;\n\n// Compliance & Safety Verification\nconst hasOptOut = /unsubscribe/i.test(bodyText);\nconst hasPostal = bodyText.includes(postalAddress);\nconst isCompliant = hasOptOut && hasPostal;\n\nreturn [{\n  json: {\n    status: 'DRAFT_READY',\n    domain: domain,\n    recipient_email: contactEmail,\n    subject: subject,\n    body_text: bodyText,\n    compliance: {\n      can_spam_compliant: isCompliant,\n      has_unsubscribe: hasOptOut,\n      has_physical_address: hasPostal\n    },\n    approval_state: 'AWAITING_CEO_APPROVAL',\n    can_send_live: false,\n    drafted_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-draft-synthesizer",
+      "name": "Synthesize Draft & Check Compliance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.compliance.can_spam_compliant }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-compliance-check",
+      "name": "Is Compliance Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-draft",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Draft Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Synthesize Draft & Check Compliance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesize Draft & Check Compliance": {
+      "main": [
+        [
+          {
+            "node": "Is Compliance Verified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Compliance Verified?": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

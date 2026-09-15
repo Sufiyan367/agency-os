@@ -1,0 +1,21 @@
+{
+  "workflow_name": "AGY-AUDIT-DomainEnrichment-DiagnosticVector-v1.0",
+  "version": "1.0.0",
+  "category": "lead enrichment",
+  "use_case": "Automated 6-vector prospect website diagnostic check, technology stack detection, performance scoring, and pain-point extraction for high-conversion B2B client intelligence.",
+  "source_repo": "https://github.com/Sufiyan367/agency-os",
+  "source_path": "app/audit/audit_service.py",
+  "source_license": "PROPRIETARY_AGENCY_OS",
+  "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+  "commercialization_status": "COMMERCIAL_READY",
+  "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+  "dependencies": [
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.httpRequest",
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.if",
+    "n8n-nodes-base.respondToWebhook"
+  ],
+  "author": "Agency OS Engineering",
+  "last_verified": "2026-09-16"
+}

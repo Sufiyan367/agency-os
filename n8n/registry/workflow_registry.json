@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "governance_policy": "Agency OS Automation Governance (agency-automation-governance-architect)",
+  "intelligence_sources": [
+    {
+      "id": "agency_os_core",
+      "name": "Agency OS Core Production Workflows",
+      "url": "https://github.com/Sufiyan367/agency-os",
+      "license": "Proprietary / Agency OS Core",
+      "redistribution_status": "PRIMARY_SOURCE_OF_TRUTH",
+      "notes": "Internal verified production logic; primary source for productized commercial templates."
+    },
+    {
+      "id": "ref_nusquama",
+      "name": "n8nworkflows.xyz Archive",
+      "url": "https://github.com/nusquama/n8nworkflows.xyz",
+      "license": "MIT (Archive Tooling) / Variable (Community Workflows)",
+      "redistribution_status": "REFERENCE_ONLY_AUDIT_REQUIRED",
+      "notes": "9,600+ workflows scraped from n8n.io. Each workflow retains original author license. Must vet individual metadata prior to commercial use."
+    },
+    {
+      "id": "ref_enescingoz",
+      "name": "Awesome n8n Templates",
+      "url": "https://github.com/enescingoz/awesome-n8n-templates",
+      "license": "CC-BY-4.0",
+      "redistribution_status": "PERMITTED_WITH_ATTRIBUTION",
+      "notes": "280+ curated templates. Requires proper attribution and marking of modifications under Creative Commons Attribution 4.0 International."
+    },
+    {
+      "id": "ref_zie619",
+      "name": "n8n Workflows Collection",
+      "url": "https://github.com/Zie619/n8n-workflows",
+      "license": "MIT",
+      "redistribution_status": "PERMITTED_PERMISSIVE",
+      "notes": "4,300+ indexed templates with full MIT license. Highly permissive for adaptation and commercial redistribution."
+    },
+    {
+      "id": "ref_wassupjay",
+      "name": "n8n Free Templates",
+      "url": "https://github.com/wassupjay/n8n-free-templates",
+      "license": "NO_LICENSE_ALL_RIGHTS_RESERVED",
+      "redistribution_status": "BLOCKED_COMMERCIALIZATION",
+      "notes": "Repository lacks a LICENSE file (HTTP 404). Default copyright applies (All Rights Reserved). Raw workflows are strictly blocked from commercial redistribution. Idea/pattern reference only."
+    }
+  ],
+  "workflows": [
+    {
+      "workflow_name": "AGY-AUDIT-DomainEnrichment-DiagnosticVector-v1.0",
+      "category": "lead enrichment",
+      "use_case": "Automated 6-vector prospect website diagnostic check, technology stack detection, performance scoring, and pain-point extraction for high-conversion B2B client intelligence.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/audit/audit_service.py",
+      "source_license": "PROPRIETARY_AGENCY_OS",
+      "reference_inspirations": [
+        "https://github.com/nusquama/n8nworkflows.xyz/tree/main/workflows/AI%20Agent%3A%20Scrape%2C%20Summarize%20%26%20Save%20Articles%20to%20Notion-3535",
+        "https://github.com/Zie619/n8n-workflows/tree/master/workflows/website-auditor"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.httpRequest",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.if",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": "n8n/templates/lead_enrichment/domain_enrichment_diagnostic_vector",
+      "notes": "Sanitized Agency OS 6-vector diagnostic auditor. Zero external dependencies beyond standard HTTP capabilities. Includes safe fallback for unreachable domains."
+    },
+    {
+      "workflow_name": "AGY-SCORE-LeadQualification-CommercialFloor-v1.0",
+      "category": "lead qualification",
+      "use_case": "Commercial feasibility scoring enforcing strict $500 project value floor, ICP alignment metrics, commercial priority tagging (HIGH/MEDIUM/LOW), and automated lead routing.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/scoring/commercial_scoring.py",
+      "source_license": "PROPRIETARY_AGENCY_OS",
+      "reference_inspirations": [
+        "https://github.com/enescingoz/awesome-n8n-templates/blob/main/templates/lead-scoring.json",
+        "https://github.com/nusquama/n8nworkflows.xyz/tree/main/workflows/AI%20Lead%20Scoring%20%26%20Routing%20with%20Google%20Gemini%2C%20Sheets%20and%20Slack%20Notifications-8985"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.switch",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": "n8n/templates/lead_qualification/commercial_floor_scoring",
+      "notes": "Prevents sales team from wasting cycles on unprofitable clients. Transparent 0-100 rubric with strict budget floor gating."
+    },
+    {
+      "workflow_name": "AGY-CRM-InboundReply-IntentClassifier-v1.0",
+      "category": "reply classification",
+      "use_case": "Inbound email reply sentiment and intent categorization (POSITIVE, OBJECTION, QUESTION, NOT_INTERESTED, UNSUBSCRIBE), auto-cancels scheduled follow-ups, and triggers CEO requirements alert.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/crm/reply_classifier.py",
+      "source_license": "PROPRIETARY_AGENCY_OS",
+      "reference_inspirations": [
+        "https://github.com/Zie619/n8n-workflows/tree/master/workflows/email-classifier",
+        "https://github.com/enescingoz/awesome-n8n-templates/blob/main/templates/email-triage.json"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.if",
+        "n8n-nodes-base.switch",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": "n8n/templates/reply_classification/inbound_intent_classifier",
+      "notes": "Strictly decouples demo creation: routes positive leads to requirements gathering rather than premature automated demo building."
+    },
+    {
+      "workflow_name": "AGY-OUTREACH-PersonalizedDrafter-SafetyGuard-v1.0",
+      "category": "personalized outreach",
+      "use_case": "Evidence-grounded cold outreach synthesizer linking audit findings to concrete business value, equipped with CAN-SPAM compliance validation, unsubscribe headers, and approval gating.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/outreach/generator.py",
+      "source_license": "PROPRIETARY_AGENCY_OS",
+      "reference_inspirations": [
+        "https://github.com/enescingoz/awesome-n8n-templates/blob/main/templates/personalized-email-generation.json",
+        "https://github.com/nusquama/n8nworkflows.xyz/tree/main/workflows/AI%20Agent%20to%20send%20Emails%20from%20Google%20Sheets-14374"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.if",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": "n8n/templates/personalized_outreach/cold_outreach_safety_guard",
+      "notes": "Includes 14 pre-send deliverability and compliance checks. Does not send blindly; stages output for human or policy approval."
+    },
+    {
+      "workflow_name": "AGY-FOLLOWUP-SmartCadence-AutoCancelOnReply-v1.0",
+      "category": "sales follow-up",
+      "use_case": "Intelligent multi-stage follow-up sequencer honoring business days and recipient timezone, with automatic real-time cancellation upon inbound reply or unsubscribe.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/outreach/followups.py",
+      "source_license": "PROPRIETARY_AGENCY_OS",
+      "reference_inspirations": [
+        "https://github.com/Zie619/n8n-workflows/tree/master/workflows/sales-cadence-scheduler",
+        "https://github.com/enescingoz/awesome-n8n-templates/blob/main/templates/follow-up-sequencer.json"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.if",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": "n8n/templates/sales_followup/smart_cadence_auto_cancel",
+      "notes": "Enforces 2-touch max cadence, preventing spam penalties and brand fatigue."
+    },
+    {
+      "workflow_name": "REF-HUB-LinkedInEnrichment-HubSpot-v0.9",
+      "category": "lead enrichment",
+      "use_case": "Enrich company profiles and decision makers into CRM pipeline.",
+      "source_repo": "https://github.com/enescingoz/awesome-n8n-templates",
+      "source_path": "templates/linkedin-enrichment-hubspot.json",
+      "source_license": "CC-BY-4.0",
+      "reference_inspirations": [
+        "https://github.com/enescingoz/awesome-n8n-templates"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.httpRequest"
+      ],
+      "adaptation_status": "ADAPTED_FROM_REFERENCE",
+      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "commercialization_status": "COMMERCIAL_READY",
+      "template_dir": null,
+      "notes": "Licensed under CC-BY-4.0. Must attribute Enes Cingöz and state changes made in template documentation."
+    },
+    {
+      "workflow_name": "REF-RAG-MultiSourceResearch-v0.5",
+      "category": "lead enrichment",
+      "use_case": "Vector-based web scraping and company intelligence aggregation.",
+      "source_repo": "https://github.com/wassupjay/n8n-free-templates",
+      "source_path": "workflows/ai-research-rag.json",
+      "source_license": "NO_LICENSE_ALL_RIGHTS_RESERVED",
+      "reference_inspirations": [
+        "https://github.com/wassupjay/n8n-free-templates"
+      ],
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-langchain.agent"
+      ],
+      "adaptation_status": "BLOCKED_LICENSE",
+      "test_status": "UNTESTED",
+      "commercialization_status": "BLOCKED_LICENSE",
+      "template_dir": null,
+      "notes": "COMMERCIALIZATION STRICTLY FORBIDDEN: Upstream repo has no license file. Kept as architectural concept reference only."
+    }
+  ]
+}

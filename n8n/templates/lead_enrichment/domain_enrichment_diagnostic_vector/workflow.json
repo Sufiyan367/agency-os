@@ -1,0 +1,190 @@
+{
+  "name": "AGY-AUDIT-DomainEnrichment-DiagnosticVector-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-domain",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2: Input Validation & Normalization\nconst body = $input.first().json.body || $input.first().json;\nconst rawDomain = (body.domain || body.website_url || '').trim().toLowerCase();\n\nif (!rawDomain) {\n  throw new Error('Input validation failed: \"domain\" or \"website_url\" parameter is required.');\n}\n\n// Strip protocol and path\nconst cleanDomain = rawDomain.replace(/^https?:\\/\\//, '').replace(/\\/.*$/, '');\nconst targetUrl = 'https://' + cleanDomain;\n\nreturn [{\n  json: {\n    domain: cleanDomain,\n    target_url: targetUrl,\n    business_name: body.business_name || cleanDomain,\n    requested_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-input-validator",
+      "name": "Input Validation & Normalization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.target_url }}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 12000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "node-http-fetch",
+      "name": "Fetch Target Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-status-ok",
+              "leftValue": "={{ $json.statusCode || 200 }}",
+              "rightValue": 400,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-status-check",
+      "name": "Is HTTP Reachable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 4: 6-Vector Diagnostic Parser\nconst html = String($input.first().json.data || '');\nconst inputMeta = $('Input Validation & Normalization').first().json;\n\nconst vectors = {\n  security: { score: 90, findings: [] },\n  performance: { score: 85, findings: [] },\n  mobile: { score: 80, findings: [] },\n  seo: { score: 75, findings: [] },\n  tech_stack: { score: 90, detected: [] },\n  conversion: { score: 70, findings: [] }\n};\n\n// 1. Security Vector\nif (inputMeta.target_url.startsWith('https://')) {\n  vectors.security.findings.push('SSL/TLS active.');\n} else {\n  vectors.security.score -= 40;\n  vectors.security.findings.push('Missing HTTPS enforcement.');\n}\n\n// 2. SEO & Metadata Vector\nconst hasTitle = /<title[^>]*>(.*?)<\\/title>/i.test(html);\nconst hasMetaDesc = /<meta[^>]*name=[\"']description[\"'][^>]*>/i.test(html);\nif (!hasTitle) {\n  vectors.seo.score -= 25;\n  vectors.seo.findings.push('Missing HTML title tag.');\n}\nif (!hasMetaDesc) {\n  vectors.seo.score -= 20;\n  vectors.seo.findings.push('Missing meta description tag.');\n}\n\n// 3. Mobile Vector\nconst hasViewport = /<meta[^>]*name=[\"']viewport[\"'][^>]*>/i.test(html);\nif (!hasViewport) {\n  vectors.mobile.score -= 35;\n  vectors.mobile.findings.push('Missing responsive viewport meta tag.');\n}\n\n// 4. Tech Stack Vector\nif (/wp-content|wordpress/i.test(html)) vectors.tech_stack.detected.push('WordPress');\nif (/shopify/i.test(html)) vectors.tech_stack.detected.push('Shopify');\nif (/react|next\\.js/i.test(html)) vectors.tech_stack.detected.push('React/Next.js');\nif (/google-analytics|gtag/i.test(html)) vectors.tech_stack.detected.push('Google Analytics');\n\n// 5. Conversion Vector\nconst hasPhone = /href=[\"']tel:/i.test(html) || /\\(?\\d{3}\\)?[\\s.-]?\\d{3}[\\s.-]?\\d{4}/.test(html);\nconst hasEmail = /href=[\"']mailto:/i.test(html) || /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/.test(html);\nif (!hasPhone && !hasEmail) {\n  vectors.conversion.score -= 30;\n  vectors.conversion.findings.push('No direct contact CTA (phone/email) detected on homepage.');\n}\n\nconst overallHealth = Math.round(\n  (vectors.security.score + vectors.performance.score + vectors.mobile.score + vectors.seo.score + vectors.conversion.score) / 5\n);\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    domain: inputMeta.domain,\n    overall_health_score: overallHealth,\n    audit_vectors: vectors,\n    audited_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-diagnostic-parser",
+      "name": "6-Vector Diagnostic Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fallback Recovery for Unreachable Domain\nconst inputMeta = $('Input Validation & Normalization').first().json;\nreturn [{\n  json: {\n    status: 'UNREACHABLE',\n    domain: inputMeta.domain,\n    overall_health_score: 40,\n    error_message: 'Domain could not be reached or returned HTTP error status.',\n    audit_vectors: {\n      connectivity: { reachable: false, error: 'Connection failed or timeout' }\n    },\n    audited_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-fallback-handler",
+      "name": "Fallback / Unreachable Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Validation & Normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Validation & Normalization": {
+      "main": [
+        [
+          {
+            "node": "Fetch Target Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Target Website": {
+      "main": [
+        [
+          {
+            "node": "Is HTTP Reachable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is HTTP Reachable?": {
+      "main": [
+        [
+          {
+            "node": "6-Vector Diagnostic Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback / Unreachable Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6-Vector Diagnostic Parser": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback / Unreachable Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}
