@@ -2633,7 +2633,7 @@ async def get_ceo_control_center_overview(
         }
 
         service_name = None
-        catalog_price = 1000.0
+        catalog_price = None
         if offer and offer.recommended_price:
             service_name = offer.title or offer.service_type
             catalog_price = float(offer.recommended_price)
@@ -2695,6 +2695,19 @@ async def get_ceo_control_center_overview(
             else:
                 effective_outreach_status = outreach.status
 
+        prob_win = None
+        if score_rec and isinstance(score_rec.scoring_breakdown, dict):
+            prob_win = score_rec.scoring_breakdown.get("probability_win") or score_rec.scoring_breakdown.get("p_win")
+        if prob_win is not None:
+            try:
+                prob_win = float(prob_win)
+                ev_str = f"${int(catalog_price * prob_win):,}" if catalog_price else "$0"
+            except Exception:
+                prob_win = None
+                ev_str = "$0"
+        else:
+            ev_str = "$0"
+
         active_prospect = {
             "id": active_b.id,
             "business_name": active_b.name or active_b.domain,
@@ -2711,9 +2724,9 @@ async def get_ceo_control_center_overview(
             "recommended_service": service_name or "Digital Growth & Conversion Optimization",
             "target_service": service_name or "Digital Growth & Conversion Optimization",
             "catalog_price": catalog_price,
-            "offer_price": f"${int(catalog_price):,}" if catalog_price else "$1,000",
-            "probability_win": 0.72,
-            "expected_value": f"${int(catalog_price * 0.72):,}",
+            "offer_price": f"${int(catalog_price):,}" if catalog_price else None,
+            "probability_win": prob_win,
+            "expected_value": ev_str,
             "current_stage": active_b.pipeline_stage,
             "stage": active_b.pipeline_stage,
             "outreach_status": effective_outreach_status,

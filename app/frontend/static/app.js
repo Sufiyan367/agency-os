@@ -498,9 +498,9 @@ async function loadCeoControlCenter() {
         setElText('obs-action-required', metrics.action_required_count ?? (data.action_required ? data.action_required.length : 0));
 
         // Header Status Pills
-        setElText('ceo-backend-health-text', sysStatus.system_status || 'RUNNING');
-        setElText('obs-worker-status', sysStatus.worker_status || 'RUNNING');
-        setElText('obs-loop-status', sysStatus.revenue_loop || 'AUTONOMOUS');
+        setElText('ceo-backend-health-text', sysStatus.system_status || 'STANDBY');
+        setElText('obs-worker-status', sysStatus.worker_status || 'STANDBY');
+        setElText('obs-loop-status', sysStatus.revenue_loop || 'STANDBY');
         const emailStatus = sysStatus.email_status || (sysStatus.outbound_authorization === 'READY' ? 'TITAN / READY' : 'TITAN / BLOCKED');
         setElText('obs-email-status', emailStatus);
 
@@ -907,12 +907,12 @@ function renderCeoActiveProspect(prospect) {
     } else {
         if (evBlock) evBlock.style.display = 'none';
     }
-    setEl('ceo-active-prospect-price', prospect.offer_price || (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '$1,000'));
-    setEl('ceo-active-prospect-pwin', prospect.probability_win ? `${Math.round(prospect.probability_win * 100)}%` : '72%');
-    setEl('ceo-active-prospect-ev', prospect.expected_value || '$720');
+    setEl('ceo-active-prospect-price', prospect.offer_price || (prospect.catalog_price ? `$${Number(prospect.catalog_price).toLocaleString()}` : '—'));
+    setEl('ceo-active-prospect-pwin', (prospect.probability_win != null && !isNaN(prospect.probability_win)) ? `${Math.round(prospect.probability_win * 100)}%` : '—');
+    setEl('ceo-active-prospect-ev', (prospect.expected_value && prospect.expected_value !== '$0') ? prospect.expected_value : '$0');
     setEl('ceo-active-prospect-email', prospect.contact_email || 'Not discovered');
-    setEl('ceo-active-prospect-service', prospect.target_service || 'Digital Growth Optimization');
-    setEl('ceo-active-prospect-audit', prospect.audit_summary || 'Empirical audit findings.');
+    setEl('ceo-active-prospect-service', prospect.target_service || '—');
+    setEl('ceo-active-prospect-audit', prospect.audit_summary || 'No audit recorded.');
     setEl('ceo-active-prospect-stage', (prospect.stage || 'STANDBY').toUpperCase());
 
     // Status Chips
@@ -1150,7 +1150,8 @@ function renderCeoMiddleEastPanel(me) {
     };
 
     // 1. Core KPIs
-    setElText('me-val-daily-target', `${me.total_daily_discovery_target || 70} / day`);
+    setElText('me-val-daily-target', `${me.total_daily_discovery_target || 70} / day (Capacity)`);
+    setElText('me-val-discovered-today-sub', `Verified Discovered Today: ${me.momentum?.qualified_today ?? 0}`);
     setElText('me-val-email-queue', me.email_queue_count ?? 0);
     setElText('me-val-whatsapp-eligible', `${me.whatsapp_eligible_count ?? 0}`);
 
@@ -1754,16 +1755,7 @@ function setFunnelStep(stageKey, count, total, explicitPct = null) {
             } else if (total > 0 && count === 0) {
                 widthPct = 8;
             } else {
-                const defaultWidths = {
-                    'discovered': 100,
-                    'qualified': 86,
-                    'contacted': 72,
-                    'replied': 58,
-                    'meeting': 44,
-                    'proposal': 32,
-                    'won': 22
-                };
-                widthPct = defaultWidths[stageKey] || 50;
+                widthPct = 0;
             }
             bar.style.width = `${widthPct}%`;
         }
@@ -1838,7 +1830,17 @@ async function loadPriorityProspects() {
 }
 
 function updateTopCountriesAndServices(leads) {
-    if (!leads || leads.length === 0) return;
+    const countryContainer = document.getElementById('top-countries-list');
+    const serviceContainer = document.getElementById('top-services-list');
+    if (!leads || leads.length === 0) {
+        if (countryContainer) {
+            countryContainer.innerHTML = '<div class="text-xs text-zinc-500 py-3 text-center">No verified prospects yet</div>';
+        }
+        if (serviceContainer) {
+            serviceContainer.innerHTML = '<div class="text-xs text-zinc-500 py-3 text-center">No services mapped yet</div>';
+        }
+        return;
+    }
 
     // 1. Countries Breakdown
     const countryCounts = {};
@@ -1914,7 +1916,6 @@ function updateTopCountriesAndServices(leads) {
         let html = '';
         sortedServices.forEach(([name, count]) => {
             const pct = Math.round((count / total) * 100);
-            const estVal = count * 750;
             html += `
                 <div class="agency-list-row">
                     <div class="agency-list-meta">
@@ -1924,7 +1925,7 @@ function updateTopCountriesAndServices(leads) {
                         <span class="agency-list-name">${escapeHtml(name)}</span>
                     </div>
                     <div class="agency-list-bar-track"><div class="agency-list-bar-fill" style="width: ${pct}%;"></div></div>
-                    <span class="agency-list-val">$${estVal.toLocaleString()}</span>
+                    <span class="agency-list-val">${pct}%</span>
                 </div>
             `;
         });
@@ -3186,7 +3187,7 @@ async function createMemoryProposal(businessId) {
 async function loadPayments() {
     try {
         // 1. Fetch Real Database-Derived Deal Metrics
-        const metricsRes = await fetch('/api/deals/metrics?include_mock=true');
+        const metricsRes = await fetch('/api/deals/metrics?include_mock=false');
         if (metricsRes.ok) {
             const m = await metricsRes.json();
             const elOpen = document.getElementById('deal-metric-open-proposals');

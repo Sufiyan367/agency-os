@@ -372,15 +372,15 @@
                         <div class="ops-header-status-cluster" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <div class="ops-status-pill operational" id="ceo-backend-health-pill" title="Core System Status">
                                 <span class="ops-status-dot pulse" id="ceo-backend-health-dot"></span>
-                                <span>SYSTEM: <strong id="ceo-backend-health-text" style="color:#10b981;">RUNNING</strong></span>
+                                <span>SYSTEM: <strong id="ceo-backend-health-text" style="color:#10b981;">CHECKING...</strong></span>
                             </div>
                             <div class="ops-status-pill operational" id="obs-worker-pill" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); color:#38bdf8;" title="Continuous Background Worker Engine">
                                 <span class="ops-status-dot pulse" style="background:#38bdf8; box-shadow:0 0 6px #38bdf8;"></span>
-                                <span>WORKER: <strong id="obs-worker-status" style="color:#38bdf8;">RUNNING</strong></span>
+                                <span>WORKER: <strong id="obs-worker-status" style="color:#38bdf8;">CHECKING...</strong></span>
                             </div>
                             <div class="ops-status-pill operational" id="obs-loop-pill" style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); color:#c084fc;" title="Autonomous Revenue Progression Loop">
                                 <span class="ops-status-dot pulse" style="background:#a855f7; box-shadow:0 0 6px #a855f7;"></span>
-                                <span>REVENUE LOOP: <strong id="obs-loop-status" style="color:#c084fc;">AUTONOMOUS</strong></span>
+                                <span>REVENUE LOOP: <strong id="obs-loop-status" style="color:#c084fc;">CHECKING...</strong></span>
                             </div>
                             <div class="ops-status-pill operational" id="obs-email-pill" style="background:rgba(113,113,122,0.08); border:1px solid rgba(113,113,122,0.25); color:#71717a;" title="Email Provider Delivery Channel: Checking...">
                                 <span class="ops-status-dot" id="obs-email-dot" style="background:#71717a; box-shadow:0 0 6px #71717a;"></span>
@@ -644,23 +644,23 @@
                                         </div>
                                         <div class="ceo-detail-row">
                                             <span class="ceo-detail-label">Catalog Price</span>
-                                            <span class="ceo-detail-val" id="ceo-active-prospect-price">$1,000</span>
+                                            <span class="ceo-detail-val" id="ceo-active-prospect-price">—</span>
                                         </div>
                                         <div class="ceo-detail-row">
                                             <span class="ceo-detail-label">Win Probability</span>
-                                            <span class="ceo-detail-val" id="ceo-active-prospect-pwin" style="color:#34d399;">72%</span>
+                                            <span class="ceo-detail-val" id="ceo-active-prospect-pwin" style="color:#71717a;">—</span>
                                         </div>
                                         <div class="ceo-detail-row">
                                             <span class="ceo-detail-label">Expected Value (EV)</span>
-                                            <span class="ceo-detail-val" id="ceo-active-prospect-ev" style="color:#38bdf8;">$720</span>
+                                            <span class="ceo-detail-val" id="ceo-active-prospect-ev" style="color:#71717a;">$0</span>
                                         </div>
                                         <div class="ceo-detail-row" style="grid-column: span 2;">
                                             <span class="ceo-detail-label">Contact Email</span>
-                                            <span class="ceo-detail-val" id="ceo-active-prospect-email" style="font-size:0.72rem; font-family:var(--font-mono); color:#f4f4f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">contact@prospect.com</span>
+                                            <span class="ceo-detail-val" id="ceo-active-prospect-email" style="font-size:0.72rem; font-family:var(--font-mono); color:#f4f4f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</span>
                                         </div>
                                         <div class="ceo-detail-row" style="grid-column: span 2;">
                                             <span class="ceo-detail-label">Recommended Service</span>
-                                            <span class="ceo-detail-val" id="ceo-active-prospect-service" style="font-size:0.74rem;">Digital Growth Optimization</span>
+                                            <span class="ceo-detail-val" id="ceo-active-prospect-service" style="font-size:0.74rem;">—</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1033,9 +1033,9 @@
                             <!-- 6-Tile Executive KPI Grid -->
                             <div class="me-kpis-grid">
                                 <div class="ceo-kpi-card me-kpi-card">
-                                    <div class="me-kpi-label">Daily ME Target</div>
-                                    <div class="me-kpi-val amber" id="me-val-daily-target">70 / day</div>
-                                    <div class="me-kpi-sub">10 qualified / country</div>
+                                    <div class="me-kpi-label">Daily Discovery Target: 70/day (Configured Capacity)</div>
+                                    <div class="me-kpi-val amber" id="me-val-daily-target">70 / day (Capacity)</div>
+                                    <div class="me-kpi-sub" id="me-val-discovered-today-sub">Verified Discovered Today: 0</div>
                                 </div>
                                 <div class="ceo-kpi-card me-kpi-card">
                                     <div class="me-kpi-label">Email Queue</div>
