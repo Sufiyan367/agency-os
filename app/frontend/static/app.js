@@ -1853,7 +1853,6 @@ function updateTopCountriesAndServices(leads) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-    const countryContainer = document.getElementById('top-countries-list');
     if (countryContainer && sortedCountries.length > 0) {
         const total = leads.length;
         const flags = {
@@ -1910,7 +1909,6 @@ function updateTopCountriesAndServices(leads) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-    const serviceContainer = document.getElementById('top-services-list');
     if (serviceContainer && sortedServices.length > 0) {
         const total = leads.length;
         let html = '';

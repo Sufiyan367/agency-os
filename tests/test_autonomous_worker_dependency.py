@@ -191,13 +191,13 @@ async def test_positive_reply_advances_and_triggers_demo(db_session):
         res_biz = (await db_session.execute(select(Business).where(Business.domain == "interestedtech.com"))).scalar_one()
         assert res_biz.pipeline_stage == PipelineStage.QUALIFIED_REPLY.value
 
-        # Verify demo pipeline was triggered
-        mock_demo.assert_called_once()
+        # Verify demo pipeline was NOT triggered automatically (Critical Requirement #6: requirements first)
+        mock_demo.assert_not_called()
 
-        # Verify reply was marked handled and suggested response populated
+        # Verify reply was marked handled and suggested response prompts for requirements / conversation
         res_reply = (await db_session.execute(select(Reply).where(Reply.id == reply.id))).scalar_one()
         assert res_reply.is_handled is True
-        assert "demo/interested-tech" in res_reply.suggested_response
+        assert "requirements" in res_reply.suggested_response or "discovery call" in res_reply.suggested_response
 
         # Verify follow-up was cancelled
         res_fu = (await db_session.execute(select(FollowupSequence).where(FollowupSequence.id == fu.id))).scalar_one()

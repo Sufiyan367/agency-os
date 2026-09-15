@@ -136,25 +136,24 @@ class PersistentAgencyWorker:
                                 session.add(pipe_event)
                                 await session.commit()
 
-                                # Stop pending follow-ups
+                                # Stop pending follow-ups immediately upon receiving positive/interested reply
                                 await followup_engine.cancel_pending_followups(session, reply.business_id, FollowupStatus.CANCELLED_REPLY)
 
-                                # Trigger autonomous demo build pipeline
-                                try:
-                                    demo_run = await pipeline_orchestrator.trigger_demo_pipeline(
-                                        session=session,
-                                        business_id=biz.id,
-                                        reply_text=reply.raw_body
+                                # Requirement #6 Invariant: Demos are NOT generated automatically upon reply.
+                                # Require client conversation and requirements gathering first.
+                                if cat_upper == "DEMO_REQUEST":
+                                    reply.suggested_response = (
+                                        f"Hi there,\n\nThanks for reaching out! We would be happy to prepare a tailored demonstration "
+                                        f"for {biz.name or biz.domain}. To ensure the preview addresses your exact workflow requirements, "
+                                        f"could you share what key processes you are looking to automate, or are you open to a quick 10-minute discovery call?"
                                     )
-                                    if demo_run.get("success") and demo_run.get("demo_url"):
-                                        reply.suggested_response = (
-                                            f"Great to hear from you! We custom-built an interactive demonstration "
-                                            f"for {biz.name or biz.domain}: {demo_run['demo_url']}. Take a look and let us know your thoughts!"
-                                        )
-                                except Exception as pipe_err:
-                                    logger.error(f"[PersistentWorker] Demo pipeline error for biz #{reply.business_id}: {pipe_err}")
+                                else:
+                                    reply.suggested_response = (
+                                        f"Hi there,\n\nGreat to hear from you! We would love to discuss how Agency OS can streamline operations "
+                                        f"for {biz.name or biz.domain}. Would you have 10 minutes this week for a brief conversation to explore your requirements?"
+                                    )
 
-                                # Publish high-priority POSITIVE_REPLY event to event bus for notification
+                                # Publish high-priority POSITIVE_REPLY event to event bus for CEO notification
                                 try:
                                     await event_bus.publish(AgencyEvent(
                                         event_type="POSITIVE_REPLY",
@@ -164,7 +163,7 @@ class PersistentAgencyWorker:
                                             "business_name": biz.name or biz.domain,
                                             "prospect_name": biz.name or biz.domain,
                                             "intent": cat_upper,
-                                            "next_action": "Demo Factory Activated",
+                                            "next_action": "Requirements Gathering Required (Collect Requirements Before Building Demo)",
                                             "reply_body": reply.raw_body
                                         }
                                     ))
@@ -172,7 +171,8 @@ class PersistentAgencyWorker:
                                     logger.error(f"[PersistentWorker] Failed to publish POSITIVE_REPLY event: {eb_err}")
 
                             logger.info(
-                                f"[PersistentWorker] Advanced pipeline & triggered demo for {cat_upper} reply from biz #{reply.business_id}"
+                                f"[PersistentWorker] Advanced pipeline to {new_stage} for {cat_upper} reply from biz #{reply.business_id}. "
+                                f"Demo generation held until explicit client requirements and CEO trigger."
                             )
                         elif cat_upper in ("NOT_INTERESTED", "NEGATIVE", "UNSUBSCRIBE"):
                             await followup_engine.cancel_pending_followups(session, reply.business_id, FollowupStatus.CANCELLED_UNSUB)

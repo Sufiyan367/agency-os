@@ -242,11 +242,12 @@ async def test_positive_reply_triggers_demo_and_notification(db_session):
         await db_session.refresh(biz)
         assert biz.pipeline_stage in (PipelineStage.QUALIFIED_REPLY.value, PipelineStage.DEMO_REQUESTED.value)
 
-        # Verify demo pipeline was triggered
-        mock_demo.assert_called_once()
-        # Verify notification event was published
+        # Verify demo pipeline was NOT triggered automatically (Critical Requirement #6: requirements first)
+        mock_demo.assert_not_called()
+        # Verify notification event was published with requirements gathering action
         mock_pub.assert_called_once()
         assert mock_pub.call_args[0][0].event_type == "POSITIVE_REPLY"
+        assert "Requirements Gathering" in mock_pub.call_args[0][0].payload.get("next_action", "")
 
 
 @pytest.mark.asyncio

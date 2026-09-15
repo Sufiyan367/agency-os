@@ -66,7 +66,7 @@ class OutreachSenderAdapter:
                 titan_pass = getattr(settings, "TITAN_SMTP_PASSWORD", None) or getattr(settings, "SMTP_PASSWORD", None)
                 if not titan_user or not titan_pass:
                     raise ValueError(
-                        "Cannot send live: Titan SMTP configuration incomplete (TITAN_SMTP_PASSWORD is missing in configuration). "
+                        "REAL EMAIL SENDING IS NOT CONFIGURED: Titan SMTP configuration incomplete (TITAN_SMTP_PASSWORD is missing in configuration). "
                         "Primary business outbound is BLOCKED."
                     )
                 from app.outreach.providers.titan_provider import TitanEmailProvider
@@ -79,26 +79,26 @@ class OutreachSenderAdapter:
                         "Gmail is only permissible if explicitly enabled in FALLBACK_EMAIL_PROVIDER."
                     )
                 if not getattr(settings, "GMAIL_CLIENT_ID", None) or not getattr(settings, "GMAIL_REFRESH_TOKEN", None) or not getattr(settings, "GMAIL_CLIENT_SECRET", None):
-                    raise ValueError("Cannot send live: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN is not configured in .env")
+                    raise ValueError("REAL EMAIL SENDING IS NOT CONFIGURED: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN is not configured in .env")
                 from app.outreach.providers.gmail_oauth_provider import GmailOAuthEmailProvider
                 provider = GmailOAuthEmailProvider()
             elif provider_name == "resend" or (provider_name == "dry_run" and settings.RESEND_API_KEY):
                 if not settings.RESEND_API_KEY:
-                    raise ValueError("Cannot send live: RESEND_API_KEY is not configured in .env")
+                    raise ValueError("REAL EMAIL SENDING IS NOT CONFIGURED: RESEND_API_KEY is not configured in .env")
                 from app.outreach.providers.resend_provider import ResendEmailProvider
                 provider = ResendEmailProvider()
             elif provider_name == "smtp" or (provider_name == "dry_run" and settings.SMTP_HOST):
                 if not settings.SMTP_HOST or not settings.SMTP_USER:
-                    raise ValueError("Cannot send live: SMTP_HOST and SMTP_USER are not configured in .env")
+                    raise ValueError("REAL EMAIL SENDING IS NOT CONFIGURED: SMTP_HOST and SMTP_USER are not configured in .env")
                 from app.outreach.providers.smtp_provider import SMTPEmailProvider
                 provider = SMTPEmailProvider()
             elif provider_name == "sendgrid":
                 if not settings.SENDGRID_API_KEY:
-                    raise ValueError("Cannot send live: SENDGRID_API_KEY is not configured in .env")
+                    raise ValueError("REAL EMAIL SENDING IS NOT CONFIGURED: SENDGRID_API_KEY is not configured in .env")
                 from app.outreach.providers.sendgrid_provider import SendGridEmailProvider
                 provider = SendGridEmailProvider()
             else:
-                raise ValueError("Cannot send live: No live email credentials configured in .env (configure TITAN_SMTP_PASSWORD, RESEND_API_KEY, or SMTP).")
+                raise ValueError("REAL EMAIL SENDING IS NOT CONFIGURED: No live email credentials configured in .env (configure TITAN_SMTP_PASSWORD, RESEND_API_KEY, or SMTP).")
         else:
             provider = get_email_provider()
 

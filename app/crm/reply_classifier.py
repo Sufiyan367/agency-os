@@ -248,43 +248,23 @@ class ReplyClassifier:
                 session.add(event)
                 await session.commit()
 
-                # Trigger autonomous demo build pipeline for demo requests
+                # Requirement #6 Invariant: Demos are NOT generated automatically upon reply.
+                # Require client conversation and requirements gathering before generating a custom demo.
                 if is_demo_req:
-                    try:
-                        from app.builder.pipeline import pipeline_orchestrator
-                        demo_run = await pipeline_orchestrator.trigger_demo_pipeline(
-                            session=session,
-                            business_id=biz.id,
-                            reply_text=raw_body
-                        )
-                        if demo_run.get("success") and demo_run.get("demo_url"):
-                            suggested = (
-                                f"Thank you for requesting a preview! We custom-built an interactive demonstration "
-                                f"for {biz.name or biz.domain}: {demo_run['demo_url']}. Take a look and let us know your thoughts!"
-                            )
-                            reply.suggested_response = suggested
-                            await session.commit()
-                    except Exception as pipe_err:
-                        logger.error(f"[ReplyClassifier] Failed to run autonomous demo pipeline: {pipe_err}")
-
-                # For positive replies, trigger autonomous demo generation
-                if is_positive and not is_demo_req:
-                    try:
-                        from app.builder.pipeline import pipeline_orchestrator
-                        demo_run = await pipeline_orchestrator.trigger_demo_pipeline(
-                            session=session,
-                            business_id=biz.id,
-                            reply_text=raw_body
-                        )
-                        if demo_run.get("success") and demo_run.get("demo_url"):
-                            suggested = (
-                                f"Great to hear from you! We custom-built an interactive demonstration "
-                                f"for {biz.name or biz.domain}: {demo_run['demo_url']}. Take a look and let us know your thoughts!"
-                            )
-                            reply.suggested_response = suggested
-                            await session.commit()
-                    except Exception as demo_err:
-                        logger.error(f"[ReplyClassifier] Failed to trigger demo generation for {biz.domain}: {demo_err}")
+                    suggested = (
+                        f"Thank you for requesting a preview! We would be delighted to prepare a tailored demonstration "
+                        f"for {biz.name or biz.domain}. To ensure it addresses your exact operational goals, "
+                        f"could you share what key processes you are looking to automate, or are you available for a brief 10-minute discovery call?"
+                    )
+                    reply.suggested_response = suggested
+                    await session.commit()
+                elif is_positive:
+                    suggested = (
+                        f"Great to hear from you! We would love to learn more about your current operations at "
+                        f"{biz.name or biz.domain} and discuss how Agency OS can help. Would you have 10 minutes this week for a brief conversation?"
+                    )
+                    reply.suggested_response = suggested
+                    await session.commit()
 
                 if is_positive:
                     try:
@@ -296,7 +276,7 @@ class ReplyClassifier:
                             payload={
                                 "prospect_name": biz.name or biz.domain,
                                 "business_name": biz.name or biz.domain,
-                                "next_action": "Demo generated & proposal ready for review",
+                                "next_action": "Requirements Gathering Required (Collect Requirements Before Building Demo)",
                                 "reply_text": raw_body[:200]
                             }
                         ))
