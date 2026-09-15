@@ -146,50 +146,54 @@ async def test_settings_and_onboarding_ui_rendering():
         assert 'id="prop-calc-remaining"' in html
 
 @pytest.mark.asyncio
-async def test_hero_avatar_elements_rendered_in_dashboard():
+async def test_minimal_operations_header_rendered_and_orb_removed():
+    """Verify that the dashboard header is minimal, flat, and operational, and that the orb visual is completely removed."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.get("/dashboard")
         assert res.status_code == 200
         html = res.text
 
-        # Verify centerpiece wrapper and atmospheric light
+        # 1. Verify Clean, Minimal Operational Command Header exists
         assert 'id="hero-command-container"' in html
-        assert 'class="hero-atmospheric-light"' in html
-        assert 'id="hero-ai-centerpiece"' in html
+        assert 'class="ops-command-header"' in html
+        assert 'Agency Operations' in html
+        assert 'id="ceo-dynamic-greeting"' in html
 
-        # Verify Avatar blob components
-        assert 'id="hero-avatar"' in html
-        assert 'id="hero-avatar-glow"' in html
-        assert 'id="hero-avatar-mantle"' in html
-        assert 'id="hero-avatar-nucleus"' in html
+        # 2. Verify Status Indicators & Controls exist
+        assert 'id="ceo-backend-health-pill"' in html
+        assert 'id="obs-worker-pill"' in html
+        assert 'id="obs-loop-pill"' in html
+        assert 'id="obs-email-pill"' in html
+        assert 'id="obs-outreach-lock"' in html
+        assert 'Refresh' in html
+        assert 'System Diagnostics' in html
 
-        # Verify Command / Directive Input is removed per operator specification
-        assert 'id="hero-ai-directive-input"' not in html
-        assert 'id="hero-directive-submit-btn"' not in html
-        assert 'id="hero-directive-status"' not in html
-
-        # Verify script inclusion
-        assert 'src="/static/hero_avatar.js' in html
+        # 3. Verify Orb / Avatar / Decorative 3D elements are COMPLETELY REMOVED
+        assert 'class="hero-atmospheric-light"' not in html
+        assert 'id="hero-ai-centerpiece"' not in html
+        assert 'id="hero-avatar"' not in html
+        assert 'id="hero-avatar-glow"' not in html
+        assert 'id="hero-avatar-mantle"' not in html
+        assert 'id="hero-avatar-nucleus"' not in html
+        assert 'hero_avatar.js' not in html
 
 @pytest.mark.asyncio
-async def test_hero_avatar_static_assets_served():
+async def test_dashboard_css_has_no_orb_styles():
+    """Verify dashboard.css has no remaining orb/avatar styles and maintains compact header styling."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Verify hero_avatar.js static file
-        js_res = await client.get("/static/hero_avatar.js")
-        assert js_res.status_code == 200
-        js_text = js_res.text
-        assert "agencyHeroAvatar" in js_text
-        assert "requestAnimationFrame" in js_text
-        assert "prefers-reduced-motion" in js_text
-
-        # Verify dashboard.css contains avatar styling
         css_res = await client.get("/static/dashboard.css")
         assert css_res.status_code == 200
         css_text = css_res.text
-        assert ".hero-avatar-wrapper" in css_text
-        assert ".hero-avatar-mantle" in css_text
-        assert ".hero-directive-bar" not in css_text
-        assert "avatarRipple" in css_text
+
+        # Verify orb styles are removed
+        assert ".hero-avatar-wrapper" not in css_text
+        assert ".hero-avatar-mantle" not in css_text
+        assert ".hero-ai-centerpiece" not in css_text
+        assert "avatarRipple" not in css_text
+
+        # Verify compact operations header is preserved
+        assert ".ops-command-header" in css_text
+        assert ".ops-header-title" in css_text
 
