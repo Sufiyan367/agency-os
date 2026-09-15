@@ -30,7 +30,8 @@ async def test_outreach_queue_and_approval_gate(db_session):
     msg = await outreach_personalizer.prepare_outreach_for_business(db_session, biz)
     assert msg.status == OutreachStatus.PENDING_APPROVAL.value
     assert "reliableroofingtest.com" in msg.body
-    assert "unsubscribe" in msg.body.lower()
+    assert 40 <= len(msg.body.split()) <= 160
+    assert "al faisaliah" not in msg.body.lower()
 
     # 2. Verify Unapproved message cannot be sent!
     with pytest.raises(ValueError, match="must be APPROVED"):

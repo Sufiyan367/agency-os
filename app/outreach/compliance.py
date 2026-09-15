@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database.models import SuppressionList, OutreachMessage, OutreachStatus
@@ -87,20 +87,33 @@ class ComplianceGuard:
             return False
         return True
 
-    def format_compliance_footer(self, business_name: str, recipient_email: str, postal_address: Optional[str] = None) -> str:
-        addr = postal_address or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None)
-        if not addr or any(p in addr.lower() for p in self.KNOWN_PLACEHOLDERS):
-            addr_display = "[Controllable Business Mailing Address Required Before Live Dispatch]"
-        else:
-            addr_display = addr.strip()
+    def format_compliance_footer(
+        self,
+        business_name: Optional[str] = None,
+        recipient_email: Optional[str] = None,
+        postal_address: Optional[str] = None,
+        profile: Optional[Any] = None,
+        force: bool = False
+    ) -> str:
+        """
+        Renders compliance footer based on an explicit ComplianceProfile or campaign policy.
+        If compliance profile is not enabled and force is False, returns empty string (signature only).
+        Never exposes internal technical descriptions or unconfigured personas.
+        """
+        if profile is not None:
+            if not getattr(profile, "enabled", False):
+                return ""
+            return profile.render_footer()
 
-        from_name = getattr(settings, "OUTREACH_FROM_NAME", None) or getattr(settings, "EMAIL_FROM_NAME", None) or "Sufiyan Surve | Digital Strategy Advisory"
-        return (
-            f"\n\n---\n"
-            f"Sent by {from_name} on behalf of digital engineering advisory.\n"
-            f"Postal Address: {addr_display}\n"
-            f"We contacted this public address ({recipient_email}) regarding public web infrastructure for {business_name}.\n"
-            f"If you prefer not to receive future technical suggestions, simply reply 'unsubscribe' or 'opt out' to be permanently excluded."
-        )
+        # If no explicit profile passed, check settings toggle or forced campaign mandate
+        if not force and not getattr(settings, "COMPLIANCE_PROFILE_ENABLED", False):
+            return ""
+
+        addr = (postal_address or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or "").strip()
+        parts = []
+        if addr and not any(p in addr.lower() for p in self.KNOWN_PLACEHOLDERS):
+            parts.append(f"Mailing Address: {addr}")
+        parts.append("To opt out of future communications, reply 'unsubscribe'.")
+        return "\n\n---\n" + "\n".join(parts)
 
 compliance_guard = ComplianceGuard()

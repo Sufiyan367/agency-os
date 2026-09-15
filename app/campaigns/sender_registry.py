@@ -10,7 +10,7 @@ class SenderRegistry:
     Strictly forbids inventing personas or using unauthenticated domains.
     """
 
-    DEFAULT_POSTAL_ADDRESS = "Digital Strategy Advisory, Level 14, Al Faisaliah Tower, King Fahd Rd, Riyadh 12212, Saudi Arabia"
+    DEFAULT_POSTAL_ADDRESS = ""
 
     def resolve_sender(
         self,
@@ -70,7 +70,7 @@ class SenderRegistry:
             return False, "Invalid sender email: from_email is missing or malformed.", resolved
 
         addr = (resolved.get("postal_address") or "").strip()
-        if not addr or len(addr) < 10:
+        if is_live_send and (not addr or len(addr) < 10):
             return False, "Compliance violation: Mandatory physical postal address is missing.", resolved
 
         KNOWN_PLACEHOLDERS = [

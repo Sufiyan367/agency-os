@@ -116,12 +116,26 @@ class OutreachSenderAdapter:
 
         biz = await session.get(Business, msg.business_id) if msg.business_id else None
 
-        # Ensure legally compliant footer is present with physical notice and opt-out
-        if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower()):
-            msg.body = msg.body + compliance_guard.format_compliance_footer(
-                business_name=biz.name if biz else "Business",
-                recipient_email=msg.recipient_email
+        # Deterministic Entity Resolution Pre-Send Check
+        if biz:
+            from app.core.security import normalize_domain
+            from app.outreach.composer import CanonicalProspect, EntityResolver
+            canon_domain = normalize_domain(biz.domain or "")
+            prospect = CanonicalProspect(
+                prospect_id=biz.id,
+                company_name=biz.name or biz.domain,
+                website=biz.domain,
+                canonical_company_domain=canon_domain,
+                recipient_email=msg.recipient_email,
+                recipient_name=getattr(biz, "contact_name", None),
+                industry=biz.niche or "Commercial Services",
+                city=biz.city,
+                country=biz.country or "US",
+                phone=biz.phone
             )
+            ent_res = EntityResolver.resolve_and_validate(prospect)
+            if not ent_res.is_valid:
+                raise ValueError(f"Outbound dispatch blocked: {'; '.join(ent_res.errors)}")
 
         # Resolve matching campaign by country
         from app.campaigns.service import campaign_service
@@ -131,6 +145,17 @@ class OutreachSenderAdapter:
         campaign = await campaign_service.get_campaign_by_country(session, country_identifier)
         if campaign:
             msg.campaign_id = campaign.id
+
+        # Ensure mandatory CAN-SPAM / international opt-out notice is present on outbound transmission
+        if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower() or "opt-out" in msg.body.lower()):
+            footer_text = compliance_guard.format_compliance_footer(
+                business_name=biz.name if biz else "Business",
+                recipient_email=msg.recipient_email,
+                postal_address=campaign.postal_address if campaign else None,
+                force=True
+            )
+            if footer_text:
+                msg.body = msg.body + footer_text
 
         # Strict 10-Point Deterministic Pre-Send Gate
         gate_res = await campaign_compliance_gate.evaluate_pre_send(
@@ -159,11 +184,11 @@ class OutreachSenderAdapter:
         elif is_titan:
             from_email = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or settings.EMAIL_FROM
             from_name = settings.OUTREACH_FROM_NAME
-            reply_to = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or settings.EMAIL_REPLY_TO
+            reply_to = getattr(settings, "TITAN_SMTP_USER", None) or getattr(settings, "SMTP_USER", None) or getattr(settings, "EMAIL_REPLY_TO", None) or from_email
         else:
             from_email = settings.EMAIL_FROM
             from_name = settings.OUTREACH_FROM_NAME
-            reply_to = settings.EMAIL_REPLY_TO
+            reply_to = getattr(settings, "EMAIL_REPLY_TO", None) or from_email
 
         try:
             delivery_res = await provider.send_email(

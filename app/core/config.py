@@ -153,9 +153,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
     OUTREACH_FROM_EMAIL: str = os.getenv("OUTREACH_FROM_EMAIL", "hello@automatedagencyos.tech")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", os.getenv("OUTREACH_FROM_EMAIL", "hello@automatedagencyos.tech"))
-    EMAIL_REPLY_TO: str = os.getenv("EMAIL_REPLY_TO", "hello@automatedagencyos.tech")
-    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", os.getenv("EMAIL_FROM_NAME", "Agency OS | Autonomous Growth Engine"))
-    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Agency OS | Autonomous Growth Engine"))
+    OUTREACH_FROM_NAME: str = os.getenv("OUTREACH_FROM_NAME", os.getenv("EMAIL_FROM_NAME", "Agency Operations"))
+    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", os.getenv("OUTREACH_FROM_NAME", "Agency Operations"))
+    EMAIL_REPLY_TO: Optional[str] = os.getenv("EMAIL_REPLY_TO", None)
+    COMPLIANCE_PROFILE_ENABLED: bool = os.getenv("COMPLIANCE_PROFILE_ENABLED", "false").lower() in ("true", "1")
     PHYSICAL_POSTAL_ADDRESS: Optional[str] = os.getenv("PHYSICAL_POSTAL_ADDRESS")
     PUBLIC_DEMO_BASE_URL: Optional[str] = os.getenv("PUBLIC_DEMO_BASE_URL")
 

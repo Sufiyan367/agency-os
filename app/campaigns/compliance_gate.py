@@ -186,7 +186,7 @@ class CampaignComplianceGate:
         postal_addr = (resolved_sender.get("postal_address") or "").strip()
         KNOWN_PLACEHOLDERS = ["100 innovation way", "100 congress ave", "wilmington, de", "austin, tx"]
         is_placeholder = any(p in postal_addr.lower() for p in KNOWN_PLACEHOLDERS) if postal_addr else True
-        has_postal = bool(postal_addr) and (not is_placeholder if is_live else True)
+        has_postal = (bool(postal_addr) and not is_placeholder) if is_live else True
 
         checks.append(ComplianceCheckItem(
             check_name="PHYSICAL_ADDRESS_AND_OPTOUT_FOOTER",
@@ -196,7 +196,7 @@ class CampaignComplianceGate:
         if not (has_optout and has_postal):
             if not has_optout:
                 failure_reasons.append("Missing required opt-out / unsubscribe notice in message body.")
-            if not has_postal:
+            if not has_postal and is_live:
                 failure_reasons.append("Mandatory real physical postal notice is missing or placeholder. Live send blocked.")
 
         # Check 11: Hard Safety Brake — Campaign Active Status
