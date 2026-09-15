@@ -1,19 +1,20 @@
 /**
  * Agency OS — Production Landing Page Controller
- * Pure Vanilla JavaScript — Zero Frameworks / Zero External Dependencies
+ * Axion Studio Specification — Pure Vanilla JavaScript
+ * Zero external animation libraries / Single RAF loop / Leak-free
  */
 
-(function() {
+(function () {
     'use strict';
 
     // -------------------------------------------------------------------------
-    // 1. MOBILE MENU & HEADER SCROLL CONTROLLER
+    // 1. MOBILE MENU CONTROLLER
     // -------------------------------------------------------------------------
     const burgerBtn = document.getElementById('burgerBtn');
     const mobileMenu = document.getElementById('mobileMenu');
     const mobileOverlay = document.getElementById('mobileOverlay');
     const siteHeaderContainer = document.getElementById('siteHeaderContainer');
-    const menuLinks = document.querySelectorAll('.mobile-menu-link, .mobile-signin-btn, .mobile-cta-btn');
+    const mobileLinks = document.querySelectorAll('.mobile-menu-link, .mobile-cta-btn');
 
     function openMobileMenu() {
         if (!burgerBtn || !mobileMenu || !mobileOverlay) return;
@@ -50,13 +51,12 @@
         mobileOverlay.addEventListener('click', closeMobileMenu);
     }
 
-    // Close on link click and scroll
-    menuLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+    mobileLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
             closeMobileMenu();
-            if (link.classList.contains('mobile-cta-btn')) {
+            if (link.dataset.action === 'open-consultation-modal') {
                 e.preventDefault();
-                openConsultationModal(link);
+                openModal(consultationModal);
                 return;
             }
             const href = link.getAttribute('href');
@@ -70,9 +70,8 @@
         });
     });
 
-    // Window resize reset
-    window.addEventListener('resize', function() {
-        if (window.innerWidth > 720) {
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
             closeMobileMenu();
         }
     });
@@ -80,7 +79,7 @@
     // Header blur styling on scroll
     function handleHeaderScroll() {
         if (!siteHeaderContainer) return;
-        if (window.scrollY > 40) {
+        if (window.scrollY > 30) {
             siteHeaderContainer.classList.add('scrolled');
         } else {
             siteHeaderContainer.classList.remove('scrolled');
@@ -90,21 +89,26 @@
     handleHeaderScroll();
 
     // -------------------------------------------------------------------------
-    // 2. SMOOTH NAVIGATION & ACTIVE SECTION HIGHLIGHTING
+    // 2. ACTIVE SECTION HIGHLIGHTING & SMOOTH NAVIGATION
     // -------------------------------------------------------------------------
     const navLinks = document.querySelectorAll('.nav-link');
-    const mobileNavLinks = document.querySelectorAll('.mobile-menu-link');
+    const sections = document.querySelectorAll('section[id]');
 
-    function setActiveNav(targetHref) {
-        navLinks.forEach(link => {
-            if (link.getAttribute('href') === targetHref) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
+    function updateActiveNav() {
+        const scrollY = window.scrollY + 180;
+        let currentSectionId = '';
+
+        sections.forEach(section => {
+            const top = section.offsetTop;
+            const height = section.offsetHeight;
+            if (scrollY >= top && scrollY < top + height) {
+                currentSectionId = section.getAttribute('id');
             }
         });
-        mobileNavLinks.forEach(link => {
-            if (link.getAttribute('href') === targetHref) {
+
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href === '#' + currentSectionId || (currentSectionId === 'process' && href === '#how-it-works')) {
                 link.classList.add('active');
             } else {
                 link.classList.remove('active');
@@ -112,357 +116,224 @@
         });
     }
 
-    // Smooth scroll on desktop nav clicks
+    window.addEventListener('scroll', updateActiveNav, { passive: true });
+
     navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+        link.addEventListener('click', function (e) {
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
                 e.preventDefault();
-                const targetEl = document.querySelector(href);
-                if (targetEl) {
-                    targetEl.scrollIntoView({ behavior: 'smooth' });
-                    setActiveNav(href);
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
                 }
             }
         });
     });
 
-    // Track active sections on scroll
-    const observedSections = [
-        { id: 'home', nav: '#services' },
-        { id: 'services', nav: '#services' },
-        { id: 'who-we-help', nav: '#who-we-help' },
-        { id: 'how-it-works', nav: '#how-it-works' },
-        { id: 'pricing', nav: '#pricing' },
-        { id: 'deliverables', nav: '#deliverables' },
-        { id: 'contact', nav: '#contact' }
-    ];
+    // -------------------------------------------------------------------------
+    // 3. MOUSE-REACTIVE ATMOSPHERIC DEPTH & PARALLAX
+    // -------------------------------------------------------------------------
+    const heroGlow = document.getElementById('heroAtmosphereGlow');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const intersectingSectionIds = new Set();
+    if (heroGlow && !reducedMotion) {
+        let mouseX = 0;
+        let mouseY = 0;
+        let currentShiftX = 0;
+        let currentShiftY = 0;
+        let animId = null;
+        let isTabActive = true;
 
-    function updateActiveNavFromScroll() {
-        const scrollY = window.pageYOffset || window.scrollY || 0;
-        const viewportHeight = window.innerHeight || 800;
-        const totalHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 10000;
-
-        // Force #home when near the top
-        if (scrollY < 120) {
-            setActiveNav('#home');
-            return;
+        function onMouseMove(e) {
+            if (window.innerWidth <= 768) return;
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            mouseX = (e.clientX - centerX) * 0.08;
+            mouseY = (e.clientY - centerY) * 0.08;
         }
 
-        // Force #contact when scrolled to bottom of document
-        if (scrollY + viewportHeight >= totalHeight - 120) {
-            setActiveNav('#contact');
-            return;
-        }
-
-        // Find the first intersecting section in document order
-        for (let i = 0; i < observedSections.length; i++) {
-            const sec = observedSections[i];
-            if (intersectingSectionIds.has(sec.id)) {
-                setActiveNav(sec.nav);
+        function renderParallax() {
+            if (!isTabActive || window.innerWidth <= 768) {
+                animId = requestAnimationFrame(renderParallax);
                 return;
             }
-        }
-    }
+            currentShiftX += (mouseX - currentShiftX) * 0.05;
+            currentShiftY += (mouseY - currentShiftY) * 0.05;
 
-    if ('IntersectionObserver' in window) {
-        const sectionObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    intersectingSectionIds.add(entry.target.id);
-                } else {
-                    intersectingSectionIds.delete(entry.target.id);
-                }
-            });
-            updateActiveNavFromScroll();
-        }, {
-            rootMargin: '-15% 0px -55% 0px'
-        });
+            heroGlow.style.setProperty('--mouse-shift-x', currentShiftX.toFixed(2) + 'px');
+            heroGlow.style.setProperty('--mouse-shift-y', currentShiftY.toFixed(2) + 'px');
 
-        observedSections.forEach(item => {
-            const el = document.getElementById(item.id);
-            if (el) sectionObserver.observe(el);
-        });
-    }
-
-    window.addEventListener('scroll', updateActiveNavFromScroll, { passive: true });
-
-    // -------------------------------------------------------------------------
-    // 3. SCROLL REVEAL ANIMATIONS
-    // -------------------------------------------------------------------------
-    const revealElements = document.querySelectorAll('.scroll-reveal');
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-        revealElements.forEach(el => el.classList.add('revealed'));
-    } else if ('IntersectionObserver' in window && revealElements.length > 0) {
-        const revealObserver = new IntersectionObserver((entries, obs) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('revealed');
-                    obs.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.12 });
-
-        revealElements.forEach(el => revealObserver.observe(el));
-    } else {
-        revealElements.forEach(el => el.classList.add('revealed'));
-    }
-
-    // -------------------------------------------------------------------------
-    // 4. STATS COUNT-UP CONTROLLER
-    // -------------------------------------------------------------------------
-    function easeOutCubic(t) {
-        return 1 - Math.pow(1 - t, 3);
-    }
-
-    function animateCountUp(element, target, decimals, duration, delay) {
-        let startTime = null;
-
-        function step(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const elapsed = timestamp - startTime;
-
-            if (elapsed < delay) {
-                element.textContent = (0).toFixed(decimals);
-                requestAnimationFrame(step);
-                return;
-            }
-
-            const progress = Math.min((elapsed - delay) / duration, 1);
-            const eased = easeOutCubic(progress);
-            const current = eased * target;
-
-            if (decimals > 0) {
-                element.textContent = current.toFixed(decimals);
-            } else {
-                element.textContent = Math.round(current).toString();
-            }
-
-            if (progress < 1) {
-                requestAnimationFrame(step);
-            } else {
-                element.textContent = target.toFixed(decimals);
-            }
+            animId = requestAnimationFrame(renderParallax);
         }
 
-        requestAnimationFrame(step);
-    }
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        animId = requestAnimationFrame(renderParallax);
 
-    const statItems = document.querySelectorAll('.stat-item');
-    const statElements = document.querySelectorAll('[data-target]');
-
-    if (prefersReducedMotion) {
-        statElements.forEach(el => {
-            const target = parseFloat(el.getAttribute('data-target') || '0');
-            const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
-            el.textContent = target.toFixed(decimals);
-        });
-    } else if ('IntersectionObserver' in window && statItems.length > 0) {
-        const statsObserver = new IntersectionObserver((entries, obs) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const item = entry.target;
-                    obs.unobserve(item);
-                    const el = item.querySelector('[data-target]');
-                    if (el && !el.dataset.animated) {
-                        el.dataset.animated = 'true';
-                        const index = Array.from(statItems).indexOf(item);
-                        const target = parseFloat(el.getAttribute('data-target') || '0');
-                        const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
-                        const duration = 1400 + index * 80;
-                        const delay = 350 + index * 90;
-                        animateCountUp(el, target, decimals, duration, delay);
-                    }
-                }
-            });
-        }, { threshold: 0.25 });
-
-        statItems.forEach(item => statsObserver.observe(item));
-    } else {
-        statElements.forEach((el, i) => {
-            const target = parseFloat(el.getAttribute('data-target') || '0');
-            const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
-            animateCountUp(el, target, decimals, 1400 + i * 80, 350 + i * 90);
+        document.addEventListener('visibilitychange', function () {
+            isTabActive = !document.hidden;
         });
     }
 
     // -------------------------------------------------------------------------
-    // 5. BACK TO TOP BUTTON
+    // 4. FLOATING BACK TO TOP BUTTON
     // -------------------------------------------------------------------------
     const backToTopBtn = document.getElementById('backToTop');
-
     if (backToTopBtn) {
-        function updateBackToTop() {
-            const y = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            if (y > 500) {
+        window.addEventListener('scroll', function () {
+            if (window.scrollY > 400) {
                 backToTopBtn.classList.add('visible');
             } else {
                 backToTopBtn.classList.remove('visible');
             }
-        }
-        window.addEventListener('scroll', updateBackToTop, { passive: true });
-        document.addEventListener('scroll', updateBackToTop, { passive: true });
-        updateBackToTop();
+        }, { passive: true });
 
-        backToTopBtn.addEventListener('click', function() {
-            const homeSection = document.getElementById('home');
-            if (homeSection) {
-                homeSection.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+        backToTopBtn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 
     // -------------------------------------------------------------------------
-    // 6. CONSULTATION MODAL CONTROLLER
+    // 5. MODALS CONTROLLER (CONSULTATION, PRIVACY, TERMS)
     // -------------------------------------------------------------------------
     const consultationModal = document.getElementById('consultationModal');
-    const closeConsultationBtn = document.getElementById('closeConsultationModal');
-    const openConsultationTriggers = document.querySelectorAll('[data-action="open-consultation-modal"]');
-    const consultationForm = document.getElementById('consultationForm');
-    const consultationAlert = document.getElementById('consultationAlert');
-    let lastFocusedTrigger = null;
+    const privacyModal = document.getElementById('privacyModal');
+    const termsModal = document.getElementById('termsModal');
 
-    function openConsultationModal(triggerElement) {
-        if (!consultationModal) return;
-        lastFocusedTrigger = triggerElement || document.activeElement;
-        consultationModal.classList.add('active');
-        consultationModal.setAttribute('aria-hidden', 'false');
-        if (consultationAlert) {
-            consultationAlert.hidden = true;
-            consultationAlert.className = 'modal-alert';
-            consultationAlert.textContent = '';
-        }
-        const firstInput = consultationModal.querySelector('input');
-        if (firstInput) setTimeout(() => firstInput.focus(), 80);
+    function openModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.add('open');
+        modalEl.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('menu-open');
     }
 
-    function closeConsultationModal() {
-        if (!consultationModal) return;
-        consultationModal.classList.remove('active');
-        consultationModal.setAttribute('aria-hidden', 'true');
-        if (lastFocusedTrigger && typeof lastFocusedTrigger.focus === 'function') {
-            try { lastFocusedTrigger.focus(); } catch (_) {}
+    function closeModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.remove('open');
+        modalEl.setAttribute('aria-hidden', 'true');
+        const anyModalOpen = document.querySelector('.modal-backdrop.open');
+        if (!anyModalOpen) {
+            document.body.classList.remove('menu-open');
         }
     }
 
-    openConsultationTriggers.forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    // Consultation modal triggers
+    document.querySelectorAll('[data-action="open-consultation-modal"]').forEach(btn => {
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
-            openConsultationModal(btn);
+            openModal(consultationModal);
         });
     });
 
-    if (closeConsultationBtn) {
-        closeConsultationBtn.addEventListener('click', closeConsultationModal);
-    }
+    document.getElementById('closeConsultationModal')?.addEventListener('click', function () {
+        closeModal(consultationModal);
+    });
 
-    if (consultationModal) {
-        consultationModal.addEventListener('click', function(e) {
-            if (e.target === consultationModal) {
-                closeConsultationModal();
-            }
-        });
-    }
+    // Privacy modal triggers
+    document.getElementById('openPrivacyModalLink')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(privacyModal);
+    });
 
-    window.addEventListener('keydown', function(e) {
+    document.getElementById('closePrivacyModal')?.addEventListener('click', function () {
+        closeModal(privacyModal);
+    });
+
+    // Terms modal triggers
+    document.getElementById('openTermsModalLink')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(termsModal);
+    });
+
+    document.getElementById('closeTermsModal')?.addEventListener('click', function () {
+        closeModal(termsModal);
+    });
+
+    // Close on backdrop click
+    [consultationModal, privacyModal, termsModal].forEach(modal => {
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeModal(modal);
+                }
+            });
+        }
+    });
+
+    // Escape key closes modals and menu
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeMobileMenu();
-            closeConsultationModal();
+            closeModal(consultationModal);
+            closeModal(privacyModal);
+            closeModal(termsModal);
         }
     });
 
     // -------------------------------------------------------------------------
-    // 7. FORM SUBMISSIONS: MODAL & INLINE FORMS
+    // 6. CONTACT & CONSULTATION SUBMISSIONS
     // -------------------------------------------------------------------------
-    async function submitConsultationRequest({ name, email, company, phone, website, industry, need, note, submitBtn, alertEl, onSuccess }) {
-        if (!name || !email) {
-            if (alertEl) {
-                alertEl.hidden = false;
-                alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert error' : 'modal-alert error';
-                alertEl.textContent = 'Please provide both your name and email address.';
-            }
-            return;
-        }
-
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.dataset.originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Submitting Request...';
-        }
-
+    async function submitLead(payload, alertEl, submitBtn, originalBtnText, formEl, successCallback) {
         if (alertEl) {
             alertEl.hidden = true;
             alertEl.textContent = '';
         }
 
-        const currentProcessParts = [
-            website ? 'Website: ' + website : '',
-            industry ? 'Industry: ' + industry : '',
-            need ? 'Automation Need: ' + need : '',
-            note ? 'Details: ' + note : ''
-        ].filter(Boolean);
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting Request...';
+        }
 
         try {
-            const res = await fetch('/api/v1/onboarding/consultation', {
+            // Primary endpoint: /api/contact
+            let res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: name,
-                    email: email,
-                    phone: phone || '',
-                    agency_name: company || '',
-                    company: company || '',
-                    website: website || '',
-                    industry: industry || 'Enquiry-Driven Business',
-                    niche: industry || 'Enquiry-Driven Business',
-                    need: need || 'Not sure yet / Full Assessment',
-                    automation_need: need || 'Not sure yet / Full Assessment',
-                    additional_details: note || '',
-                    notes: note || '',
-                    note: note || '',
-                    current_process: currentProcessParts.join(' | ') || 'Custom AI Automation Assessment Request'
-                })
+                body: JSON.stringify(payload)
             });
+
+            // If not found, try fallback /api/v1/onboarding/consultation
+            if (res.status === 404) {
+                res = await fetch('/api/v1/onboarding/consultation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: payload.name,
+                        email: payload.email,
+                        company: payload.company,
+                        service_interest: payload.service_interest,
+                        notes: payload.message,
+                        current_process: payload.message
+                    })
+                });
+            }
 
             if (res.ok) {
                 if (alertEl) {
                     alertEl.hidden = false;
                     alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert success' : 'modal-alert success';
-                    alertEl.textContent = "Thanks — your assessment request has been received. We'll review your requirements and contact you within 24 business hours.";
+                    alertEl.textContent = "Thank you — your request has been received. Our engineering team will review your requirements and respond within 24 business hours.";
                 }
-                if (typeof onSuccess === 'function') {
-                    onSuccess();
+                if (formEl) formEl.reset();
+                if (typeof successCallback === 'function') {
+                    successCallback();
                 }
             } else {
-                let errorDetail = 'Unable to submit your assessment request. Please try again.';
+                let errorMsg = 'Unable to process your request. Please check all fields and try again.';
                 try {
-                    const errData = await res.json();
-                    if (errData && errData.detail) {
-                        if (typeof errData.detail === 'string') {
-                            errorDetail = errData.detail;
-                        } else if (Array.isArray(errData.detail)) {
-                            errorDetail = errData.detail.map(d => d.msg || d.message || JSON.stringify(d)).join(', ');
-                        } else {
-                            errorDetail = JSON.stringify(errData.detail);
-                        }
-                    } else if (errData && errData.message) {
-                        errorDetail = errData.message;
+                    const data = await res.json();
+                    if (data && data.detail) {
+                        errorMsg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
                     }
                 } catch (_) {}
 
                 if (alertEl) {
                     alertEl.hidden = false;
                     alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert error' : 'modal-alert error';
-                    alertEl.textContent = errorDetail;
+                    alertEl.textContent = errorMsg;
                 }
             }
-        } catch (networkError) {
+        } catch (err) {
             if (alertEl) {
                 alertEl.hidden = false;
                 alertEl.className = alertEl.classList.contains('form-alert') ? 'form-alert error' : 'modal-alert error';
@@ -471,76 +342,62 @@
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = submitBtn.dataset.originalText || 'Request Assessment';
+                submitBtn.textContent = originalBtnText;
             }
         }
     }
 
-    // Modal Form Handler
-    if (consultationForm) {
-        consultationForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nameInput = document.getElementById('consultationName');
-            const emailInput = document.getElementById('consultationEmail');
-            const companyInput = document.getElementById('consultationCompany');
-            const phoneInput = document.getElementById('consultationPhone');
-            const websiteInput = document.getElementById('consultationWebsite');
-            const industryInput = document.getElementById('consultationIndustry');
-            const needInput = document.getElementById('consultationNeed');
-            const noteInput = document.getElementById('consultationNote');
-            const submitBtn = document.getElementById('consultationSubmitBtn');
+    // Inline Contact Form
+    const contactForm = document.getElementById('contactForm');
+    const inlineAlert = document.getElementById('inlineAlert');
+    const contactSubmitBtn = document.getElementById('contactSubmitBtn');
 
-            submitConsultationRequest({
-                name: nameInput?.value?.trim() || '',
-                email: emailInput?.value?.trim() || '',
-                company: companyInput?.value?.trim() || '',
-                phone: phoneInput?.value?.trim() || '',
-                website: websiteInput?.value?.trim() || '',
-                industry: industryInput?.value?.trim() || '',
-                need: needInput?.value?.trim() || '',
-                note: noteInput?.value?.trim() || '',
-                submitBtn: submitBtn,
-                alertEl: consultationAlert,
-                onSuccess: function() {
-                    consultationForm.reset();
-                    setTimeout(closeConsultationModal, 3000);
-                }
-            });
+    if (contactForm) {
+        contactForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name = document.getElementById('contactName')?.value.trim() || '';
+            const email = document.getElementById('contactEmail')?.value.trim() || '';
+            const company = document.getElementById('contactCompany')?.value.trim() || '';
+            const service = document.getElementById('contactService')?.value || '';
+            const message = document.getElementById('contactMessage')?.value.trim() || '';
+
+            submitLead(
+                { name, email, company, service_interest: service, message },
+                inlineAlert,
+                contactSubmitBtn,
+                'Send Consultation Request',
+                contactForm
+            );
         });
     }
 
-    // Inline Contact Form Handler
-    const inlineForm = document.getElementById('inlineContactForm');
-    const inlineAlert = document.getElementById('inlineAlert');
-    const inlineSubmitBtn = document.getElementById('inlineSubmitBtn');
+    // Modal Consultation Form
+    const consultationForm = document.getElementById('consultationForm');
+    const consultationAlert = document.getElementById('consultationAlert');
+    const consultationSubmitBtn = document.getElementById('consultationSubmitBtn');
 
-    if (inlineForm) {
-        inlineForm.addEventListener('submit', function(e) {
+    if (consultationForm) {
+        consultationForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            const nameInput = document.getElementById('inlineName');
-            const emailInput = document.getElementById('inlineEmail');
-            const companyInput = document.getElementById('inlineCompany');
-            const phoneInput = document.getElementById('inlinePhone');
-            const websiteInput = document.getElementById('inlineWebsite');
-            const industryInput = document.getElementById('inlineIndustry');
-            const needInput = document.getElementById('inlineNeed');
-            const noteInput = document.getElementById('inlineNote');
+            const name = consultationForm.querySelector('[name="name"]')?.value.trim() || '';
+            const email = consultationForm.querySelector('[name="email"]')?.value.trim() || '';
+            const company = consultationForm.querySelector('[name="company"]')?.value.trim() || '';
+            const phone = consultationForm.querySelector('[name="phone"]')?.value.trim() || '';
+            const service = consultationForm.querySelector('[name="service_interest"]')?.value || 'sales_automation';
+            const note = consultationForm.querySelector('[name="message"]')?.value.trim() || '';
 
-            submitConsultationRequest({
-                name: nameInput?.value?.trim() || '',
-                email: emailInput?.value?.trim() || '',
-                company: companyInput?.value?.trim() || '',
-                phone: phoneInput?.value?.trim() || '',
-                website: websiteInput?.value?.trim() || '',
-                industry: industryInput?.value?.trim() || '',
-                need: needInput?.value?.trim() || '',
-                note: noteInput?.value?.trim() || '',
-                submitBtn: inlineSubmitBtn,
-                alertEl: inlineAlert,
-                onSuccess: function() {
-                    inlineForm.reset();
+            const fullMsg = phone ? `Phone: ${phone} | Note: ${note}` : note;
+
+            submitLead(
+                { name, email, company, service_interest: service, message: fullMsg },
+                consultationAlert,
+                consultationSubmitBtn,
+                'Request Assessment',
+                consultationForm,
+                function () {
+                    setTimeout(() => closeModal(consultationModal), 3000);
                 }
-            });
+            );
         });
     }
 
