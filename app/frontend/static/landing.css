@@ -231,6 +231,7 @@ body.menu-open {
   transition: color 0.2s ease;
   position: relative;
   padding: 4px 2px;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -510,22 +511,25 @@ body.menu-open {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(100px, 16vh, 180px) clamp(20px, 5vw, 64px) clamp(48px, 8vh, 84px);
+  justify-content: center;
+  align-items: center;
+  padding: clamp(90px, 14vh, 140px) clamp(20px, 4vw, 48px) clamp(48px, 8vh, 80px);
+  text-align: center;
 }
 
 .hero-inner {
-  max-width: 980px;
+  max-width: 900px;
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  text-align: center;
 }
 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 0.74rem;
   font-weight: 600;
@@ -552,10 +556,12 @@ body.menu-open {
 .headline {
   display: flex;
   flex-direction: column;
-  font-size: clamp(40px, 6.8vw, 84px);
+  align-items: center;
+  text-align: center;
+  font-size: clamp(38px, 6.2vw, 76px);
   font-weight: 600;
   letter-spacing: -0.04em;
-  line-height: 1.05;
+  line-height: 1.06;
   color: #FFFFFF;
   margin-bottom: clamp(18px, 2.8vh, 28px);
 }
@@ -569,17 +575,21 @@ body.menu-open {
   color: var(--text-secondary);
   line-height: 1.55;
   max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
   margin-bottom: clamp(28px, 4vh, 40px);
   font-weight: 400;
+  text-align: center;
 }
 
 /* CTA Row & Axion Pill Hover Transition */
 .hero-cta-wrap {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: clamp(32px, 5vh, 48px);
+  margin-bottom: clamp(28px, 4vh, 40px);
 }
 
 .cta-pill-button {
@@ -702,6 +712,47 @@ body.menu-open {
 
 .status-divider {
   color: var(--text-dim);
+}
+
+.status-text,
+.status-detail {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.card-action-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.icon-svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Entrance Animation */
+.anim {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: revealAnim 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0.1s);
+}
+
+@keyframes revealAnim {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
 }
 
 /* ==========================================================================

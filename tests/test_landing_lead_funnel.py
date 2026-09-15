@@ -16,8 +16,8 @@ async def test_landing_page_renders_commercial_positioning_sections():
         content = res.text
 
         # 1. Hero: Customer proposition, no internal toolchain
-        assert "We build AI systems" in content
-        assert "that automate your business." in content
+        assert "AI systems that" in content
+        assert "automate your business." in content
         assert "Get Your Automation Built" in content
         assert "See a Working Demo" in content
 
@@ -35,16 +35,16 @@ async def test_landing_page_renders_commercial_positioning_sections():
         assert "Workflow Automation" in content
         assert "Ongoing Management" in content
 
-        # 3. System Examples (8 concrete solutions)
-        assert "SYSTEM EXAMPLES" in content
-        assert "Lead Qualification System" in content
+        # 3. System Examples / Use Cases (8 concrete solutions)
+        assert "USE CASES" in content
+        assert "Lead Qualification" in content
         assert "AI Appointment Assistant" in content
-        assert "Automated Follow-Up System" in content
+        assert "Automated Follow-Up" in content
         assert "CRM Automation" in content
-        assert "AI Customer Support" in content
-        assert "Quote Request System" in content
-        assert "Customer Onboarding Automation" in content
-        assert "Internal Operations Dashboard" in content
+        assert "Customer Support" in content
+        assert "Quote &amp; Request Systems" in content
+        assert "Customer Onboarding" in content
+        assert "Internal Business Dashboards" in content
 
         # 4. How It Works (Customer journey)
         assert "HOW IT WORKS" in content
@@ -56,9 +56,11 @@ async def test_landing_page_renders_commercial_positioning_sections():
 
         # 5. Who We Help (Target niches)
         assert "WHO WE HELP" in content
-        assert "Roofing Contractors" in content
-        assert "HVAC &amp; Climate Control" in content
-        assert "Dental &amp; Healthcare Clinics" in content
+        assert "Roofing" in content
+        assert "HVAC" in content
+        assert "Dental" in content
+        assert "Real Estate" in content
+        assert "Home Services" in content
 
         # 6. Working Demos (Problem -> Solution -> Working result)
         assert "WORKING DEMOS" in content
@@ -66,13 +68,13 @@ async def test_landing_page_renders_commercial_positioning_sections():
         assert "Solution:" in content
         assert "Working Result:" in content
 
-        # 7. Workflow Automation (n8n integration)
+        # 7. Workflow Automation
         assert "WORKFLOW AUTOMATION" in content
-        assert "Connect the Tools. Automate the Work." in content
+        assert "Connect Your Tools. Automate the Work." in content
 
-        # 8. Ongoing Management
-        assert "ONGOING MANAGEMENT" in content
-        assert "Keep the System Maintained, Monitored, and Improving" in content
+        # 8. Real Proof
+        assert "REAL PROOF" in content
+        assert "Grounded in Real Production Telemetry" in content
 
         # 9. Final CTA Form
         assert "Tell Us What Is Wasting Your Team&#39;s Time" in content or "Tell Us What Is Wasting Your Team's Time" in content
