@@ -68,8 +68,11 @@
 </head>
 <body>
 
-  <!-- Clean Obsidian Canvas Background -->
+  <!-- Clean Obsidian Canvas Background with WebGL Hero Shader Layer -->
   <div class="bg" aria-hidden="true">
+    <canvas id="heroShaderCanvas" class="hero-shader-canvas"></canvas>
+    <div class="hero-fluted-glass-layer"></div>
+    <div class="hero-film-grain-layer"></div>
     <div class="bg-scrim"></div>
   </div>
 
@@ -988,6 +991,7 @@
   </button>
 
   <!-- Pure Vanilla Scripts -->
+  <script src="/static/hero_shader.js?v=20260916_restored"></script>
   <script src="/static/landing.js?v=20260916_restored"></script>
 </body>
 </html>

@@ -81,23 +81,64 @@ body.menu-open {
 }
 
 /* ==========================================================================
-   BACKGROUND CLEAN OBSIDIAN CANVAS (RESTRAINED, ZERO CYBERPUNK CLUTTER)
+   BACKGROUND CLEAN OBSIDIAN CANVAS & CINEMATIC HERO SHADER
+   Swirl + ChromaFlow + FlutedGlass + FilmGrain (Pure Native WebGL Quad)
    ========================================================================== */
 .bg {
   position: fixed;
   inset: 0;
-  background: #080809;
+  background: #070709;
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
 }
 
+.hero-shader-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.92;
+  transition: opacity 0.8s ease;
+}
+
+.hero-fluted-glass-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.18;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 19px,
+    rgba(255, 255, 255, 0.02) 20px,
+    rgba(0, 212, 239, 0.015) 21px,
+    transparent 22px
+  );
+  mix-blend-mode: screen;
+}
+
+.hero-film-grain-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.15;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 0);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
+}
+
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 20%, rgba(20, 24, 33, 0.45) 0%, rgba(8, 8, 9, 0.95) 70%, #080809 100%);
+  background: radial-gradient(ellipse at 50% 25%, rgba(7, 7, 9, 0.10) 0%, rgba(7, 7, 9, 0.65) 55%, #070709 95%),
+              linear-gradient(to bottom, rgba(7, 7, 9, 0.3) 0%, transparent 25%, transparent 65%, #070709 100%);
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
 }
 
 /* ==========================================================================
