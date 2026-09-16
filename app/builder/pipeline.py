@@ -26,6 +26,8 @@ from app.builder.providers.antigravity_coding_provider import AntigravityCodingP
 from app.builder.qa_engine import BuildQAEngine
 from app.builder.repair_engine import BuildRepairEngine
 from app.builder.deployment import deployment_engine
+from app.intelligence.tool_selector import demo_tool_selector
+from app.intelligence.operator_learning import operator_learning_engine, CommercialGateViolation
 from app.core.logging import logger
 
 # Per-project independent concurrency locks
@@ -170,13 +172,26 @@ class BuildPipelineOrchestrator:
 
             project.status = ProjectStatus.DEMO_SPEC_CREATED.value
             project.current_stage = "DEMO_SPEC_CREATED"
+
+            # Synthesize intelligent tool allocation plan
+            from app.builder.spec_engine import CanonicalSpecEngine
+            canonical_spec = CanonicalSpecEngine.to_canonical_spec(spec, project, biz)
+            demo_plan = demo_tool_selector.generate_demo_plan(canonical_spec)
+
             if demo_job:
                 demo_job.status = ProjectStatus.DEMO_SPEC_CREATED.value
                 demo_job.spec_summary = {
                     "screens": [getattr(s, "name", str(s)) for s in (spec.required_screens or [])],
                     "facts_count": len(spec.facts or []),
-                    "checksum": spec.checksum
+                    "checksum": spec.checksum,
+                    "demo_plan": demo_plan.to_dict()
                 }
+            session.add(ProjectEvent(
+                project_id=project.id,
+                event_type="DEMO_PLAN_TOOL_SELECTION",
+                stage="DEMO_SPEC_CREATED",
+                details=demo_plan.to_dict()
+            ))
             await session.commit()
 
             # -------------------------------------------------------------
@@ -240,9 +255,14 @@ class BuildPipelineOrchestrator:
                 customer_project=project
             )
 
+            from sqlalchemy import func
+            q_build_count = select(func.count(ProjectBuild.id)).where(ProjectBuild.project_id == project.id)
+            build_cnt = (await session.execute(q_build_count)).scalar() or 0
+            next_build_num = build_cnt + 1
+
             build_model = ProjectBuild(
                 project_id=project.id,
-                build_number=1,
+                build_number=next_build_num,
                 status=build_res.status,
                 artifacts_manifest=build_res.artifacts_manifest,
                 routes_manifest=build_res.routes_manifest,
@@ -418,6 +438,20 @@ class BuildPipelineOrchestrator:
         """Convenience entrypoint: gets or creates project, then runs pipeline."""
         proj = await self.get_or_create_project(session, business_id, reply_text=reply_text)
         return await self.run_pipeline(session, proj.project_id, reply_text=reply_text)
+
+    @classmethod
+    async def authorize_production_build(
+        cls,
+        session: AsyncSession,
+        business_id: int,
+        project_id: int
+    ) -> bool:
+        """
+        Enforces commercial gate:
+        DEMO READY -> CUSTOMER APPROVES -> PROPOSAL -> ADVANCE PAYMENT -> PRODUCTION BUILD
+        Raises CommercialGateViolation if advance or full payment is not verified.
+        """
+        return await operator_learning_engine.enforce_commercial_gate(session, business_id)
 
 
 pipeline_orchestrator = BuildPipelineOrchestrator()

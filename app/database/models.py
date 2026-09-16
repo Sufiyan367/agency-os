@@ -2115,16 +2115,107 @@ class DemoBuildJob(Base):
     )
 
 
+# ==============================================================================
+# 50. Real Intelligence Layer: Persistent Knowledge & Learning Models
+# ==============================================================================
+
+class KnowledgeFact(Base):
+    """
+    Persistent atomic fact store preserving ground-truth observations,
+    provenance, epistemic status, and confidence scores across entities.
+    """
+    __tablename__ = "knowledge_facts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String(50), index=True)  # business, country, niche, workflow, system, provider
+    entity_id: Mapped[str] = mapped_column(String(100), index=True)
+    category: Mapped[str] = mapped_column(String(100), index=True)    # tech_stack, friction, contact, pricing, compliance, capability
+    fact_key: Mapped[str] = mapped_column(String(150), index=True)    # e.g. cms, has_booking_calendar, license_type
+    fact_value: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    source: Mapped[str] = mapped_column(String(100), default="audit_run")  # audit_run, web_crawl, dns_probe, n8n_exec, manual
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)     # 0.0 - 1.0
+    epistemic_status: Mapped[str] = mapped_column(String(50), default="OBSERVED_FACT")  # OBSERVED_FACT, INFERENCE, PREDICTION, HYPOTHESIS
+    observed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    provenance: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)  # raw excerpt, source URL, run_id, checksum
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_knowledge_entity_cat", "entity_type", "entity_id", "category"),
+        Index("ix_knowledge_fact_key", "fact_key"),
+    )
 
 
+class WorkflowExecutionLog(Base):
+    """
+    Empirical execution telemetry for n8n workflows and composite automation pipelines.
+    Enables statistical Bayesian performance learning without hallucinated metrics.
+    """
+    __tablename__ = "workflow_execution_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workflow_name: Mapped[str] = mapped_column(String(200), index=True)
+    template_id: Mapped[str] = mapped_column(String(150), index=True)
+    execution_status: Mapped[str] = mapped_column(String(50), index=True)  # SUCCESS, FAILURE, BLOCKED, TIMEOUT
+    duration_ms: Mapped[float] = mapped_column(Float, default=0.0)
+    failure_category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)  # TIMEOUT, AUTH_ERROR, SCHEMA_MISMATCH, NETWORK_ERROR
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    executed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    __table_args__ = (
+        Index("ix_wf_exec_template_status", "template_id", "execution_status"),
+        Index("ix_wf_exec_time", "executed_at"),
+    )
 
 
+class OperatorFeedbackLog(Base):
+    """
+    Structured log of human operator approvals, rejections, corrections, and overrides.
+    Grounds continuous learning loop on real operational decisions.
+    """
+    __tablename__ = "operator_feedback_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String(50), index=True)  # business, proposal, outreach, demo, workflow
+    entity_id: Mapped[str] = mapped_column(String(100), index=True)
+    stage: Mapped[str] = mapped_column(String(100), index=True)        # OPPORTUNITY_SELECTION, DEMO_SPEC, PROPOSAL_REVIEW, OUTREACH_APPROVAL
+    system_recommendation: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    operator_decision: Mapped[str] = mapped_column(String(50), index=True)  # APPROVED, REJECTED, MODIFIED, OVERRIDDEN
+    operator_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_operator_feedback_stage", "stage", "operator_decision"),
+    )
 
 
+class OutcomeTrace(Base):
+    """
+    Traces upstream intelligence recommendations and demo configurations
+    to downstream commercial conversions, payments, and pipeline revenue.
+    """
+    __tablename__ = "outcome_traces"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[int] = mapped_column(Integer, ForeignKey("businesses.id"), index=True)
+    lead_source: Mapped[str] = mapped_column(String(100), default="discovery")
+    initial_service_recommended: Mapped[str] = mapped_column(String(150), index=True)
+    demo_project_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    proposal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    proposal_amount: Mapped[float] = mapped_column(Numeric(12, 2, asdecimal=False), default=0.0)
+    advance_paid: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    advance_amount: Mapped[float] = mapped_column(Numeric(12, 2, asdecimal=False), default=0.0)
+    won: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    downstream_revenue: Mapped[float] = mapped_column(Numeric(12, 2, asdecimal=False), default=0.0)
+    feedback_loop_incorporated: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    business: Mapped["Business"] = relationship("Business", lazy="selectin")
 
-
-
-
+    __table_args__ = (
+        Index("ix_outcome_traces_biz_won", "business_id", "won"),
+        Index("ix_outcome_traces_service", "initial_service_recommended"),
+    )
 
