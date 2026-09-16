@@ -44,10 +44,11 @@ class ProductionPipeline:
         if not payment:
             raise ValueError(f"Payment #{payment_id} not found.")
 
-        if payment.status != "VERIFIED_PAYMENT":
+        VERIFIED_PAYMENT_STATUSES = {"VERIFIED_PAYMENT", "PAYMENT_CONFIRMED", "COMPLETED", "PAID", "SETTLED"}
+        if payment.status not in VERIFIED_PAYMENT_STATUSES:
             raise PermissionError(
                 f"Production project initialization BLOCKED: Payment #{payment_id} status is '{payment.status}'. "
-                f"Strict commercial boundary: Production delivery requires 'VERIFIED_PAYMENT'."
+                f"Strict commercial boundary: Production delivery requires verified payment."
             )
 
         project = await session.get(CustomerProject, project_id)

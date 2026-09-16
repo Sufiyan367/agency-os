@@ -128,5 +128,71 @@ class OpportunityEngine:
             decision_trace=decision_trace
         )
 
+    @classmethod
+    def generate_portfolio(
+        cls,
+        research_result: Dict[str, Any],
+        business_profile: Optional[Dict[str, Any]] = None
+    ) -> List[OpportunityPacket]:
+        """
+        Synthesizes a full portfolio of ranked commercial opportunities from all recommendations.
+        """
+        biz_id = research_result.get("business_id", 1)
+        domain = research_result.get("domain", "example.com")
+        recommendations = research_result.get("recommendations", [])
+        explainable: ExplainableIntelligence = research_result.get("explainable_summary")
+
+        portfolio: List[OpportunityPacket] = []
+        for rec in recommendations:
+            cap = capability_catalog.get_capability(rec.capability_id)
+            if not cap:
+                continue
+
+            target_price = max(cls.COMMERCIAL_FLOOR_USD, cap.target_price_usd)
+            advance_required = round(target_price * 0.40, 2)
+            monthly_labor_saved_usd = 800.0 if cap.complexity_level == "LOW" else 1500.0
+            annual_value_usd = monthly_labor_saved_usd * 12.0
+            roi_ratio = round(annual_value_usd / target_price, 1)
+            p_win = min(0.95, max(0.40, round(rec.confidence * 0.90, 2)))
+
+            opp_id = f"opp_{uuid.uuid4().hex[:8]}"
+            decision_trace = {
+                "opportunity_id": opp_id,
+                "selected_capability_id": cap.capability_id,
+                "pricing_floor_enforced": target_price >= cls.COMMERCIAL_FLOOR_USD,
+                "confidence": rec.confidence,
+                "p_win": p_win,
+                "roi_ratio": f"{roi_ratio}x",
+                "annual_value_usd": annual_value_usd,
+                "advance_deposit_percentage": "40%"
+            }
+
+            portfolio.append(OpportunityPacket(
+                opportunity_id=opp_id,
+                business_id=biz_id,
+                domain=domain,
+                capability=cap,
+                deal_value_usd=target_price,
+                advance_required_usd=advance_required,
+                p_win_estimate=p_win,
+                roi_estimate={
+                    "monthly_savings_usd": monthly_labor_saved_usd,
+                    "annual_value_usd": annual_value_usd,
+                    "payback_months": round(target_price / monthly_labor_saved_usd, 1),
+                    "roi_multiple": roi_ratio
+                },
+                explainable_summary=explainable,
+                decision_trace=decision_trace
+            ))
+
+        if not portfolio:
+            # Return at least the single default opportunity
+            portfolio.append(cls.generate_opportunity(research_result, business_profile))
+
+        # Sort descending by deal_value * p_win (expected commercial value)
+        portfolio.sort(key=lambda o: o.deal_value_usd * o.p_win_estimate, reverse=True)
+        return portfolio
+
 
 opportunity_engine = OpportunityEngine()
+

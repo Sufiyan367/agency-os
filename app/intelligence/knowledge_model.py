@@ -177,3 +177,88 @@ async def get_facts_for_entity(
     stmt = stmt.order_by(KnowledgeFact.observed_at.desc())
     res = await session.execute(stmt)
     return list(res.scalars().all())
+
+
+async def store_inference(session: AsyncSession, inference: Inference) -> KnowledgeFact:
+    """Persists an epistemic inference to the KnowledgeFact database table."""
+    fact = KnowledgeFact(
+        entity_type=inference.entity_type,
+        entity_id=str(inference.entity_id),
+        category=inference.category,
+        fact_key=f"inference_{inference.id}",
+        fact_value={
+            "hypothesis": inference.hypothesis,
+            "reasoning": inference.reasoning,
+            "risk_factor": inference.risk_factor,
+            "supporting_keys": inference.supporting_observation_keys
+        },
+        source="inference_engine",
+        confidence=inference.confidence,
+        epistemic_status="INFERENCE",
+        observed_at=datetime.utcnow(),
+        provenance={"inference_id": inference.id}
+    )
+    session.add(fact)
+    await session.commit()
+    await session.refresh(fact)
+    return fact
+
+
+async def store_recommendation(session: AsyncSession, recommendation: Recommendation, entity_id: str) -> KnowledgeFact:
+    """Persists an actionable recommendation to the KnowledgeFact database table."""
+    fact = KnowledgeFact(
+        entity_type="business",
+        entity_id=str(entity_id),
+        category="commercial_recommendation",
+        fact_key=f"rec_{recommendation.capability_id}",
+        fact_value={
+            "capability_id": recommendation.capability_id,
+            "title": recommendation.title,
+            "description": recommendation.description,
+            "rationale": recommendation.rationale,
+            "expected_impact": recommendation.expected_impact,
+            "target_price_usd": recommendation.target_price_usd,
+            "ceo_gate_required": recommendation.ceo_gate_required
+        },
+        source="recommendation_engine",
+        confidence=recommendation.confidence,
+        epistemic_status="RECOMMENDATION",
+        observed_at=datetime.utcnow(),
+        provenance={"recommendation_id": recommendation.id}
+    )
+    session.add(fact)
+    await session.commit()
+    await session.refresh(fact)
+    return fact
+
+
+async def store_failure_pattern(
+    session: AsyncSession,
+    entity_id: str,
+    failure_type: str,
+    failure_signature: str,
+    suggested_fix: str,
+    occurrence_count: int = 1
+) -> KnowledgeFact:
+    """Persists a learned failure pattern to KnowledgeFact for continuous improvement."""
+    fact = KnowledgeFact(
+        entity_type="system_pattern",
+        entity_id=str(entity_id),
+        category="failure_pattern",
+        fact_key=f"failure_{failure_type}_{failure_signature[:30]}",
+        fact_value={
+            "failure_type": failure_type,
+            "signature": failure_signature,
+            "suggested_fix": suggested_fix,
+            "occurrence_count": occurrence_count
+        },
+        source="failure_learning_loop",
+        confidence=min(0.99, 0.50 + (occurrence_count * 0.15)),
+        epistemic_status="FAILURE_PATTERN",
+        observed_at=datetime.utcnow(),
+        provenance={"failure_type": failure_type}
+    )
+    session.add(fact)
+    await session.commit()
+    await session.refresh(fact)
+    return fact

@@ -5,7 +5,7 @@ from app.core.config import settings
 
 @pytest.mark.asyncio
 async def test_scrollable_landing_sections_and_content():
-    """Verify GET / renders the full multi-section scrollable website with all required sections."""
+    """Verify GET / renders the full multi-section scrollable website with all required Viktor Oddy style editorial sections."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         r = await client.get("/")
@@ -14,155 +14,152 @@ async def test_scrollable_landing_sections_and_content():
         html = r.text
 
         # 1. Page Title & Meta
-        assert "<title>Intelligence Designed To Evolve</title>" in html
+        assert "<title>Agency OS — AI Systems &amp; Automation</title>" in html
         assert 'name="description"' in html
         assert 'property="og:title"' in html
 
         # 2. Hero Section (#home)
         assert 'id="home"' in html
-        assert 'class="hero-section"' in html
-        assert 'class="bg-video"' in html
-        assert "Trusted by 2000+ Enterprises" in html
-        assert "<span>Intelligence</span>" in html
-        assert "<span>Designed To Evolve</span>" in html
-        assert "Build applications that reason, adapt and collaborate using a modular AI platform designed for production." in html
-        assert "Get Started" in html
-        assert "Inference Time" in html
-        assert "Platform Uptime" in html
-        assert "Autonomous Runtime" in html
-        assert "Context Windows" in html
+        assert "hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4" in html
+        assert "AI systems that automate your business." in html
+        assert "We build AI-powered automation, custom software, and business workflows that reduce repetitive manual work." in html
+        assert "Get Your Automation Built" in html
+        assert "See a Working Demo" in html
 
         # 3. Navigation
         assert 'href="#home"' in html
-        assert 'href="#product"' in html
-        assert 'href="#capabilities"' in html
+        assert 'href="#solutions"' in html
+        assert 'href="#problems"' in html
         assert 'href="#how-it-works"' in html
-        assert 'href="#industries"' in html
-        assert 'href="#case-studies"' in html
+        assert 'href="#demos"' in html
+        assert 'href="#automation"' in html
         assert 'href="#contact"' in html
-        assert 'Book Consultation' in html
         assert 'id="burgerBtn"' in html
-        assert 'id="mobileMenu"' in html
+        assert 'id="mobileDrawer"' in html
 
-        # 4. Product Section (#product)
-        assert 'id="product"' in html
-        assert "One Operating System for Autonomous Growth" in html
-        assert "DISCOVER" in html
-        assert "QUALIFY" in html
-        assert "AUDIT" in html
-        assert "OUTREACH" in html
-        assert "RESPOND" in html
-        assert "DEMO" in html
-        assert "CLOSE" in html
-        assert "DELIVER" in html
+        # 4. Section 02: Marquee / Visual Showcase
+        assert "AI Automation" in html
+        assert "Custom Software" in html
+        assert "AI Agents" in html
+        assert "Workflow Automation" in html
+        assert "Business Dashboards" in html
+        assert "Customer Systems" in html
 
-        # 5. Capabilities Section (#capabilities)
-        assert 'id="capabilities"' in html
-        assert "Prospect Discovery" in html
-        assert "AI Auditing" in html
-        assert "Personalized Outreach" in html
-        assert "Response Intelligence" in html
-        assert "Demo Factory" in html
-        assert "Autonomous Delivery" in html
+        # 5. Section 03: What We Build (#solutions)
+        assert 'id="solutions"' in html
+        assert "What we build" in html
+        assert "01" in html and "AI Business Automation" in html
+        assert "02" in html and "Custom AI Software" in html
+        assert "03" in html and "AI Agents" in html
+        assert "04" in html and "Workflow Automation" in html
+        assert "05" in html and "Ongoing Management" in html
 
-        # 6. Channels Section (#channels)
-        assert 'id="channels"' in html
-        assert "Every Conversation, One System" in html
-        assert "EMAIL" in html
-        assert "WHATSAPP" in html
-        assert "VOICE" in html
-        assert "Built for email, WhatsApp and voice orchestration." in html
+        # 6. Section 04: Customer Problems & Solutions (#problems)
+        assert 'id="problems"' in html
+        assert "Replace repetitive work with systems that run." in html
+        assert "Manual Lead Handling" in html
+        assert "Automated Lead Capture + Qualification" in html
+        assert "Manual Follow-Up" in html
+        assert "Automated Follow-Up Workflow" in html
+        assert "Repetitive Customer Support" in html
+        assert "AI Support System" in html
+        assert "Disconnected Tools" in html
+        assert "Bi-Directional CRM &amp; Data Sync" in html
+        assert "Slow Appointment Handling" in html
+        assert "24/7 Self-Serve Scheduling" in html
+        assert "Time-Consuming Reporting" in html
+        assert "Real-Time Operations Dashboard" in html
 
-        # 7. How It Works Section (#how-it-works)
+        # 7. Section 05: How It Works (#how-it-works, 6-step editorial flow)
         assert 'id="how-it-works"' in html
-        assert "Discover" in html
-        assert "Understand" in html
-        assert "Engage" in html
-        assert "Convert" in html
-        assert "Deliver" in html
+        assert "01 — Tell us the problem" in html
+        assert "02 — We define the system" in html
+        assert "03 — You see a working demo" in html
+        assert "04 — Proposal + advance payment" in html
+        assert "05 — We build and deploy" in html
+        assert "06 — We maintain and improve it" in html
 
-        # 8. Industries Section (#industries)
-        assert 'id="industries"' in html
-        assert "Automotive" in html
-        assert "Dental" in html
+        # 8. Section 06: Demos (#demos)
+        assert 'id="demos"' in html
+        assert "See what the system can become." in html
+        assert "Orange Auto" in html
+        assert 'href="/demo/orange-auto"' in html
+        assert "Summit HVAC" in html
+        assert "Request a Working Demo" in html
+
+        # 9. Section 07: Workflow Automation (#automation)
+        assert 'id="automation"' in html
+        assert "Connect the work. Automate the handoffs." in html
+        assert "CRM Synchronization" in html
+        assert "Lead Capture &amp; Qualification" in html
+        assert "Automated Follow-Up Sequences" in html
+        assert "24/7 Appointment Scheduling" in html
+        assert "Operational Alerts &amp; Notifications" in html
+        assert "Reporting &amp; Internal Dashboards" in html
+
+        # 10. Section 08: Custom AI Software (#software)
+        assert 'id="software"' in html
+        assert "Software built around your process." in html
+
+        # 11. Section 09: Ongoing Management (#management)
+        assert 'id="management"' in html
+        assert "Built, then kept running." in html
+
+        # 12. Section 10: Who We Help (#niches)
+        assert 'id="niches"' in html
+        assert "Who We Help" in html
+        assert "Roofing" in html
         assert "HVAC" in html
-        assert "Home Services" in html
-        assert "Aesthetic Clinics" in html
+        assert "Dental" in html
         assert "Real Estate" in html
+        assert "Home Services" in html
 
-        # 9. Operational Workflows Section (#case-studies)
-        assert 'id="case-studies"' in html
-        assert "Enterprise Automation Workflows" in html
-        assert "See how Agency OS can automate lead response, qualification, follow-up and delivery" in html
-        assert "Orange Auto" not in html
-        assert 'href="/demo/orange-auto"' not in html
-        assert "Interactive Demonstration" not in html
-        assert "Automotive Service &amp; Diagnostics" not in html
-        assert "Diagnostic Audit Engine" not in html
-        assert "Appointment Intake" not in html
-        assert "Instant SMS/Email Confirmation" not in html
+        # 13. Section 11: Honest Proof (#proof)
+        assert 'id="proof"' in html
+        assert "Building our first public case studies." in html
 
-        # 10. Architecture Section (#architecture)
-        assert 'id="architecture"' in html
-        assert "Built as an Operating System, Not a Collection of Bots" in html
-        assert "AI Reasoning Layer" in html
-        assert "Orchestration &amp; State Engine" in html or "Orchestration & State Engine" in html
-        assert "CRM &amp; Persistent State" in html or "CRM & Persistent State" in html
-        assert "Communication Adapters" in html
-        assert "Sales &amp; Transaction Pipelines" in html or "Sales & Transaction Pipelines" in html
-        assert "Autonomous Delivery Engine" in html
+        # 14. Section 12: Pricing (#pricing)
+        assert 'id="pricing"' in html
+        assert "Solutions are scoped around your workflow, requirements and implementation complexity." in html
 
-        # 11. Security & Reliability Section (#security)
-        assert 'id="security"' in html
-        assert "Human Approval Gates" in html
-        assert "Idempotent Actions" in html
-        assert "Immutable Audit Events" in html
-        assert "Outbound Limits" in html
-        assert "State-Machine Control" in html
-        assert "Failure Isolation" in html
-
-        # 12. Contact Section (#contact)
+        # 15. Section 13: Final CTA & Contact Form (#contact)
         assert 'id="contact"' in html
-        assert "Ready to build an autonomous growth system?" in html
-        assert "Let's identify where intelligent automation can remove operational friction from your business." in html
-        assert '<button type="button" class="cta-button" data-action="open-consultation-modal">Get Started</button>' in html
+        assert "Tell us what is wasting your team's time." in html
+        assert "We'll turn the repetitive parts of the process into a system." in html
         assert 'id="inlineContactForm"' in html
-        assert 'id="inlineAlert"' in html
+        assert 'id="inlineContactAlert"' in html
 
-        # 13. Back to Top Button
-        assert 'id="backToTop"' in html
-
-        # 14. Footer
+        # 16. Footer
         assert "<footer" in html
-        assert "Agency OS" in html
-        assert "Intelligence Designed To Evolve" in html
-        assert "&copy; 2026 Agency OS" in html or "© 2026 Agency OS" in html
+        assert "AGENCY OS" in html
+        assert "2026 Agency OS" in html
 
-        # 15. Consultation Modal
+        # 17. Consultation Modal
         assert 'id="consultationModal"' in html
         assert 'id="consultationForm"' in html
         assert 'id="consultationAlert"' in html
         assert 'id="consultationName"' in html
         assert 'id="consultationEmail"' in html
 
+
 @pytest.mark.asyncio
 async def test_css_scrolling_and_no_body_lock():
-    """Verify landing.css enables vertical scrolling without single-viewport locks."""
+    """Verify landing page HTML and inline styles enable vertical scrolling without single-viewport locks."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        r = await client.get("/static/landing.css")
+        r = await client.get("/")
         assert r.status_code == 200
-        css = r.text
+        html = r.text
 
         # Body must have overflow-y: auto and min-height
-        assert "overflow-y: auto;" in css
-        assert "overflow-x: hidden;" in css
-        assert "min-height: 100%;" in css
+        assert "overflow-y: auto;" in html
+        assert "overflow-x: hidden;" in html
+        assert "min-height: 100%;" in html
 
-        # Document must NOT lock whole page with overflow: hidden on html/body (except body.menu-open)
-        assert "scroll-behavior: smooth;" in css
-        assert ".scroll-reveal" in css
-        assert ".back-to-top" in css
+        # Document must NOT lock whole page with overflow: hidden on html/body (except mobile drawer/modal open)
+        assert "scroll-behavior: smooth;" in html
+        assert ".scroll-reveal" in html
+
 
 @pytest.mark.asyncio
 async def test_onboarding_consultation_api_endpoint():
@@ -204,9 +201,10 @@ async def test_onboarding_consultation_api_endpoint():
         r_missing = await client.post("/api/v1/onboarding/consultation", json={"name": "", "email": ""})
         assert r_missing.status_code == 400
 
-        # 3. Invalid email format
+        # 4. Invalid email format
         r_bad_email = await client.post("/api/v1/onboarding/consultation", json={"name": "Alex", "email": "invalid"})
         assert r_bad_email.status_code == 400
+
 
 @pytest.mark.asyncio
 async def test_existing_critical_routes_untouched(monkeypatch):

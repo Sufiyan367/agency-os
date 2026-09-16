@@ -285,7 +285,17 @@ class N8nExecutionVerifier:
                 "details": f"Unsubscribe intent detected and cadence auto-cancelled: intent={res.get('intent')}"
             }
 
-        elif "outreach" in wf_str or "safety" in wf_str:
+        elif "missed_call" in wf_str or "missedcall" in wf_str or "textback" in wf_str:
+            fail_payload = {"caller_phone": "+15550000000", "suppressed": True}
+            res = self._simulate_workflow_execution(workflow_json, fail_payload, env)
+            passed = res.get("textback_dispatched") is False and res.get("suppression_blocked") is True
+            return {
+                "tested": True,
+                "passed": passed,
+                "details": f"Suppressed caller safely blocked from text-back: textback_dispatched={res.get('textback_dispatched')}, blocked={res.get('suppression_blocked')}"
+            }
+
+        elif "outreach" in wf_str or "safetyguard" in wf_str or "personalizeddrafter" in wf_str:
             fail_payload = {"draft_body": "Act fast! FREE MONEY 100% GUARANTEED!!!", "has_opt_out": False}
             res = self._simulate_workflow_execution(workflow_json, fail_payload, env)
             passed = res.get("safety_passed") is False
@@ -382,8 +392,29 @@ class N8nExecutionVerifier:
             output["cancel_cadence"] = cancel_cadence
             output["status"] = "CLASSIFIED"
 
-        # 4. Cold Outreach Safety Guard
-        elif "outreach" in wf_str or "safety" in wf_str:
+        # 4. Missed Call Text-Back
+        elif "missed_call" in wf_str or "missedcall" in wf_str or "textback" in wf_str:
+            caller_phone = str(payload.get("caller_phone") or payload.get("phone") or "").strip()
+            is_suppressed = bool(payload.get("suppressed") or payload.get("is_opted_out") or False)
+            is_after_hours = bool(payload.get("is_after_hours", False))
+
+            if not caller_phone or is_suppressed:
+                output["status"] = "SUPPRESSED"
+                output["caller_phone"] = caller_phone or "UNKNOWN"
+                output["textback_dispatched"] = False
+                output["suppression_blocked"] = True
+                output["reason"] = "MISSING_CALLER_PHONE" if not caller_phone else "CONTACT_SUPPRESSED_OR_OPTED_OUT"
+            else:
+                output["status"] = "PROCESSED"
+                output["caller_phone"] = caller_phone
+                output["textback_dispatched"] = True
+                output["suppression_blocked"] = False
+                output["delivery_status"] = "DISPATCHED_TO_GATEWAY"
+                output["is_after_hours"] = is_after_hours
+                output["crm_logged"] = True
+
+        # 5. Cold Outreach Safety Guard
+        elif "outreach" in wf_str or "safetyguard" in wf_str or "personalizeddrafter" in wf_str:
             draft = str(payload.get("draft_body", ""))
             has_opt_out = payload.get("has_opt_out", True)
             spam_triggers = ["100% free", "free money", "act fast", "guaranteed!!!", "$$$"]
@@ -395,7 +426,7 @@ class N8nExecutionVerifier:
             output["staged_for_approval"] = safety_passed
             output["rejection_reason"] = "Spam triggers or missing opt-out" if not safety_passed else None
 
-        # 5. Smart Cadence Auto Cancel
+        # 6. Smart Cadence Auto Cancel
         elif "cadence" in wf_str or "followup" in wf_str:
             reply_received = bool(payload.get("inbound_reply_received", False))
             output["cadence_cancelled"] = reply_received

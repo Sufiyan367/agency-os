@@ -8,7 +8,7 @@ from app.database.models import Business, PipelineStage
 
 @pytest.mark.asyncio
 async def test_landing_page_renders_commercial_positioning_sections():
-    """Verify that / and /website load successfully with the realigned 9 commercial business sections."""
+    """Verify that / loads successfully with the commercial Viktor Oddy editorial sections."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.get("/")
@@ -30,32 +30,29 @@ async def test_landing_page_renders_commercial_positioning_sections():
         # 2. What We Build (5 commercial categories)
         assert "WHAT WE BUILD" in content
         assert "AI Business Automation" in content
-        assert "Custom Software" in content
+        assert "Custom AI Software" in content or "Custom Software" in content
         assert "AI Agents" in content
         assert "Workflow Automation" in content
         assert "Ongoing Management" in content
 
-        # 3. System Examples / Use Cases (8 concrete solutions)
-        assert "USE CASES" in content
-        assert "Lead Qualification" in content
-        assert "AI Appointment Assistant" in content
-        assert "Automated Follow-Up" in content
-        assert "CRM Automation" in content
-        assert "Customer Support" in content
-        assert "Quote &amp; Request Systems" in content
-        assert "Customer Onboarding" in content
-        assert "Internal Business Dashboards" in content
+        # 3. Customer Problems & Solutions (Friction elimination)
+        assert "Replace repetitive work with systems that run." in content
+        assert "Manual Lead Handling" in content
+        assert "Automated Lead Capture + Qualification" in content
+        assert "Manual Follow-Up" in content
+        assert "Automated Follow-Up Workflow" in content
 
         # 4. How It Works (Customer journey)
         assert "HOW IT WORKS" in content
-        assert "01 &mdash; TELL US THE PROBLEM" in content
-        assert "02 &mdash; WE DESIGN THE SOLUTION" in content
-        assert "03 &mdash; SEE A WORKING DEMO" in content
-        assert "04 &mdash; WE BUILD &amp; DEPLOY" in content
-        assert "05 &mdash; WE MAINTAIN &amp; IMPROVE" in content
+        assert "01 — Tell us the problem" in content
+        assert "02 — We define the system" in content
+        assert "03 — You see a working demo" in content
+        assert "04 — Proposal + advance payment" in content
+        assert "05 — We build and deploy" in content
+        assert "06 — We maintain and improve it" in content
 
         # 5. Who We Help (Target niches)
-        assert "WHO WE HELP" in content
+        assert "Who We Help" in content
         assert "Roofing" in content
         assert "HVAC" in content
         assert "Dental" in content
@@ -70,17 +67,17 @@ async def test_landing_page_renders_commercial_positioning_sections():
 
         # 7. Workflow Automation
         assert "WORKFLOW AUTOMATION" in content
-        assert "Connect Your Tools. Automate the Work." in content
+        assert "Connect the work. Automate the handoffs." in content
 
-        # 8. Real Proof
-        assert "REAL PROOF" in content
-        assert "Grounded in Real Production Telemetry" in content
+        # 8. Honest Proof
+        assert "Building our first public case studies." in content
 
         # 9. Final CTA Form
-        assert "Tell Us What Is Wasting Your Team&#39;s Time" in content or "Tell Us What Is Wasting Your Team's Time" in content
-        assert "contactWebsite" in content
-        assert "contactProblem" in content
-        assert "contactAutomated" in content
+        assert "Tell us what is wasting your team's time." in content
+        assert "inlineContactForm" in content
+        assert "inlineWebsite" in content
+        assert "inlineProblem" in content
+        assert "inlineAutomated" in content
 
 
 @pytest.mark.asyncio

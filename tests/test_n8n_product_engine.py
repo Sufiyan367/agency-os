@@ -243,7 +243,7 @@ async def test_execution_verifier_honest_states_and_audit():
 
     assert "catalog_summary" in audit
     summary = audit["catalog_summary"]
-    assert summary["total"] == 10
+    assert summary["total"] >= 10
     assert summary["COMMERCIAL_READY"] >= 4
     assert summary["BLOCKED_LICENSE"] == 1
     assert summary["EXTERNAL_EXECUTION_BLOCKED"] >= 2

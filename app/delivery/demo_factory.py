@@ -99,8 +99,8 @@ class DemoFactory:
             verified_facts.append(f"Published customer phone line verified ({business.phone})")
 
         # 2. Opportunity Summary & Core Capabilities (Diplomatic Framing - Zero Fabricated Problems)
-        st_lower = service.lower()
-        if any(k in st_lower for k in ["receptionist", "voice", "call", "missed-call", "phone"]):
+        st_lower = f"{service} {getattr(packet, 'capability_id', '') or ''}".lower()
+        if any(k in st_lower for k in ["receptionist", "voice", "call", "missed-call", "phone", "agy-auto-missed-call", "agy-auto-ai-receptionist"]):
             headline = "Autonomous 24/7 Inbound Inquiry Capture & Appointment Booking"
             subheadline = "Capture after-hours customer demand and eliminate missed consultation opportunities."
             observations = [

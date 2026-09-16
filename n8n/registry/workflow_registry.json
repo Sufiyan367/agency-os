@@ -255,6 +255,25 @@
       "test_status": "SANDBOX_EXECUTED",
       "commercialization_status": "COMMERCIAL_READY",
       "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution."
+    },
+    {
+      "workflow_name": "AGY-AUTO-MissedCallTextBack-SafetyFloor-v1.0",
+      "category": "appointment automation",
+      "use_case": "Instant automated SMS text-back to missed customer calls with caller identification, business hours detection, suppression checking, and CRM logging.",
+      "source_repo": "https://github.com/Sufiyan367/agency-os",
+      "source_path": "app/automations/missed_call_service.py",
+      "source_license": "MIT",
+      "dependencies": [
+        "n8n-nodes-base.webhook",
+        "n8n-nodes-base.code",
+        "n8n-nodes-base.if",
+        "n8n-nodes-base.respondToWebhook"
+      ],
+      "template_dir": "n8n/templates/appointment_automation/missed_call_textback",
+      "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+      "test_status": "PASSED_STRICT_AUDIT",
+      "commercialization_status": "COMMERCIAL_READY",
+      "notes": "Verified zero secrets, sanitized for commercial distribution. Immediate caller engagement with suppression guard."
     }
   ]
 }

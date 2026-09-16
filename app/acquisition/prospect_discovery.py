@@ -102,6 +102,7 @@ class RealProspectDiscoveryEngine:
                     domain=norm_dom,
                     website_url=p.website,
                     country=c_code,
+                    administrative_region=p.region,
                     city=p.city or (target_cities[0] if target_cities else None),
                     niche=niche_slug,
                     public_email=p.public_email,

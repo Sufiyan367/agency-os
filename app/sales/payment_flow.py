@@ -358,9 +358,10 @@ class PaymentWorkflowManager:
         if not payment:
             raise ValueError(f"Payment #{payment_id} not found.")
 
-        if payment.status not in ("VERIFIED_PAYMENT", "PAID"):
+        VERIFIED_PAYMENT_STATUSES = ("VERIFIED_PAYMENT", "PAID", "PAYMENT_CONFIRMED", "COMPLETED", "SETTLED")
+        if payment.status not in VERIFIED_PAYMENT_STATUSES:
             raise PermissionError(
-                f"Cannot unlock delivery: Payment #{payment.id} status is '{payment.status}', not 'VERIFIED_PAYMENT'. "
+                f"Cannot unlock delivery: Payment #{payment.id} status is '{payment.status}', not verified. "
                 f"Trusted payment verification must precede delivery unlocking."
             )
 

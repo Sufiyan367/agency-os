@@ -307,6 +307,31 @@ class ProposalEngine:
             </form>
         </div>
     </div>
+    <script>
+    const form = document.getElementById('auth-form');
+    if (form) {{
+        form.addEventListener('submit', async function(e) {{
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Authorizing & Generating Remittance Order...';
+            try {{
+                const res = await fetch(form.action, {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json', 'Accept': 'application/json'}},
+                    body: JSON.stringify({{accepted_by: 'CLIENT', provider_name: 'google_pay'}})
+                }});
+                const data = await res.json();
+                const ref = data.reference_id || data.payment_id || '{prop_id}';
+                window.location.href = '/pay/' + ref;
+            }} catch(err) {{
+                btn.disabled = false;
+                btn.textContent = 'Authorize Proposal & Request Payment Instructions ({deposit})';
+                alert('Authorization failed: ' + err.message);
+            }}
+        }});
+    }}
+    </script>
 </body>
 </html>
 """

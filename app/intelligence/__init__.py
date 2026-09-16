@@ -38,6 +38,7 @@ from app.intelligence.orchestration import specialized_orchestrator, Specialized
 from app.intelligence.optimization import optimization_engine, OptimizationEngine
 from app.intelligence.revenue_optimization import revenue_optimization_engine, RevenueOptimizationEngine
 from app.intelligence.market_service_channel_optimization import market_channel_optimization_engine, MarketServiceChannelOptimizationEngine
+from app.intelligence.product_recommendation_engine import product_recommendation_engine, ProductRecommendationEngine
 
 __all__ = [
     "IntelligenceSignal",
@@ -80,4 +81,6 @@ __all__ = [
     "optimization_engine",
     "revenue_optimization_engine",
     "market_channel_optimization_engine",
+    "product_recommendation_engine",
+    "ProductRecommendationEngine",
 ]

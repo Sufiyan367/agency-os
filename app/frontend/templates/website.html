@@ -32,10 +32,10 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon.png">
 
-  <!-- Geist Font from Google Fonts -->
+  <!-- Geist & Inter Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -44,10 +44,12 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            sans: ['Geist', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
             brandDark: '#070707',
+            surfaceDark: '#0d0d0f',
           }
         }
       }
@@ -64,7 +66,7 @@
       padding: 0;
       background-color: #070707;
       color: #ffffff;
-      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
@@ -82,8 +84,8 @@
       transition: all 0.2s ease-in-out;
     }
     .cta-dark-gradient:hover {
-      opacity: 0.90;
-      border-color: rgba(255, 255, 255, 0.28);
+      opacity: 0.92;
+      border-color: rgba(255, 255, 255, 0.32);
       transform: translateY(-1px);
     }
     .cta-dark-gradient:active {
@@ -91,31 +93,77 @@
     }
 
     .glass-pill {
-      background: rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.2s ease;
+    }
+    .glass-pill:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.22);
     }
 
     .glass-card {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .glass-card:hover {
-      background: rgba(255, 255, 255, 0.11);
-      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.18);
       transform: translateY(-2px);
     }
+
+    /* Hero Stagger Entrance Animations */
+    @keyframes heroFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .hero-anim-eyebrow {
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+    .hero-anim-headline {
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+    }
+    .hero-anim-subhead {
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+    }
+    .hero-anim-cta {
+      animation: heroFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+    }
+
+    /* Editorial Scroll Reveal Animations */
+    .scroll-reveal {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .scroll-reveal.in-view {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Staggered Children inside scroll-reveal */
+    .scroll-reveal.in-view .stagger-1 { transition-delay: 0.1s; }
+    .scroll-reveal.in-view .stagger-2 { transition-delay: 0.2s; }
+    .scroll-reveal.in-view .stagger-3 { transition-delay: 0.3s; }
+    .scroll-reveal.in-view .stagger-4 { transition-delay: 0.4s; }
 
     /* Modal Styling */
     .modal-backdrop {
       position: fixed;
       inset: 0;
       z-index: 100;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       display: flex;
@@ -134,16 +182,30 @@
       background: #0f0f11;
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 1.25rem;
-      max-width: 32rem;
+      max-width: 34rem;
       width: 100%;
       padding: 2rem;
       position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
       transform: scale(0.96);
       transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .modal-backdrop.open .modal-box {
       transform: scale(1);
+    }
+
+    /* Marquee animation */
+    @keyframes marqueeScroll {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marqueeScroll 25s linear infinite;
+    }
+    .marquee-track:hover {
+      animation-play-state: paused;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -152,6 +214,21 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+      }
+      .scroll-reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .marquee-track {
+        animation: none !important;
+      }
+      .hero-anim-eyebrow,
+      .hero-anim-headline,
+      .hero-anim-subhead,
+      .hero-anim-cta {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
       }
     }
   </style>
@@ -176,6 +253,7 @@
     <!-- Center: Desktop Glass Nav Cluster -->
     <nav class="hidden md:flex items-center rounded-full bg-white/10 px-2 py-1.5 backdrop-blur-lg border border-white/10 shadow-lg gap-1" aria-label="Main Navigation">
       <a href="#solutions" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Solutions</a>
+      <a href="#problems" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Problems Solved</a>
       <a href="#how-it-works" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
       <a href="#demos" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
       <a href="#automation" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
@@ -229,6 +307,7 @@
     <div class="flex flex-col gap-2">
       <a href="#home" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Home</a>
       <a href="#solutions" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Solutions</a>
+      <a href="#problems" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Problems Solved</a>
       <a href="#how-it-works" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
       <a href="#demos" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
       <a href="#automation" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
@@ -260,48 +339,48 @@
       aria-hidden="true"
     >
       <source
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260803_192301_9231ed6b-c55c-4a48-909c-4ebe11cf2e11.mp4"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4"
         type="video/mp4"
       />
     </video>
 
     <!-- Subtle Cinematic Scrim to Guarantee Text Readability -->
-    <div class="absolute inset-0 bg-black/35 pointer-events-none" aria-hidden="true"></div>
+    <div class="absolute inset-0 bg-black/60 pointer-events-none" aria-hidden="true"></div>
 
     <!-- UI Layer -->
     <div class="relative z-10 flex-1 flex flex-col justify-end">
 
       <!-- MAIN (BOTTOM-ANCHORED HERO) -->
-      <main class="mt-auto w-full px-5 sm:px-8 lg:px-12 pb-4 sm:pb-8 lg:pb-10">
-        <div class="w-full flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 sm:gap-6 lg:gap-12">
+      <main class="mt-auto w-full px-5 sm:px-8 lg:px-12 pb-6 sm:pb-10 lg:pb-12">
+        <div class="w-full flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 sm:gap-8 lg:gap-14">
 
           <!-- Left: Value Proposition & CTAs -->
           <div class="max-w-2xl">
             <!-- Eyebrow -->
-            <div class="inline-flex items-center gap-2 px-2.5 py-1 sm:px-3 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-white/90 mb-2 sm:mb-5">
+            <div class="hero-anim-eyebrow inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider text-white/90 mb-4 sm:mb-6">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
-              <span>AI AUTOMATION &amp; CUSTOM SOFTWARE</span>
+              <span>AGENCY OS &bull; AI SYSTEMS &amp; AUTOMATION</span>
             </div>
 
             <!-- Headline -->
-            <h1 class="text-2xl sm:text-4xl lg:text-[3.5rem] font-semibold text-white leading-[1.1] tracking-tight max-w-xl">
+            <h1 class="hero-anim-headline text-3xl sm:text-5xl lg:text-[3.75rem] font-semibold text-white leading-[1.08] tracking-tight max-w-xl">
               AI systems that automate your business.
             </h1>
 
             <!-- Supporting Copy -->
-            <p class="mt-2 sm:mt-5 text-xs sm:text-lg text-white/80 max-w-lg leading-relaxed">
+            <p class="hero-anim-subhead mt-3 sm:mt-5 text-sm sm:text-lg text-white/80 max-w-lg leading-relaxed">
               We build AI-powered automation, custom software, and business workflows that reduce repetitive manual work.
             </p>
 
             <!-- CTA Row -->
-            <div class="mt-3.5 sm:mt-8 flex flex-row items-center gap-2.5 sm:gap-4">
+            <div class="hero-anim-cta mt-5 sm:mt-8 flex flex-row items-center gap-3 sm:gap-4">
               <button
                 type="button"
-                class="cta-dark-gradient rounded-full px-4 py-2.5 sm:px-7 sm:py-3 text-xs sm:text-base font-medium text-white shadow-xl flex items-center justify-center gap-1.5 text-center flex-1 sm:flex-initial"
+                class="cta-dark-gradient rounded-full px-5 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-base font-medium text-white shadow-xl flex items-center justify-center gap-2 text-center flex-1 sm:flex-initial"
                 data-action="open-consultation-modal"
               >
                 <span>Get Your Automation Built</span>
-                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
@@ -309,10 +388,10 @@
 
               <a
                 href="#demos"
-                class="glass-pill rounded-full px-3.5 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-base font-medium text-white/85 hover:text-white hover:bg-white/15 transition flex items-center justify-center gap-1.5 text-center flex-1 sm:flex-initial"
+                class="glass-pill rounded-full px-4 py-3 sm:px-6 sm:py-3.5 text-xs sm:text-base font-medium text-white/85 hover:text-white flex items-center justify-center gap-2 text-center flex-1 sm:flex-initial"
               >
                 <span>See a Working Demo</span>
-                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg class="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10"></circle>
                   <polygon points="10 8 16 12 10 16 10 8"></polygon>
                 </svg>
@@ -324,7 +403,7 @@
           <div class="flex flex-row overflow-x-auto no-scrollbar gap-3 snap-x lg:flex-col lg:overflow-visible max-w-full lg:max-w-md w-full shrink-0">
 
             <!-- Card 1: AI Automation -->
-            <div class="glass-card rounded-2xl p-4 sm:p-6 text-left min-w-[270px] sm:min-w-[320px] lg:min-w-0 snap-start flex-1 shrink-0 lg:shrink">
+            <div class="glass-card rounded-2xl p-5 sm:p-6 text-left min-w-[270px] sm:min-w-[320px] lg:min-w-0 snap-start flex-1 shrink-0 lg:shrink">
               <div class="text-[10px] font-bold tracking-wider text-white/60 uppercase mb-1">
                 AI AUTOMATION
               </div>
@@ -340,7 +419,7 @@
             </div>
 
             <!-- Card 2: Custom Software -->
-            <div class="glass-card rounded-2xl p-4 sm:p-6 text-left min-w-[270px] sm:min-w-[320px] lg:min-w-0 snap-start flex-1 shrink-0 lg:shrink">
+            <div class="glass-card rounded-2xl p-5 sm:p-6 text-left min-w-[270px] sm:min-w-[320px] lg:min-w-0 snap-start flex-1 shrink-0 lg:shrink">
               <div class="text-[10px] font-bold tracking-wider text-white/60 uppercase mb-1">
                 CUSTOM SOFTWARE
               </div>
@@ -358,345 +437,701 @@
           </div>
 
         </div>
-
-        <!-- Bottom Restrained Capability Line -->
-        <div class="mt-3 sm:mt-6 pt-3 sm:pt-4 border-t border-white/10 text-[10px] sm:text-xs font-medium text-white/50 tracking-wider flex items-center justify-between gap-x-3 sm:gap-x-4 uppercase overflow-x-auto no-scrollbar whitespace-nowrap">
-          <span>AI AUTOMATION</span>
-          <span class="text-white/20">•</span>
-          <span>CUSTOM SOFTWARE</span>
-          <span class="text-white/20">•</span>
-          <span>AI AGENTS</span>
-          <span class="text-white/20">•</span>
-          <span>WORKFLOW AUTOMATION</span>
-          <span class="text-white/20">•</span>
-          <span>ONGOING MANAGEMENT</span>
-        </div>
       </main>
 
     </div>
   </section>
 
   <!-- ====================================================================
-       02 SOLUTIONS SECTION (#solutions)
+       02 VISUAL SHOWCASE / MARQUEE (EDITORIAL FULL-WIDTH TRANSITION)
        ==================================================================== -->
-  <section id="solutions" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
-          <span>02 / SOLUTIONS</span>
+  <section class="border-y border-white/10 bg-[#0a0a0c] py-10 sm:py-14 overflow-hidden" aria-label="Capabilities Marquee">
+    <div class="marquee-track flex items-center gap-10 sm:gap-16 font-extrabold tracking-tighter uppercase whitespace-nowrap text-3xl sm:text-5xl lg:text-6xl text-white/30 hover:text-white/60 transition-colors">
+      <span class="hover:text-white transition">AI AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">CUSTOM SOFTWARE</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">AI AGENTS</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">WORKFLOW AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">BUSINESS PROCESS AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">ONGOING MANAGEMENT</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <!-- Duplicate for seamless infinite loop with test compatibility -->
+      <span class="hover:text-white transition">AI AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">CUSTOM SOFTWARE</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">AI AGENTS</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">WORKFLOW AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">BUSINESS PROCESS AUTOMATION</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+      <span class="hover:text-white transition">ONGOING MANAGEMENT</span>
+      <span class="text-emerald-400/40 text-xl sm:text-2xl">&bull;</span>
+    </div>
+    <!-- Editorial Sub-Ticker Tagline -->
+    <div class="mt-4 flex items-center justify-center gap-6 text-[11px] font-mono tracking-widest text-white/40 uppercase text-center px-4 overflow-hidden">
+      <span>AI Automation</span>
+      <span>&bull;</span>
+      <span>Custom Software</span>
+      <span>&bull;</span>
+      <span>AI Agents</span>
+      <span>&bull;</span>
+      <span>Workflow Automation</span>
+      <span>&bull;</span>
+      <span>Business Dashboards</span>
+      <span>&bull;</span>
+      <span>Customer Systems</span>
+      <span>&bull;</span>
+      <span>Ongoing Management</span>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       03 WHAT WE BUILD (#solutions) — EDITORIAL ARCHITECTURAL BENTO GRID
+       ==================================================================== -->
+  <section id="solutions" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>03 / WHAT WE BUILD</span>
         </div>
-        <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
-          Built around the work your business actually needs automated.
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Systems built around the work your business actually does.
         </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          What we build: High-leverage custom software and automated workflows engineered to eliminate manual repetition and accelerate business revenue.
+        </p>
       </div>
-      <p class="text-sm sm:text-base text-white/70 max-w-md leading-relaxed">
-        We eliminate repetitive manual tasks by creating custom software and automated workflows tailored to your exact business operations.
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        We do not sell generic tool subscriptions or superficial chatbots. Every system is purpose-built, rigorously tested against strict commercial gates, and deployed directly into your live business stack.
       </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!-- 1. AI Business Automation -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
-        <div>
-          <span class="text-xs font-mono text-white/40 mb-3 block">01</span>
-          <h3 class="text-lg font-semibold text-white mb-2">AI Business Automation</h3>
-          <p class="text-sm text-white/70 leading-relaxed">
-            Automate repetitive business operations such as lead capture, qualification, CRM updates, follow-ups, appointment scheduling, customer support, onboarding, and reporting.
-          </p>
-        </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
-          Eliminate Routine Tasks &rarr;
+    <!-- 5 Substantial Editorial Service Modules -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+
+      <!-- =========================================================
+           01 AI BUSINESS AUTOMATION (FEATURED LARGE MODULE — 12 COLS)
+           ========================================================= -->
+      <div class="lg:col-span-12 glass-card rounded-3xl p-8 sm:p-12 border-white/15 bg-gradient-to-b from-white/[0.05] to-transparent relative overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          
+          <!-- Left Content -->
+          <div class="lg:col-span-6 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-3 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-4">
+                <span class="text-2xl font-mono text-white/30 font-bold">01</span>
+                <span>CORE CAPABILITY &bull; OPERATIONAL INTELLIGENCE</span>
+              </div>
+              <h3 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight mb-4">
+                AI Business Automation
+              </h3>
+              <p class="text-sm sm:text-base text-white/70 leading-relaxed mb-6">
+                Automate repetitive business operations such as lead capture, qualification, CRM updates, follow-ups, appointment scheduling, customer support, onboarding, and reporting with guaranteed sub-minute execution speeds.
+              </p>
+
+              <!-- Capability Tags -->
+              <div class="flex flex-wrap gap-2 mb-8">
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Lead capture</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Qualification</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Follow-up</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">CRM</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Appointments</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Support</span>
+                <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/80">Reporting</span>
+              </div>
+            </div>
+
+            <div class="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+              <span class="font-mono text-emerald-400/90 font-medium">SLA: Sub-60s Inbound Response</span>
+              <button type="button" class="text-white hover:text-emerald-400 font-medium flex items-center gap-1.5 transition" data-action="open-consultation-modal">
+                <span>Scope Your Automation</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Visual Anchor: Simulated Live Event Terminal -->
+          <div class="lg:col-span-6 bg-black/80 rounded-2xl border border-white/15 p-5 sm:p-6 font-mono text-xs shadow-2xl overflow-hidden">
+            <!-- Terminal Header -->
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-white/10 text-white/40 text-[11px]">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+                <span class="ml-2 text-white/60">telemetry_daemon &bull; live_event_bus</span>
+              </div>
+              <span class="text-emerald-400 font-semibold uppercase">ACTIVE &bull; 99.98%</span>
+            </div>
+            
+            <!-- Terminal Output Lines -->
+            <div class="space-y-3 text-white/80 leading-relaxed">
+              <div class="flex items-start gap-2">
+                <span class="text-white/40 select-none">14:02:11</span>
+                <span class="text-blue-400">[INBOUND]</span>
+                <span>Customer call missed from +1 (214) 555-0192</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-white/40 select-none">14:02:12</span>
+                <span class="text-purple-400">[PARSER]</span>
+                <span>Identity resolved &bull; Dallas Plumbing Pros &bull; After-Hours: TRUE</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-white/40 select-none">14:02:14</span>
+                <span class="text-emerald-400">[DISPATCH]</span>
+                <span>Sub-30s SMS text-back sent: "Hi, we missed your call. Need urgent dispatch?"</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-white/40 select-none">14:02:49</span>
+                <span class="text-amber-400">[REPLY]</span>
+                <span>Customer text: "Yes, pipe burst under kitchen sink."</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-white/40 select-none">14:02:51</span>
+                <span class="text-emerald-400">[ACTION]</span>
+                <span class="text-emerald-300">Booked Emergency Dispatch Slot &bull; On-Call Tech Alerted via Slack</span>
+              </div>
+            </div>
+
+            <!-- Terminal Status Bar -->
+            <div class="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40">
+              <span>Latency: 28.4ms</span>
+              <span class="text-emerald-400 font-medium">0 Missed Inquiries Today</span>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <!-- 2. Custom Software -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+      <!-- =========================================================
+           02 CUSTOM AI SOFTWARE (7 COLS)
+           ========================================================= -->
+      <div class="lg:col-span-7 glass-card rounded-3xl p-8 sm:p-10 border-white/15 flex flex-col justify-between">
         <div>
-          <span class="text-xs font-mono text-white/40 mb-3 block">02</span>
-          <h3 class="text-lg font-semibold text-white mb-2">Custom Software</h3>
-          <p class="text-sm text-white/70 leading-relaxed">
-            Build software around your actual process — high-converting lead generation websites, booking systems, quote calculators, customer portals, and internal dashboards.
+          <div class="flex items-center gap-3 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">
+            <span class="text-2xl font-mono text-white/30 font-bold">02</span>
+            <span>DEDICATED APPLICATIONS</span>
+          </div>
+          <h3 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+            Custom AI Software
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Build software around your actual process — high-converting lead generation portals, booking systems, quote tools, customer portals, web applications, and internal tools designed for your operational workflow.
           </p>
+
+          <!-- Capability Sub-Items -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Web applications</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Booking systems</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Quote tools</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Customer portals</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Internal tools</span>
+          </div>
+
+          <!-- Visual Widget Mockup -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6">
+            <div class="flex items-center justify-between text-xs text-white/60 mb-2">
+              <span class="font-mono">LIVE DEMO SPEC &bull; INSTANT ESTIMATE ENGINE</span>
+              <span class="text-emerald-400 font-semibold">$1,450.00 / EST</span>
+            </div>
+            <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-emerald-400 h-full rounded-full" style="width: 72%;"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-white/40 mt-2">
+              <span>Scope: 2,400 sq ft Commercial</span>
+              <span>Advance Deposit: $580.00 (40%)</span>
+            </div>
+          </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
-          Built For Your Specific Flow &rarr;
+
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+          <span>Zero-Dependency Vanilla Frontend</span>
+          <button type="button" class="text-white hover:text-emerald-400 font-medium flex items-center gap-1 transition" data-action="open-consultation-modal">
+            <span>Explore Custom Applications</span>
+            <span>&rarr;</span>
+          </button>
         </div>
       </div>
 
-      <!-- 3. AI Agents -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+      <!-- =========================================================
+           03 AI AGENTS (5 COLS)
+           ========================================================= -->
+      <div class="lg:col-span-5 glass-card rounded-3xl p-8 sm:p-10 border-white/15 flex flex-col justify-between">
         <div>
-          <span class="text-xs font-mono text-white/40 mb-3 block">03</span>
-          <h3 class="text-lg font-semibold text-white mb-2">AI Agents</h3>
-          <p class="text-sm text-white/70 leading-relaxed">
-            Deploy AI for research, support, qualification, and operational workflows — 24/7 intelligent inquiry triage, conversational booking, and automated operational handoffs.
+          <div class="flex items-center gap-3 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">
+            <span class="text-2xl font-mono text-white/30 font-bold">03</span>
+            <span>AUTONOMOUS AGENTS</span>
+          </div>
+          <h3 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+            AI Agents
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Deploy AI for research, support, qualification, and operational workflows — 24/7 intelligent inquiry handling, research, qualification, booking, and operational handoffs to your team.
           </p>
+
+          <!-- Capability Sub-Items -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Inquiry handling</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Research</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Qualification</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Booking</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Operational handoffs</span>
+          </div>
+
+          <!-- Visual Agent Card -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>Agent: Qualification &amp; Routing</span>
+            </div>
+            <p class="text-xs text-white/70">"Evaluated project scope for Commercial HVAC; validated budget floor; booked consultation on calendar."</p>
+          </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
-          24/7 Autonomous Execution &rarr;
+
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+          <span>Grounded Reasoning &bull; No Hallucinations</span>
+          <button type="button" class="text-white hover:text-emerald-400 font-medium flex items-center gap-1 transition" data-action="open-consultation-modal">
+            <span>Configure Agents &rarr;</span>
+          </button>
         </div>
       </div>
 
-      <!-- 4. Workflow Automation -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+      <!-- =========================================================
+           04 WORKFLOW AUTOMATION (6 COLS)
+           ========================================================= -->
+      <div class="lg:col-span-6 glass-card rounded-3xl p-8 sm:p-10 border-white/15 flex flex-col justify-between">
         <div>
-          <span class="text-xs font-mono text-white/40 mb-3 block">04</span>
-          <h3 class="text-lg font-semibold text-white mb-2">Workflow Automation</h3>
-          <p class="text-sm text-white/70 leading-relaxed">
-            Connect business tools and automate handoffs between CRM, email, web forms, notifications, and databases into a single cohesive operating system.
+          <div class="flex items-center gap-3 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">
+            <span class="text-2xl font-mono text-white/30 font-bold">04</span>
+            <span>SYSTEM CONNECTIVITY</span>
+          </div>
+          <h3 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+            Workflow Automation
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Connect business tools and automate handoffs between CRM, email, forms, AI, databases, notifications, and accounting into a single cohesive operating system.
           </p>
+
+          <!-- Capability Sub-Items -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">CRM</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Email</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Forms</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">AI</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Databases</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Notifications</span>
+          </div>
+
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 flex items-center justify-between text-xs font-mono text-white/60">
+            <span>Webhooks</span>
+            <span>&rarr;</span>
+            <span class="text-emerald-400">n8n Orchestration</span>
+            <span>&rarr;</span>
+            <span>Postgres DB</span>
+          </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
-          Bridge Disconnected Tools &rarr;
+
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+          <span>Contract-Driven Payload Validation</span>
+          <button type="button" class="text-white hover:text-emerald-400 font-medium flex items-center gap-1 transition" data-action="open-consultation-modal">
+            <span>Automate Handoffs &rarr;</span>
+          </button>
         </div>
       </div>
 
-      <!-- 5. Ongoing Management -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between md:col-span-2 lg:col-span-2">
+      <!-- =========================================================
+           05 ONGOING MANAGEMENT (6 COLS)
+           ========================================================= -->
+      <div class="lg:col-span-6 glass-card rounded-3xl p-8 sm:p-10 border-white/15 flex flex-col justify-between">
         <div>
-          <span class="text-xs font-mono text-white/40 mb-3 block">05</span>
-          <h3 class="text-lg font-semibold text-white mb-2">Ongoing Management</h3>
-          <p class="text-sm text-white/70 leading-relaxed max-w-2xl">
-            Keep your systems maintained, monitored, and continuously improving. We handle uptime tracking, API updates, bug fixes, performance improvements, and workflow expansion as your business grows.
+          <div class="flex items-center gap-3 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">
+            <span class="text-2xl font-mono text-white/30 font-bold">05</span>
+            <span>INFRASTRUCTURE STEWARDSHIP</span>
+          </div>
+          <h3 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+            Ongoing Management
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Keep your systems maintained, monitored, and continuously improving. We handle monitoring, maintenance, optimization, new workflows, API version deprecations, and infrastructure stability.
           </p>
+
+          <!-- Capability Sub-Items -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Monitoring</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Maintenance</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">Optimization</span>
+            <span class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white/75">New workflows</span>
+          </div>
+
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="text-white font-medium">Uptime Guarantee: 99.9%</span>
+            </div>
+            <span class="text-white/40 font-mono">24/7 Automated Alerts</span>
+          </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
-          Proactive Infrastructure Reliability &rarr;
+
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+          <span>Proactive Engineering Maintenance</span>
+          <button type="button" class="text-white hover:text-emerald-400 font-medium flex items-center gap-1 transition" data-action="open-consultation-modal">
+            <span>Learn About SLA Support &rarr;</span>
+          </button>
         </div>
       </div>
+
     </div>
   </section>
 
   <!-- ====================================================================
-       03 HOW IT WORKS SECTION (#how-it-works)
+       04 CUSTOMER PROBLEMS & SOLUTIONS (#problems) — HIGH-CONTRAST BEFORE/AFTER
        ==================================================================== -->
-  <section id="how-it-works" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
-    <div class="mb-12 text-left">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
-        <span>03 / HOW IT WORKS</span>
-      </div>
-      <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
-        A clear, disciplined delivery process.
-      </h2>
-      <p class="text-sm sm:text-base text-white/70 max-w-2xl mt-2 leading-relaxed">
-        From diagnosing manual bottlenecks to production deployment and ongoing management, our engineering process guarantees alignment at every stage.
-      </p>
-    </div>
-
-    <!-- 8-Stage Delivery Pipeline -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      <!-- Step 1: Discovery -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 01</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Discovery</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            We review where your team spends manual time, what tasks cause administrative friction, and where customer handoffs slow down.
-          </p>
+  <section id="problems" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>04 / FRICTION ELIMINATION</span>
         </div>
-      </div>
-
-      <!-- Step 2: Requirements -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 02</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Requirements</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            Our engineering team maps the workflow, defines data inputs and outputs, and drafts the exact specification for your business tools.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 3: Demo / Proposal -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 03</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Demo / Proposal</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            We create an interactive working demonstration or technical proposal so you can evaluate the experience before production commitment.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 4: Advance Payment (Commercial Gate) -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between bg-white/[0.07] border-white/20 shadow-lg">
-        <div>
-          <div class="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-2">
-            <span class="font-mono">STEP 04 • GATE</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Advance Payment</h3>
-          <p class="text-xs text-white/80 leading-relaxed">
-            Commercial agreement and advance payment are secured before engineering starts. No production build begins without mutual commercial commitment.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 5: Build -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 05</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Build</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            We engineer the software, configure automated workflows, and build the custom interfaces around your approved specifications.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 6: QA & Testing -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 06</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">QA &amp; Testing</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            Rigorous end-to-end testing across all integration points, error states, and failovers to ensure zero production disruptions.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 7: Deploy -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 07</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Deploy</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            Seamless launch into your live operating environment with complete documentation and operator verification.
-          </p>
-        </div>
-      </div>
-
-      <!-- Step 8: Ongoing Management -->
-      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
-            <span class="font-mono">STEP 08</span>
-            <span class="w-2 h-2 rounded-full bg-white/30"></span>
-          </div>
-          <h3 class="text-base font-semibold text-white mb-1.5">Ongoing Management</h3>
-          <p class="text-xs text-white/70 leading-relaxed">
-            Proactive uptime monitoring, API maintenance, bug fixes, and continuous workflow improvements as your needs expand.
-          </p>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ====================================================================
-       04 DEMOS SECTION (#demos) — CLEAN, CUSTOMER-OUTCOME DEMOS
-       ==================================================================== -->
-  <section id="demos" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
-          <span>04 / WORKING DEMOS</span>
-        </div>
-        <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
-          See Your System Working Before Implementation.
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Replace repetitive work with systems that run.
         </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          When operations depend on human memory and manual repetition, leads get missed, data falls out of sync, and team bandwidth burns out.
+        </p>
       </div>
-      <p class="text-sm sm:text-base text-white/70 max-w-md leading-relaxed">
-        Customer shares requirements &rarr; requirements are defined &rarr; working demo is engineered &rarr; demo is presented for evaluation.
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        We replace ad-hoc human workarounds with resilient, deterministic systems engineered to execute instantly, 24/7/365, without fatigue or dropped inquiries.
       </p>
     </div>
 
-    <!-- Concrete Demo Cards: Clean Monochrome Aesthetic -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- 6 Substantial Before / After Transformation Blocks -->
+    <div class="space-y-6 sm:space-y-8">
 
-      <!-- Demo Card 1 -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
-            <span class="font-semibold uppercase tracking-wider text-white/70">EMERGENCY &amp; DISPATCH</span>
-            <span class="font-mono">DEMO 01</span>
+      <!-- Item 01: Lead Handling -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 01</span>
+            <span>&bull;</span>
+            <span>INBOUND PIPELINE</span>
           </div>
-          <h3 class="text-lg font-semibold text-white mb-3">24/7 Service Dispatch &amp; Triage Portal</h3>
-          <div class="space-y-2 text-xs text-white/70">
-            <p><span class="font-semibold text-white">Problem:</span> Urgent after-hours customer calls go to voicemail, losing high-ticket jobs to faster responders.</p>
-            <p><span class="font-semibold text-white/90">Solution:</span> Intelligent triage flow capturing equipment symptoms, urgency rating, and scheduling immediate technician dispatch.</p>
-            <p><span class="font-semibold text-emerald-400">Working Result:</span> Deployed intake interface capturing service address, problem triage, and technician window.</p>
-          </div>
+          <span class="text-emerald-400 font-medium">94% FASTER ENGAGEMENT</span>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10">
-          <button
-            type="button"
-            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
-            data-action="open-consultation-modal"
-          >
-            <span>Request Custom Demo</span>
-            <span>&rarr;</span>
-          </button>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Manual Lead Handling
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Inquiries sit in inboxes waiting for someone to manually review, filter spam, and draft replies. By the time a rep responds hours later, high-intent prospects have already called a competitor.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Avg Latency: 4.8 Hours</span>
+              <span class="text-red-400">Lost Leads: ~38%</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Automated Lead Capture + Qualification
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Every submission is instantly evaluated against qualification rules and enriched with actionable context. Leads receive sub-minute personalized outreach while qualified buyers get booked straight to your calendar.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Response: Sub-60 Seconds</span>
+              <span class="font-bold">Zero Dropped Leads</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Demo Card 2 -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
-            <span class="font-semibold uppercase tracking-wider text-white/70">COMMERCIAL CONTRACTORS</span>
-            <span class="font-mono">DEMO 02</span>
+      <!-- Item 02: Follow-Up Sequences -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 02</span>
+            <span>&bull;</span>
+            <span>PROPOSAL RETENTION</span>
           </div>
-          <h3 class="text-lg font-semibold text-white mb-3">Interactive Quote &amp; Scope Estimator</h3>
-          <div class="space-y-2 text-xs text-white/70">
-            <p><span class="font-semibold text-white">Problem:</span> Manual quote preparation takes 48 hours of back-and-forth, causing prospective buyers to cool off.</p>
-            <p><span class="font-semibold text-white/90">Solution:</span> Dynamic scope-builder portal generating preliminary pricing bands while capturing project specifications.</p>
-            <p><span class="font-semibold text-emerald-400">Working Result:</span> Working client-facing quote portal that converts casual visitors into consultation-ready leads.</p>
-          </div>
+          <span class="text-emerald-400 font-medium">RECOVERY OF DORMANT DEALS</span>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10">
-          <button
-            type="button"
-            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
-            data-action="open-consultation-modal"
-          >
-            <span>Request Custom Demo</span>
-            <span>&rarr;</span>
-          </button>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Manual Follow-Up
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Sales proposals and warm quotes go cold because reps forget to send timely follow-up messages amidst day-to-day chaos. Deals slip away silently without clear status tracking.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Cadence: Inconsistent</span>
+              <span class="text-red-400">Proposal Slip: High</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Automated Follow-Up Workflow
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Multi-stage drip sequences keep prospects engaged and automatically notify reps when a buyer responds. Follow-ups automatically halt the moment a reply or booking is detected.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Precision Timing</span>
+              <span class="font-bold">Auto-Halt on Reply</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Demo Card 3 -->
-      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
-            <span class="font-semibold uppercase tracking-wider text-white/70">CLIENT ONBOARDING</span>
-            <span class="font-mono">DEMO 03</span>
+      <!-- Item 03: Customer Support -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 03</span>
+            <span>&bull;</span>
+            <span>CUSTOMER EXPERIENCE</span>
           </div>
-          <h3 class="text-lg font-semibold text-white mb-3">Automated Intake &amp; Account Provisioning</h3>
-          <div class="space-y-2 text-xs text-white/70">
-            <p><span class="font-semibold text-white">Problem:</span> Client onboarding requires disjointed spreadsheets, missing documents, and manual team reminders.</p>
-            <p><span class="font-semibold text-white/90">Solution:</span> Stepper portal collecting requirements, verifying files, and syncing data directly into downstream tools.</p>
-            <p><span class="font-semibold text-emerald-400">Working Result:</span> Fully automated intake pipeline reducing onboarding turnaround from days to minutes.</p>
+          <span class="text-emerald-400 font-medium">24/7 ZERO QUEUE TIME</span>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Repetitive Customer Support
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Staff spends hours each day answering the same common FAQs, status inquiries, and policy questions. Customer frustration builds during evenings, weekends, and holidays.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Availability: 9 to 5 Only</span>
+              <span class="text-red-400">Repetitive Overhead: 65%</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                AI Support System
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Instant, 24/7 intelligent answers grounded in your business knowledge base with seamless human handoff. Complex edge cases are cleanly escalated to senior staff with complete conversation transcripts.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Coverage: 24/7/365</span>
+              <span class="font-bold">Grounded Accuracy</span>
+            </div>
           </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10">
-          <button
-            type="button"
-            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
-            data-action="open-consultation-modal"
-          >
-            <span>Request Custom Demo</span>
-            <span>&rarr;</span>
-          </button>
+      </div>
+
+      <!-- Item 04: Disconnected Tools -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 04</span>
+            <span>&bull;</span>
+            <span>DATA INTEGRITY</span>
+          </div>
+          <span class="text-emerald-400 font-medium">100% AUTOMATED SYNC</span>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Disconnected Tools
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Customer records, invoice data, and project tasks are split across 5 different apps requiring manual copy-pasting. Inevitable human typos cause duplicate records and billing errors.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Sync Mode: Manual</span>
+              <span class="text-red-400">Data Drift: Severe</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Bi-Directional CRM &amp; Data Sync
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Real-time webhook and API synchronization keeping all platforms aligned with zero double-entry. Contact edits, payment states, and project status updates reflect across your stack instantaneously.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Latency: < 500ms</span>
+              <span class="font-bold">Zero Duplicate Records</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 05: Appointment Scheduling -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 05</span>
+            <span>&bull;</span>
+            <span>CALENDAR OPERATIONS</span>
+          </div>
+          <span class="text-emerald-400 font-medium">85% REDUCTION IN NO-SHOWS</span>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Slow Appointment Handling
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Multiple phone tag attempts or email exchanges just to find a mutually open consultation slot. Prospects lose momentum and no-show rates climb without automated reminder sequences.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Coordination: 4-6 Exchanges</span>
+              <span class="text-red-400">No-Show Rate: ~25%</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                24/7 Self-Serve Scheduling
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Clients select verified available slots with automated calendar booking and SMS/email reminders. Automated 24-hour and 2-hour SMS confirmations allow self-serve rescheduling with one tap.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Frictionless Booking</span>
+              <span class="font-bold">Multi-Stage SMS Alerts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 06: Operational Reporting -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 border-white/15 bg-white/[0.02]">
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+          <div class="flex items-center gap-2">
+            <span class="text-white/60 font-bold">TRANSFORMATION 06</span>
+            <span>&bull;</span>
+            <span>EXECUTIVE VISIBILITY</span>
+          </div>
+          <span class="text-emerald-400 font-medium">REAL-TIME OPERATIONAL INTELLIGENCE</span>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Before / Friction -->
+          <div class="rounded-2xl p-6 bg-red-950/15 border border-red-500/20 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                <span>MANUAL BOTTLENECK</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Time-Consuming Reporting
+              </h3>
+              <p class="text-sm text-white/70 leading-relaxed">
+                Management wastes Friday afternoons pulling CSVs and compiling manual progress spreadsheets. By the time leadership reads the numbers, the data is already outdated.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-red-500/15 flex items-center justify-between text-xs font-mono text-red-300/70">
+              <span>Compilation: 5+ Hours/Wk</span>
+              <span class="text-red-400">Freshness: Days Stale</span>
+            </div>
+          </div>
+          <!-- After / System -->
+          <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-2 text-[11px] font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AUTOMATED SYSTEM</span>
+              </div>
+              <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Real-Time Operations Dashboard
+              </h3>
+              <p class="text-sm text-white/80 leading-relaxed">
+                Live metrics, lead volume, and conversion status automatically rendered in a single operational view. Track pipeline velocity, automation uptime, and staff productivity without touching a spreadsheet.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+              <span>Telemetry: Live Streaming</span>
+              <span class="font-bold">Zero Spreadsheet Drag</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -704,161 +1139,1323 @@
   </section>
 
   <!-- ====================================================================
-       05 AUTOMATION / USE CASES SECTION (#automation)
+       05 HOW IT WORKS SECTION (#how-it-works) — 6-STEP EDITORIAL SEQUENCE
        ==================================================================== -->
-  <section id="automation" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
-    <div class="mb-12 text-left">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
-        <span>05 / WORKFLOW AUTOMATION &amp; USE CASES</span>
+  <section id="how-it-works" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>05 / HOW IT WORKS</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          A clear, disciplined delivery process.
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          From diagnosing manual bottlenecks to production deployment and ongoing management, our engineering process guarantees alignment at every stage.
+        </p>
       </div>
-      <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
-        Connect your business tools. Automate routine work.
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        Six deterministic phases. Zero guesswork, zero surprise billings, and zero black-box handoffs. Every stage has explicit deliverables and strict acceptance criteria.
+      </p>
+    </div>
+
+    <!-- 6-Step Editorial Pipeline Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Step 01 -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-white/25 transition">
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-white/[0.04] pointer-events-none select-none">01</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-6">
+            <span class="font-mono text-emerald-400 tracking-wider">PHASE: AUDIT &amp; DISCOVERY</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            01 — Tell us the problem
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            You show us where your team spends manual time, which workflows get delayed, or what customer experience needs automation.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Deliverable: Bottleneck Map</span>
+          <span class="text-white/60">Stage 01</span>
+        </div>
+      </div>
+
+      <!-- Step 02 -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-white/25 transition">
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-white/[0.04] pointer-events-none select-none">02</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-6">
+            <span class="font-mono text-emerald-400 tracking-wider">PHASE: SYSTEM SPECIFICATION</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            02 — We define the system
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            We map the architecture, data inputs, automated steps, error handling, and tool integrations required to solve the problem permanently.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Deliverable: Technical Scope</span>
+          <span class="text-white/60">Stage 02</span>
+        </div>
+      </div>
+
+      <!-- Step 03 -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-white/25 transition">
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-white/[0.04] pointer-events-none select-none">03</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-6">
+            <span class="font-mono text-emerald-400 tracking-wider">PHASE: INTERACTIVE PROTOTYPE</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            03 — You see a working demo
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Where appropriate, we build an interactive demonstration of your system so you can test the workflow before any implementation commitment.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Deliverable: Sandbox Prototype</span>
+          <span class="text-white/60">Stage 03</span>
+        </div>
+      </div>
+
+      <!-- Step 04: Commercial Gate -->
+      <div class="glass-card rounded-3xl p-8 border-emerald-500/40 bg-gradient-to-b from-emerald-950/30 to-white/[0.02] flex flex-col justify-between relative overflow-hidden shadow-2xl">
+        <div class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-emerald-500/[0.08] pointer-events-none select-none">04</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-6">
+            <span class="font-mono tracking-wider">GATEWAY: MUTUAL COMMITMENT</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            04 — Proposal + advance payment
+          </h3>
+          <p class="text-sm text-white/80 leading-relaxed mb-6">
+            Clear project scope, transparent terms, and verified advance deposit. No production build begins without mutual commercial commitment.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-emerald-500/20 flex items-center justify-between text-xs font-mono text-emerald-300">
+          <span>Gate: Advance Verified</span>
+          <span class="font-bold">Commercial SLA Locked</span>
+        </div>
+      </div>
+
+      <!-- Step 05 -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-white/25 transition">
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-white/[0.04] pointer-events-none select-none">05</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-6">
+            <span class="font-mono text-emerald-400 tracking-wider">PHASE: PRODUCTION ROLLOUT</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            05 — We build and deploy
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Our engineers build the software, configure production workflows, execute rigorous integration tests, and launch into your live stack.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Deliverable: Live Production System</span>
+          <span class="text-white/60">Stage 05</span>
+        </div>
+      </div>
+
+      <!-- Step 06 -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden group hover:border-white/25 transition">
+        <div class="absolute right-4 top-2 text-7xl font-mono font-extrabold text-white/[0.04] pointer-events-none select-none">06</div>
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-6">
+            <span class="font-mono text-emerald-400 tracking-wider">PHASE: ONGOING STEWARDSHIP</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            06 — We maintain and improve it
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            We provide continuous uptime monitoring, prompt maintenance, API upgrades, and ongoing improvements so your system evolves with your growth.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Deliverable: 24/7 SLA &amp; Optimization</span>
+          <span class="text-white/60">Stage 06</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       06 DEMOS SECTION (#demos) — REALISTIC SANDBOX BROWSER FRAMES
+       ==================================================================== -->
+  <section id="demos" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>06 / WORKING DEMOS</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          See what the system can become.
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          Explore live interactive prototypes demonstrating how custom software and automated flows solve real business problems.
+        </p>
+      </div>
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        Every system we propose is backed by working interactive prototypes. You can test customer interactions, verify business logic, and experience the workflow live before making any commercial investment.
+      </p>
+    </div>
+
+    <!-- Demo Cards: Realistic Dark Browser Frames -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Demo Card 1: Orange Auto -->
+      <div class="glass-card rounded-3xl border-white/15 bg-white/[0.02] flex flex-col justify-between overflow-hidden shadow-2xl hover:border-white/25 transition">
+        <!-- Browser Window Header -->
+        <div class="bg-black/70 px-5 py-3 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          </div>
+          <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/50 flex items-center gap-1.5">
+            <svg class="w-2.5 h-2.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>automatedagencyos.tech/demo/orange-auto</span>
+          </div>
+          <span class="text-[9px] font-mono font-semibold uppercase text-emerald-400">WORKING DEMO</span>
+        </div>
+
+        <div class="p-6 sm:p-8 flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+              <span class="font-mono text-emerald-400 uppercase tracking-wider">AUTOMOTIVE &amp; SERVICES &bull; DEMO 01</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-semibold text-white mb-4">
+              Orange Auto — Intake &amp; Booking
+            </h3>
+
+            <!-- Simulated UI Widget Sandbox Preview -->
+            <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-3">
+              <div class="flex items-center justify-between text-[11px] text-white/50 pb-2 border-b border-white/10">
+                <span>INTAKE STEPS</span>
+                <span class="text-emerald-400 font-medium">STEP 2 OF 3</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px]">Brake Noise &bull; Squeal</span>
+                <span class="px-2.5 py-1 rounded bg-white/5 text-white/50 text-[11px]">Oil Change</span>
+                <span class="px-2.5 py-1 rounded bg-white/5 text-white/50 text-[11px]">Engine Light</span>
+              </div>
+              <div class="p-2.5 rounded bg-white/5 border border-white/5 text-[11px] text-white/70 flex justify-between items-center">
+                <span>Earliest Bay Slot:</span>
+                <span class="text-emerald-300 font-semibold">Today @ 3:30 PM</span>
+              </div>
+            </div>
+
+            <!-- Problem / Solution / Working Result Structure -->
+            <div class="space-y-3 text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+              <p><span class="font-semibold text-white">Problem:</span> Phone tag and lost inquiries during peak service bay hours cost thousands in missed repair jobs.</p>
+              <p><span class="font-semibold text-white/90">Solution:</span> Instant interactive vehicle diagnostic triage and 24/7 calendar appointment booking flow.</p>
+              <p><span class="font-semibold text-emerald-400">Working Result:</span> Working customer booking application with automated vehicle symptom triage.</p>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-white/10 flex items-center justify-between gap-4">
+            <a
+              href="/demo/orange-auto"
+              target="_blank"
+              class="cta-dark-gradient rounded-full px-5 py-2.5 text-xs font-semibold text-white flex items-center gap-1.5 shadow-lg transition"
+            >
+              <span>Launch Live Demo</span>
+              <span>&rarr;</span>
+            </a>
+            <button
+              type="button"
+              class="text-xs text-white/60 hover:text-white transition"
+              data-action="open-consultation-modal"
+            >
+              Request a Working Demo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo Card 2: Summit HVAC -->
+      <div class="glass-card rounded-3xl border-white/15 bg-white/[0.02] flex flex-col justify-between overflow-hidden shadow-2xl hover:border-white/25 transition">
+        <!-- Browser Window Header -->
+        <div class="bg-black/70 px-5 py-3 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          </div>
+          <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/50 flex items-center gap-1.5">
+            <svg class="w-2.5 h-2.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>automatedagencyos.tech/demo/summit-hvac</span>
+          </div>
+          <span class="text-[9px] font-mono font-semibold uppercase text-emerald-400">WORKING DEMO</span>
+        </div>
+
+        <div class="p-6 sm:p-8 flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+              <span class="font-mono text-emerald-400 uppercase tracking-wider">HVAC &amp; CONTRACTORS &bull; DEMO 02</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-semibold text-white mb-4">
+              Summit HVAC — Emergency Dispatch
+            </h3>
+
+            <!-- Simulated UI Widget Dispatch Preview -->
+            <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-3">
+              <div class="flex items-center justify-between text-[11px] text-white/50 pb-2 border-b border-white/10">
+                <span class="text-red-400 font-semibold flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
+                  URGENT TIER 1
+                </span>
+                <span class="text-white/40">AFTER-HOURS</span>
+              </div>
+              <div class="space-y-1 text-[11px] text-white/70">
+                <div class="flex justify-between">
+                  <span class="text-white/40">Issue:</span>
+                  <span class="text-white">Commercial Heat Exchanger Failure</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Assigned Tech:</span>
+                  <span class="text-emerald-300">Unit #12 (ETA 18m)</span>
+                </div>
+              </div>
+              <div class="p-2 rounded bg-emerald-950/40 border border-emerald-500/20 text-[10px] text-emerald-300 text-center">
+                Automated SMS &amp; GPS Tracking Dispatched
+              </div>
+            </div>
+
+            <!-- Problem / Solution / Working Result Structure -->
+            <div class="space-y-3 text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+              <p><span class="font-semibold text-white">Problem:</span> Late-night emergency heating failures go to voicemail; customers hire whoever answers first.</p>
+              <p><span class="font-semibold text-white/90">Solution:</span> 24/7 dispatch portal capturing equipment details, urgency tier, and scheduling technician dispatch.</p>
+              <p><span class="font-semibold text-emerald-400">Working Result:</span> Automated dispatch engine sending real-time technician notifications.</p>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-white/10 flex items-center justify-between gap-4">
+            <button
+              type="button"
+              class="cta-dark-gradient rounded-full px-5 py-2.5 text-xs font-semibold text-white flex items-center gap-1.5 shadow-lg transition"
+              data-action="open-consultation-modal"
+            >
+              <span>Request Demo Access</span>
+              <span>&rarr;</span>
+            </button>
+            <button
+              type="button"
+              class="text-xs text-white/60 hover:text-white transition"
+              data-action="open-consultation-modal"
+            >
+              Request a Working Demo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo Card 3: Custom Demo Request -->
+      <div class="glass-card rounded-3xl border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 to-white/[0.02] flex flex-col justify-between overflow-hidden shadow-2xl">
+        <!-- Browser Window Header -->
+        <div class="bg-black/70 px-5 py-3 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          </div>
+          <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/50 flex items-center gap-1.5">
+            <svg class="w-2.5 h-2.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>automatedagencyos.tech/sandbox/your-system</span>
+          </div>
+          <span class="text-[9px] font-mono font-semibold uppercase text-emerald-400">WORKING DEMO</span>
+        </div>
+
+        <div class="p-6 sm:p-8 flex flex-col justify-between flex-1">
+          <div>
+            <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+              <span class="font-mono text-emerald-400 uppercase tracking-wider">TAILORED PROTOTYPE &bull; BESPOKE</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-semibold text-white mb-4">
+              Your Custom System Prototype
+            </h3>
+
+            <!-- Simulated Blueprint Box -->
+            <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-3">
+              <div class="flex items-center justify-between text-[11px] text-white/50 pb-2 border-b border-white/10">
+                <span>TOPOLOGY BLUEPRINT</span>
+                <span class="text-emerald-400">RAPID DRAFT</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-white/80 py-1">
+                <span class="px-2 py-0.5 rounded bg-white/5">[Your Inbound Channel]</span>
+                <span class="text-emerald-400">&rarr;</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">[Agency OS]</span>
+                <span class="text-emerald-400">&rarr;</span>
+                <span class="px-2 py-0.5 rounded bg-white/5">[Your Database]</span>
+              </div>
+              <div class="p-2 rounded bg-white/5 border border-white/5 text-[10px] text-white/60 text-center">
+                Engineered for your exact team workflow &bull; Zero generic SaaS
+              </div>
+            </div>
+
+            <!-- Problem / Solution / Working Result Structure -->
+            <div class="space-y-3 text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+              <p><span class="font-semibold text-white">Problem:</span> Standard off-the-shelf software doesn't match your unique operational workflow.</p>
+              <p><span class="font-semibold text-white/90">Solution:</span> Our engineering team drafts a working prototype specifically addressing your bottlenecks.</p>
+              <p><span class="font-semibold text-emerald-400">Working Result:</span> Interactive sandbox ready to test with your actual team before build commitment.</p>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-white/10">
+            <button
+              type="button"
+              class="cta-dark-gradient w-full rounded-full py-3 text-xs font-semibold text-white text-center shadow-xl hover:opacity-95 transition"
+              data-action="open-consultation-modal"
+            >
+              Request a Working Demo &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       07 WORKFLOW AUTOMATION (#automation) — ARCHITECTURAL TOPOLOGY & CARDS
+       ==================================================================== -->
+  <section id="automation" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>07 / WORKFLOW AUTOMATION</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Connect the work. Automate the handoffs.
+        </h2>
+        <p class="text-base sm:text-xl text-emerald-400 font-medium mt-3">
+          Automate the repetitive work your business handles every day.
+        </p>
+        <p class="text-sm sm:text-base text-white/70 max-w-2xl mt-3 leading-relaxed">
+          Connect your business tools and eliminate manual bottlenecks. We build and maintain dependable commercial automations tailored to your exact operational workflow.
+        </p>
+      </div>
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        From missed calls to signed contracts, we engineer fault-tolerant pipelines that connect your existing tech stack without breaking legacy processes.
+      </p>
+    </div>
+
+    <!-- Visual Node Connections Diagram / High-Tech Topology Canvas -->
+    <div class="glass-card rounded-3xl p-8 sm:p-10 mb-12 border-white/15 bg-white/[0.02] shadow-2xl relative overflow-hidden">
+      <div class="flex items-center justify-between pb-4 mb-8 border-b border-white/10 text-xs font-mono text-white/40">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-white/70 font-semibold tracking-wider uppercase">TYPICAL AUTOMATED WORKFLOW TOPOLOGY</span>
+        </div>
+        <span class="text-emerald-400 font-medium">REAL-TIME TELEMETRY BUS</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch relative">
+        <!-- Node 1 -->
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 flex flex-col justify-between relative group hover:border-white/20 transition">
+          <div>
+            <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-xs font-mono font-bold text-white mb-4">01</div>
+            <div class="text-base font-semibold text-white mb-1">Inbound Lead / Call</div>
+            <div class="text-xs text-white/50 leading-relaxed">Website or Telephony</div>
+          </div>
+          <div class="mt-6 pt-3 border-t border-white/5 text-[11px] font-mono text-white/40 flex justify-between">
+            <span>TRIGGER</span>
+            <span class="text-white/60">&lt; 100ms</span>
+          </div>
+        </div>
+
+        <!-- Node 2 -->
+        <div class="rounded-2xl p-6 bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between relative group hover:border-emerald-500/50 transition">
+          <div>
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-mono font-bold mb-4">02</div>
+            <div class="text-base font-semibold text-white mb-1">Instant Automation</div>
+            <div class="text-xs text-emerald-300/80 leading-relaxed">Text-Back / Qualify</div>
+          </div>
+          <div class="mt-6 pt-3 border-t border-emerald-500/20 text-[11px] font-mono text-emerald-400 flex justify-between">
+            <span>PIPELINE</span>
+            <span class="font-bold">Sub-30s</span>
+          </div>
+        </div>
+
+        <!-- Node 3 -->
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 flex flex-col justify-between relative group hover:border-white/20 transition">
+          <div>
+            <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-xs font-mono font-bold text-white mb-4">03</div>
+            <div class="text-base font-semibold text-white mb-1">CRM &amp; Database Sync</div>
+            <div class="text-xs text-white/50 leading-relaxed">Pipeline &amp; Calendar</div>
+          </div>
+          <div class="mt-6 pt-3 border-t border-white/5 text-[11px] font-mono text-white/40 flex justify-between">
+            <span>STATE</span>
+            <span class="text-white/60">Bi-Directional</span>
+          </div>
+        </div>
+
+        <!-- Node 4 -->
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 flex flex-col justify-between relative group hover:border-white/20 transition">
+          <div>
+            <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-xs font-mono font-bold text-white mb-4">04</div>
+            <div class="text-base font-semibold text-white mb-1">Instant Team Alert</div>
+            <div class="text-xs text-white/50 leading-relaxed">Slack / Mobile / SMS</div>
+          </div>
+          <div class="mt-6 pt-3 border-t border-white/5 text-[11px] font-mono text-white/40 flex justify-between">
+            <span>NOTIFICATION</span>
+            <span class="text-emerald-400 font-medium">Instant Dispatch</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Productized Commercial Automation Capabilities (9 Substantial Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- 01: Missed Call Recovery -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 01</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">SLA: &lt; 30s</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Missed-Call Recovery
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Sub-30 second automated SMS text-back to missed customer calls with caller identification, business hours detection, and CRM logging with Operational Alerts &amp; Notifications.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Telephony &bull; Twilio</span>
+          <span class="text-emerald-400 font-medium">Active Recovery</span>
+        </div>
+      </div>
+
+      <!-- 02: Lead Capture & Qualification -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 02</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Autonomous</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Lead Capture &amp; Qualification
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Instantly engages qualified inbound web inquiries and coordinates respectful multi-stage follow-ups that automatically cancel when a lead replies.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Inbound &bull; Webhooks</span>
+          <span class="text-emerald-400 font-medium">Zero Drop Rate</span>
+        </div>
+      </div>
+
+      <!-- 03: 24/7 Appointment Scheduling -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 03</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Self-Serve</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            24/7 Appointment Scheduling
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Multi-stage 24h and 2h appointment reminder cadences with two-way confirmation and reschedule links that drastically reduce costly no-shows.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Cal &bull; SMS Alerts</span>
+          <span class="text-emerald-400 font-medium">85% Lower No-Shows</span>
+        </div>
+      </div>
+
+      <!-- 04: Customer Re-Engagement -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 04</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Retention</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Customer Re-Engagement
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Monitors customer purchase intervals and reactivates dormant accounts with personalized, frequency-capped check-ins that halt on response.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>CRM &bull; Purchase Cycle</span>
+          <span class="text-emerald-400 font-medium">Frequency Capped</span>
+        </div>
+      </div>
+
+      <!-- 05: Estimate Follow-Up -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 05</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Deal Velocity</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Estimate Follow-Up
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Respectful Automated Follow-Up Sequences for proposals that answer customer questions, track quote acceptance status, and prevent deals from going cold.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Proposals &bull; Drip</span>
+          <span class="text-emerald-400 font-medium">Status Tracked</span>
+        </div>
+      </div>
+
+      <!-- 06: Review Request Automation -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 06</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Reputation</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Review Request Automation
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Post-completion review request workflows dispatched at configured delays with duplicate suppression and direct links to your verified review profiles.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Feedback &bull; Suppression</span>
+          <span class="text-emerald-400 font-medium">Verified Profiles</span>
+        </div>
+      </div>
+
+      <!-- 07: CRM Synchronization -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 07</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Infrastructure</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            CRM Synchronization
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Bi-directional webhook synchronization between website forms, billing systems, and pipeline databases with zero manual copy-pasting.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>APIs &bull; Multi-Tenant</span>
+          <span class="text-emerald-400 font-medium">Zero Drift</span>
+        </div>
+      </div>
+
+      <!-- 08: AI Reception (Telephony) -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 08</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Voice AI</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            AI Reception (Telephony)
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            24/7 conversational voice telephony receptionist that answers common inquiries and books calendar slots directly over the phone.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Voice &bull; Speech-to-Text</span>
+          <span class="text-emerald-400 font-medium">24/7 Intake</span>
+        </div>
+      </div>
+
+      <!-- 09: Custom Business Software -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">CAPABILITY 09</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] text-white/60">Architecture</span>
+          </div>
+          <h3 class="text-lg sm:text-xl font-semibold text-white mb-3">
+            Custom Business Software
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Dedicated web software, Reporting &amp; Internal Dashboards, customer booking portals, and bespoke CRM architectures tailored to your exact business.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Web Apps &bull; Dashboards</span>
+          <span class="text-emerald-400 font-medium">Full Stack</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       08 CUSTOM AI SOFTWARE (#software) — 5 SUBSTANTIAL APPLICATION MODULES
+       ==================================================================== -->
+  <section id="software" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>08 / CUSTOM AI SOFTWARE</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Software built around your process.
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          When commercial SaaS doesn't fit your operational model, we build dedicated web applications and intelligent interfaces tailored to your exact specifications.
+        </p>
+      </div>
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        Every business has unique logic. We design, build, and deploy lightweight, ultra-responsive software that fits your exact operating cadence without monthly per-seat licensing penalties.
+      </p>
+    </div>
+
+    <!-- 5 Substantial Application Modules Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+      <!-- Application 01: AI Assistants -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-xl">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">APPLICATION 01</span>
+            <span>INTELLIGENT UI</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            AI assistants
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Dedicated conversational interfaces trained on your catalog, policies, and pricing structures. AI assistants handle tier-1 discovery, qualify prospects, and answer complex product queries with zero hallucinations.
+          </p>
+
+          <!-- Mock UI Widget -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="text-[10px] text-emerald-400 font-semibold uppercase">Knowledge Grounded &bull; Vector RAG</div>
+            <div class="p-2.5 rounded bg-white/5 text-white/80 text-[11px]">
+              "Under Clause 4b, emergency dispatch requires active commercial coverage. Confirming dispatch slot..."
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Grounded RAG Pipeline</span>
+          <span class="text-white/60">&lt; 400ms TTFT</span>
+        </div>
+      </div>
+
+      <!-- Application 02: Booking Portals -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-xl">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">APPLICATION 02</span>
+            <span>SCHEDULING ENGINE</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            Booking portals
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Sleek multi-step scheduling engines with real-time calendar validation and location mapping. Booking portals allow your clients to view real-time availability, select service packages, and confirm appointments without human lag.
+          </p>
+
+          <!-- Mock UI Widget -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[10px] text-white/40">
+              <span>SELECT SLOT</span>
+              <span class="text-emerald-400 font-bold">CALENDAR SYNCED</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+              <div class="p-1.5 rounded bg-white/5 text-white/40">09:00 AM</div>
+              <div class="p-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">11:30 AM</div>
+              <div class="p-1.5 rounded bg-white/5 text-white/40">02:00 PM</div>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Bi-Directional Cal Sync</span>
+          <span class="text-white/60">Auto SMS Reminders</span>
+        </div>
+      </div>
+
+      <!-- Application 03: Quote Calculators -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-xl">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">APPLICATION 03</span>
+            <span>ESTIMATE ENGINE</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            Quote calculators
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Dynamic pricing calculators converting complex parameter matrices into verified estimates. Quote calculators eliminate pricing friction and capture high-intent buyer specifications before phone conversations take place.
+          </p>
+
+          <!-- Mock UI Widget -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[11px] text-white/70">
+              <span>Base Configuration:</span>
+              <span class="text-emerald-300 font-bold">$2,850.00</span>
+            </div>
+            <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+              <div class="bg-emerald-400 h-full rounded-full" style="width: 65%;"></div>
+            </div>
+            <div class="text-[10px] text-white/40">Complexity Tier: Commercial Multi-Zone</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Instant PDF Export</span>
+          <span class="text-white/60">CRM Auto-Logged</span>
+        </div>
+      </div>
+
+      <!-- Application 04: Customer Portals -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-xl">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">APPLICATION 04</span>
+            <span>CLIENT COLLABORATION</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            Customer portals
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Secure self-service hubs for your clients to view work status, approve estimates, download invoices, and securely submit files. Customer portals eliminate repetitive "what's the update?" phone calls.
+          </p>
+
+          <!-- Mock UI Widget -->
+          <div class="bg-black/60 rounded-xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[11px] text-white/70">
+              <span>Project Milestone:</span>
+              <span class="text-emerald-300">Phase 3 &bull; In Review</span>
+            </div>
+            <div class="p-2 rounded bg-white/5 text-[10px] text-white/50 flex justify-between">
+              <span>Verified Invoices</span>
+              <span class="text-white">Paid &bull; Receipt #1042</span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>SSO &amp; Magic Link Auth</span>
+          <span class="text-white/60">Strict Data Isolation</span>
+        </div>
+      </div>
+
+      <!-- Application 05: Operations Dashboards -->
+      <div class="glass-card rounded-3xl p-8 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-xl md:col-span-2 lg:col-span-2">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-white/40 mb-4">
+            <span class="text-emerald-400 font-bold">APPLICATION 05</span>
+            <span>EXECUTIVE COMMAND</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-semibold text-white mb-3">
+            Operations dashboards
+          </h3>
+          <p class="text-xs sm:text-sm text-white/70 leading-relaxed mb-6">
+            Single-pane-of-glass operator consoles uniting client communication, order status, workflow health, and fulfillment metrics. Operations dashboards replace fragmented third-party tabs with one authoritative operational picture.
+          </p>
+
+          <!-- Mock UI Widget -->
+          <div class="bg-black/60 rounded-xl p-5 border border-white/10 mb-6 font-mono text-xs">
+            <div class="grid grid-cols-3 gap-4 pb-3 border-b border-white/10 text-center">
+              <div>
+                <div class="text-[10px] text-white/40">ACTIVE AUTOMATIONS</div>
+                <div class="text-lg font-bold text-white mt-1">24</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-white/40">TODAY'S INBOUND</div>
+                <div class="text-lg font-bold text-emerald-400 mt-1">142 Leads</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-white/40">SYSTEM HEALTH</div>
+                <div class="text-lg font-bold text-emerald-400 mt-1">100% OK</div>
+              </div>
+            </div>
+            <div class="pt-3 flex justify-between text-[11px] text-white/50">
+              <span>Webhook Telemetry: 12.4 req/sec</span>
+              <span class="text-emerald-300">Queue Latency: 4ms</span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Real-Time WebSocket Stream</span>
+          <span class="text-white/60">Zero Spreadsheet Maintenance</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       09 ONGOING MANAGEMENT (#management) — 3 MONUMENTAL PILLARS
+       ==================================================================== -->
+  <section id="management" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>09 / ONGOING MANAGEMENT</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Built, then kept running.
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          Automation is not a one-off deliverable. We proactively maintain infrastructure, monitor health, fix API deprecations, and improve workflows.
+        </p>
+      </div>
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        Software and external APIs change constantly. Without dedicated stewardship, automated pipelines break silently. We assume operational responsibility for keeping your systems reliable.
+      </p>
+    </div>
+
+    <!-- 3 Monumental Infrastructure Pillars -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Pillar 01: Continuous Monitoring -->
+      <div class="glass-card rounded-3xl p-8 sm:p-10 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-2xl relative overflow-hidden">
+        <div>
+          <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+            <span class="text-emerald-400 font-bold">PILLAR 01</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <div class="text-xs font-mono text-emerald-400 tracking-widest uppercase mb-2 font-semibold">
+            CONTINUOUS MONITORING
+          </div>
+          <h3 class="text-2xl font-semibold text-white mb-4">
+            Continuous Telemetry &amp; Monitoring
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Real-time failure detection, execution logging, and automated alerts before a webhook timeout or schema change impacts your business. Our health checks run 24/7 with instant alerting to engineering.
+          </p>
+
+          <!-- Telemetry Block -->
+          <div class="bg-black/60 rounded-2xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Target Availability:</span>
+              <span class="text-emerald-400 font-bold">99.98% Uptime</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Heartbeat Interval:</span>
+              <span class="text-white">Every 30 Seconds</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Incident Escalation:</span>
+              <span class="text-white">Direct to Engineering</span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Continuous Telemetry</span>
+          <span class="text-emerald-400 font-medium">Active SLA</span>
+        </div>
+      </div>
+
+      <!-- Pillar 02: Proactive Maintenance -->
+      <div class="glass-card rounded-3xl p-8 sm:p-10 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-2xl relative overflow-hidden">
+        <div>
+          <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+            <span class="text-blue-400 font-bold">PILLAR 02</span>
+            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+          </div>
+          <div class="text-xs font-mono text-blue-400 tracking-widest uppercase mb-2 font-semibold">
+            PROACTIVE MAINTENANCE
+          </div>
+          <h3 class="text-2xl font-semibold text-white mb-4">
+            Proactive API &amp; Security Maintenance
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            Third-party SaaS providers constantly update their APIs. We ensure zero downtime by managing tokens, version bumps, database indexes, and security patches well ahead of provider deprecation dates.
+          </p>
+
+          <!-- Maintenance Block -->
+          <div class="bg-black/60 rounded-2xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">API Deprecation Audits:</span>
+              <span class="text-blue-300 font-bold">Bi-Weekly</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">OAuth Token Rotation:</span>
+              <span class="text-white">Automated</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Security Hardening:</span>
+              <span class="text-white">Constant</span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Proactive Engineering</span>
+          <span class="text-blue-300 font-medium">Zero Drift</span>
+        </div>
+      </div>
+
+      <!-- Pillar 03: Iterative Optimization -->
+      <div class="glass-card rounded-3xl p-8 sm:p-10 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-2xl relative overflow-hidden">
+        <div>
+          <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs font-mono text-white/40">
+            <span class="text-purple-400 font-bold">PILLAR 03</span>
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+          </div>
+          <div class="text-xs font-mono text-purple-400 tracking-widest uppercase mb-2 font-semibold">
+            ITERATIVE OPTIMIZATION
+          </div>
+          <h3 class="text-2xl font-semibold text-white mb-4">
+            Iterative Workflow Optimization
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed mb-6">
+            As your transaction volume expands, we refine prompts, eliminate unnecessary steps, and expand capabilities to support your growth. We conduct monthly pipeline reviews to uncover new automation efficiencies.
+          </p>
+
+          <!-- Optimization Block -->
+          <div class="bg-black/60 rounded-2xl p-4 border border-white/10 mb-6 font-mono text-xs space-y-2">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Prompt Tuning:</span>
+              <span class="text-purple-300 font-bold">Continuous</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Throughput Scaling:</span>
+              <span class="text-white">Auto-Load Balanced</span>
+            </div>
+            <div class="flex justify-between text-[11px]">
+              <span class="text-white/40">Monthly Review:</span>
+              <span class="text-white">Included in Retainer</span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-white/40">
+          <span>Continuous Iteration</span>
+          <span class="text-purple-300 font-medium">Growth Aligned</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       10 WHO WE HELP (#niches) — 5 SUBSTANTIAL INDUSTRY PILLARS
+       ==================================================================== -->
+  <section id="niches" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <!-- Section Header -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-20">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>10 / TARGET NICHES</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-[1.08]">
+          Who We Help
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 mt-4 font-normal leading-relaxed">
+          We specialize in service businesses and commercial operators where rapid response times and error-free execution directly drive revenue.
+        </p>
+      </div>
+      <p class="text-sm sm:text-base text-white/60 max-w-md leading-relaxed lg:pb-2">
+        High-ticket, high-velocity operational businesses cannot afford missed phone calls or slow proposals. We design systems that protect your margins.
+      </p>
+    </div>
+
+    <!-- 5 Industry Modules -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+
+      <!-- Niche 1: Roofing -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-lg">
+        <div>
+          <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider mb-3">NICHE 01</div>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            Roofing
+          </h3>
+          <p class="text-xs text-white/70 leading-relaxed mb-6">
+            Storm response &amp; scope estimator. Rapid storm intake triage, satellite square footage estimation, and insurance claim coordination without phone tag.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 text-[11px] font-mono text-white/40 flex justify-between">
+          <span>Inbound Triage</span>
+          <span class="text-emerald-400">&lt; 30s SMS</span>
+        </div>
+      </div>
+
+      <!-- Niche 2: HVAC -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-lg">
+        <div>
+          <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider mb-3">NICHE 02</div>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            HVAC
+          </h3>
+          <p class="text-xs text-white/70 leading-relaxed mb-6">
+            24/7 emergency dispatch. Sub-minute after-hours triage, equipment diagnostics, technician route alerts, and scheduled emergency maintenance bookings.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 text-[11px] font-mono text-white/40 flex justify-between">
+          <span>After-Hours</span>
+          <span class="text-emerald-400">Zero Missed Jobs</span>
+        </div>
+      </div>
+
+      <!-- Niche 3: Dental -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-lg">
+        <div>
+          <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider mb-3">NICHE 03</div>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            Dental
+          </h3>
+          <p class="text-xs text-white/70 leading-relaxed mb-6">
+            Self-serve appointment intake. Patient calendar booking, automated SMS hygiene recall, and insurance card verification with direct PMS synchronization.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 text-[11px] font-mono text-white/40 flex justify-between">
+          <span>Recall Sequences</span>
+          <span class="text-emerald-400">85% Lower No-Shows</span>
+        </div>
+      </div>
+
+      <!-- Niche 4: Real Estate -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-lg">
+        <div>
+          <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider mb-3">NICHE 04</div>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            Real Estate
+          </h3>
+          <p class="text-xs text-white/70 leading-relaxed mb-6">
+            Lead triage &amp; showing bookings. Instant pre-qualification of portal inquiries, automated tour scheduling, and follow-up drip sequences that halt on buyer reply.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 text-[11px] font-mono text-white/40 flex justify-between">
+          <span>Portal Inquiries</span>
+          <span class="text-emerald-400">Immediate Tour Book</span>
+        </div>
+      </div>
+
+      <!-- Niche 5: Home Services -->
+      <div class="glass-card rounded-3xl p-7 border-white/15 bg-white/[0.02] flex flex-col justify-between hover:border-white/25 transition shadow-lg">
+        <div>
+          <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider mb-3">NICHE 05</div>
+          <h3 class="text-xl font-semibold text-white mb-2">
+            Home Services
+          </h3>
+          <p class="text-xs text-white/70 leading-relaxed mb-6">
+            Quotes, dispatch &amp; CRM sync. Electrical, plumbing, and restoration systems uniting instant quote calculations, field tech dispatch, and automated review requests.
+          </p>
+        </div>
+        <div class="pt-4 border-t border-white/10 text-[11px] font-mono text-white/40 flex justify-between">
+          <span>Full Lifecycle</span>
+          <span class="text-emerald-400">Quote-to-Review</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       11 PROOF & HONEST CAPABILITY (#proof) — EDITORIAL MANIFESTO BLOCK
+       ==================================================================== -->
+  <section id="proof" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <div class="glass-card rounded-3xl p-10 sm:p-16 border-white/15 bg-gradient-to-b from-white/[0.04] to-transparent text-center max-w-4xl mx-auto relative overflow-hidden shadow-2xl">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium uppercase tracking-widest text-emerald-400 mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>HONEST ENGINEERING INTEGRITY</span>
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-semibold text-white tracking-tight mb-4">
+        Building our first public case studies.
       </h2>
-      <p class="text-sm sm:text-base text-white/70 max-w-2xl mt-2 leading-relaxed">
-        We build reliable automated workflows and integrations that connect your existing business software and eliminate repetitive manual handoffs.
+      <p class="text-lg sm:text-xl text-emerald-400 font-medium mb-6">
+        Want to see what we can build for your business?
       </p>
-    </div>
-
-    <!-- 6 Concrete Automation Use Cases -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">CRM Synchronization</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Keep HubSpot, Salesforce, Pipedrive, or internal databases synchronized automatically without manual data entry or missed deal updates.
-        </p>
+      <p class="text-sm sm:text-base text-white/70 max-w-2xl mx-auto leading-relaxed mb-10">
+        We do not fabricate vanity customer counts, fake trust badges, or imaginary ROI statistics. Instead, we demonstrate capability upfront through custom working prototypes tailored directly to your workflow. Test the system before you commit.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button
+          type="button"
+          class="cta-dark-gradient rounded-full px-8 py-3.5 text-sm font-semibold text-white shadow-xl hover:opacity-95 transition"
+          data-action="open-consultation-modal"
+        >
+          Request a Working Demo &rarr;
+        </button>
+        <button
+          type="button"
+          class="glass-pill rounded-full px-8 py-3.5 text-sm font-medium text-white/80 hover:text-white"
+          data-action="open-consultation-modal"
+        >
+          Request a Demo
+        </button>
+        <a
+          href="/demo/orange-auto"
+          target="_blank"
+          class="glass-pill rounded-full px-8 py-3.5 text-sm font-medium text-white/80 hover:text-white"
+        >
+          View Live Interactive Demo
+        </a>
       </div>
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">Lead Capture &amp; Qualification</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Instantly scores inbound inquiries against your target customer criteria, filters low-intent submissions, and alerts your team with verified context.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">Automated Follow-Up Sequences</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Coordinated multi-channel follow-ups across email and messaging that keep proposals top-of-mind and re-engage dormant inquiries.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">24/7 Appointment Scheduling</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Conversational intake assistants that qualify project scope, verify schedule availability, and book consultation meetings around the clock.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">Operational Alerts &amp; Notifications</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Instant alerts to Slack, Microsoft Teams, or mobile whenever high-priority inquiries arrive or automated exceptions require team intervention.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-xl p-5">
-        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
-          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        </div>
-        <h3 class="text-base font-semibold text-white mb-1.5">Reporting &amp; Internal Dashboards</h3>
-        <p class="text-xs text-white/70 leading-relaxed">
-          Centralize key operational KPIs, lead flow metrics, and pipeline status into clean internal dashboards that provide real-time business visibility.
-        </p>
-      </div>
-
     </div>
   </section>
 
   <!-- ====================================================================
-       06 CONTACT / CTA SECTION (#contact)
+       12 PRICING (#pricing) — STRICT SCOPED-ONLY COMMERCIAL TERMS
        ==================================================================== -->
-  <section id="contact" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-
-      <!-- Left: Value Narrative -->
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
-          <span>06 / GET STARTED</span>
+  <section id="pricing" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <div class="glass-card rounded-3xl p-10 sm:p-16 border-white/15 bg-white/[0.02] max-w-5xl mx-auto shadow-2xl">
+      <!-- Header -->
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>12 / COMMERCIAL SCOPE &amp; TERMS</span>
         </div>
-        <h2 class="text-3xl sm:text-4xl font-semibold text-white tracking-tight leading-tight">
+        <h2 class="text-3xl sm:text-5xl font-semibold text-white tracking-tight mb-4">
+          Every system is scoped to the business.
+        </h2>
+        <p class="text-base sm:text-xl text-white/80 leading-relaxed font-normal">
+          Solutions are scoped around your workflow, requirements and implementation complexity.
+        </p>
+      </div>
+
+      <!-- Scoping Factors Breakdown -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 text-left">
+          <div class="text-xs font-mono text-emerald-400 font-bold uppercase mb-2">DIMENSION 01</div>
+          <div class="text-base font-semibold text-white mb-2">Workflow Inputs</div>
+          <p class="text-xs text-white/60 leading-relaxed">Number of trigger channels, telephony routes, custom forms, and unstructured incoming documents.</p>
+        </div>
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 text-left">
+          <div class="text-xs font-mono text-emerald-400 font-bold uppercase mb-2">DIMENSION 02</div>
+          <div class="text-base font-semibold text-white mb-2">Integration Depth</div>
+          <p class="text-xs text-white/60 leading-relaxed">Complexity of bi-directional synchronization between CRMs, billing systems, ERPs, and databases.</p>
+        </div>
+        <div class="rounded-2xl p-6 bg-black/60 border border-white/10 text-left">
+          <div class="text-xs font-mono text-emerald-400 font-bold uppercase mb-2">DIMENSION 03</div>
+          <div class="text-base font-semibold text-white mb-2">Ongoing SLA</div>
+          <p class="text-xs text-white/60 leading-relaxed">Custom telemetry requirements, maintenance tier, guaranteed response times, and feature iterations.</p>
+        </div>
+      </div>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 border-t border-white/10">
+        <button
+          type="button"
+          class="cta-dark-gradient rounded-full px-8 py-3.5 text-sm font-semibold text-white shadow-xl flex items-center gap-2 hover:opacity-95 transition"
+          data-action="open-consultation-modal"
+        >
+          <span>Talk About Your Workflow</span>
+          <span>&rarr;</span>
+        </button>
+        <a
+          href="#how-it-works"
+          class="glass-pill rounded-full px-8 py-3.5 text-sm font-medium text-white/80 hover:text-white"
+        >
+          Review Delivery Process
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       13 FINAL CTA & INLINE CONTACT FORM (#contact) — COMMANDING SPLIT LAYOUT
+       ==================================================================== -->
+  <section id="contact" class="section-border py-28 sm:py-36 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full scroll-reveal">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+      <!-- Left: Value Narrative & Engineering Pledge (5 cols) -->
+      <div class="lg:col-span-5">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-medium text-emerald-400 uppercase tracking-widest mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>13 / GET STARTED</span>
+        </div>
+        <h2 class="text-3xl sm:text-5xl font-semibold text-white tracking-tight leading-[1.08]">
           Tell us what is wasting your team's time.
         </h2>
-        <p class="mt-4 text-sm sm:text-base text-white/70 leading-relaxed max-w-lg">
+        <p class="mt-4 text-base sm:text-xl text-emerald-400 font-medium leading-relaxed">
+          We'll turn the repetitive parts of the process into a system.
+        </p>
+        <p class="mt-4 text-sm sm:text-base text-white/70 leading-relaxed">
           Describe the manual tasks, repetitive workflows, or operational bottlenecks slowing your business down. Our engineering team will review your submission and outline a tailored automation solution.
         </p>
 
-        <div class="mt-8 space-y-4">
+        <!-- Engineering Review Pledge -->
+        <div class="mt-8 space-y-4 pt-6 border-t border-white/10">
           <div class="flex items-start gap-3">
-            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold mt-0.5">&bull;</div>
             <div>
               <div class="text-sm font-semibold text-white">Direct Engineer Review</div>
-              <div class="text-xs text-white/60">Every inquiry is evaluated directly by automation architects, not sales reps.</div>
+              <div class="text-xs text-white/60 mt-0.5">Every inquiry is evaluated directly by automation architects, not sales reps.</div>
             </div>
           </div>
           <div class="flex items-start gap-3">
-            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold mt-0.5">&bull;</div>
             <div>
               <div class="text-sm font-semibold text-white">Response Guarantee</div>
-              <div class="text-xs text-white/60">We review workflows and respond within 24 business hours.</div>
+              <div class="text-xs text-white/60 mt-0.5">We review workflows and respond within 24 business hours.</div>
             </div>
           </div>
           <div class="flex items-start gap-3">
-            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold mt-0.5">&bull;</div>
             <div>
               <div class="text-sm font-semibold text-white">Working Prototype Before Commitment</div>
-              <div class="text-xs text-white/60">See how your automated system functions before making a commercial decision.</div>
+              <div class="text-xs text-white/60 mt-0.5">See how your automated system functions before making a commercial decision.</div>
             </div>
           </div>
         </div>
 
-        <div class="mt-8 text-xs text-white/50">
-          Direct email: <a href="mailto:hello@automatedagencyos.tech" class="text-white hover:underline">hello@automatedagencyos.tech</a>
+        <div class="mt-8 pt-6 border-t border-white/10 text-xs text-white/50">
+          Direct email: <a href="mailto:hello@automatedagencyos.tech" class="text-emerald-400 hover:underline">hello@automatedagencyos.tech</a>
         </div>
       </div>
 
-      <!-- Right: Contact Form -->
-      <div class="glass-card rounded-2xl p-6 sm:p-8">
-        <h3 class="text-xl font-semibold text-white mb-2">Get Your Automation Built</h3>
-        <p class="text-xs text-white/60 mb-6">Complete the brief below to start your technical assessment.</p>
+      <!-- Right: Contact Form (7 cols) -->
+      <div class="lg:col-span-7 glass-card rounded-3xl p-8 sm:p-12 border-white/15 bg-white/[0.02] shadow-2xl">
+        <h3 class="text-2xl font-semibold text-white mb-2">Get Your Automation Built</h3>
+        <p class="text-xs sm:text-sm text-white/60 mb-8">Complete the brief below to start your technical assessment.</p>
 
-        <div id="inlineContactAlert" role="alert" class="hidden mb-4 p-3 rounded-lg text-xs font-medium"></div>
+        <div id="inlineContactAlert" role="alert" class="hidden mb-6 p-4 rounded-xl text-xs font-medium"></div>
 
-        <form id="inlineContactForm" class="space-y-4">
+        <form id="inlineContactForm" class="space-y-5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="inlineName" class="block text-xs text-white/70 mb-1.5">Full Name *</label>
+              <label for="inlineName" class="block text-xs font-medium text-white/70 mb-2">Full Name *</label>
               <input
                 type="text"
                 id="inlineName"
                 name="name"
-                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
                 placeholder="Sarah Connor"
                 required
               />
             </div>
             <div>
-              <label for="inlineCompany" class="block text-xs text-white/70 mb-1.5">Company Name *</label>
+              <label for="inlineCompany" class="block text-xs font-medium text-white/70 mb-2">Company / Business Name *</label>
               <input
                 type="text"
                 id="inlineCompany"
                 name="company"
-                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
                 placeholder="Apex Commercial"
                 required
               />
@@ -867,23 +2464,23 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="inlineEmail" class="block text-xs text-white/70 mb-1.5">Business Email *</label>
+              <label for="inlineEmail" class="block text-xs font-medium text-white/70 mb-2">Business Email *</label>
               <input
                 type="email"
                 id="inlineEmail"
                 name="email"
-                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
                 placeholder="sarah@agency.com"
                 required
               />
             </div>
             <div>
-              <label for="inlineWebsite" class="block text-xs text-white/70 mb-1.5">Website Domain *</label>
+              <label for="inlineWebsite" class="block text-xs font-medium text-white/70 mb-2">Website Domain *</label>
               <input
                 type="text"
                 id="inlineWebsite"
                 name="website"
-                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
                 placeholder="agency.com"
                 required
               />
@@ -891,24 +2488,24 @@
           </div>
 
           <div>
-            <label for="inlineAutomated" class="block text-xs text-white/70 mb-1.5">What processes do you want automated? *</label>
+            <label for="inlineAutomated" class="block text-xs font-medium text-white/70 mb-2">What processes do you want automated? *</label>
             <textarea
               id="inlineAutomated"
               name="what_they_want_automated"
-              rows="2"
-              class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+              rows="3"
+              class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
               placeholder="e.g. Lead capture, quote calculator, CRM updates, appointment scheduling..."
               required
             ></textarea>
           </div>
 
           <div>
-            <label for="inlineProblem" class="block text-xs text-white/70 mb-1.5">What is your biggest manual bottleneck? *</label>
+            <label for="inlineProblem" class="block text-xs font-medium text-white/70 mb-2">What is your biggest manual bottleneck? *</label>
             <textarea
               id="inlineProblem"
               name="problem"
-              rows="2"
-              class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+              rows="3"
+              class="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition"
               placeholder="What repetitive task consumes the most manual hours or leads to delays?"
               required
             ></textarea>
@@ -917,7 +2514,7 @@
           <button
             type="submit"
             id="inlineSubmitBtn"
-            class="cta-dark-gradient w-full rounded-lg py-3 text-sm font-semibold text-white shadow-lg tracking-wide hover:opacity-95 transition"
+            class="cta-dark-gradient w-full rounded-xl py-3.5 text-sm font-semibold text-white shadow-xl tracking-wide hover:opacity-95 transition"
           >
             Submit Specification &amp; Assessment Request
           </button>
@@ -945,6 +2542,7 @@
 
       <nav class="flex items-center gap-6 text-xs text-white/60 flex-wrap justify-center">
         <a href="#solutions" class="hover:text-white transition">Solutions</a>
+        <a href="#problems" class="hover:text-white transition">Problems Solved</a>
         <a href="#how-it-works" class="hover:text-white transition">How It Works</a>
         <a href="#demos" class="hover:text-white transition">Demos</a>
         <a href="#automation" class="hover:text-white transition">Automation</a>
@@ -962,7 +2560,7 @@
       <div class="flex items-center gap-4">
         <span>Privacy-First Architecture</span>
         <span>&bull;</span>
-        <span>SOC-Ready Integrity</span>
+        <span>Production-Grade Delivery</span>
       </div>
     </div>
   </footer>
@@ -1049,7 +2647,7 @@
     </div>
   </div>
 
-  <!-- Interactive Logic: Mobile Drawer & Lead Capture Modal -->
+  <!-- Interactive Logic: Scroll Reveal, Mobile Drawer, and Lead Capture Modal -->
   <script>
     (function () {
       'use strict';
@@ -1067,6 +2665,29 @@
       const consultationSubmitBtn = document.getElementById('consultationSubmitBtn');
 
       let isDrawerOpen = false;
+
+      // Reusable Scroll-Triggered Reveal via IntersectionObserver (useInViewAnimation pattern)
+      function initScrollAnimations() {
+        if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+                obs.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+
+          document.querySelectorAll('.scroll-reveal').forEach(el => {
+            observer.observe(el);
+          });
+        } else {
+          document.querySelectorAll('.scroll-reveal').forEach(el => {
+            el.classList.add('in-view');
+          });
+        }
+      }
+      initScrollAnimations();
 
       // Toggle Mobile Drawer
       function openDrawer() {
@@ -1174,6 +2795,8 @@
           email: document.getElementById('consultationEmail').value.trim(),
           website: document.getElementById('consultationWebsite').value.trim(),
           service_interest: 'AI Automation & Custom Software',
+          problem: document.getElementById('consultationProblem').value.trim(),
+          what_they_want_automated: document.getElementById('consultationAutomated').value.trim(),
           message: `Automate: ${document.getElementById('consultationAutomated').value.trim()} | Bottleneck: ${document.getElementById('consultationProblem').value.trim()}`
         };
 
@@ -1245,6 +2868,8 @@
             email: document.getElementById('inlineEmail').value.trim(),
             website: document.getElementById('inlineWebsite').value.trim(),
             service_interest: 'AI Automation & Custom Software',
+            problem: document.getElementById('inlineProblem').value.trim(),
+            what_they_want_automated: document.getElementById('inlineAutomated').value.trim(),
             message: `Automate: ${document.getElementById('inlineAutomated').value.trim()} | Bottleneck: ${document.getElementById('inlineProblem').value.trim()}`
           };
 

@@ -31,6 +31,7 @@ class RequirementsPacket(BaseModel):
     country: str
     contact_email: str
     service_title: str
+    capability_id: Optional[str] = None
     catalog_price_usd: float
     advance_amount_usd: float
     turnaround_days: int

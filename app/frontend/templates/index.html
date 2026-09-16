@@ -544,33 +544,45 @@
 
                         <!-- 4 Actionable Operator Priority Queues -->
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:12px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:#fbbf24; text-transform:uppercase;">1. Payment Verification</span>
-                                    <span class="badge-amber" style="font-size:0.65rem;" id="queue-count-payments">0</span>
+                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.75rem; font-weight:700; color:#fbbf24; text-transform:uppercase;">1. Payment Verification</span>
+                                        <span class="badge-amber" style="font-size:0.68rem;" id="queue-count-payments">0</span>
+                                    </div>
+                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Client UTR/UPI references awaiting bank statement match.</p>
                                 </div>
-                                <p style="font-size:0.72rem; color:#94a3b8; margin:0;">Client UTR/UPI references awaiting bank statement match.</p>
+                                <button type="button" class="btn btn-secondary" onclick="navToView('payments')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#fbbf24; border-color:rgba(251,191,36,0.3);">[VERIFY]</button>
                             </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:#38bdf8; text-transform:uppercase;">2. Outreach Approvals</span>
-                                    <span class="badge-cyan" style="font-size:0.65rem;" id="queue-count-outreach">0</span>
+                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.75rem; font-weight:700; color:#38bdf8; text-transform:uppercase;">2. Outreach Approvals</span>
+                                        <span class="badge-cyan" style="font-size:0.68rem;" id="queue-count-outreach">0</span>
+                                    </div>
+                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">AI generated personalized copy awaiting safety signoff.</p>
                                 </div>
-                                <p style="font-size:0.72rem; color:#94a3b8; margin:0;">AI generated personalized copy awaiting safety signoff.</p>
+                                <button type="button" class="btn btn-secondary" onclick="navToView('queue')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#38bdf8; border-color:rgba(56,189,248,0.3);">[REVIEW]</button>
                             </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:#c084fc; text-transform:uppercase;">3. Demo Deployments</span>
-                                    <span class="badge-purple" style="font-size:0.65rem;" id="queue-count-demos">0</span>
+                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.75rem; font-weight:700; color:#c084fc; text-transform:uppercase;">3. Demo Deployments</span>
+                                        <span class="badge-purple" style="font-size:0.68rem;" id="queue-count-demos">0</span>
+                                    </div>
+                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Prospects in DEMO_REQUESTED stage awaiting turnkey spin-up.</p>
                                 </div>
-                                <p style="font-size:0.72rem; color:#94a3b8; margin:0;">Prospects in DEMO_REQUESTED stage awaiting turnkey spin-up.</p>
+                                <button type="button" class="btn btn-secondary" onclick="navToView('pipeline')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#c084fc; border-color:rgba(192,132,252,0.3);">[DEPLOY]</button>
                             </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:#f87171; text-transform:uppercase;">4. Safeguard Exceptions</span>
-                                    <span class="badge-red" style="font-size:0.65rem;" id="queue-count-exceptions">0</span>
+                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.75rem; font-weight:700; color:#f87171; text-transform:uppercase;">4. Safeguard Exceptions</span>
+                                        <span class="badge-red" style="font-size:0.68rem;" id="queue-count-exceptions">0</span>
+                                    </div>
+                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Email deliverability blocks or market exclusion violations.</p>
                                 </div>
-                                <p style="font-size:0.72rem; color:#94a3b8; margin:0;">Email deliverability blocks or market exclusion violations.</p>
+                                <button type="button" class="btn btn-secondary" onclick="navToView('infra')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#f87171; border-color:rgba(248,113,113,0.3);">[INSPECT]</button>
                             </div>
                         </div>
                     </div>

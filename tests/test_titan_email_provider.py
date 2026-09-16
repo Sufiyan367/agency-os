@@ -13,6 +13,8 @@ async def test_titan_email_provider_send_ssl():
 
     with patch("smtplib.SMTP_SSL") as mock_smtp_ssl:
         mock_server = MagicMock()
+        mock_server.rcpt.return_value = (250, b"OK")
+        mock_server.data.return_value = (250, b"OK 250 message queued")
         mock_smtp_ssl.return_value.__enter__.return_value = mock_server
 
         res = await provider.send_email(
@@ -26,7 +28,8 @@ async def test_titan_email_provider_send_ssl():
         assert res["status"] == "SUCCESS"
         assert res["provider"] == "titan"
         mock_server.login.assert_called_once_with("contact@automatedagencyos.tech", "SuperSecretPassword123!")
-        mock_server.send_message.assert_called_once()
+        mock_server.mail.assert_called_once_with("contact@automatedagencyos.tech")
+        mock_server.rcpt.assert_called_once_with("prospect@business.com")
 
 @pytest.mark.asyncio
 async def test_titan_email_provider_send_starttls():
@@ -39,6 +42,8 @@ async def test_titan_email_provider_send_starttls():
 
     with patch("smtplib.SMTP") as mock_smtp:
         mock_server = MagicMock()
+        mock_server.rcpt.return_value = (250, b"OK")
+        mock_server.data.return_value = (250, b"OK 250 message queued")
         mock_smtp.return_value.__enter__.return_value = mock_server
 
         res = await provider.send_email(
@@ -50,6 +55,8 @@ async def test_titan_email_provider_send_starttls():
         assert res["status"] == "SUCCESS"
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once_with("contact@automatedagencyos.tech", "SuperSecretPassword123!")
+        mock_server.mail.assert_called_once_with("contact@automatedagencyos.tech")
+        mock_server.rcpt.assert_called_once_with("prospect@business.com")
 
 @pytest.mark.asyncio
 async def test_titan_email_provider_never_leaks_password_on_error():

@@ -117,18 +117,40 @@ class OperatorLearningEngine:
         Strict Commercial Gate Enforcement:
         DEMO READY -> CUSTOMER APPROVES -> PROPOSAL -> ADVANCE PAYMENT -> PRODUCTION BUILD
         Raises CommercialGateViolation if advance or full payment is not verified.
+        Enforces minimum floor and 40% advance milestone.
         """
+        from app.database.models import Proposal
+
+        # Check active proposal for required advance and minimum contract floor
+        prop_stmt = select(Proposal).where(
+            Proposal.business_id == business_id,
+            Proposal.status != "CANCELLED"
+        ).order_by(Proposal.id.desc())
+        proposal = (await session.execute(prop_stmt)).scalars().first()
+
+        required_advance = 200.0  # Floor: 40% of $500 minimum service value
+        if proposal:
+            proposal_total = float(getattr(proposal, "total_value", getattr(proposal, "total_price_usd", 500.0)) or 500.0)
+            adv_attr = getattr(proposal, "advance_required", getattr(proposal, "advance_amount", None))
+            required_advance = float(adv_attr if adv_attr is not None else (proposal_total * 0.40))
+
+        # Valid confirmed payment statuses across manual confirmation, webhooks, and CEO verifier
+        confirmed_statuses = ["PAYMENT_CONFIRMED", "VERIFIED_PAYMENT", "COMPLETED", "PAID", "SETTLED"]
+
         stmt = select(Payment).where(
             Payment.business_id == business_id,
-            Payment.status == "COMPLETED",
-            Payment.payment_type.in_(["ADVANCE", "FULL_PAYMENT"])
+            Payment.status.in_(confirmed_statuses),
+            Payment.payment_type.in_(["ADVANCE", "FULL_PAYMENT", "ADVANCE_DEPOSIT", "MILESTONE"])
         )
-        verified_payment = (await session.execute(stmt)).scalars().first()
+        verified_payments = (await session.execute(stmt)).scalars().all()
 
-        if not verified_payment or verified_payment.amount <= 0.0:
+        total_paid = sum(float(p.amount) for p in verified_payments if p.amount is not None)
+
+        if not verified_payments or total_paid < required_advance or total_paid <= 0.0:
             raise CommercialGateViolation(
                 f"Commercial Gate Enforced: Production build is BLOCKED for Business #{business_id}. "
-                f"Advance payment has not been received and verified. "
+                f"Required advance payment of ${required_advance:,.2f} USD has not been received and verified. "
+                f"Current verified payment: ${total_paid:,.2f} USD. "
                 f"Required sequence: DEMO READY -> CUSTOMER APPROVES -> PROPOSAL -> ADVANCE PAYMENT -> PRODUCTION BUILD."
             )
 
