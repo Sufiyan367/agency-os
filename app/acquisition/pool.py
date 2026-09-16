@@ -93,6 +93,7 @@ class GlobalProspectPool:
                 domain=norm_dom,
                 website_url=p.website,
                 country=p.country.upper(),
+                administrative_region=p.region,
                 city=p.city,
                 niche=p.niche,
                 public_email=p.public_email,
@@ -289,21 +290,93 @@ class GlobalProspectPool:
         res = await session.execute(stmt)
         return list(res.scalars().all())
 
-    async def discover_from_top_market_opportunities(
+    async def discover_from_active_targets(
         self,
         session: AsyncSession,
-        top_n: int = 3,
-        target_per_country: int = 2
+        limit_targets: int = 5,
+        target_per_combination: int = 3
     ) -> List[Business]:
         """
-        Feeds top-ranked Country x Niche opportunities from Phase 11 Market Intelligence
-        directly into Phase 10 prospect discovery with global deduplication.
+        Consumes priority-ordered active target definitions (P1 > P2 > P3) from
+        targeting_manager and executes targeted discovery for each active target.
+        Disabled or paused targets are strictly skipped.
         """
-        from app.market_intelligence.opportunity_queue import global_opportunity_queue
-        return await global_opportunity_queue.feed_phase10_pool(
-            session=session,
-            top_n=top_n,
-            target_per_country=target_per_country
-        )
+        from app.acquisition.targeting_manager import targeting_manager
+        from app.acquisition.pipeline import CountryPipeline
+        from app.acquisition.config import country_config_manager
+
+        active_targets = await targeting_manager.get_active_target_queue(session)
+        if not active_targets:
+            logger.warning("[GlobalProspectPool] No active targets found in queue.")
+            return []
+
+        selected_targets = active_targets[:limit_targets]
+        logger.info(f"[GlobalProspectPool] Executing discovery for {len(selected_targets)} active targets.")
+
+        # Query existing domains to deduplicate
+        existing_domains_stmt = select(Business.domain)
+        existing_res = await session.execute(existing_domains_stmt)
+        known_domains: Set[str] = set(existing_res.scalars().all())
+
+        all_created: List[Business] = []
+
+        for target in selected_targets:
+            if target.country_code in ("IL", "IN", "PK"):
+                continue
+            cfg = await country_config_manager.get_country(session, target.country_code)
+            if not cfg:
+                continue
+
+            pipeline = CountryPipeline(cfg)
+            candidates = await pipeline.run_discovery(
+                target_count=target_per_combination,
+                niche=target.niche_id,
+                exclude_domains=set(known_domains)
+            )
+
+            for p in candidates:
+                norm_dom = normalize_domain(p.domain)
+                if not norm_dom or norm_dom in known_domains:
+                    continue
+                known_domains.add(norm_dom)
+
+                biz = Business(
+                    name=p.business_name,
+                    domain=norm_dom,
+                    website_url=p.website,
+                    country=target.country_code,
+                    administrative_region=target.region,
+                    region_type=target.region_type,
+                    city=target.city,
+                    niche=target.niche_id,
+                    public_email=p.public_email,
+                    email_status="verified" if p.public_email and p.confidence > 0.8 else "unknown",
+                    phone=p.public_phone,
+                    source=f"target_queue_{target.priority.lower()}",
+                    verification_status="INSUFFICIENT_EVIDENCE",
+                    research_status="RESEARCH_REQUIRED",
+                    pipeline_stage=PipelineStage.DISCOVERED.value,
+                    evidence_count=0,
+                    effective_evidence_score=0.0
+                )
+                session.add(biz)
+                await session.flush()
+
+                ev_items, gate_res = await evidence_harvester.harvest_and_verify(session, biz, p)
+                if gate_res.is_passed or p.verification_status == "VERIFIED":
+                    biz.verification_status = VerificationStatus.VERIFIED.value
+                    biz.pipeline_stage = PipelineStage.VERIFIED.value
+                    biz.research_status = "VERIFIED"
+                else:
+                    biz.verification_status = "INSUFFICIENT_EVIDENCE"
+                    biz.research_status = "RESEARCH_REQUIRED"
+
+                all_created.append(biz)
+
+        if all_created:
+            await self.enrich_and_audit_prospects(session, all_created)
+
+        return all_created
 
 global_prospect_pool = GlobalProspectPool()
+

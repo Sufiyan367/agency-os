@@ -408,6 +408,8 @@ app.include_router(orchestration_router)
 app.include_router(ceo_router)
 from app.api.notification_routes import router as notification_router
 app.include_router(notification_router)
+from app.api.targeting_routes import router as targeting_router
+app.include_router(targeting_router)
 
 
 @app.get("/sw.js")

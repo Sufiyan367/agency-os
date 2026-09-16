@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initActivityWebSocket();
     loadRecentActivityHistory();
     loadMLHealthTelemetry();
+    loadGlobalTargetingData();
 
     // Backdrop click closes lead modal
     const modal = document.getElementById('lead-modal');
@@ -295,6 +296,8 @@ function switchView(viewName) {
         loadCeoControlCenter();
         loadDashboardMetrics();
         loadPriorityProspects();
+        loadGlobalTargetingData();
+        loadPayments();
     }
     if (canonicalView === 'markets') loadMarkets();
     if (canonicalView === 'leads') loadLeads();
@@ -633,6 +636,23 @@ async function retryCeoConnection() {
             btn.disabled = false;
             btn.textContent = 'Retry Reconnect';
         }
+    }
+}
+
+function toggleSecondaryOperations() {
+    const container = document.getElementById('cmd-secondary-ops-content');
+    const icon = document.getElementById('cmd-secondary-toggle-icon');
+    const label = document.getElementById('cmd-secondary-toggle-label');
+    if (!container) return;
+    const isHidden = container.style.display === 'none' || !container.style.display;
+    if (isHidden) {
+        container.style.display = 'block';
+        if (icon) icon.textContent = '▲';
+        if (label) label.textContent = 'Collapse Advanced Secondary Operations';
+    } else {
+        container.style.display = 'none';
+        if (icon) icon.textContent = '▼';
+        if (label) label.textContent = 'Expand Advanced Secondary Operations';
     }
 }
 
@@ -6074,9 +6094,391 @@ async function loadMLHealthTelemetry() {
 async function loadGlobalAcquisitionView() {
     await Promise.all([
         loadActiveSlot(),
+        loadGlobalTargetingData(),
         loadCountryCards(),
         loadGlobalQueue()
     ]);
+}
+
+/* ==========================================================================
+   GLOBAL TARGETING SYSTEM (COUNTRY -> REGION -> CITY -> NICHE)
+   ========================================================================== */
+
+let cachedTargetingCountries = [];
+
+let cachedMarketOverview = [];
+
+async function loadGlobalTargetingData() {
+    await Promise.all([
+        loadTargetingSummary(),
+        populateTargetingCountries(),
+        loadTargetDefinitionsTable(),
+        loadMarketOverviewTable()
+    ]);
+}
+
+async function loadTargetingSummary() {
+    try {
+        const res = await fetch('/api/targeting/summary');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const elP1Markets = document.getElementById('gt-summary-p1-markets');
+        const elP2Markets = document.getElementById('gt-summary-p2-markets');
+        const elP3Markets = document.getElementById('gt-summary-p3-markets');
+        const elDisabledMarkets = document.getElementById('gt-summary-disabled-markets');
+        const elTargets = document.getElementById('gt-summary-targets');
+        const elP1 = document.getElementById('gt-summary-p1');
+        const elTopList = document.getElementById('gt-top-targets-list');
+
+        if (elP1Markets) elP1Markets.innerText = data.p1_markets_count ?? 7;
+        if (elP2Markets) elP2Markets.innerText = data.p2_markets_count ?? 27;
+        if (elP3Markets) elP3Markets.innerText = data.p3_markets_count ?? 10;
+        if (elDisabledMarkets) elDisabledMarkets.innerText = data.disabled_markets_count ?? 3;
+        if (elTargets) elTargets.innerText = data.active_targets_count ?? '--';
+        if (elP1) elP1.innerText = data.p1_targets_count ?? '--';
+
+        if (elTopList) {
+            const topTargets = data.top_active_targets || [];
+            if (topTargets.length === 0) {
+                elTopList.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">No active targets configured</span>';
+            } else {
+                elTopList.innerHTML = topTargets.map(t => `
+                    <span class="badge" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--hud-cyan-bright); font-size: 0.72rem; padding: 3px 8px;">
+                        ${escapeHtml(t)}
+                    </span>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        console.error('Error loading targeting summary:', e);
+    }
+}
+
+async function populateTargetingCountries() {
+    const select = document.getElementById('gt-select-country');
+    if (!select || select.children.length > 0) return;
+
+    try {
+        const res = await fetch('/api/targeting/countries');
+        if (!res.ok) return;
+        cachedTargetingCountries = await res.json();
+
+        // Only allow targeting active / enabled countries (exclude disabled markets: IL, IN, PK)
+        const enabledCountries = cachedTargetingCountries.filter(c => c.acquisition_enabled !== false && c.market_class !== 'DISABLED');
+
+        select.innerHTML = enabledCountries.map(c => `
+            <option value="${c.country_code}" ${c.country_code === 'US' ? 'selected' : ''}>
+                ${escapeHtml(c.country_name)} (${c.country_code}) [${c.country_priority || 'P1'}]
+            </option>
+        `).join('');
+
+        await onTargetCountryChanged();
+    } catch (e) {
+        console.error('Error loading targeting countries:', e);
+    }
+}
+
+async function loadMarketOverviewTable() {
+    const tbody = document.getElementById('gt-market-overview-tbody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/targeting/market-overview');
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">Failed to load market overview.</td></tr>`;
+            return;
+        }
+        cachedMarketOverview = await res.json();
+        renderMarketOverviewRows(cachedMarketOverview);
+    } catch (e) {
+        console.error('Error loading market overview table:', e);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">Error: ${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+function filterMarketOverviewTable() {
+    const filter = document.getElementById('gt-filter-market-class')?.value || '';
+    if (!filter) {
+        renderMarketOverviewRows(cachedMarketOverview);
+    } else {
+        const filtered = cachedMarketOverview.filter(m => m.market_class === filter);
+        renderMarketOverviewRows(filtered);
+    }
+}
+
+function renderMarketOverviewRows(items) {
+    const tbody = document.getElementById('gt-market-overview-tbody');
+    if (!tbody) return;
+
+    if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">No markets match filter.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map(m => {
+        const isDis = m.market_class === 'DISABLED' || m.priority === 'DISABLED';
+        const isP1 = m.priority === 'P1';
+        const isP2 = m.priority === 'P2';
+
+        const marketBadge = isDis
+            ? `<span class="badge" style="background:rgba(239,68,68,0.18); color:#ef4444; font-weight:700; border:1px solid rgba(239,68,68,0.4);">DISABLED</span>`
+            : (m.market_class === 'PRIMARY'
+                ? `<span class="badge" style="background:rgba(56,189,248,0.12); color:var(--hud-cyan-bright); font-weight:600;">PRIMARY</span>`
+                : `<span class="badge" style="background:rgba(148,163,184,0.12); color:#94a3b8; font-weight:600;">SECONDARY</span>`);
+
+        const priorityBadge = isDis
+            ? `<span class="badge" style="background:rgba(239,68,68,0.18); color:#ef4444; font-weight:700;">DISABLED</span>`
+            : `<span class="badge" style="background:${isP1 ? 'rgba(245,158,11,0.15)' : (isP2 ? 'rgba(56,189,248,0.15)' : 'rgba(148,163,184,0.1)')}; color:${isP1 ? '#f59e0b' : (isP2 ? '#38bdf8' : '#94a3b8')}; font-weight:700;">${escapeHtml(m.priority)}</span>`;
+
+        const statusBadge = isDis
+            ? `<span class="badge" style="background:rgba(100,116,139,0.25); color:#ef4444; font-weight:700; border:1px solid rgba(239,68,68,0.3);">OFF (BLOCKED)</span>`
+            : (m.status === 'ACTIVE'
+                ? `<span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-weight:600;">ACTIVE</span>`
+                : `<span class="badge" style="background:rgba(100,116,139,0.15); color:#94a3b8;">IDLE</span>`);
+
+        return `
+            <tr style="${isDis ? 'background:rgba(239,68,68,0.03);' : ''}">
+                <td>
+                    <strong>${escapeHtml(m.country_name)}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-muted); margin-left:4px;">(${escapeHtml(m.country_code)})</span>
+                </td>
+                <td>${marketBadge}</td>
+                <td>${priorityBadge}</td>
+                <td>${statusBadge}</td>
+                <td style="text-align:right; font-family:monospace; font-weight:700; color:${m.active_targets > 0 ? '#10b981' : 'var(--text-muted)'};">
+                    ${m.active_targets}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function onTargetCountryChanged() {
+    const countrySelect = document.getElementById('gt-select-country');
+    const regionSelect = document.getElementById('gt-select-region');
+    const regionLabel = document.getElementById('gt-region-label');
+    const nicheSelect = document.getElementById('gt-select-niche');
+    if (!countrySelect || !regionSelect) return;
+
+    const countryCode = countrySelect.value;
+    if (!countryCode) return;
+
+    const countryObj = cachedTargetingCountries.find(c => c.country_code === countryCode);
+    if (regionLabel && countryObj) {
+        regionLabel.innerText = countryObj.region_type || 'Region';
+    }
+
+    try {
+        // 1. Fetch Regions
+        const regRes = await fetch(`/api/targeting/regions?country=${countryCode}`);
+        if (regRes.ok) {
+            const regData = await regRes.json();
+            const regions = regData.regions || [];
+            regionSelect.innerHTML = regions.map((r, idx) => `
+                <option value="${escapeHtml(r)}" ${idx === 0 ? 'selected' : ''}>${escapeHtml(r)}</option>
+            `).join('');
+            await onTargetRegionChanged();
+        }
+
+        // 2. Fetch Niches for Country
+        if (nicheSelect) {
+            const nicheRes = await fetch(`/api/targeting/niches?country=${countryCode}`);
+            if (nicheRes.ok) {
+                const niches = await nicheRes.json();
+                nicheSelect.innerHTML = niches.map((n, idx) => `
+                    <option value="${n.niche_id}" ${idx === 0 ? 'selected' : ''}>${escapeHtml(n.name)}</option>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        console.error('Error cascading country change:', e);
+    }
+}
+
+async function onTargetRegionChanged() {
+    const countrySelect = document.getElementById('gt-select-country');
+    const regionSelect = document.getElementById('gt-select-region');
+    const citySelect = document.getElementById('gt-select-city');
+    if (!countrySelect || !regionSelect || !citySelect) return;
+
+    const countryCode = countrySelect.value;
+    const regionName = regionSelect.value;
+    if (!countryCode || !regionName) return;
+
+    try {
+        const res = await fetch(`/api/targeting/cities?country=${encodeURIComponent(countryCode)}&region=${encodeURIComponent(regionName)}`);
+        if (res.ok) {
+            const data = await res.json();
+            const cities = data.cities || [];
+            citySelect.innerHTML = cities.map((c, idx) => `
+                <option value="${escapeHtml(c)}" ${idx === 0 ? 'selected' : ''}>${escapeHtml(c)}</option>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Error cascading region change:', e);
+    }
+}
+
+async function loadTargetDefinitionsTable() {
+    const tbody = document.getElementById('gt-targets-tbody');
+    if (!tbody) return;
+
+    const filterPriority = document.getElementById('gt-filter-priority')?.value || '';
+    const filterStatus = document.getElementById('gt-filter-status')?.value || '';
+
+    let url = '/api/targets?';
+    if (filterPriority) url += `priority=${encodeURIComponent(filterPriority)}&`;
+    if (filterStatus) url += `status=${encodeURIComponent(filterStatus)}&`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:16px; color:#ef4444;">Failed to load targets.</td></tr>`;
+            return;
+        }
+        const targets = await res.json();
+
+        if (targets.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No targets match the active filter criteria.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = targets.map(t => {
+            const isP1 = t.priority === 'P1';
+            const isP2 = t.priority === 'P2';
+            const prioColor = isP1 ? '#f59e0b' : (isP2 ? '#38bdf8' : '#94a3b8');
+            const prioBg = isP1 ? 'rgba(245, 158, 11, 0.15)' : (isP2 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(148, 163, 184, 0.1)');
+
+            const isActive = t.status === 'ACTIVE';
+            const statusColor = isActive ? '#34d399' : '#f59e0b';
+            const statusBg = isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(t.country_name)}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${escapeHtml(t.country_code)})</span></td>
+                    <td>${escapeHtml(t.region)}</td>
+                    <td><strong>${escapeHtml(t.city)}</strong></td>
+                    <td><span class="badge" style="background:rgba(56,189,248,0.1); color:var(--hud-cyan-bright); font-size:0.72rem;">${escapeHtml(t.niche_name)}</span></td>
+                    <td><span class="badge" style="background:${prioBg}; color:${prioColor}; font-weight:700; font-size:0.75rem;">${escapeHtml(t.priority)}</span></td>
+                    <td><span class="badge" style="background:${statusBg}; color:${statusColor}; font-size:0.72rem;">${escapeHtml(t.status)}</span></td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        ${isActive ? `
+                            <button type="button" class="btn btn-secondary" onclick="handleToggleTargetStatus(${t.id}, 'PAUSED')" style="height:26px; padding:2px 8px; font-size:0.7rem;">
+                                ⏸ Pause
+                            </button>
+                        ` : `
+                            <button type="button" class="btn btn-secondary" onclick="handleToggleTargetStatus(${t.id}, 'ACTIVE')" style="height:26px; padding:2px 8px; font-size:0.7rem; color:#34d399;">
+                                ▶ Enable
+                            </button>
+                        `}
+                        <button type="button" class="btn btn-secondary" onclick="handleDeleteTarget(${t.id})" style="height:26px; padding:2px 8px; font-size:0.7rem; color:#ef4444; margin-left:4px;">
+                            ✕
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading target definitions:', e);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:16px; color:#ef4444;">Error: ${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+async function handleEnableTarget(event) {
+    if (event) event.preventDefault();
+    const btn = document.getElementById('btn-enable-target');
+
+    const country = document.getElementById('gt-select-country')?.value;
+    const region = document.getElementById('gt-select-region')?.value;
+    const city = document.getElementById('gt-select-city')?.value;
+    const niche = document.getElementById('gt-select-niche')?.value;
+    const priority = document.getElementById('gt-select-priority')?.value || 'P1';
+    const status = document.getElementById('gt-select-status')?.value || 'ACTIVE';
+
+    if (!country || !region || !city || !niche) {
+        alert('Please fill out all targeting fields (Country, Region, City, and Niche).');
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Saving...';
+    }
+
+    try {
+        const res = await fetch('/api/targets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                country_code: country,
+                region: region,
+                city: city,
+                niche: niche,
+                priority: priority,
+                status: status
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Target error: ${data.detail || 'Could not create target.'}`);
+            return;
+        }
+
+        await Promise.all([
+            loadTargetingSummary(),
+            loadTargetDefinitionsTable()
+        ]);
+    } catch (e) {
+        alert(`Target error: ${e.message}`);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>⚡</span> ENABLE TARGET';
+        }
+    }
+}
+
+async function handleToggleTargetStatus(targetId, newStatus) {
+    try {
+        const res = await fetch(`/api/targets/${targetId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            alert(`Update error: ${err.detail || 'Failed to update target'}`);
+            return;
+        }
+        await Promise.all([
+            loadTargetingSummary(),
+            loadTargetDefinitionsTable()
+        ]);
+    } catch (e) {
+        alert(`Error updating target status: ${e.message}`);
+    }
+}
+
+async function handleDeleteTarget(targetId) {
+    if (!confirm(`Are you sure you want to remove target #${targetId}?`)) return;
+    try {
+        const res = await fetch(`/api/targets/${targetId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            alert(`Delete error: ${err.detail || 'Failed to delete target'}`);
+            return;
+        }
+        await Promise.all([
+            loadTargetingSummary(),
+            loadTargetDefinitionsTable()
+        ]);
+    } catch (e) {
+        alert(`Error deleting target: ${e.message}`);
+    }
 }
 
 async function loadActiveSlot() {

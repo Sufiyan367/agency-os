@@ -362,7 +362,9 @@ async def init_db():
                 ("prospect_score", "REAL DEFAULT 0.0"),
                 ("whatsapp_eligible", "BOOLEAN DEFAULT 0"),
                 ("whatsapp_consent_status", "VARCHAR(50) DEFAULT 'INELIGIBLE_NO_CONSENT'"),
-                ("whatsapp_status_reason", "VARCHAR(255) DEFAULT 'Public phone without opt-in consent'")
+                ("whatsapp_status_reason", "VARCHAR(255) DEFAULT 'Public phone without opt-in consent'"),
+                ("administrative_region", "VARCHAR(100) DEFAULT NULL"),
+                ("region_type", "VARCHAR(50) DEFAULT NULL")
             ]:
                 try:
                     await conn.execute(text(f"ALTER TABLE businesses ADD COLUMN {col} {col_type}"))

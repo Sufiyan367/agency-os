@@ -273,8 +273,18 @@ class Business(Base):
     domain: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     website_url: Mapped[str] = mapped_column(String(500), default="")
     country: Mapped[str] = mapped_column(String(50), index=True)
+    administrative_region: Mapped[Optional[str]] = mapped_column(String(100), default=None, index=True)
+    region_type: Mapped[Optional[str]] = mapped_column(String(50), default=None)
     city: Mapped[Optional[str]] = mapped_column(String(100), default=None)
     niche: Mapped[str] = mapped_column(String(100), index=True)
+
+    @property
+    def region(self) -> Optional[str]:
+        return self.administrative_region
+
+    @region.setter
+    def region(self, val: Optional[str]) -> None:
+        self.administrative_region = val
     
     public_email: Mapped[Optional[str]] = mapped_column(String(255), default=None, index=True)
     email_status: Mapped[str] = mapped_column(String(50), default="unknown")
@@ -974,6 +984,33 @@ class CountryConfig(Base):
     concurrency_limit: Mapped[int] = mapped_column(Integer, default=3)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# 31B. Target Definitions (Canonical Country -> Region -> City -> Niche Hierarchy)
+class TargetDefinition(Base):
+    __tablename__ = "target_definitions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    country_code: Mapped[str] = mapped_column(String(10), index=True)
+    country_name: Mapped[str] = mapped_column(String(100))
+    region: Mapped[str] = mapped_column(String(100), index=True)
+    region_type: Mapped[str] = mapped_column(String(50), default="State")
+    city: Mapped[str] = mapped_column(String(100), index=True)
+    niche_id: Mapped[str] = mapped_column(String(100), index=True)
+    niche_name: Mapped[str] = mapped_column(String(100))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="ACTIVE", index=True)  # ACTIVE, PAUSED, DISABLED
+    priority: Mapped[str] = mapped_column(String(10), default="P1", index=True)   # P1, P2, P3
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("country_code", "region", "city", "niche_id", name="uq_target_definition_hierarchy"),
+        Index("ix_target_def_lookup", "country_code", "region", "city", "niche_id"),
+        Index("ix_target_def_active_prio", "status", "priority", "enabled"),
+    )
 
 
 # 32. Sequential Active Prospect Outreach Lock (Enforces MAX_ACTIVE_OUTREACH = 1)

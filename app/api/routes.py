@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request, Header, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
 from typing import List, Dict, Any, Optional, Tuple
@@ -5886,6 +5886,75 @@ async def confirm_payment_endpoint(
     except Exception as e:
         logger.error(f"[PaymentConfirmAPI] Failed to confirm payment #{payment_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to confirm payment: {str(e)}")
+ 
+class PaymentSubmitReferenceRequest(BaseModel):
+    payment_reference: str
+    customer_notes: Optional[str] = None
+
+@router.post("/api/payments/{payment_id}/submit-reference")
+async def submit_payment_reference_endpoint(
+    payment_id: int,
+    req: PaymentSubmitReferenceRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Customer Payment Reference Submission Endpoint:
+    Allows customer to submit bank UTR / transaction reference after transferring funds.
+    Transitions payment status to PAYMENT_REVIEW_REQUIRED.
+    CRITICAL ANTI-FRAUD: Does NOT confirm payment or unlock production until verified by human operator.
+    """
+    pmt = await db.get(Payment, payment_id)
+    if not pmt:
+        raise HTTPException(status_code=404, detail=f"Payment #{payment_id} not found.")
+
+    confirmed_statuses = ("PAYMENT_CONFIRMED", "VERIFIED_PAYMENT", "PAID", "COMPLETED", "SETTLED")
+    if pmt.status in confirmed_statuses:
+        return {
+            "status": "ALREADY_CONFIRMED",
+            "is_confirmed": True,
+            "payment_id": pmt.id,
+            "payment_reference": pmt.gpay_reference or req.payment_reference,
+            "message": "Payment has already been confirmed and production delivery is authorized."
+        }
+
+    clean_ref = (req.payment_reference or "").strip()
+    if len(clean_ref) < 3:
+        raise HTTPException(status_code=400, detail="A valid bank UTR or transaction reference is required (min 3 characters).")
+
+    now = datetime.utcnow()
+    pmt.status = "PAYMENT_REVIEW_REQUIRED"
+    pmt.gpay_reference = clean_ref
+
+    meta = dict(pmt.extra_metadata or {})
+    meta["customer_submission"] = {
+        "payment_reference": clean_ref,
+        "submitted_at": now.isoformat(),
+        "customer_notes": req.customer_notes or ""
+    }
+    pmt.extra_metadata = meta
+
+    db.add(DealAuditTrail(
+        proposal_id=pmt.proposal_id,
+        business_id=pmt.business_id,
+        event_type="customer_reference_submitted",
+        operator="CUSTOMER",
+        payload={
+            "payment_id": pmt.id,
+            "payment_reference": clean_ref,
+            "notes": req.customer_notes or ""
+        }
+    ))
+
+    await db.commit()
+    await db.refresh(pmt)
+
+    return {
+        "status": "PAYMENT_REVIEW_REQUIRED",
+        "is_confirmed": False,
+        "payment_id": pmt.id,
+        "payment_reference": clean_ref,
+        "message": "Payment reference submitted. Your payment is currently under manual bank reconciliation review. Production build will unlock upon verified operator confirmation."
+    }
 
 @router.get("/api/payments/{payment_id}/instructions")
 async def get_payment_instructions_endpoint(
@@ -6153,6 +6222,172 @@ async def public_view_proposal(
             "X-Content-Type-Options": "nosniff"
         }
     )
+
+
+async def _resolve_payment_and_context(db: AsyncSession, reference_or_id: str):
+    from app.database.models import Payment, Proposal, ProjectProposal, Business
+    from app.payments.workflow import PaymentWorkflowCoordinator
+
+    pmt = None
+    clean_id = reference_or_id.strip()
+
+    if clean_id.isdigit():
+        pmt = await db.get(Payment, int(clean_id))
+
+    if not pmt:
+        stmt = select(Payment).where(
+            (Payment.reference_id == clean_id) |
+            (Payment.gpay_reference == clean_id) |
+            (Payment.razorpay_order_id == clean_id)
+        )
+        pmt = (await db.execute(stmt)).scalars().first()
+
+    prop = None
+    # If still not found, check by proposal
+    if not pmt:
+        if clean_id.isdigit():
+            prop = await db.get(ProjectProposal, int(clean_id))
+        if not prop:
+            stmt = select(ProjectProposal).where(ProjectProposal.proposal_id == clean_id)
+            prop = (await db.execute(stmt)).scalars().first()
+
+        if prop:
+            pmt_stmt = select(Payment).where(Payment.proposal_id == prop.id)
+            pmt = (await db.execute(pmt_stmt)).scalars().first()
+            if not pmt:
+                try:
+                    res = await PaymentWorkflowCoordinator.issue_proposal_payment_instructions(
+                        session=db,
+                        proposal_id=prop.id,
+                        provider_name="google_pay"
+                    )
+                    pmt = await db.get(Payment, res["payment_id"])
+                except Exception as e:
+                    logger.warning(f"[PayPage] Auto-generating payment instruction failed: {e}")
+
+    # Also check deal Proposal
+    if not pmt and clean_id.isdigit():
+        deal_prop = await db.get(Proposal, int(clean_id))
+        if deal_prop:
+            pmt_stmt = select(Payment).where(Payment.proposal_id == deal_prop.id)
+            pmt = (await db.execute(pmt_stmt)).scalars().first()
+            if not pmt:
+                try:
+                    res = await deal_closing_service.request_payment_order(session=db, proposal_id=deal_prop.id)
+                    pmt_stmt = select(Payment).where(Payment.proposal_id == deal_prop.id)
+                    pmt = (await db.execute(pmt_stmt)).scalars().first()
+                except Exception as e:
+                    logger.warning(f"[PayPage] Auto-generating deal payment instruction failed: {e}")
+
+    if not pmt:
+        return None, None, None
+
+    biz = None
+    if pmt.business_id:
+        biz = await db.get(Business, pmt.business_id)
+
+    if not prop and pmt.proposal_id:
+        prop = await db.get(ProjectProposal, pmt.proposal_id)
+        if not prop:
+            prop = await db.get(Proposal, pmt.proposal_id)
+
+    return pmt, biz, prop
+
+
+@router.get("/pay/{reference_or_id}", response_class=HTMLResponse)
+@router.get("/payment/{reference_or_id}", response_class=HTMLResponse)
+async def customer_pay_page(
+    reference_or_id: str,
+    submitted: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """Dedicated customer-facing payment & remittance page."""
+    from app.payments.payment_page import render_customer_payment_html
+    pmt, biz, prop = await _resolve_payment_and_context(db, reference_or_id)
+    if not pmt:
+        raise HTTPException(status_code=404, detail="Payment record or proposal not found.")
+
+    provider_configured = bool(getattr(settings, "STRIPE_SECRET_KEY", None) and not settings.DRY_RUN)
+    html_content = render_customer_payment_html(
+        payment=pmt,
+        business=biz,
+        proposal=prop,
+        provider_configured=provider_configured,
+        submitted=submitted
+    )
+    return HTMLResponse(
+        content=html_content,
+        headers={
+            "X-Frame-Options": "SAMEORIGIN",
+            "Content-Security-Policy": "default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;",
+            "X-Content-Type-Options": "nosniff"
+        }
+    )
+
+
+@router.post("/pay/{reference_or_id}/submit-reference")
+async def web_submit_payment_reference(
+    reference_or_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Handles HTML form submission of bank UTR / remittance reference."""
+    pmt, biz, prop = await _resolve_payment_and_context(db, reference_or_id)
+    if not pmt:
+        raise HTTPException(status_code=404, detail="Payment record or proposal not found.")
+
+    import urllib.parse
+    ref = ""
+    notes = ""
+    content_type = request.headers.get("content-type", "").lower()
+
+    if "application/json" in content_type:
+        try:
+            body_json = await request.json()
+            ref = str(body_json.get("payment_reference", "")).strip()
+            notes = str(body_json.get("notes", "")).strip()
+        except Exception:
+            pass
+    else:
+        try:
+            raw_body = await request.body()
+            parsed = urllib.parse.parse_qs(raw_body.decode("utf-8"))
+            ref = parsed.get("payment_reference", [""])[0].strip()
+            notes = parsed.get("notes", [""])[0].strip()
+        except Exception:
+            try:
+                form_data = await request.form()
+                ref = str(form_data.get("payment_reference", "")).strip()
+                notes = str(form_data.get("notes", "")).strip()
+            except Exception:
+                pass
+
+    if not ref or len(ref) < 3:
+        raise HTTPException(status_code=400, detail="A valid bank UTR or transaction reference is required (min 3 characters).")
+
+    confirmed_statuses = ("PAYMENT_CONFIRMED", "VERIFIED_PAYMENT", "PAID", "COMPLETED", "SETTLED")
+    if pmt.status not in confirmed_statuses:
+        now = datetime.utcnow()
+        pmt.status = "PAYMENT_REVIEW_REQUIRED"
+        pmt.gpay_reference = ref
+        meta = dict(pmt.extra_metadata or {})
+        meta["customer_submission"] = {
+            "payment_reference": ref,
+            "submitted_at": now.isoformat(),
+            "customer_notes": notes
+        }
+        pmt.extra_metadata = meta
+
+        db.add(DealAuditTrail(
+            proposal_id=pmt.proposal_id,
+            business_id=pmt.business_id,
+            event_type="customer_reference_submitted",
+            operator="CUSTOMER",
+            payload={"payment_id": pmt.id, "payment_reference": ref, "notes": notes}
+        ))
+        await db.commit()
+
+    return RedirectResponse(url=f"/pay/{reference_or_id}?submitted=true", status_code=303)
 
 
 @router.post("/api/production/{production_project_id}/build")

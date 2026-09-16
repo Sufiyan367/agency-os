@@ -1906,4 +1906,421 @@ html, body {
   }
 }
 
+/* ==============================================================================
+   AGENCY OS — REBUILT COMMAND CENTER INFORMATION ARCHITECTURE
+   Professional, Minimal, Cinematic, Technical, Premium Dark, High-Contrast
+   ============================================================================== */
 
+.cmd-section {
+  margin-bottom: 24px;
+}
+
+.cmd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cmd-section-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717a;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.cmd-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmd-section-sub {
+  font-size: 0.78rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+/* 2. Today / Business Snapshot */
+.cmd-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.cmd-metric-card {
+  background: #0b0b0d;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 92px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cmd-metric-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: #111114;
+}
+
+.cmd-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.cmd-metric-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cmd-metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
+  margin: 2px 0 4px 0;
+}
+
+.cmd-metric-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #71717a;
+}
+
+/* 3. Action Required Block */
+.cmd-action-box {
+  background: #0b0b0d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.cmd-action-box.clear {
+  border-color: rgba(16, 185, 129, 0.25);
+  border-left-color: #10b981;
+}
+
+.cmd-action-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.cmd-action-stat-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 4. Deal Pipeline Bar */
+.cmd-pipeline-wrapper {
+  background: #0b0b0d;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cmd-pipeline-flow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 1040px;
+}
+
+.cmd-pipeline-step {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cmd-pipeline-step.active {
+  background: rgba(0, 212, 239, 0.08);
+  border-color: rgba(0, 212, 239, 0.4);
+  color: #ffffff;
+}
+
+.cmd-pipeline-step-cnt {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cmd-pipeline-step.active .cmd-pipeline-step-cnt {
+  color: var(--accent);
+}
+
+.cmd-pipeline-arrow {
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* 5. Global Acquisition Builder */
+.cmd-card {
+  background: #0b0b0d;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.cmd-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cmd-input-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #a1a1aa;
+}
+
+.cmd-input {
+  background: #131316 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  height: 36px !important;
+  padding: 0 10px !important;
+  font-size: 0.8rem !important;
+  outline: none !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.cmd-input:focus {
+  border-color: var(--accent) !important;
+}
+
+.cmd-btn-primary {
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  height: 36px !important;
+  padding: 0 16px !important;
+  font-size: 0.78rem !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.cmd-btn-primary:hover {
+  opacity: 0.9 !important;
+}
+
+/* Two column split for Target views */
+.cmd-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Tables */
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.cmd-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #71717a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.cmd-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #f4f4f5;
+  vertical-align: middle;
+}
+
+.cmd-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cmd-row-disabled {
+  background: rgba(239, 68, 68, 0.035) !important;
+  border-left: 2px solid #ef4444;
+}
+
+/* 6. Acquisition Performance */
+.cmd-acq-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.cmd-acq-card {
+  background: #0e0e11;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 9. System Operations & Health */
+.cmd-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.cmd-health-card {
+  background: #0b0b0d;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Collapsible Secondary Operations */
+.cmd-collapsible-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: #a1a1aa;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cmd-collapsible-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1280px) {
+  .cmd-snapshot-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .cmd-split-grid {
+    grid-template-columns: 1fr;
+  }
+  .cmd-health-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cmd-acq-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .cmd-snapshot-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cmd-acq-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .cmd-snapshot-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .cmd-metric-card {
+    padding: 10px 12px;
+  }
+  .cmd-metric-value {
+    font-size: 1.35rem;
+  }
+  .cmd-health-grid {
+    grid-template-columns: 1fr;
+  }
+  .cmd-acq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .cmd-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Sheet Viewport Control */
+#mobile-more-sheet {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  #mobile-more-sheet.open {
+    display: flex !important;
+  }
+}
