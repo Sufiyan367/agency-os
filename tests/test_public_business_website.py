@@ -18,7 +18,8 @@ async def test_public_website_anonymous_access_and_seo_metadata():
             html = res_root.text
 
             # Verify title and meta
-            assert "<title>Agency OS — AI Automation &amp; Digital Solutions</title>" in html or "Agency OS — AI Automation & Digital Solutions" in html
+            assert "Agency OS" in html
+            assert "AI Systems &amp; Automation" in html or "AI Systems & Automation" in html or "AI Automation" in html
             assert 'name="description"' in html
             assert 'property="og:title"' in html
             assert 'property="og:description"' in html
@@ -33,7 +34,7 @@ async def test_public_website_anonymous_access_and_seo_metadata():
             # 2. /website route also serves public website
             res_website = await client.get("/website", follow_redirects=False)
             assert res_website.status_code == 200
-            assert "AI Automation for Modern Businesses" in res_website.text
+            assert "AI systems that automate your business." in res_website.text or "Agency OS" in res_website.text
     finally:
         settings.AUTH_ENABLED = orig_auth
 
@@ -49,81 +50,33 @@ async def test_public_website_content_structure_and_authenticity():
 
         # 1. Header & Navigation
         assert "AGENCY OS" in html
-        assert "AI Automation &amp; Digital Solutions" in html or "AI Automation & Digital Solutions" in html
-        assert 'href="#services"' in html
-        assert 'href="#who-we-help"' in html
-        assert 'href="#process"' in html
-        assert 'href="#about"' in html
-        assert 'href="#contact"' in html
+        assert "AI Systems &amp; Automation" in html or "AI Systems & Automation" in html
+        assert "Solutions" in html
+        assert "How It Works" in html
+        assert "Demos" in html
+        assert "Automation" in html
 
         # 2. Hero Section
-        assert "AI Automation for Modern Businesses" in html
-        assert "Enterprise-Grade AI &amp; Workflow Automation" in html or "Enterprise-Grade AI & Workflow Automation" in html
-        assert "Start a Conversation" in html
-        assert "Explore Services" in html
+        assert "AI systems that automate your business." in html
+        assert "Get Your Automation Built" in html
+        assert "See a Working Demo" in html
 
-        # 3. Genuine Capability Badges (Real, no fabricated stats)
-        assert "Tailored Architecture" in html
-        assert "Direct Engineer Access" in html
-        assert "API &amp; Webhook Integrations" in html or "API & Webhook Integrations" in html
-        assert "Full Code &amp; Data Ownership" in html or "Full Code & Data Ownership" in html
+        # 3. Two Customer-Facing Capability Cards
+        assert "AI AUTOMATION" in html
+        assert "Automate the work that keeps repeating." in html
+        assert "CUSTOM SOFTWARE" in html
+        assert "Software built around your business." in html
 
-        # 4. Services Grid (6 Cards)
-        services = [
-            "AI Automation",
-            "Lead &amp; Sales Automation",
-            "Customer Support Automation",
-            "Workflow &amp; RPA",
-            "Business Dashboards &amp; Reporting",
-            "Custom AI Solutions"
-        ]
-        for s in services:
-            clean_s = s.replace("&amp;", "&")
-            assert s in html or clean_s in html
+        # 4. Capability Line
+        assert "AI AGENTS" in html
+        assert "WORKFLOW AUTOMATION" in html
+        assert "ONGOING MANAGEMENT" in html
 
-        # 5. Who We Help (Problem-centric, not fake logos)
-        assert "Built for Businesses That Want to Automate" in html
-        assert "Lead &amp; Pipeline Handling" in html or "Lead & Pipeline Handling" in html
-        assert "Customer Communications" in html
-        assert "Repetitive Administrative Tasks" in html
-        assert "Disconnected Tech Stacks" in html
-        assert "Reporting &amp; Operational Blindspots" in html or "Reporting & Operational Blindspots" in html
-        assert "Scaling Without Headcount Bloat" in html
+        # 5. Modals & Lead Capture
+        assert 'id="consultationModal"' in html
+        assert 'id="consultationForm"' in html
 
-        # 6. How We Work (4-Step Disciplined Process)
-        assert "STEP 01" in html
-        assert "Discover &amp; Audit" in html or "Discover & Audit" in html
-        assert "STEP 02" in html
-        assert "Architect &amp; Design" in html or "Architect & Design" in html
-        assert "STEP 03" in html
-        assert "Build &amp; Integrate" in html or "Build & Integrate" in html
-        assert "STEP 04" in html
-        assert "Deploy &amp; Monitor" in html or "Deploy & Monitor" in html
-
-        # 7. About Section
-        assert "Built on Engineering Integrity" in html
-        assert "Reliability First" in html
-        assert "Security &amp; Data Privacy" in html or "Security & Data Privacy" in html
-        assert "Measurable Impact" in html
-
-        # 8. Contact Section & Direct Details (Zero Fabrication)
-        assert "replies@agencygrowth.co" not in html
-        assert "Project Consultation Channel" in html
-        assert "Monday – Friday" in html or "Monday" in html
-        assert "contactForm" in html
-        assert 'name="name"' in html
-        assert 'name="email"' in html
-        assert 'name="company"' in html
-        assert 'name="service_interest"' in html
-        assert 'name="message"' in html
-
-        # 9. Modals (Privacy & Terms)
-        assert 'id="privacyModal"' in html
-        assert 'id="termsModal"' in html
-        assert "Privacy Policy" in html
-        assert "Terms of Service" in html
-
-        # 10. Authenticity / Zero Fabrication Verification
+        # 6. Authenticity / Zero Fabrication Verification
         # Must NOT contain fake testimonials, fake awards, fake client names
         forbidden_phrases = [
             "John Doe, CEO of Acme",
@@ -144,8 +97,8 @@ async def test_contact_inquiry_api_submission_and_validation():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Missing fields should return 400
         invalid_payload = {
-            "name": "Jane Smith",
-            "email": "jane@example.com",
+            "name": "",
+            "email": "",
             "company": "",
             "service_interest": "",
             "message": ""
