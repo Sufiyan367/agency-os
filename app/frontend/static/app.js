@@ -1629,6 +1629,48 @@ function viewCurrentActiveProspect() {
     }
 }
 
+window.handleActiveProspectAction = function(action) {
+    if (!currentActiveProspectLeadId) {
+        alert('No active prospect selected. Waiting for discovery cycle.');
+        return;
+    }
+    const leadId = currentActiveProspectLeadId;
+    if (action === 'approve') {
+        const acceptBtn = document.getElementById('ceo-btn-accept-demo');
+        if (acceptBtn && acceptBtn.style.display !== 'none') {
+            handleAcceptActiveDemo();
+        } else if (typeof approveCeoAction === 'function') {
+            approveCeoAction(leadId);
+        } else {
+            viewLeadDetail(leadId);
+        }
+    } else if (action === 'edit') {
+        const reqBtn = document.getElementById('ceo-btn-request-changes');
+        if (reqBtn && reqBtn.style.display !== 'none') {
+            openRequestChangesModal();
+        } else {
+            viewLeadDetail(leadId);
+        }
+    } else if (action === 'reject') {
+        if (confirm('Archive or reject current active prospect?')) {
+            if (typeof rejectCeoAction === 'function') {
+                rejectCeoAction(leadId);
+            } else {
+                fetch(`/api/leads/${leadId}/archive`, { method: 'POST' }).catch(() => {});
+                if (typeof loadCeoControlCenter === 'function') loadCeoControlCenter();
+            }
+        }
+    } else if (action === 'takeover') {
+        alert(`Operator Takeover engaged for Lead #${leadId}. Opening operational console.`);
+        viewLeadDetail(leadId);
+    } else if (action === 'refresh') {
+        if (typeof loadCeoControlCenter === 'function') loadCeoControlCenter();
+        if (typeof loadDashboardMetrics === 'function') loadDashboardMetrics();
+    } else if (action === 'context') {
+        viewCurrentActiveProspect();
+    }
+};
+
 async function updateCeoSalesState(data) {
     if (!data) return;
     const nameElem = document.getElementById('ceo-active-prospect-name');

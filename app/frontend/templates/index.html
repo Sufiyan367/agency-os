@@ -364,9 +364,9 @@
                 <div class="ops-command-header" id="hero-command-container">
                     <div class="ops-header-main">
                         <div class="ops-header-identity">
-                            <h1 class="ops-header-title">Agency Operations</h1>
+                            <h1 class="ops-header-title">AGENCY OS <span style="font-weight:400; color:var(--text-muted); font-size:0.8rem; margin-left:6px; letter-spacing:normal;">// Agency Operations</span></h1>
                             <p class="ops-header-subtitle">
-                                Continuous Autonomous Platform &bull; <span id="ceo-dynamic-greeting" style="color:#a1a1aa;">Good evening, Operator</span>
+                                AUTONOMOUS OPERATIONS &bull; <span id="ceo-dynamic-greeting" style="color:#a1a1aa;">Good evening, Operator</span>
                             </p>
                         </div>
                         <div class="ops-header-status-cluster" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -606,26 +606,48 @@
                         <div class="agency-dashboard-grid">
                             <!-- Left Main Column: Active Prospect Focus, Prospect Registry, Live Ops Stream -->
                             <div class="agency-dashboard-main-col">
-                                <!-- SECTION 2.5 — ACTIVE PROSPECT FOCUS (CEO Primary Workspace Focus) -->
-                                <div class="agency-panel-card agency-prospect-card" id="ceo-active-prospect-card">
-                            <div class="agency-prospect-header" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <!-- SECTION 2.5 — ACTIVE OPERATION / SELECTED PROSPECT (Console Focus) -->
+                                <div class="agency-panel-card agency-prospect-card ops-console-card" id="ceo-active-prospect-card">
+                            <div class="agency-prospect-header" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" style="width:16px; height:16px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                                    <span class="agency-panel-title" style="margin-bottom:0; font-size:0.85rem; font-weight:700;">Active Prospect Focus</span>
+                                    <span class="pulse-dot" style="background:#38bdf8; width:6px; height:6px; box-shadow:0 0 8px #38bdf8;"></span>
+                                    <span style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#71717a;">ACTIVE OPERATION</span>
                                 </div>
                                 <span class="agency-stage-tag" id="ceo-active-prospect-stage">STANDBY</span>
+                            </div>
+
+                            <!-- Operator Action Controls Toolbar -->
+                            <div class="operator-actions-toolbar" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                                <button type="button" class="op-btn op-btn-primary" onclick="window.handleActiveProspectAction('approve')" title="Approve current active operation">
+                                    <span>Approve</span>
+                                </button>
+                                <button type="button" class="op-btn op-btn-ghost" onclick="window.handleActiveProspectAction('edit')" title="Edit prospect details / request changes">
+                                    <span>Edit</span>
+                                </button>
+                                <button type="button" class="op-btn op-btn-destructive" onclick="window.handleActiveProspectAction('reject')" title="Reject or archive prospect">
+                                    <span>Reject</span>
+                                </button>
+                                <button type="button" class="op-btn op-btn-ghost" onclick="window.handleActiveProspectAction('takeover')" title="Take over autonomous interaction">
+                                    <span>Take Over</span>
+                                </button>
+                                <button type="button" class="op-btn op-btn-ghost" onclick="window.handleActiveProspectAction('refresh')" title="Refresh real signals">
+                                    <span>Refresh Signals</span>
+                                </button>
+                                <button type="button" class="op-btn op-btn-ghost" onclick="window.handleActiveProspectAction('context')" title="Open context dossier & evidence">
+                                    <span>Context</span>
+                                </button>
                             </div>
 
                             <div class="agency-prospect-layout-grid">
                                 <!-- Col 1: Prospect Profile & Valuation -->
                                 <div style="display:flex; flex-direction:column; gap:8px; min-width:0;">
-                                    <div class="agency-prospect-profile" style="padding:8px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; display:flex; align-items:center; gap:10px;">
-                                        <div class="agency-prospect-icon" style="width:34px; height:34px; border-radius:6px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <div class="agency-prospect-profile" style="padding:10px 12px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:6px; display:flex; align-items:center; gap:10px;">
+                                        <div class="agency-prospect-icon" style="width:36px; height:36px; border-radius:6px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="width:18px; height:18px;"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
                                         </div>
                                         <div style="display:flex; flex-direction:column; line-height:1.2; min-width:0; flex:1;">
-                                            <span class="agency-prospect-name" id="ceo-active-prospect-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; font-size:0.85rem; color:#f4f4f5;">Standby</span>
-                                            <div style="display:flex; gap:6px; font-size:0.72rem; color:#71717a; align-items:center; margin-top:2px;">
+                                            <span class="agency-prospect-name" id="ceo-active-prospect-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; font-size:1.15rem; color:#f4f4f5; letter-spacing:-0.01em;">Standby</span>
+                                            <div style="display:flex; gap:6px; font-size:0.75rem; color:#71717a; align-items:center; margin-top:3px;">
                                                 <span id="ceo-active-prospect-domain">—</span>
                                                 <span>•</span>
                                                 <span id="ceo-active-prospect-location">Global</span>

@@ -1738,3 +1738,172 @@ body {
   }
 }
 
+/* ==============================================================================
+   14. MAINFRAME-STYLE MINIMAL / CINEMATIC OPERATIONS CONSOLE TRANSFORMATION
+   Reference: Mainframe Interaction Model (Clean Typography, Restrained Controls,
+   Obsidian Atmospheric Depth, Minimal Chrome, Editorial Clarity)
+   ============================================================================== */
+
+/* Atmospheric Canvas Depth */
+html, body {
+  background-color: #060709 !important;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(30, 41, 59, 0.12), transparent),
+    linear-gradient(180deg, #060709 0%, #08090d 100%) !important;
+  background-attachment: fixed !important;
+}
+
+.agency-app-wrapper {
+  background: transparent !important;
+}
+
+/* Console Header Brand & Indicator */
+.ops-header-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  color: #FFFFFF !important;
+}
+
+.ops-header-subtitle {
+  font-size: 0.72rem !important;
+  color: #71717A !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+/* Minimal Operator Action Buttons */
+.operator-actions-toolbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: center !important;
+  margin: 12px 0 16px 0 !important;
+}
+
+.op-btn {
+  font-family: var(--font-sans) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  border-radius: 5px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border: 1px solid transparent !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  text-decoration: none !important;
+}
+
+.op-btn-primary {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #FFFFFF !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.op-btn-primary:hover {
+  background: #F4F4F5 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15) !important;
+}
+
+.op-btn-ghost {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #E4E4E7 !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.op-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  transform: translateY(-1px) !important;
+}
+
+.op-btn-destructive {
+  background: rgba(239, 68, 68, 0.06) !important;
+  color: #F87171 !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
+}
+
+.op-btn-destructive:hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #FCA5A5 !important;
+  border-color: rgba(239, 68, 68, 0.38) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Active Operation Console Card */
+.ops-console-card {
+  background: #090a0e !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.ops-console-card:hover {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+#ceo-active-prospect-name {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: #FFFFFF !important;
+}
+
+/* Restrained Editorial Live Activity Feed */
+#ceo-recent-activity-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+#ceo-recent-activity-list .live-ops-item,
+#ceo-recent-activity-list .ops-event-row {
+  background: rgba(255, 255, 255, 0.015) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 5px !important;
+  padding: 8px 12px !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+#ceo-recent-activity-list .live-ops-item:hover,
+#ceo-recent-activity-list .ops-event-row:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* Clean Responsive Mobile Overrides */
+@media (max-width: 768px) {
+  .ops-cockpit-grid, .agency-dashboard-grid {
+    grid-template-columns: 100% !important;
+  }
+  .operator-actions-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+  .op-btn {
+    width: 100% !important;
+    padding: 7px 10px !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* Reduced Motion Compliance */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
