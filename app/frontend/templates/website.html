@@ -55,9 +55,11 @@
   </script>
 
   <style>
+    html {
+      scroll-behavior: smooth;
+    }
     html, body {
-      height: 100%;
-      height: 100dvh;
+      min-height: 100%;
       margin: 0;
       padding: 0;
       background-color: #070707;
@@ -65,7 +67,12 @@
       font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .section-border {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .cta-dark-gradient {
@@ -151,10 +158,99 @@
 </head>
 <body>
 
-  <!-- SINGLE FULL-SCREEN SECTION (PIXEL-FAITHFUL CINEMATIC HERO) -->
-  <section class="h-screen w-full overflow-hidden relative">
+  <!-- ====================================================================
+       PERSISTENT TOP NAVIGATION HEADER
+       ==================================================================== -->
+  <header class="sticky top-0 z-50 w-full px-5 py-4 sm:px-8 lg:px-12 flex items-center justify-between bg-[#070707]/80 backdrop-blur-lg border-b border-white/10 transition-all">
+    <!-- Left: Logo & Brand -->
+    <a href="#home" class="flex items-center gap-3 text-white no-underline group" aria-label="Agency OS Home">
+      <div class="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-md group-hover:scale-105 transition">
+        <span class="text-white font-bold text-sm tracking-wider">A</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-semibold tracking-tight leading-none text-white">AGENCY OS</span>
+        <span class="text-[11px] text-white/60 tracking-normal mt-0.5">AI Systems &amp; Automation</span>
+      </div>
+    </a>
 
-    <!-- Full-Bleed Background Video -->
+    <!-- Center: Desktop Glass Nav Cluster -->
+    <nav class="hidden md:flex items-center rounded-full bg-white/10 px-2 py-1.5 backdrop-blur-lg border border-white/10 shadow-lg gap-1" aria-label="Main Navigation">
+      <a href="#solutions" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Solutions</a>
+      <a href="#how-it-works" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
+      <a href="#demos" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
+      <a href="#automation" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
+      <a href="#contact" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Contact</a>
+    </nav>
+
+    <!-- Right: Desktop CTA Pill -->
+    <div class="hidden md:flex items-center gap-3">
+      <a href="/login" class="text-xs font-medium text-white/60 hover:text-white transition px-2 py-1">Operator Sign In</a>
+      <button
+        type="button"
+        class="cta-dark-gradient rounded-full px-5 py-2 text-sm font-medium text-white self-stretch flex items-center shadow-lg"
+        data-action="open-consultation-modal"
+      >
+        Get Your Automation Built
+      </button>
+    </div>
+
+    <!-- Mobile Hamburger Button (md:hidden) -->
+    <button
+      type="button"
+      id="burgerBtn"
+      class="md:hidden relative w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg border border-white/15 flex items-center justify-center text-white z-50 transition"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+      aria-controls="mobileDrawer"
+    >
+      <!-- Menu Icon -->
+      <svg id="burgerMenuIcon" class="w-5 h-5 transition-all duration-300 transform scale-100 rotate-0 opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <!-- X Icon -->
+      <svg id="burgerCloseIcon" class="w-5 h-5 absolute transition-all duration-300 transform scale-0 -rotate-90 opacity-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Mobile Backdrop -->
+  <div id="mobileBackdrop" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300" aria-hidden="true"></div>
+
+  <!-- Mobile Drawer -->
+  <div
+    id="mobileDrawer"
+    class="fixed right-0 top-0 z-40 h-full w-72 bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col justify-between px-6 pt-24 pb-8 transform translate-x-full transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+    aria-hidden="true"
+  >
+    <div class="flex flex-col gap-2">
+      <a href="#home" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Home</a>
+      <a href="#solutions" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Solutions</a>
+      <a href="#how-it-works" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
+      <a href="#demos" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
+      <a href="#automation" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
+      <a href="#contact" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Contact</a>
+      <a href="/login" class="mobile-link rounded-xl px-4 py-3 text-base font-medium text-blue-400 hover:bg-white/10 hover:text-blue-300 transition">Operator Sign In &rarr;</a>
+    </div>
+
+    <button
+      type="button"
+      class="cta-dark-gradient w-full rounded-full py-3 text-center text-sm font-medium text-white shadow-xl"
+      data-action="open-consultation-modal"
+    >
+      Get Your Automation Built
+    </button>
+  </div>
+
+  <!-- ====================================================================
+       01 HERO SECTION (CINEMATIC VIDEO CLIPPED STRICTLY INSIDE)
+       ==================================================================== -->
+  <section id="home" class="relative min-h-[calc(100vh-73px)] w-full overflow-hidden flex flex-col justify-between">
+
+    <!-- Full-Bleed Background Video strictly constrained inside hero -->
     <video
       class="absolute inset-0 h-full w-full object-cover pointer-events-none"
       autoplay
@@ -170,111 +266,10 @@
     </video>
 
     <!-- Subtle Cinematic Scrim to Guarantee Text Readability -->
-    <div class="absolute inset-0 bg-black/25 pointer-events-none" aria-hidden="true"></div>
+    <div class="absolute inset-0 bg-black/35 pointer-events-none" aria-hidden="true"></div>
 
     <!-- UI Layer -->
-    <div class="relative z-10 flex h-full flex-col">
-
-      <!-- NAVBAR -->
-      <header class="w-full px-5 py-5 sm:px-8 sm:py-6 lg:px-12 flex items-center justify-between">
-        <!-- Left: Logo & Brand -->
-        <a href="/" class="flex items-center gap-3 text-white no-underline group" aria-label="Agency OS Home">
-          <div class="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-md group-hover:scale-105 transition">
-            <span class="text-white font-bold text-sm tracking-wider">A</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-lg font-semibold tracking-tight leading-none text-white">AGENCY OS</span>
-            <span class="text-[11px] text-white/60 tracking-normal mt-0.5">AI Systems &amp; Automation</span>
-          </div>
-        </a>
-
-        <!-- Center: Desktop Glass Nav Cluster -->
-        <nav class="hidden md:flex items-center rounded-full bg-white/10 px-1.5 py-1.5 backdrop-blur-lg border border-white/10 shadow-lg gap-0.5" aria-label="Main Navigation">
-          <div class="relative group">
-            <button type="button" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition flex items-center gap-1" aria-expanded="false">
-              <span>Solutions</span>
-              <!-- ChevronDown -->
-              <svg class="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <!-- Dropdown Menu -->
-            <div class="absolute top-full left-0 mt-2 w-48 rounded-xl bg-black/90 backdrop-blur-xl border border-white/15 py-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition duration-200 shadow-2xl">
-              <a href="#automation" class="block px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Workflow Automation</a>
-              <a href="#software" class="block px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Custom AI Software</a>
-              <a href="#agents" class="block px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Autonomous AI Agents</a>
-            </div>
-          </div>
-
-          <a href="#how-it-works" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
-          <a href="/demo/orange-auto" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
-          <a href="#automation" class="rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
-        </nav>
-
-        <!-- Right: Desktop CTA Pill -->
-        <div class="hidden md:flex items-center gap-3">
-          <a href="/login" class="text-xs font-medium text-white/60 hover:text-white transition px-2 py-1">Sign In</a>
-          <button
-            type="button"
-            class="cta-dark-gradient rounded-full px-5 py-2 text-sm font-medium text-white self-stretch flex items-center shadow-lg"
-            data-action="open-consultation-modal"
-          >
-            Get Your Automation Built
-          </button>
-        </div>
-
-        <!-- Mobile Hamburger Button (md:hidden) -->
-        <button
-          type="button"
-          id="burgerBtn"
-          class="md:hidden relative w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg border border-white/15 flex items-center justify-center text-white z-50 transition"
-          aria-label="Toggle navigation"
-          aria-expanded="false"
-          aria-controls="mobileDrawer"
-        >
-          <!-- Menu Icon -->
-          <svg id="burgerMenuIcon" class="w-5 h-5 transition-all duration-300 transform scale-100 rotate-0 opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-          <!-- X Icon -->
-          <svg id="burgerCloseIcon" class="w-5 h-5 absolute transition-all duration-300 transform scale-0 -rotate-90 opacity-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </header>
-
-      <!-- Mobile Backdrop -->
-      <div id="mobileBackdrop" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300" aria-hidden="true"></div>
-
-      <!-- Mobile Drawer -->
-      <div
-        id="mobileDrawer"
-        class="fixed right-0 top-0 z-40 h-full w-72 bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col justify-between px-6 pt-24 pb-8 transform translate-x-full transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-        aria-hidden="true"
-      >
-        <div class="flex flex-col gap-2">
-          <a href="#solutions" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition flex items-center justify-between">
-            <span>Solutions</span>
-            <svg class="w-4 h-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </a>
-          <a href="#how-it-works" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">How It Works</a>
-          <a href="/demo/orange-auto" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Demos</a>
-          <a href="#automation" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition">Automation</a>
-          <a href="#contact" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white transition" data-action="open-consultation-modal">Contact</a>
-          <a href="/login" class="mobile-link rounded-xl px-4 py-3.5 text-base font-medium text-blue-400 hover:bg-white/10 hover:text-blue-300 transition">Operator Sign In &rarr;</a>
-        </div>
-
-        <button
-          type="button"
-          class="cta-dark-gradient w-full rounded-full py-3 text-center text-sm font-medium text-white shadow-xl"
-          data-action="open-consultation-modal"
-        >
-          Get Your Automation Built
-        </button>
-      </div>
+    <div class="relative z-10 flex-1 flex flex-col justify-end">
 
       <!-- MAIN (BOTTOM-ANCHORED HERO) -->
       <main class="mt-auto w-full px-5 sm:px-8 lg:px-12 pb-4 sm:pb-8 lg:pb-10">
@@ -313,7 +308,7 @@
               </button>
 
               <a
-                href="/demo/orange-auto"
+                href="#demos"
                 class="glass-pill rounded-full px-3.5 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-base font-medium text-white/85 hover:text-white hover:bg-white/15 transition flex items-center justify-center gap-1.5 text-center flex-1 sm:flex-initial"
               >
                 <span>See a Working Demo</span>
@@ -380,6 +375,597 @@
 
     </div>
   </section>
+
+  <!-- ====================================================================
+       02 SOLUTIONS SECTION (#solutions)
+       ==================================================================== -->
+  <section id="solutions" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
+          <span>02 / SOLUTIONS</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
+          Built around the work your business actually needs automated.
+        </h2>
+      </div>
+      <p class="text-sm sm:text-base text-white/70 max-w-md leading-relaxed">
+        We eliminate repetitive manual tasks by creating custom software and automated workflows tailored to your exact business operations.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- 1. AI Business Automation -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-mono text-white/40 mb-3 block">01</span>
+          <h3 class="text-lg font-semibold text-white mb-2">AI Business Automation</h3>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Automate repetitive business operations such as lead capture, qualification, CRM updates, follow-ups, appointment scheduling, customer support, onboarding, and reporting.
+          </p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
+          Eliminate Routine Tasks &rarr;
+        </div>
+      </div>
+
+      <!-- 2. Custom Software -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-mono text-white/40 mb-3 block">02</span>
+          <h3 class="text-lg font-semibold text-white mb-2">Custom Software</h3>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Build software around your actual process — high-converting lead generation websites, booking systems, quote calculators, customer portals, and internal dashboards.
+          </p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
+          Built For Your Specific Flow &rarr;
+        </div>
+      </div>
+
+      <!-- 3. AI Agents -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-mono text-white/40 mb-3 block">03</span>
+          <h3 class="text-lg font-semibold text-white mb-2">AI Agents</h3>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Deploy AI for research, support, qualification, and operational workflows — 24/7 intelligent inquiry triage, conversational booking, and automated operational handoffs.
+          </p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
+          24/7 Autonomous Execution &rarr;
+        </div>
+      </div>
+
+      <!-- 4. Workflow Automation -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-mono text-white/40 mb-3 block">04</span>
+          <h3 class="text-lg font-semibold text-white mb-2">Workflow Automation</h3>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Connect business tools and automate handoffs between CRM, email, web forms, notifications, and databases into a single cohesive operating system.
+          </p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
+          Bridge Disconnected Tools &rarr;
+        </div>
+      </div>
+
+      <!-- 5. Ongoing Management -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between md:col-span-2 lg:col-span-2">
+        <div>
+          <span class="text-xs font-mono text-white/40 mb-3 block">05</span>
+          <h3 class="text-lg font-semibold text-white mb-2">Ongoing Management</h3>
+          <p class="text-sm text-white/70 leading-relaxed max-w-2xl">
+            Keep your systems maintained, monitored, and continuously improving. We handle uptime tracking, API updates, bug fixes, performance improvements, and workflow expansion as your business grows.
+          </p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-xs text-white/50 font-medium">
+          Proactive Infrastructure Reliability &rarr;
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       03 HOW IT WORKS SECTION (#how-it-works)
+       ==================================================================== -->
+  <section id="how-it-works" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
+    <div class="mb-12 text-left">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
+        <span>03 / HOW IT WORKS</span>
+      </div>
+      <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
+        A clear, disciplined delivery process.
+      </h2>
+      <p class="text-sm sm:text-base text-white/70 max-w-2xl mt-2 leading-relaxed">
+        From diagnosing manual bottlenecks to production deployment and ongoing management, our engineering process guarantees alignment at every stage.
+      </p>
+    </div>
+
+    <!-- 8-Stage Delivery Pipeline -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <!-- Step 1: Discovery -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 01</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Discovery</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            We review where your team spends manual time, what tasks cause administrative friction, and where customer handoffs slow down.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 2: Requirements -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 02</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Requirements</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            Our engineering team maps the workflow, defines data inputs and outputs, and drafts the exact specification for your business tools.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 3: Demo / Proposal -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 03</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Demo / Proposal</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            We create an interactive working demonstration or technical proposal so you can evaluate the experience before production commitment.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 4: Advance Payment (Commercial Gate) -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between bg-white/[0.07] border-white/20 shadow-lg">
+        <div>
+          <div class="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-2">
+            <span class="font-mono">STEP 04 • GATE</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Advance Payment</h3>
+          <p class="text-xs text-white/80 leading-relaxed">
+            Commercial agreement and advance payment are secured before engineering starts. No production build begins without mutual commercial commitment.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 5: Build -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 05</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Build</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            We engineer the software, configure automated workflows, and build the custom interfaces around your approved specifications.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 6: QA & Testing -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 06</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">QA &amp; Testing</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            Rigorous end-to-end testing across all integration points, error states, and failovers to ensure zero production disruptions.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 7: Deploy -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 07</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Deploy</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            Seamless launch into your live operating environment with complete documentation and operator verification.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 8: Ongoing Management -->
+      <div class="glass-card rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-2">
+            <span class="font-mono">STEP 08</span>
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+          </div>
+          <h3 class="text-base font-semibold text-white mb-1.5">Ongoing Management</h3>
+          <p class="text-xs text-white/70 leading-relaxed">
+            Proactive uptime monitoring, API maintenance, bug fixes, and continuous workflow improvements as your needs expand.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       04 DEMOS SECTION (#demos) — CLEAN, CUSTOMER-OUTCOME DEMOS
+       ==================================================================== -->
+  <section id="demos" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
+          <span>04 / WORKING DEMOS</span>
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
+          See Your System Working Before Implementation.
+        </h2>
+      </div>
+      <p class="text-sm sm:text-base text-white/70 max-w-md leading-relaxed">
+        Customer shares requirements &rarr; requirements are defined &rarr; working demo is engineered &rarr; demo is presented for evaluation.
+      </p>
+    </div>
+
+    <!-- Concrete Demo Cards: Clean Monochrome Aesthetic -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <!-- Demo Card 1 -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+            <span class="font-semibold uppercase tracking-wider text-white/70">EMERGENCY &amp; DISPATCH</span>
+            <span class="font-mono">DEMO 01</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-3">24/7 Service Dispatch &amp; Triage Portal</h3>
+          <div class="space-y-2 text-xs text-white/70">
+            <p><span class="font-semibold text-white">Problem:</span> Urgent after-hours customer calls go to voicemail, losing high-ticket jobs to faster responders.</p>
+            <p><span class="font-semibold text-white/90">Solution:</span> Intelligent triage flow capturing equipment symptoms, urgency rating, and scheduling immediate technician dispatch.</p>
+            <p><span class="font-semibold text-emerald-400">Working Result:</span> Deployed intake interface capturing service address, problem triage, and technician window.</p>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10">
+          <button
+            type="button"
+            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
+            data-action="open-consultation-modal"
+          >
+            <span>Request Custom Demo</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Demo Card 2 -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+            <span class="font-semibold uppercase tracking-wider text-white/70">COMMERCIAL CONTRACTORS</span>
+            <span class="font-mono">DEMO 02</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-3">Interactive Quote &amp; Scope Estimator</h3>
+          <div class="space-y-2 text-xs text-white/70">
+            <p><span class="font-semibold text-white">Problem:</span> Manual quote preparation takes 48 hours of back-and-forth, causing prospective buyers to cool off.</p>
+            <p><span class="font-semibold text-white/90">Solution:</span> Dynamic scope-builder portal generating preliminary pricing bands while capturing project specifications.</p>
+            <p><span class="font-semibold text-emerald-400">Working Result:</span> Working client-facing quote portal that converts casual visitors into consultation-ready leads.</p>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10">
+          <button
+            type="button"
+            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
+            data-action="open-consultation-modal"
+          >
+            <span>Request Custom Demo</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Demo Card 3 -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs text-white/50 mb-3">
+            <span class="font-semibold uppercase tracking-wider text-white/70">CLIENT ONBOARDING</span>
+            <span class="font-mono">DEMO 03</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-3">Automated Intake &amp; Account Provisioning</h3>
+          <div class="space-y-2 text-xs text-white/70">
+            <p><span class="font-semibold text-white">Problem:</span> Client onboarding requires disjointed spreadsheets, missing documents, and manual team reminders.</p>
+            <p><span class="font-semibold text-white/90">Solution:</span> Stepper portal collecting requirements, verifying files, and syncing data directly into downstream tools.</p>
+            <p><span class="font-semibold text-emerald-400">Working Result:</span> Fully automated intake pipeline reducing onboarding turnaround from days to minutes.</p>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10">
+          <button
+            type="button"
+            class="text-xs font-semibold text-white/90 hover:text-white flex items-center justify-between w-full"
+            data-action="open-consultation-modal"
+          >
+            <span>Request Custom Demo</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       05 AUTOMATION / USE CASES SECTION (#automation)
+       ==================================================================== -->
+  <section id="automation" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
+    <div class="mb-12 text-left">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
+        <span>05 / WORKFLOW AUTOMATION &amp; USE CASES</span>
+      </div>
+      <h2 class="text-2xl sm:text-4xl font-semibold text-white tracking-tight">
+        Connect your business tools. Automate routine work.
+      </h2>
+      <p class="text-sm sm:text-base text-white/70 max-w-2xl mt-2 leading-relaxed">
+        We build reliable automated workflows and integrations that connect your existing business software and eliminate repetitive manual handoffs.
+      </p>
+    </div>
+
+    <!-- 6 Concrete Automation Use Cases -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">CRM Synchronization</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Keep HubSpot, Salesforce, Pipedrive, or internal databases synchronized automatically without manual data entry or missed deal updates.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">Lead Capture &amp; Qualification</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Instantly scores inbound inquiries against your target customer criteria, filters low-intent submissions, and alerts your team with verified context.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">Automated Follow-Up Sequences</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Coordinated multi-channel follow-ups across email and messaging that keep proposals top-of-mind and re-engage dormant inquiries.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">24/7 Appointment Scheduling</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Conversational intake assistants that qualify project scope, verify schedule availability, and book consultation meetings around the clock.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">Operational Alerts &amp; Notifications</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Instant alerts to Slack, Microsoft Teams, or mobile whenever high-priority inquiries arrive or automated exceptions require team intervention.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5">
+        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+          <svg class="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3 class="text-base font-semibold text-white mb-1.5">Reporting &amp; Internal Dashboards</h3>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Centralize key operational KPIs, lead flow metrics, and pipeline status into clean internal dashboards that provide real-time business visibility.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       06 CONTACT / CTA SECTION (#contact)
+       ==================================================================== -->
+  <section id="contact" class="section-border py-20 px-5 sm:px-8 lg:px-12 max-w-7xl mx-auto w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+      <!-- Left: Value Narrative -->
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 uppercase tracking-wider mb-3">
+          <span>06 / GET STARTED</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-semibold text-white tracking-tight leading-tight">
+          Tell us what is wasting your team's time.
+        </h2>
+        <p class="mt-4 text-sm sm:text-base text-white/70 leading-relaxed max-w-lg">
+          Describe the manual tasks, repetitive workflows, or operational bottlenecks slowing your business down. Our engineering team will review your submission and outline a tailored automation solution.
+        </p>
+
+        <div class="mt-8 space-y-4">
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div>
+              <div class="text-sm font-semibold text-white">Direct Engineer Review</div>
+              <div class="text-xs text-white/60">Every inquiry is evaluated directly by automation architects, not sales reps.</div>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div>
+              <div class="text-sm font-semibold text-white">Response Guarantee</div>
+              <div class="text-xs text-white/60">We review workflows and respond within 24 business hours.</div>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/70 mt-0.5">&bull;</div>
+            <div>
+              <div class="text-sm font-semibold text-white">Working Prototype Before Commitment</div>
+              <div class="text-xs text-white/60">See how your automated system functions before making a commercial decision.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 text-xs text-white/50">
+          Direct email: <a href="mailto:hello@automatedagencyos.tech" class="text-white hover:underline">hello@automatedagencyos.tech</a>
+        </div>
+      </div>
+
+      <!-- Right: Contact Form -->
+      <div class="glass-card rounded-2xl p-6 sm:p-8">
+        <h3 class="text-xl font-semibold text-white mb-2">Get Your Automation Built</h3>
+        <p class="text-xs text-white/60 mb-6">Complete the brief below to start your technical assessment.</p>
+
+        <div id="inlineContactAlert" role="alert" class="hidden mb-4 p-3 rounded-lg text-xs font-medium"></div>
+
+        <form id="inlineContactForm" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="inlineName" class="block text-xs text-white/70 mb-1.5">Full Name *</label>
+              <input
+                type="text"
+                id="inlineName"
+                name="name"
+                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                placeholder="Sarah Connor"
+                required
+              />
+            </div>
+            <div>
+              <label for="inlineCompany" class="block text-xs text-white/70 mb-1.5">Company Name *</label>
+              <input
+                type="text"
+                id="inlineCompany"
+                name="company"
+                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                placeholder="Apex Commercial"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="inlineEmail" class="block text-xs text-white/70 mb-1.5">Business Email *</label>
+              <input
+                type="email"
+                id="inlineEmail"
+                name="email"
+                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                placeholder="sarah@agency.com"
+                required
+              />
+            </div>
+            <div>
+              <label for="inlineWebsite" class="block text-xs text-white/70 mb-1.5">Website Domain *</label>
+              <input
+                type="text"
+                id="inlineWebsite"
+                name="website"
+                class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                placeholder="agency.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="inlineAutomated" class="block text-xs text-white/70 mb-1.5">What processes do you want automated? *</label>
+            <textarea
+              id="inlineAutomated"
+              name="what_they_want_automated"
+              rows="2"
+              class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+              placeholder="e.g. Lead capture, quote calculator, CRM updates, appointment scheduling..."
+              required
+            ></textarea>
+          </div>
+
+          <div>
+            <label for="inlineProblem" class="block text-xs text-white/70 mb-1.5">What is your biggest manual bottleneck? *</label>
+            <textarea
+              id="inlineProblem"
+              name="problem"
+              rows="2"
+              class="w-full bg-white/5 border border-white/15 rounded-lg px-3.5 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+              placeholder="What repetitive task consumes the most manual hours or leads to delays?"
+              required
+            ></textarea>
+          </div>
+
+          <button
+            type="submit"
+            id="inlineSubmitBtn"
+            class="cta-dark-gradient w-full rounded-lg py-3 text-sm font-semibold text-white shadow-lg tracking-wide hover:opacity-95 transition"
+          >
+            Submit Specification &amp; Assessment Request
+          </button>
+          <p class="text-[11px] text-white/40 text-center">Zero spam. Strict privacy. Direct engineer response within 24 business hours.</p>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       FOOTER
+       ==================================================================== -->
+  <footer class="section-border py-12 px-5 sm:px-8 lg:px-12 bg-[#050505]">
+    <div class="max-w-7xl mx-auto w-full flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+          <span class="text-white font-bold text-xs tracking-wider">A</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-white">AGENCY OS</span>
+          <span class="text-[10px] text-white/50">AI Systems &amp; Automation</span>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-6 text-xs text-white/60 flex-wrap justify-center">
+        <a href="#solutions" class="hover:text-white transition">Solutions</a>
+        <a href="#how-it-works" class="hover:text-white transition">How It Works</a>
+        <a href="#demos" class="hover:text-white transition">Demos</a>
+        <a href="#automation" class="hover:text-white transition">Automation</a>
+        <a href="#contact" class="hover:text-white transition">Contact</a>
+        <a href="/login" class="hover:text-white transition">Operator Login</a>
+      </nav>
+
+      <div class="flex items-center gap-2 text-xs text-white/40">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>All Systems Operational</span>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto w-full mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between text-[11px] text-white/40 gap-4">
+      <div>&copy; 2026 Agency OS. All rights reserved.</div>
+      <div class="flex items-center gap-4">
+        <span>Privacy-First Architecture</span>
+        <span>&bull;</span>
+        <span>SOC-Ready Integrity</span>
+      </div>
+    </div>
+  </footer>
 
   <!-- ====================================================================
        MODAL: CONSULTATION (PRESERVED LEAD CAPTURE)
@@ -637,6 +1223,75 @@
           consultationSubmitBtn.textContent = origText;
         }
       });
+
+      // Inline Contact Form Submission
+      const inlineForm = document.getElementById('inlineContactForm');
+      const inlineAlert = document.getElementById('inlineContactAlert');
+      const inlineSubmitBtn = document.getElementById('inlineSubmitBtn');
+
+      if (inlineForm) {
+        inlineForm.addEventListener('submit', async function (e) {
+          e.preventDefault();
+
+          inlineAlert.className = 'hidden mb-4 p-3 rounded-lg text-xs font-medium';
+          inlineAlert.textContent = '';
+          inlineSubmitBtn.disabled = true;
+          const origText = inlineSubmitBtn.textContent;
+          inlineSubmitBtn.textContent = 'Submitting Request...';
+
+          const payload = {
+            name: document.getElementById('inlineName').value.trim(),
+            company: document.getElementById('inlineCompany').value.trim(),
+            email: document.getElementById('inlineEmail').value.trim(),
+            website: document.getElementById('inlineWebsite').value.trim(),
+            service_interest: 'AI Automation & Custom Software',
+            message: `Automate: ${document.getElementById('inlineAutomated').value.trim()} | Bottleneck: ${document.getElementById('inlineProblem').value.trim()}`
+          };
+
+          try {
+            let res = await fetch('/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.status === 404) {
+              res = await fetch('/api/v1/onboarding/consultation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: payload.name,
+                  email: payload.email,
+                  company: payload.company,
+                  service_interest: payload.service_interest,
+                  notes: payload.message,
+                  current_process: payload.message
+                })
+              });
+            }
+
+            if (res.ok) {
+              inlineAlert.className = 'mb-4 p-3 rounded-lg text-xs font-medium bg-emerald-950/80 border border-emerald-600 text-emerald-300';
+              inlineAlert.textContent = 'Thank you — your assessment request has been received. Our engineering team will review your business process and respond within 24 business hours.';
+              inlineForm.reset();
+            } else {
+              let errorMsg = 'Unable to process request. Please verify all fields and retry.';
+              try {
+                const data = await res.json();
+                if (data && data.detail) errorMsg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+              } catch (_) {}
+              inlineAlert.className = 'mb-4 p-3 rounded-lg text-xs font-medium bg-red-950/80 border border-red-600 text-red-300';
+              inlineAlert.textContent = errorMsg;
+            }
+          } catch (err) {
+            inlineAlert.className = 'mb-4 p-3 rounded-lg text-xs font-medium bg-red-950/80 border border-red-600 text-red-300';
+            inlineAlert.textContent = 'Network error connecting to server. Please try again.';
+          } finally {
+            inlineSubmitBtn.disabled = false;
+            inlineSubmitBtn.textContent = origText;
+          }
+        });
+      }
 
     })();
   </script>
