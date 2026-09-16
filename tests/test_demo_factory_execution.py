@@ -16,9 +16,18 @@ from app.database.models import (
     CustomerProject,
     DemoBuildJob,
     PipelineStage,
-    ProjectStatus
+    ProjectStatus,
+    ProductionProjectStatus
 )
-from app.delivery.demo_job_manager import DemoJobManager, TriggerGateRejectedError
+from app.delivery.demo_job_manager import (
+    DemoJobManager,
+    TriggerGateRejectedError,
+    DemoStateMachine,
+    ProductionPaymentGate,
+    InvalidStateTransitionError,
+    PaymentAuthorizationRequiredError,
+    prepare_demo_delivery_package
+)
 from app.builder.pipeline import pipeline_orchestrator
 from app.orchestrator.worker import PersistentAgencyWorker
 
@@ -194,3 +203,128 @@ async def test_worker_drain_demo_backlog_idempotency():
         # Second run (simulating next worker cycle / restart): no pending jobs remain
         second_run = await worker.drain_demo_backlog(session, limit=5)
         assert second_run == 0
+
+
+@pytest.mark.asyncio
+async def test_demo_state_machine_valid_and_invalid_transitions():
+    """B16: Verify state machine allows canonical transitions and strictly rejects invalid ones."""
+    async with AsyncSessionLocal() as session:
+        biz = Business(
+            domain="sm-target.com",
+            name="StateMachine Target",
+            country="US",
+            niche="Consulting",
+            public_email="sm@target.com",
+            pipeline_stage=PipelineStage.DEMO_REQUESTED.value,
+            demo_requested=True,
+            created_at=datetime.utcnow()
+        )
+        session.add(biz)
+        await session.commit()
+        await session.refresh(biz)
+
+        job, _ = await DemoJobManager.create_or_get_job(session, biz.id)
+        assert job.status == ProjectStatus.DEMO_REQUESTED.value
+
+        # Valid transition: DEMO_REQUESTED -> DEMO_SPEC_CREATED
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_SPEC_CREATED.value)
+        assert job.status == ProjectStatus.DEMO_SPEC_CREATED.value
+
+        # Valid transition: DEMO_SPEC_CREATED -> DEMO_BUILDING
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_BUILDING.value)
+        assert job.status == ProjectStatus.DEMO_BUILDING.value
+
+        # Invalid transition: DEMO_BUILDING -> DEMO_DELIVERED (must go through QA and DEPLOYING/READY)
+        with pytest.raises(InvalidStateTransitionError):
+            await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_DELIVERED.value)
+
+        # Valid transition: DEMO_BUILDING -> DEMO_QA
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_QA.value)
+
+        # Valid transition: DEMO_QA -> DEMO_DEPLOYING
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_DEPLOYING.value)
+
+        # Valid transition: DEMO_DEPLOYING -> DEMO_READY
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_READY.value, deployment_url="/demo/sm-target")
+
+        # Valid transition: DEMO_READY -> DEMO_DELIVERED
+        await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_DELIVERED.value)
+        assert job.status == ProjectStatus.DEMO_DELIVERED.value
+
+        # Invalid transition from terminal state DEMO_DELIVERED -> DEMO_BUILDING
+        with pytest.raises(InvalidStateTransitionError):
+            await DemoJobManager.update_job_status(session, job.id, ProjectStatus.DEMO_BUILDING.value)
+
+
+@pytest.mark.asyncio
+async def test_production_payment_gate_enforcement():
+    """B14: Verify advance payment gate strictly blocks production build until payment confirmed."""
+    async with AsyncSessionLocal() as session:
+        biz = Business(
+            domain="payment-gate-target.com",
+            name="Payment Gate Target",
+            country="US",
+            niche="Healthcare",
+            public_email="pay@target.com",
+            pipeline_stage=PipelineStage.DEMO_REQUESTED.value,
+            demo_requested=True,
+            created_at=datetime.utcnow()
+        )
+        session.add(biz)
+        await session.commit()
+        await session.refresh(biz)
+
+        project = await pipeline_orchestrator.get_or_create_project(session, biz.id)
+        assert project.payment_required is True
+        assert project.payment_status == "PENDING"
+        assert project.production_build_authorized is False
+
+        # Attempt to authorize production build without advance payment -> MUST RAISE
+        with pytest.raises(PaymentAuthorizationRequiredError):
+            await ProductionPaymentGate.authorize_production_build(
+                session, project.project_id, advance_payment_confirmed=False
+            )
+
+        # Confirm advance payment -> Authorization succeeds
+        updated_project = await ProductionPaymentGate.authorize_production_build(
+            session, project.project_id, advance_payment_confirmed=True
+        )
+        assert updated_project.production_build_authorized is True
+        assert updated_project.payment_status == "CONFIRMED"
+        assert updated_project.production_status == ProductionProjectStatus.PRODUCTION_BUILD_AUTHORIZED.value
+
+
+@pytest.mark.asyncio
+async def test_prepare_demo_delivery_package_sanitization():
+    """B13: Verify delivery package compiles cleanly and zero internal tooling is leaked."""
+    async with AsyncSessionLocal() as session:
+        biz = Business(
+            domain="sanitized-client.com",
+            name="Sanitized Client Corp",
+            country="US",
+            niche="E-Commerce",
+            public_email="client@sanitized.com",
+            pipeline_stage=PipelineStage.DEMO_REQUESTED.value,
+            demo_requested=True,
+            created_at=datetime.utcnow()
+        )
+        session.add(biz)
+        await session.commit()
+        await session.refresh(biz)
+
+        job, _ = await DemoJobManager.create_or_get_job(session, biz.id)
+        job.status = ProjectStatus.DEMO_READY.value
+        job.deployment_url = f"https://automatedagencyos.tech/demo/{job.customer_slug}"
+        await session.commit()
+
+        pkg = prepare_demo_delivery_package(job)
+        assert pkg["demo_url"] == f"https://automatedagencyos.tech/demo/{job.customer_slug}"
+        assert pkg["qa_result"]["certified"] is True
+        assert len(pkg["implemented_functionality"]) > 0
+
+        # Strict internal tooling leakage check
+        full_text = str(pkg).lower()
+        forbidden_terms = ["stitch", "antigravity", "firebase", "google ai studio", "gemini-api"]
+        for term in forbidden_terms:
+            assert term not in full_text, f"Internal tooling '{term}' leaked in customer delivery package!"
+

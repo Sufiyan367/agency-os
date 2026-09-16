@@ -14,7 +14,9 @@ from app.database.models import (
     Business,
     DemoBuildJob,
     ProjectStatus,
-    PipelineStage
+    PipelineStage,
+    CustomerProject,
+    ProductionProjectStatus
 )
 
 logger = logging.getLogger("agency.demo_job_manager")
@@ -37,6 +39,16 @@ REJECTED_TRIGGER_STAGES = {
 
 class TriggerGateRejectedError(ValueError):
     """Raised when demo build trigger is invoked without explicit demo request."""
+    pass
+
+
+class InvalidStateTransitionError(ValueError):
+    """Raised when an illegal demo state transition is attempted."""
+    pass
+
+
+class PaymentAuthorizationRequiredError(PermissionError):
+    """Raised when production build is attempted without advance payment confirmation."""
     pass
 
 
@@ -150,7 +162,8 @@ class DemoJobManager:
         new_status: str,
         deployment_url: Optional[str] = None,
         error_details: Optional[str] = None,
-        spec_summary_update: Optional[Dict[str, Any]] = None
+        spec_summary_update: Optional[Dict[str, Any]] = None,
+        validate_transition: bool = True
     ) -> DemoBuildJob:
         """
         Updates the status of a DemoBuildJob through canonical lifecycle progression.
@@ -160,6 +173,9 @@ class DemoJobManager:
             raise ValueError(f"DemoBuildJob #{job_id} not found.")
 
         old_status = job.status
+        if validate_transition and old_status in DemoStateMachine.VALID_TRANSITIONS:
+            DemoStateMachine.validate_transition(old_status, new_status)
+
         job.status = new_status
         job.updated_at = datetime.utcnow()
 
@@ -172,7 +188,7 @@ class DemoJobManager:
             current.update(spec_summary_update)
             job.spec_summary = current
 
-        if new_status in (ProjectStatus.DEMO_READY.value, ProjectStatus.DEMO_DELIVERED.value):
+        if new_status in (ProjectStatus.DEMO_READY.value, ProjectStatus.DEMO_DELIVERED.value, ProjectStatus.DEMO_SANDBOX_READY.value):
             job.completed_at = datetime.utcnow()
         elif "FAILED" in new_status:
             job.retry_count += 1
@@ -181,3 +197,166 @@ class DemoJobManager:
         await session.refresh(job)
         logger.info(f"[DemoJobManager] Job {job.demo_id} transitioned: {old_status} -> {new_status}")
         return job
+
+
+class DemoStateMachine:
+    """
+    B16: Formal Demo Lifecycle State Machine.
+    Enforces valid state progressions and rejects invalid transitions.
+    """
+    VALID_TRANSITIONS = {
+        ProjectStatus.DEMO_REQUESTED.value: {
+            ProjectStatus.DEMO_SPEC_CREATED.value,
+            ProjectStatus.DEMO_BUILDING.value,
+            ProjectStatus.DEMO_BUILD_FAILED.value,
+        },
+        ProjectStatus.DEMO_SPEC_CREATED.value: {
+            ProjectStatus.DEMO_BUILDING.value,
+            ProjectStatus.DEMO_BUILD_FAILED.value,
+        },
+        ProjectStatus.DEMO_BUILDING.value: {
+            ProjectStatus.DEMO_QA.value,
+            ProjectStatus.DEMO_BUILD_FAILED.value,
+        },
+        ProjectStatus.DEMO_QA.value: {
+            ProjectStatus.DEMO_DEPLOYING.value,
+            ProjectStatus.DEMO_QA_FAILED.value,
+            ProjectStatus.DEMO_READY.value,
+            ProjectStatus.DEMO_SANDBOX_READY.value,
+        },
+        ProjectStatus.DEMO_QA_FAILED.value: {
+            ProjectStatus.DEMO_BUILDING.value,  # Auto-fix loop attempt
+            ProjectStatus.DEMO_BUILD_FAILED.value,
+        },
+        ProjectStatus.DEMO_DEPLOYING.value: {
+            ProjectStatus.DEMO_READY.value,
+            ProjectStatus.DEMO_SANDBOX_READY.value,
+            ProjectStatus.DEMO_DEPLOYMENT_BLOCKED.value,
+            ProjectStatus.DEMO_BUILD_FAILED.value,
+        },
+        ProjectStatus.DEMO_DEPLOYMENT_BLOCKED.value: {
+            ProjectStatus.DEMO_SANDBOX_READY.value,
+            ProjectStatus.DEMO_DEPLOYING.value,
+        },
+        ProjectStatus.DEMO_SANDBOX_READY.value: {
+            ProjectStatus.DEMO_READY.value,
+            ProjectStatus.DEMO_DELIVERED.value,
+        },
+        ProjectStatus.DEMO_READY.value: {
+            ProjectStatus.DEMO_DELIVERED.value,
+        },
+        ProjectStatus.DEMO_DELIVERED.value: set(),
+        ProjectStatus.DEMO_BUILD_FAILED.value: {
+            ProjectStatus.DEMO_REQUESTED.value,
+            ProjectStatus.DEMO_BUILDING.value,
+        },
+    }
+
+    @classmethod
+    def validate_transition(cls, current_status: str, new_status: str) -> bool:
+        if current_status == new_status:
+            return True
+        allowed = cls.VALID_TRANSITIONS.get(current_status, set())
+        if new_status not in allowed:
+            raise InvalidStateTransitionError(
+                f"Invalid demo state transition: cannot move from '{current_status}' to '{new_status}'. "
+                f"Allowed transitions: {list(allowed)}"
+            )
+        return True
+
+
+class ProductionPaymentGate:
+    """
+    B14: Production Implementation Payment Gate.
+    Strictly enforces:
+    DEMO_READY does NOT authorize production implementation.
+    Production build CANNOT begin until advance payment is confirmed.
+    """
+    @classmethod
+    def can_authorize_production_build(cls, project: CustomerProject) -> bool:
+        status = str(getattr(project, "payment_status", "PENDING")).upper()
+        return status in ("CONFIRMED", "PAID", "VERIFIED_PAYMENT", "ADVANCE_PAYMENT_CONFIRMED")
+
+    @classmethod
+    async def authorize_production_build(
+        cls,
+        session: AsyncSession,
+        project_id: str,
+        advance_payment_confirmed: bool = False
+    ) -> CustomerProject:
+        stmt = select(CustomerProject).where(CustomerProject.project_id == project_id)
+        project = (await session.execute(stmt)).scalars().first()
+        if not project:
+            raise ValueError(f"CustomerProject '{project_id}' not found.")
+
+        if not advance_payment_confirmed and not cls.can_authorize_production_build(project):
+            raise PaymentAuthorizationRequiredError(
+                f"Production build authorization rejected for project '{project_id}': "
+                f"Advance payment is required before production implementation can begin. "
+                f"Current payment status: '{getattr(project, 'payment_status', 'PENDING')}'. "
+                f"Demo completion does NOT authorize production implementation."
+            )
+
+        project.payment_required = True
+        project.payment_status = "CONFIRMED"
+        project.production_build_authorized = True
+        project.production_status = ProductionProjectStatus.PRODUCTION_BUILD_AUTHORIZED.value
+        project.status = ProductionProjectStatus.PRODUCTION_BUILD_AUTHORIZED.value
+        await session.commit()
+        await session.refresh(project)
+        logger.info(f"[ProductionPaymentGate] Production build authorized for project '{project_id}' after advance payment confirmation.")
+        return project
+
+
+def prepare_demo_delivery_package(
+    job: DemoBuildJob,
+    project: Optional[CustomerProject] = None
+) -> Dict[str, Any]:
+    """
+    B13: Clean customer-facing delivery package.
+    Sanitized: Zero internal tooling references (no mention of Stitch, Antigravity, Google AI Studio, Firebase).
+    """
+    biz_name = (job.spec_summary or {}).get("title") or job.customer_slug
+    deployment_url = job.deployment_url or f"/demo/{job.customer_slug}"
+
+    features = []
+    if project and getattr(project, "builds", None):
+        latest = project.builds[-1]
+        manifest = latest.artifacts_manifest or {}
+        if "n8n_automation.json" in manifest:
+            features.append("Integrated Inbound Lead Automation & CRM Routing")
+        if "app.js" in manifest:
+            features.append("Interactive Client Experience Portal")
+    if not features:
+        features = [
+            "Tailored Interactive Brand Prototype",
+            "High-Conversion Lead Qualification Workflow",
+            "Real-Time Response Integration"
+        ]
+
+    is_sandbox = "demo/" in deployment_url or "localhost" in deployment_url or "automatedagencyos.tech/demo" in deployment_url
+    limitations = (
+        "Interactive demonstration sandbox. Live production deployment requires custom domain DNS cutover and dedicated client credentials."
+        if is_sandbox else
+        "Live staging prototype. Production cutover ready upon contract execution."
+    )
+
+    customer_message = (
+        f"Hi there! Your bespoke Agency OS interactive demo for {biz_name} is ready for review.\n\n"
+        f"Live Demo URL: {deployment_url}\n\n"
+        f"Key Implemented Features:\n"
+        + "".join(f"- {f}\n" for f in features)
+        + f"\nNext Steps: If this matches your requirements, our team will deliver the official commercial proposal and production rollout plan."
+    )
+
+    return {
+        "customer_slug": job.customer_slug,
+        "demo_url": deployment_url,
+        "implemented_functionality": features,
+        "qa_result": {
+            "status": "PASSED" if job.status in (ProjectStatus.DEMO_READY.value, ProjectStatus.DEMO_SANDBOX_READY.value) else job.status,
+            "certified": job.status in (ProjectStatus.DEMO_READY.value, ProjectStatus.DEMO_SANDBOX_READY.value, ProjectStatus.DEMO_DELIVERED.value)
+        },
+        "limitations": limitations,
+        "customer_message": customer_message
+    }

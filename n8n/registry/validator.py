@@ -52,7 +52,13 @@ VALID_CATEGORIES = {
     "customer onboarding",
     "appointment automation",
     "reporting",
-    "ai support automation"
+    "ai support automation",
+    "outreach",
+    "follow-up",
+    "crm",
+    "onboarding",
+    "ai support",
+    "agency operations"
 }
 
 VALID_ADAPTATION_STATUSES = {
@@ -64,9 +70,23 @@ VALID_ADAPTATION_STATUSES = {
 
 VALID_COMMERCIAL_STATUSES = {
     "COMMERCIAL_READY",
+    "INTERNAL_PROVEN",
+    "REQUIRES_EXTERNAL_VERIFICATION",
     "INTERNAL_ONLY",
     "BLOCKED_LICENSE",
+    "BLOCKED_SECURITY",
     "PENDING_REVIEW"
+}
+
+VALID_TEST_STATUSES = {
+    "STATIC_VALIDATED",
+    "SANDBOX_EXECUTED",
+    "PROVIDER_EXECUTED",
+    "PRODUCTION_PROVEN",
+    "EXTERNAL_EXECUTION_BLOCKED",
+    "VALIDATED_SYNTAX_AND_SCHEMA",
+    "PASSED_STRICT_AUDIT",
+    "UNTESTED"
 }
 
 
@@ -117,6 +137,10 @@ def validate_registry(registry_path: Path) -> Dict[str, Any]:
         comm = wf["commercialization_status"]
         if comm not in VALID_COMMERCIAL_STATUSES:
             raise GovernanceViolation(f"Workflow '{name}' has invalid commercialization_status: '{comm}'")
+
+        test_st = wf.get("test_status")
+        if test_st and test_st not in VALID_TEST_STATUSES:
+            raise GovernanceViolation(f"Workflow '{name}' has invalid test_status: '{test_st}'")
 
         # Legal License Gating Rule
         if wf["source_license"] in ("NO_LICENSE_ALL_RIGHTS_RESERVED", "UNKNOWN") or adapt == "BLOCKED_LICENSE":

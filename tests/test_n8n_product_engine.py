@@ -11,7 +11,11 @@ from pathlib import Path
 
 from n8n.registry.source_ingester import N8nSourceIngester, LicenseStatus, SecurityStatus
 from n8n.registry.agency_os_extractor import AgencyOsWorkflowExtractor
-from n8n.registry.execution_verifier import N8nExecutionVerifier
+from n8n.registry.execution_verifier import (
+    N8nExecutionVerifier,
+    ExecutionVerificationState,
+    CommercializationStatus
+)
 
 
 @pytest.mark.asyncio
@@ -226,3 +230,62 @@ async def test_execution_verifier_8_step_pipeline():
     # Verify execution output
     assert report.output_sample["deal_value"] == 750.0
     assert report.output_sample["feasibility_score"] >= 80.0
+    assert report.execution_state == ExecutionVerificationState.PRODUCTION_PROVEN
+    assert report.commercialization_status == CommercializationStatus.COMMERCIAL_READY
+    assert report.failure_path_tested is True
+
+
+@pytest.mark.asyncio
+async def test_execution_verifier_honest_states_and_audit():
+    """Verify that catalog audit produces honest states without fake production claims."""
+    verifier = N8nExecutionVerifier()
+    audit = verifier.audit_all_catalog_workflows()
+
+    assert "catalog_summary" in audit
+    summary = audit["catalog_summary"]
+    assert summary["total"] == 10
+    assert summary["COMMERCIAL_READY"] >= 4
+    assert summary["BLOCKED_LICENSE"] == 1
+    assert summary["EXTERNAL_EXECUTION_BLOCKED"] >= 2
+
+    workflows_by_name = {w["workflow_name"]: w for w in audit["workflows"]}
+
+    # Blocked license workflow must not be marked production proven or commercial ready
+    rag_wf = workflows_by_name["REF-RAG-MultiSourceResearch-v0.5"]
+    assert rag_wf["commercialization_status"] == CommercializationStatus.BLOCKED_LICENSE
+    assert rag_wf["execution_verification_state"] == ExecutionVerificationState.STATIC_VALIDATED
+
+    # Workflow requiring external HubSpot token must be marked blocked
+    hub_wf = workflows_by_name["REF-HUB-LinkedInEnrichment-HubSpot-v0.9"]
+    assert hub_wf["commercialization_status"] == CommercializationStatus.REQUIRES_EXTERNAL_VERIFICATION
+    assert hub_wf["execution_verification_state"] == ExecutionVerificationState.EXTERNAL_EXECUTION_BLOCKED
+
+    # Core scoring workflow is proven in Agency OS core and commercial ready
+    score_wf = workflows_by_name["AGY-SCORE-LeadQualification-CommercialFloor-v1.0"]
+    assert score_wf["commercialization_status"] == CommercializationStatus.COMMERCIAL_READY
+    assert score_wf["execution_verification_state"] == ExecutionVerificationState.PRODUCTION_PROVEN
+
+
+@pytest.mark.asyncio
+async def test_failure_path_verification():
+    """Verify failure paths are deterministically tested and handled safely."""
+    verifier = N8nExecutionVerifier()
+
+    # 1. Commercial Floor Scoring failure path: deal below $500 floor
+    floor_fail = verifier.verify_failure_path(
+        {"nodes": [{"name": "commercial_floor_scoring"}]},
+        {"COMMERCIAL_FLOOR_USD": 500.0}
+    )
+    assert floor_fail["tested"] is True
+    assert floor_fail["passed"] is True
+    assert "Sub-$500 floor correctly blocked" in floor_fail["details"]
+
+    # 2. Inbound Intent failure path: unsubscribe / opt-out
+    optout_fail = verifier.verify_failure_path(
+        {"nodes": [{"name": "inbound_intent_classifier"}]},
+        {}
+    )
+    assert optout_fail["tested"] is True
+    assert optout_fail["passed"] is True
+    assert "auto-cancelled" in optout_fail["details"]
+

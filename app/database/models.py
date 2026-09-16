@@ -106,6 +106,8 @@ class ProjectStatus(str, enum.Enum):
     REPAIRING = "REPAIRING"
     DEPLOYING = "DEPLOYING"
     DEMO_DEPLOYING = "DEMO_DEPLOYING"
+    DEMO_DEPLOYMENT_BLOCKED = "DEMO_DEPLOYMENT_BLOCKED"
+    DEMO_SANDBOX_READY = "DEMO_SANDBOX_READY"
     READY = "READY"
     DEMO_READY = "DEMO_READY"
     DEMO_DELIVERED = "DEMO_DELIVERED"
@@ -131,6 +133,8 @@ class DeploymentStatus(str, enum.Enum):
     DEPLOYING = "DEPLOYING"
     VERIFYING = "VERIFYING"
     DEMO_READY = "DEMO_READY"
+    DEMO_SANDBOX_READY = "DEMO_SANDBOX_READY"
+    DEMO_DEPLOYMENT_BLOCKED = "DEMO_DEPLOYMENT_BLOCKED"
     FAILED = "FAILED"
 
 class CustomerAcceptanceStatus(str, enum.Enum):
@@ -142,6 +146,7 @@ class CustomerAcceptanceStatus(str, enum.Enum):
 class CommercialProposalStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     PROPOSAL_GENERATED = "PROPOSAL_GENERATED"
+    PROPOSAL_SENT = "PROPOSAL_SENT"
     PROPOSAL_ACCEPTED = "PROPOSAL_ACCEPTED"
     REJECTED = "REJECTED"
     EXPIRED = "EXPIRED"
@@ -149,12 +154,21 @@ class CommercialProposalStatus(str, enum.Enum):
 class ProductionProjectStatus(str, enum.Enum):
     CREATED = "CREATED"
     UNLOCKED = "UNLOCKED"
+    PROPOSAL_SENT = "PROPOSAL_SENT"
+    ADVANCE_PAYMENT_REQUIRED = "ADVANCE_PAYMENT_REQUIRED"
+    ADVANCE_PAYMENT_CONFIRMED = "ADVANCE_PAYMENT_CONFIRMED"
+    PRODUCTION_BUILD_AUTHORIZED = "PRODUCTION_BUILD_AUTHORIZED"
     BUILDING = "BUILDING"
+    PRODUCTION_BUILDING = "PRODUCTION_BUILDING"
     QA = "QA"
+    PRODUCTION_QA = "PRODUCTION_QA"
     DEPLOYING = "DEPLOYING"
+    PRODUCTION_DEPLOYED = "PRODUCTION_DEPLOYED"
     LIVE = "LIVE"
+    FINAL_PAYMENT_PENDING = "FINAL_PAYMENT_PENDING"
     HANDOVER_READY = "HANDOVER_READY"
     HANDOVER_DELIVERED = "HANDOVER_DELIVERED"
+    HANDED_OVER = "HANDED_OVER"
     ACTIVE = "CUSTOMER_ACTIVE"
     FAILED = "FAILED"
 
@@ -1458,6 +1472,9 @@ class CustomerProject(Base):
     status: Mapped[str] = mapped_column(String(50), default=ProjectStatus.REQUESTED.value, index=True)
     current_stage: Mapped[str] = mapped_column(String(50), default="SPEC", index=True)
     demo_requested: Mapped[bool] = mapped_column(Boolean, default=True)
+    payment_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    payment_status: Mapped[str] = mapped_column(String(50), default="PENDING", index=True)
+    production_build_authorized: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

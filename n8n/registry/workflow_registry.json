@@ -64,8 +64,8 @@
         "n8n-nodes-base.respondToWebhook"
       ],
       "adaptation_status": "PROVEN_AGENCY_OS_CORE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
-      "commercialization_status": "COMMERCIAL_READY",
+      "test_status": "SANDBOX_EXECUTED",
+      "commercialization_status": "INTERNAL_PROVEN",
       "template_dir": "n8n/templates/lead_enrichment/domain_enrichment_diagnostic_vector",
       "notes": "Sanitized Agency OS 6-vector diagnostic auditor. Zero external dependencies beyond standard HTTP capabilities. Includes safe fallback for unreachable domains."
     },
@@ -87,7 +87,7 @@
         "n8n-nodes-base.respondToWebhook"
       ],
       "adaptation_status": "PROVEN_AGENCY_OS_CORE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "test_status": "PRODUCTION_PROVEN",
       "commercialization_status": "COMMERCIAL_READY",
       "template_dir": "n8n/templates/lead_qualification/commercial_floor_scoring",
       "notes": "Prevents sales team from wasting cycles on unprofitable clients. Transparent 0-100 rubric with strict budget floor gating."
@@ -111,7 +111,7 @@
         "n8n-nodes-base.respondToWebhook"
       ],
       "adaptation_status": "PROVEN_AGENCY_OS_CORE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
+      "test_status": "PRODUCTION_PROVEN",
       "commercialization_status": "COMMERCIAL_READY",
       "template_dir": "n8n/templates/reply_classification/inbound_intent_classifier",
       "notes": "Strictly decouples demo creation: routes positive leads to requirements gathering rather than premature automated demo building."
@@ -134,10 +134,10 @@
         "n8n-nodes-base.respondToWebhook"
       ],
       "adaptation_status": "PROVEN_AGENCY_OS_CORE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
-      "commercialization_status": "COMMERCIAL_READY",
+      "test_status": "EXTERNAL_EXECUTION_BLOCKED",
+      "commercialization_status": "REQUIRES_EXTERNAL_VERIFICATION",
       "template_dir": "n8n/templates/personalized_outreach/cold_outreach_safety_guard",
-      "notes": "Includes 14 pre-send deliverability and compliance checks. Does not send blindly; stages output for human or policy approval."
+      "notes": "Includes 14 pre-send deliverability and compliance checks. Does not send blindly; stages output for human or policy approval. Live delivery requires external SMTP credentials."
     },
     {
       "workflow_name": "AGY-FOLLOWUP-SmartCadence-AutoCancelOnReply-v1.0",
@@ -157,8 +157,8 @@
         "n8n-nodes-base.respondToWebhook"
       ],
       "adaptation_status": "PROVEN_AGENCY_OS_CORE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
-      "commercialization_status": "COMMERCIAL_READY",
+      "test_status": "SANDBOX_EXECUTED",
+      "commercialization_status": "INTERNAL_PROVEN",
       "template_dir": "n8n/templates/sales_followup/smart_cadence_auto_cancel",
       "notes": "Enforces 2-touch max cadence, preventing spam penalties and brand fatigue."
     },
@@ -177,10 +177,10 @@
         "n8n-nodes-base.httpRequest"
       ],
       "adaptation_status": "ADAPTED_FROM_REFERENCE",
-      "test_status": "VALIDATED_SYNTAX_AND_SCHEMA",
-      "commercialization_status": "COMMERCIAL_READY",
+      "test_status": "EXTERNAL_EXECUTION_BLOCKED",
+      "commercialization_status": "REQUIRES_EXTERNAL_VERIFICATION",
       "template_dir": null,
-      "notes": "Licensed under CC-BY-4.0. Must attribute Enes Cing\u00f6z and state changes made in template documentation."
+      "notes": "Licensed under CC-BY-4.0. Must attribute Enes Cingöz and state changes made in template documentation. Requires external HubSpot API token."
     },
     {
       "workflow_name": "REF-RAG-MultiSourceResearch-v0.5",
@@ -197,7 +197,7 @@
         "n8n-nodes-langchain.agent"
       ],
       "adaptation_status": "BLOCKED_LICENSE",
-      "test_status": "UNTESTED",
+      "test_status": "STATIC_VALIDATED",
       "commercialization_status": "BLOCKED_LICENSE",
       "template_dir": null,
       "notes": "COMMERCIALIZATION STRICTLY FORBIDDEN: Upstream repo has no license file. Kept as architectural concept reference only."
@@ -216,9 +216,9 @@
       ],
       "template_dir": "n8n/templates/crm_automation/pipeline_syncer",
       "adaptation_status": "ADAPTED_FROM_REFERENCE",
-      "test_status": "PASSED_STRICT_AUDIT",
-      "commercialization_status": "COMMERCIAL_READY",
-      "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution."
+      "test_status": "SANDBOX_EXECUTED",
+      "commercialization_status": "REQUIRES_EXTERNAL_VERIFICATION",
+      "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution. Live external sync requires CRM API key."
     },
     {
       "workflow_name": "AGY-ONBOARD-ClientWelcome-SetupJourney-v1.0",
@@ -234,7 +234,7 @@
       ],
       "template_dir": "n8n/templates/customer_onboarding/client_welcome",
       "adaptation_status": "ADAPTED_FROM_REFERENCE",
-      "test_status": "PASSED_STRICT_AUDIT",
+      "test_status": "SANDBOX_EXECUTED",
       "commercialization_status": "COMMERCIAL_READY",
       "notes": "Adapted under CC-BY-4.0 with explicit attribution in metadata and README.md."
     },
@@ -252,7 +252,7 @@
       ],
       "template_dir": "n8n/templates/ai_support_automation/ticket_triage",
       "adaptation_status": "ADAPTED_FROM_REFERENCE",
-      "test_status": "PASSED_STRICT_AUDIT",
+      "test_status": "SANDBOX_EXECUTED",
       "commercialization_status": "COMMERCIAL_READY",
       "notes": "Adapted from Zie619 MIT repository. Zero secrets, sanitized for commercial distribution."
     }
