@@ -29,10 +29,10 @@ export interface NotificationItem {
 
 export interface NotificationListResponse {
   items: NotificationItem[];
-  total: int;
-  unread_count: int;
-  page: int;
-  page_size: int;
+  total: number;
+  unread_count: number;
+  page: number;
+  page_size: number;
 }
 
 function urlB64ToUint8Array(base64String: string): Uint8Array {
@@ -189,7 +189,7 @@ export class NotificationCenterController {
       // 2. Subscribe to push manager
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey,
+        applicationServerKey: convertedVapidKey as any,
       });
 
       // 3. Extract credentials

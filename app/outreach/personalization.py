@@ -53,8 +53,7 @@ class OutreachPersonalizer:
             return ComplianceProfile(enabled=False)
 
         addr = (getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or "").strip()
-        KNOWN_PH = ["100 innovation way", "100 congress ave", "wilmington, de", "austin, tx"]
-        if any(p in addr.lower() for p in KNOWN_PH):
+        if compliance_guard.is_placeholder_address(addr):
             addr = None
 
         return ComplianceProfile(

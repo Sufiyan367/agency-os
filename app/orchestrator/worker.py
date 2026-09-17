@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 
 from app.database.connection import AsyncSessionLocal
 from app.database.models import (
-    SystemRun, Business, PipelineStage, OutreachMessage, OutreachStatus,
+    SystemRun, Business, PipelineStage, PipelineEvent, OutreachMessage, OutreachStatus,
     Reply, ReplyClassification, FollowupStatus, CustomerProject, ProjectStatus
 )
 from app.crm.inbox_poller import inbox_poller
@@ -213,7 +213,7 @@ class PersistentAgencyWorker:
                     except Exception as appr_err:
                         logger.error(f"[PersistentWorker] Auto-approval evaluation error: {appr_err}")
 
-                # Job 1b: Capacity-Governed Approved Queue Processing (DISPATCH)
+                # Job 1b: Capacity-Governed Approved & Queued Processing (DISPATCH)
                 summary["approved_queue_processed"] = 0
                 summary["approved_queue_deferred"] = 0
                 if getattr(settings, "AUTONOMOUS_OUTREACH", True) and not getattr(settings, "EMERGENCY_STOP", False):
@@ -221,7 +221,13 @@ class PersistentAgencyWorker:
                     available_cap = cap_summary.get("available_capacity", 0)
                     approved_stmt = (
                         select(OutreachMessage)
-                        .where(OutreachMessage.status == OutreachStatus.APPROVED)
+                        .where(
+                            OutreachMessage.status.in_([
+                                OutreachStatus.OUTREACH_QUEUED.value,
+                                OutreachStatus.APPROVED.value,
+                                OutreachStatus.SEND_ATTEMPTED.value
+                            ])
+                        )
                         .order_by(OutreachMessage.created_at.asc())
                     )
                     approved_msgs = (await session.execute(approved_stmt)).scalars().all()
@@ -235,13 +241,17 @@ class PersistentAgencyWorker:
                                     summary["approved_queue_processed"] += 1
                                     available_cap -= 1
                             except Exception as send_err:
-                                logger.error(f"[PersistentWorker] Failed to dispatch approved message #{msg.id}: {send_err}")
+                                logger.error(f"[PersistentWorker] Failed to dispatch queued/approved message #{msg.id}: {send_err}")
+                                # Guarantee message does not remain indefinitely in in-flight transition state
+                                if msg.status not in (OutreachStatus.OUTREACH_BLOCKED.value, OutreachStatus.SEND_FAILED.value, OutreachStatus.SENT.value):
+                                    msg.status = OutreachStatus.SEND_FAILED.value
+                                    await session.commit()
                         summary["approved_queue_deferred"] = len(approved_msgs) - summary["approved_queue_processed"]
                     else:
                         summary["approved_queue_deferred"] = len(approved_msgs)
                         if approved_msgs and available_cap <= 0:
                             logger.info(
-                                f"[PersistentWorker] {len(approved_msgs)} approved messages deferred: "
+                                f"[PersistentWorker] {len(approved_msgs)} approved/queued messages deferred: "
                                 f"sender capacity exhausted for today ({cap_summary.get('rollout_stage_name')} cap: {cap_summary.get('rollout_daily_cap')}/day)."
                             )
                 else:
@@ -284,6 +294,16 @@ class PersistentAgencyWorker:
                 # Job 3c: Autonomous Demo Build Backlog Drainage (Persistent & Idempotent)
                 demos_n = await self.drain_demo_backlog(session, limit=5)
                 summary["demos_built"] = demos_n
+
+                # Job 3d: Autonomous Portfolio Maintenance & Rebalancing (Periodic or on tick intervals)
+                if self.ticks_executed % 60 == 0:
+                    try:
+                        from app.market_intelligence.autonomous_market_engine import autonomous_market_engine
+                        rebal_res = await autonomous_market_engine.rebalance_portfolio(session)
+                        summary["portfolio_rebalanced"] = True
+                        logger.info(f"[PersistentWorker] Autonomous portfolio maintenance rebalanced {len(rebal_res.get('active_portfolio', []))} markets.")
+                    except Exception as rebal_err:
+                        logger.debug(f"[PersistentWorker] Autonomous rebalance skipped: {rebal_err}")
 
                 # Job 4: Lead Discovery (CONTINUOUS WORKER) & Audit/Scoring (AUTOMATIC) & Outreach (QUEUE + APPROVAL)
                 cycle_interval_mins = settings.WORKER_CYCLE_INTERVAL_MINUTES
@@ -387,6 +407,20 @@ class PersistentAgencyWorker:
             except Exception as e:
                 logger.error(f"[PersistentWorker:Audit] Failed to audit {domain_name}: {e}")
                 await session.rollback()
+                try:
+                    failed_biz = await session.get(Business, biz_id)
+                    if failed_biz:
+                        failed_biz.pipeline_stage = PipelineStage.REJECTED.value
+                        session.add(PipelineEvent(
+                            business_id=failed_biz.id,
+                            from_stage=failed_biz.pipeline_stage,
+                            to_stage=PipelineStage.REJECTED.value,
+                            note=f"Audit failed: {str(e)[:200]}"
+                        ))
+                        await session.commit()
+                except Exception as rec_err:
+                    logger.error(f"[PersistentWorker:Audit] Could not record rejection for #{biz_id}: {rec_err}")
+                    await session.rollback()
         return audited_count
 
     async def drain_scoring_backlog(self, session: AsyncSession, limit: int = 10) -> int:
@@ -412,16 +446,37 @@ class PersistentAgencyWorker:
                 score = await lead_scoring_engine.score_business(session, biz)
                 offer = await offer_engine.generate_offer_for_business(session, biz)
                 price = getattr(offer, "recommended_price", 0.0) or 0.0
-                if price >= commercial_floor:
-                    biz.pipeline_stage = PipelineStage.QUALIFIED.value
-                else:
-                    biz.pipeline_stage = PipelineStage.REJECTED.value
+                # Enforce dual gate: score_business must qualify (score >= 55.0) AND price must meet commercial floor
+                if biz.pipeline_stage == PipelineStage.QUALIFIED.value:
+                    if price < commercial_floor:
+                        biz.pipeline_stage = PipelineStage.REJECTED.value
+                        session.add(PipelineEvent(
+                            business_id=biz.id,
+                            from_stage=PipelineStage.QUALIFIED.value,
+                            to_stage=PipelineStage.REJECTED.value,
+                            deal_value=0.0,
+                            note=f"Disqualified: Offer price ${price:.2f} below commercial floor ${commercial_floor:.2f}."
+                        ))
                 await session.commit()
                 scored_count += 1
                 logger.info(f"[PersistentWorker:Score] Scored {domain_name} -> {biz.pipeline_stage} (${price:.0f})")
             except Exception as e:
                 logger.error(f"[PersistentWorker:Score] Failed to score {domain_name}: {e}")
                 await session.rollback()
+                try:
+                    failed_biz = await session.get(Business, biz_id)
+                    if failed_biz:
+                        failed_biz.pipeline_stage = PipelineStage.REJECTED.value
+                        session.add(PipelineEvent(
+                            business_id=failed_biz.id,
+                            from_stage=failed_biz.pipeline_stage,
+                            to_stage=PipelineStage.REJECTED.value,
+                            note=f"Lead scoring failed: {str(e)[:200]}"
+                        ))
+                        await session.commit()
+                except Exception as rec_err:
+                    logger.error(f"[PersistentWorker:Score] Could not record rejection for #{biz_id}: {rec_err}")
+                    await session.rollback()
         return scored_count
 
     async def drain_drafting_backlog(self, session: AsyncSession, limit: int = 10) -> int:
@@ -452,6 +507,20 @@ class PersistentAgencyWorker:
             except Exception as e:
                 logger.error(f"[PersistentWorker:Draft] Failed to draft outreach for {domain_name}: {e}")
                 await session.rollback()
+                try:
+                    failed_biz = await session.get(Business, biz_id)
+                    if failed_biz:
+                        failed_biz.pipeline_stage = PipelineStage.REJECTED.value
+                        session.add(PipelineEvent(
+                            business_id=failed_biz.id,
+                            from_stage=failed_biz.pipeline_stage,
+                            to_stage=PipelineStage.REJECTED.value,
+                            note=f"Outreach drafting failed: {str(e)[:200]}"
+                        ))
+                        await session.commit()
+                except Exception as rec_err:
+                    logger.error(f"[PersistentWorker:Draft] Could not record rejection for #{biz_id}: {rec_err}")
+                    await session.rollback()
         return drafted_count
 
     async def drain_demo_backlog(self, session: AsyncSession, limit: int = 5) -> int:
@@ -483,6 +552,20 @@ class PersistentAgencyWorker:
             except Exception as e:
                 logger.error(f"[PersistentWorker:Demo] Failed to create project for biz #{biz_id}: {e}")
                 await session.rollback()
+                try:
+                    failed_biz = await session.get(Business, biz_id)
+                    if failed_biz:
+                        failed_biz.pipeline_stage = PipelineStage.DEMO_BUILD_FAILED.value
+                        session.add(PipelineEvent(
+                            business_id=failed_biz.id,
+                            from_stage=failed_biz.pipeline_stage,
+                            to_stage=PipelineStage.DEMO_BUILD_FAILED.value,
+                            note=f"Demo initialization failed: {str(e)[:200]}"
+                        ))
+                        await session.commit()
+                except Exception as rec_err:
+                    logger.error(f"[PersistentWorker:Demo] Could not record demo initialization failure for #{biz_id}: {rec_err}")
+                    await session.rollback()
 
         # 2. Pick up pending customer projects in DEMO_REQUESTED or REQUESTED state
         proj_stmt = (

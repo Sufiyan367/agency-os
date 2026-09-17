@@ -3070,6 +3070,7 @@ async def get_ceo_control_center_overview(
 
     worker_running = getattr(agency_worker, "is_running", False)
     loop_autonomous = getattr(settings, "AUTONOMOUS_OUTREACH", True) and not getattr(settings, "EMERGENCY_STOP", False)
+    n8n_status_payload = n8n_orchestrator.get_orchestration_status()
 
     system_status = {
         "system_status": "RUNNING",
@@ -3078,6 +3079,8 @@ async def get_ceo_control_center_overview(
         "email_status": email_status_str,
         "email_auth_blocker": email_auth_blocker,
         "outbound_authorization": outbound_authorization,
+        "n8n_orchestration": n8n_status_payload,
+        "n8n_status": n8n_status_payload["semantic_status"],
         "canonical_email": {
             "provider": canon_email["provider"],
             "address": canon_email["address"],

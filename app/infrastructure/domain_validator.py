@@ -22,7 +22,8 @@ class DomainValidator:
     def validate_email_syntax(email: str) -> bool:
         if not email or not isinstance(email, str):
             return False
-        return bool(EMAIL_REGEX.match(email.strip()))
+        from app.core.security import validate_email_syntax as core_validate_email_syntax
+        return core_validate_email_syntax(email.strip())
 
     @staticmethod
     def validate_domain_syntax(domain: str) -> bool:

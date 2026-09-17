@@ -1,416 +1,563 @@
-# Autonomous B2B Lead-Gen & Sales Agency — Production Walkthrough
+# AGENCY OS — COMPREHENSIVE ARCHITECTURE & OPERATIONAL WALKTHROUGH
 
-## 1. Executive Summary & Verification Highlights
+## 1. System Overview
 
-The Autonomous B2B Lead-Gen & Sales Agency platform has undergone a complete frontend redesign into a **futuristic Tony Stark / JARVIS-inspired Command Center** while maintaining 100% backend, API, worker, database, payment, and test integrity:
-1. **Tony Stark / JARVIS HUD Aesthetic**:
-   - **Cinematic Dark Palette**: Deep space obsidian (`#02050b`) with glowing radial cyan gradients (`#00f0ff`), neon cobalt (`#0070f3`), arc-reactor emerald (`#00ff9f`), and crimson warning accents.
-   - **Thin Technical Borders & Corner Accents**: Aerospace-grade HUD framing with glowing corner tick brackets and subtle 28px gridlines.
-   - **Aerospace & Cybernetic Typography**: Google Fonts integration with `Orbitron` (HUD readouts & titles), `Rajdhani` (body & telemetry), and `JetBrains Mono` (hashes, currency, reference IDs).
-2. **Large LIVE SYSTEM / AGENCY STATUS Panel**:
-   - **Animated Arc Reactor**: Concentric dual-ring rotating vector orb with pulsating glowing plasma core.
-   - **Real-Time Operational Telemetry**: Live Worker Status indicator (`ONLINE // ACTIVE`), Cadence (`60s TICK`), Tick Counter (`N TICKS`), Last Telemetry Tick timestamp, Primary Gateway (`RAZORPAY`), and Safeguard Mode (`DRY_RUN PROTECTED`).
-   - **Live Mission UTC Clock**: Real-time second-by-second mission timer (`HH:MM:SS UTC`).
-3. **High-Impact Tactical Data Panels**:
-   - **Real-Time KPI Cards**: Pipeline Value, Won Revenue, Discovered Prospects, Qualified Leads, Outreach Transmissions, Signal Reply Rate.
-   - **Market Radar**: Global market scanning matrix with empirical opportunity scores and digital deficit indicators.
-   - **Target Prospect Registry**: High-density lead matrix with qualification ratings and quick audit modals.
-   - **Outreach Authorization Terminal**: Evidence-grounded proposal review with 1-click transmission authorization.
-   - **Signal Interception Stream**: AI reply classification with intent badges, confidence ratings, and suggested response drafts.
-   - **Pipeline Kanban Radar**: Stage progression radar across all lifecycle stages.
-   - **Financial Ledger**: Razorpay & Stripe transaction journal with instant checkout link generation.
-   - **Scheduler & Worker Heartbeats**: Telemetry logs with latency and record counters.
-4. **Mobile Responsiveness**:
-   - Slide-out holographic navigation drawer.
-   - Sticky bottom HUD quick navigation ribbon (`Overview`, `Queue`, `Replies`, `Deals`).
-5. **100% Automated Test Health**: **51 / 51 automated tests passing green** in 32.87s.
+Agency OS is a deterministic, evidence-grounded operating system designed to engineer revenue per qualified lead, elevate reply quality, streamline demo conversion, and enforce strict delivery discipline.
+
+The platform has transitioned from an early automated crawler model to **Smart Revenue Engineering**: an operational architecture combining empirical research, epistemic truthfulness, isolated interactive demo generation, multi-stage commercial gates, and human-in-the-loop executive control.
+
+### Core System Principles:
+- **Evidence-Grounded**: Every outreach claim and commercial proposal is anchored in verifiable digital observations.
+- **Strict Epistemic Boundaries**: Hard architectural separation between factual observations, analytical inferences, and strategic recommendations.
+- **Safety First**: Automated actions stop at sensitive boundaries (outreach dispatch, payment verification, contract authorization, production deployment).
+- **Zero Fabricated Claims**: No fake testimonials, simulated case studies, synthetic reviews, or artificial revenue attribution.
+- **Isolated Sandboxes**: Interactive demos and staging environments operate in strict isolation without real customer side-effects.
 
 ---
 
-## 2. JARVIS HUD Architecture & Telemetry Strip
+## 2. Canonical Customer Journey
+
+The complete operational lifecycle spans from geographic targeting to recursive empirical learning:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     JARVIS // MARK-XXVI TACTICAL HUD                        │
-│                                                                             │
-│   [ARC REACTOR]   AUTONOMOUS REVENUE ENGINE                                 │
-│   (◉) Core Pulse  Worker: ONLINE // ACTIVE   Cadence: 60s TICK              │
-│    Rotating Rings Ticks: 42 TICKS            Last Tick: 00:58:15            │
-│                   Gateway: RAZORPAY PRIMARY  Mode: DRY_RUN PROTECTED        │
-│                                                                             │
-│   [ENGAGE AUTONOMOUS CYCLE]               MISSION TIME: 00:58:25 UTC        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  REAL-TIME KPI TELEMETRY                                                    │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
-│  │ PIPELINE VAL │ │ WON REVENUE  │ │  PROSPECTS   │ │ QUALIFIED    │        │
-│  │ $14,250      │ │ $2,400       │ │  128         │ │ 84 (65%)     │        │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  TACTICAL MODULES                                                           │
-│  • // MARKET RADAR           • // TARGET PROSPECTS                          │
-│  • // OUTREACH QUEUE         • // SIGNAL INTERCEPT (REPLIES)                │
-│  • // SALES PIPELINE         • // REVENUE & DEALS (RAZORPAY)                │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. Test Suite Verification (51 / 51 Passing Green)
-
-```
-============================= test session starts =============================
-platform win32 -- Python 3.11.9, pytest-8.4.2, pluggy-1.6.0
-rootdir: S:\AGENCY\BY AG
-configfile: pytest.ini
-plugins: anyio-4.12.1, asyncio-1.4.0
-collected 51 items
-
-tests/test_api_endpoints.py::test_api_health_and_endpoints PASSED        [  1%]
-tests/test_audit_engine.py::test_performance_auditor_detects_viewport_and_images PASSED [  3%]
-tests/test_audit_engine.py::test_seo_auditor_detects_missing_title_meta_schema PASSED [  5%]
-tests/test_audit_engine.py::test_accessibility_auditor_detects_wcag_violations PASSED [  7%]
-tests/test_audit_engine.py::test_master_audit_engine PASSED              [  9%]
-tests/test_backup_and_recovery.py::test_backup_creation_and_integrity PASSED [ 11%]
-tests/test_backup_and_recovery.py::test_list_backups PASSED              [ 13%]
-tests/test_backup_and_recovery.py::test_restore_backup_verification PASSED [ 15%]
-tests/test_cloud_auth_and_security.py::test_session_token_lifecycle PASSED [ 17%]
-tests/test_cloud_auth_and_security.py::test_credential_verification PASSED [ 19%]
-tests/test_cloud_auth_and_security.py::test_api_key_verification PASSED  [ 21%]
-tests/test_cloud_auth_and_security.py::test_auth_login_and_logout_endpoints PASSED [ 23%]
-tests/test_cloud_auth_and_security.py::test_public_health_endpoints_accessible PASSED [ 25%]
-tests/test_email_providers.py::test_dry_run_provider PASSED              [ 27%]
-tests/test_email_providers.py::test_email_provider_factory_safety_default PASSED [ 29%]
-tests/test_email_providers.py::test_resend_provider_payload PASSED       [ 31%]
-tests/test_email_providers.py::test_sendgrid_provider_payload PASSED     [ 33%]
-tests/test_email_providers.py::test_mandatory_human_approval_enforcement PASSED [ 35%]
-tests/test_email_providers.py::test_suppression_list_blocks_sender PASSED [ 37%]
-tests/test_inbox_and_autostop.py::test_inbox_message_matching_and_interested_reply PASSED [ 39%]
-tests/test_inbox_and_autostop.py::test_unsubscribe_auto_stop_and_suppression PASSED [ 41%]
-tests/test_inbox_and_autostop.py::test_bounce_auto_stop_and_suppression PASSED [ 43%]
-tests/test_inbox_and_autostop.py::test_process_due_followups_execution PASSED [ 45%]
-tests/test_lead_deduplication.py::test_lead_discovery_and_deduplication PASSED [ 47%]
-tests/test_lead_deduplication.py::test_lead_verification_checks PASSED   [ 49%]
-tests/test_market_intelligence.py::test_market_intelligence_ranking_and_comparison PASSED [ 50%]
-tests/test_outreach_and_approval_queue.py::test_outreach_queue_and_approval_gate PASSED [ 52%]
-tests/test_outreach_and_approval_queue.py::test_compliance_suppression_prevents_outreach PASSED [ 54%]
-tests/test_payments_and_onboarding.py::test_stripe_checkout_session_dry_run PASSED [ 56%]
-tests/test_payments_and_onboarding.py::test_stripe_hmac_signature_verification PASSED [ 58%]
-tests/test_payments_and_onboarding.py::test_payment_confirmation_and_automatic_onboarding PASSED [ 60%]
-tests/test_persistent_worker.py::### Test Results
-- `tests/test_phase17_voice_operations.py`: 18/18 passed
-- `tests/test_voice_sales_layer.py`: 10/10 passed
-
----
-
-# Phase 18 — Step 2: Provider Connectivity Preflight & Safety Verification
-
-## Overview
-Phase 18 Step 2 performs a non-destructive, strictly read-only preflight of the Email, Payment, and Voice provider infrastructure. It rigorously verifies provider configuration, public DNS health, credential validation, cryptographic HMAC webhook authentication, failure injection safety nets, and executes an isolated end-to-end simulation where all records are marked `SIMULATION/TEST` with zero live side-effects and zero revenue.
-
-## Verifications & Safety Guarantees
-
-### 1. Provider Connectivity & Preflight Status
-- **Email (Resend)**:
-  - Provider: Resend (`re_...` key format verified, non-empty, non-logged).
-  - Sender Domain: `agencygrowth.co` (`contact@agencygrowth.co`, Reply-To: `support@agencygrowth.co`).
-  - Public DNS: SPF (`v=spf1 include:resend.com ~all`) and DMARC (`v=DMARC1; p=none...`) present. DKIM CNAME records pending DNS registrar addition before live outbound sending can be unblocked.
-  - Live Sending Status: `BLOCKED` until DKIM verified; `EMAIL_DRY_RUN=True` actively enforced.
-- **Payment (Razorpay)**:
-  - Provider: Razorpay Test Mode (`rzp_test_...` key ID, secret, and webhook secret verified).
-  - Webhook Security: Cryptographic HMAC-SHA256 signature verification validated against live forged signatures (HTTP 400 rejection).
-  - Commercial Safeguards: Strict \$500.00 commercial floor enforced; sub-\$500 payments rejected with `ValueError`; duplicate webhook replays safely detected and ignored with `DUPLICATE_IGNORED`.
-  - Live Payment Status: `DISABLED` (`PAYMENTS_ENABLED=False`, `PAYMENT_DRY_RUN=True`).
-- **Voice (Twilio / Bland AI / Dry-Run)**:
-  - Active Mode: `VOICE_DRY_RUN=True` with `DryRunVoiceProvider`.
-  - 15-State Conversation Machine: Validated transitions from initial pitch to negotiation, proposal, payment handoff, or opt-out.
-  - Compliance: Immediate suppression on opt-out; automatic human escalation on legal, GDPR/privacy, hostility, and payment disputes.
-  - Live Voice Status: `DISABLED`.
-
-### 2. Mocked Internal End-to-End Flow (`SIMULATION/TEST`)
-- Executed full 11-step autonomous cycle in complete test isolation:
-  `Prospect -> Evidence -> Factual Audit -> Service Match -> $1,000+ Offer -> Auto-Approval -> Dry-Run Outreach -> Mock Inbound Reply -> Voice Call -> Price Negotiation -> Proposal -> Webhook Payment Event -> Verification -> Customer/Project Onboarding`.
-- Verified Invariant: Deal progressed to `PROPOSAL` upon verbal agreement; deal was **never** marked `WON` prematurely until verified HMAC webhook payment confirmation.
-
-### 3. Failure Injection Test Suite (`tests/test_phase18_provider_preflight.py`)
-- **Email Failures**: Suppressed recipient blocked (`ValueError`), duplicate send prohibited (`ValueError`), live send without credentials rejected (`ValueError`).
-- **Payment Failures**: Forged signature rejected (HTTP 400), underpayment below \$500 floor rejected (`ValueError`), duplicate webhook replay idempotent.
-- **Voice Failures**: Legal/privacy/dispute triggers human escalation, low confidence triggers operator escalation, verbal opt-out triggers immediate number suppression and cancels future attempts.
-- **Safety Invariants**: Asserted `RESEARCH_ONLY=True`, `EMAIL_DRY_RUN=True`, `PAYMENTS_ENABLED=False`, `PAYMENT_DRY_RUN=True`, `VOICE_DRY_RUN=True`.
-
-## Test Results
-- `tests/test_phase18_provider_preflight.py`: 11/11 passed
-- `tests/test_phase16_setup_wizard.py`: 14/14 passed
-- `tests/test_phase17_voice_operations.py`: 18/18 passed
-- **Full Project Regression Suite**: 512/512 passed (0 failures, 0 regressions)
-
----
-
-# Agency OS — Payment System Production Implementation Walkthrough
-
-## 1. Actual Implemented Lifecycle Flow
-
-The production payment path enforces a strict, multi-stage commercial gate:
-
-$$\text{PROPOSAL} \longrightarrow \text{PAYMENT\_PENDING} \longrightarrow \text{CUSTOMER PAYMENT} \longrightarrow \text{PAYMENT\_REVIEW\_REQUIRED} \longrightarrow \text{HUMAN\_OPERATOR\_VERIFICATION} \longrightarrow \text{PAYMENT\_CONFIRMED} \longrightarrow \text{40\% ADVANCE VALIDATION} \longrightarrow \text{PRODUCTION\_BUILD\_AUTHORIZED} \longrightarrow \text{DELIVERY WORKFLOW}$$
-
-```
-[Proposal Approved]
-       │
-       ▼
-[Payment Requested] ───────► Status: PAYMENT_PENDING
-       │
-       ▼
-[Customer Transacts via UPI]
-       │
-       ▼
-[Customer Submits UTR] ─────► Status: PAYMENT_REVIEW_REQUIRED (Production STILL LOCKED)
-       │
-       ▼
-[Operator Verifies Bank UTR] ─► Status: PAYMENT_CONFIRMED (HUMAN_OPERATOR_VERIFICATION)
-       │
-       ▼
-[Commercial Gate Check] ────► 40% Advance Floor Validated (>= $200 on >= $500 total)
-       │
-       ▼
-[Production Initialized] ───► Customer & Project Provisioned -> Delivery Workflow Active
+GLOBAL TARGETING
+    │
+    ▼
+DISCOVERY
+    │
+    ▼
+ENTITY VALIDATION ──▶ [Mismatch? ──▶ OUTREACH_VALIDATION_FAILED]
+    │
+    ▼
+EMAIL VALIDATION
+    │
+    ▼
+BUSINESS RESEARCH
+    │
+    ▼
+PAIN / EVIDENCE DETECTION (Epistemic Observation)
+    │
+    ▼
+COMMERCIAL FIT (Operational Prioritization)
+    │
+    ▼
+OFFER MATCHING (Observed Pain ──▶ Capability Catalog)
+    │
+    ▼
+PERSONALIZED OUTREACH ──▶ CEO REVIEW & APPROVAL ──▶ DISPATCH (Max 200/day)
+    │
+    ▼
+REPLY CLASSIFICATION ──▶ Next-Best Action
+    │
+    ▼
+DEMO_REQUESTED (Explicit Customer Request Required)
+    │
+    ▼
+REQUIREMENTS & DEMO SPECIFICATION
+    │
+    ▼
+DEMO GENERATION & BUILD (Isolated Sandbox)
+    │
+    ▼
+8-GATE DEMO QA ──▶ [Pass? ──▶ PUBLIC DEMO URL]
+    │
+    ▼
+CUSTOMER REVIEW & INTERACTION
+    │
+    ▼
+PROPOSAL PRESENTATION
+    │
+    ▼
+40% ADVANCE PAYMENT INITIATION ($500 Project Floor / $200 Advance)
+    │
+    ▼
+CUSTOMER PAYMENT & UTR SUBMISSION ──▶ PAYMENT_REVIEW_REQUIRED
+    │
+    ▼
+HUMAN OPERATOR VERIFICATION ──▶ PAYMENT_CONFIRMED
+    │
+    ▼
+PRODUCTION_BUILD_AUTHORIZED
+    │
+    ▼
+CUSTOMER PROJECT PROVISIONING & SPECIFICATION FREEZE
+    │
+    ▼
+PRODUCTION BUILD (Separate Production Architecture)
+    │
+    ▼
+10-GATE PRODUCTION QA
+    │
+    ▼
+DEPLOYMENT & ROLLBACK READINESS
+    │
+    ▼
+CUSTOMER HANDOVER & CREDENTIAL TRANSFER
+    │
+    ▼
+RETENTION & EXPANSION (Human-Approved Scope Expansion)
+    │
+    ▼
+EMPIRICAL LEARNING LOOP (Feeds Targeting, Fit, Matching, Outreach, & Efficiency)
 ```
 
 ---
 
-## 2. Customer Payment Portal
+## 3. Global Targeting
 
-The system provides a dedicated customer payment interface accessible via:
-- `GET /pay/{reference}`
-- `GET /payment/{reference}`
+The acquisition engine enforces a strict geographic and administrative hierarchy:
 
-The route dynamically resolves payments by numeric `payment_id`, unique remittance reference code (`OS-REM-...`), gateway order ID, or linked proposal reference.
+$$\text{COUNTRY} \longrightarrow \text{ADMINISTRATIVE REGION} \longrightarrow \text{CITY} \longrightarrow \text{NICHE}$$
 
-### Portal Capabilities:
-- **Transparent Milestone Pricing**:
-  - **Total Contract Value**: Minimum commercial floor of **$500.00 USD**.
-  - **40% Milestone Advance**: **$200.00 USD** minimum on the $500 floor, required to unlock production.
-  - **60% Handover Balance**: Due strictly upon final staging verification and sign-off.
-- **Dynamic Status Badges**:
-  - `PAYMENT CONFIRMED — PRODUCTION AUTHORIZED` (Emerald Green)
-  - `PAYMENT REVIEW REQUIRED — UNDER RECONCILIATION` (Amber Warning)
-  - `PAYMENT PENDING — 40% ADVANCE DUE` (Sky Blue)
-- **Currency & Remittance Disclaimers**: Discloses that all services are contracted in USD, with Indian UPI/IMPS transfers settled via standard remittance exchange rates.
+### Administrative Layering:
+Rather than forcing all jurisdictions into generic labels, the catalog dynamically adapts to sovereign regional types:
+- **United States**: `State` (Texas, California, Florida, New York, etc.)
+- **Canada**: `Province` (Ontario, British Columbia, Alberta, etc.)
+- **United Kingdom**: `Region / Nation` (Greater London, Scotland, North West, etc.)
+- **United Arab Emirates**: `Emirate` (Dubai, Abu Dhabi, Sharjah, etc.)
+- **Saudi Arabia**: `Region` (Riyadh, Makkah, Eastern Province, etc.)
+- **Germany**: `Bundesland` (Bavaria, North Rhine-Westphalia, Hesse, etc.)
+- **Japan**: `Prefecture` (Tokyo, Osaka, Kanagawa, etc.)
+- **Switzerland**: `Canton` (Zürich, Geneva, Vaud, Zug, etc.)
 
----
+### Autonomous Multi-Market Acquisition Engine:
+Agency OS does not require the CEO to manually select markets for daily operations. An autonomous multi-market portfolio manager (`app/market_intelligence/autonomous_market_engine.py`) continuously evaluates global market evidence and maintains a balanced, dynamic acquisition portfolio across concurrent markets (`Country × Region × City × Niche`):
+- **Parallel Market Operations**: Multiple primary and secondary markets operate concurrently (e.g., US, UK, UAE, Canada, Germany, Japan, Switzerland, Australia).
+- **Portfolio Allocation (Exploit vs. Explore)**:
+  - **70–80% Exploitation Capacity**: Allocated to high-performing, empirically validated markets with demonstrated contactability and positive reply history.
+  - **20–30% Exploration Capacity**: Allocated to under-tested or newly seeded markets to continuously discover fresh opportunities and prevent local optima.
+- **Global 200 Emails/Day Cap**: The strict global ceiling of 200 emails/day is dynamically distributed across active portfolio markets according to their exploit/explore tier and priority.
+- **Empirical Trend Detection Threshold**:
+  - Sample size $N < 10 \longrightarrow \mathbf{INSUFFICIENT\_DATA}$ (unreliable).
+  - Trend status is flagged as `INSUFFICIENT_DATA` until at least 10 prospect outcomes are observed, preventing premature exploitation or unwarranted exclusion.
+- **Explainable Target Reason Codes**:
+  - `HIGH_CONTACTABILITY`
+  - `HIGH_AUTOMATION_FIT`
+  - `POSITIVE_HISTORICAL_OUTCOMES`
+  - `HIGH_PAIN_DENSITY`
+  - `DATA_REFRESHED`
+  - `EXPLORATION_REQUIRED`
+  - `CEO_PRIORITY_OVERRIDE`
+- **CEO Operational Overrides**:
+  - **Pause**: Temporarily suspend discovery in a specific corridor while preserving historical data.
+  - **Exclude**: Permanently exclude a specific market from autonomous selection.
+  - **Force Priority**: Promote a target to active exploitation immediately with top queue priority.
+  - **Emergency Stop**: Instantly suspend all autonomous acquisition globally.
+- **Live Operations Telemetry Stream**: Real-time operational state is broadcast via WebSocket (`/ws/agent-activity`) with fallback REST polling, rendering live running operations counters, active portfolio states, and real-time agent event badges directly on the CEO dashboard.
 
-## 3. Manual UPI Remittance Architecture
-
-- **Beneficiary VPA**: `mrsufiyansurve@okaxis`
-- **Beneficiary Name**: `Sufiyan Surve / Agency OS`
-- **Direct UPI Link**: `upi://pay?pa=mrsufiyansurve@okaxis&pn=Sufiyan%20Surve&am=<advance>&cu=USD&tr=<reference>&tn=Invoice%20<reference>`
-- **Reference / UTR Submission**:
-  - Interactive web form submits to `POST /pay/{reference}/submit-reference`
-  - REST API endpoint: `POST /api/payments/{id}/submit-reference`
-- **Automated Webhook Architecture Stance**:
-  - **Explicit Invariant**: Standalone UPI does **NOT** provide an automated provider webhook in this implementation.
-  - The manual UPI payment method does not have direct bank API callback hooks; settlement reconciliation is performed exclusively via operator bank verification.
-
----
-
-## 4. Verification & Status Progression
-
-- **Customer Submission Never Confirms Payment**:
-  - A client submitting a transaction reference or bank UTR updates the record to `PAYMENT_REVIEW_REQUIRED`.
-  - Customer submission does **NOT** confirm the payment, does **NOT** transition status to `PAYMENT_CONFIRMED`, and does **NOT** unlock production.
-- **Human Operator Verification**:
-  - The finance operator inspects the actual bank inward remittance ledger.
-  - Operator executes `POST /api/payments/{id}/confirm` with the verified bank UTR, operator username, and confirmed amount.
-  - Only upon successful operator verification is the record transitioned to `PAYMENT_CONFIRMED` (`verification_method = "HUMAN_OPERATOR_VERIFICATION"`).
-
----
-
-## 5. Anti-Fraud & Commercial Safeguards
-
-1. **Untrusted Source Rejection**:
-   - Verification attempts citing untrusted sources (`screenshot`, `customer_message`, `manual_claim`, `unverified`, `ai_inference`) are strictly rejected with `PermissionError`.
-2. **Underpayment Rejection**:
-   - Verifying an amount below the required milestone advance is rejected with `ValueError("Underpayment rejected")`.
-3. **Duplicate Transaction Reference Rejection**:
-   - Replay protection blocks duplicate transaction references across verified payments with `ValueError("Fraud detected")`.
-4. **Webhook Replay Protection & Idempotency**:
-   - Duplicate webhook deliveries are guarded by `PaymentWebhookEvent(provider, event_id)` with database-level uniqueness constraints, returning `DUPLICATE_IGNORED`.
-   - Repeated operator confirmation calls return `ALREADY_CONFIRMED` idempotently without duplicate project provisioning.
-5. **Cryptographic Webhook Verification**:
-   - HMAC-SHA256 signature verification enforced for automated providers (Stripe / Razorpay) where credentials exist.
+### Disabled Acquisition Markets:
+- **India (`IN`)**, **Pakistan (`PK`)**, and **Israel (`IL`)** are hard-coded in `HARD_EXCLUDED_COUNTRIES` and strictly **BLOCKED** from autonomous discovery, targeting, and outreach.
+- Historical prospect records and entity associations from these jurisdictions remain preserved in the database for compliance and audit integrity.
+- Disabled markets are strictly filtered out at the query level and cannot enter discovery, qualification, or outreach pipelines.
 
 ---
 
-## 6. Commercial Gate Boundary
+## 4. Discovery & Validation
 
-The commercial gate (`operator_learning_engine.enforce_commercial_gate`) acts as an immutable boundary between deal closing and engineering execution:
-- **Minimum Project Floor**: $500.00 USD minimum total contract value.
-- **Required Advance**: Minimum 40% advance milestone ($200.00 USD on $500 floor).
-- **Lock State**: Unpaid, pending, review-required, or underpaid projects remain strictly locked (`CommercialGateViolation`).
-- **Unlock State**: Production builds are unlocked **only** when verified payments meet or exceed the required advance milestone.
+### Pipeline Intake:
+- Discovers prospect businesses matching active `P1`/`P2` target definitions (`country_code`, `region`, `city`, `niche_id`).
+- Attaches persistent geographic provenance (`administrative_region`, `region_type`) to prevent drift across stages.
 
----
+### Entity & Identity Validation:
+Before any outreach consideration, the system executes cross-attribute identity resolution:
+$$\text{Business Name} + \text{Domain} + \text{Geographic Location} + \text{Contact Details}$$
+- Must resolve deterministically to the **same physical entity**.
+- If any discrepancy is detected (e.g., domain belongs to a franchisee in another city, phone links to an unrelated business, name conflict):
+  $$\text{State} \longrightarrow \mathbf{OUTREACH\_VALIDATION\_FAILED}$$
+  Outreach generation is immediately halted and quarantined.
 
-## 7. Production Flow Execution
-
-Once verified:
-$$\text{PAYMENT\_CONFIRMED} \longrightarrow \text{Commercial Gate Passes} \longrightarrow \text{Production Project Initialized} \longrightarrow \text{Delivery Pipeline Active}$$
-
-- `Customer` record updated to `ONBOARDED`.
-- `Project` provisioned with active delivery milestones (`IN_PROGRESS`).
-- `ProductionProject` instantiated via `ProductionPipeline.initialize_production_project`.
-- Full audit event logged to `DealAuditTrail`.
+### Email Validation:
+- Multi-layer syntax, DNS MX record verification, and disposable domain filtering.
+- Suppression list checking (opt-outs, legal requests, bounces). Unverified addresses never receive transmissions.
 
 ---
 
-## 8. Automated Card Gateway Status
+## 5. Research / Evidence / Audit
 
-- **Stripe & Razorpay Integration Status**:
-  - Implementation-ready adapter classes exist (`StripePaymentProvider`, `RealRazorpayPaymentProvider`).
-  - Both gateways remain **`PAYMENT_PROVIDER_CONFIGURATION_REQUIRED`** until live production credentials (`STRIPE_SECRET_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`) are explicitly configured in the environment.
-  - The customer payment page displays a dedicated status pill:
-    `PAYMENT_PROVIDER_CONFIGURATION_REQUIRED: Card processor is in standby mode. Please use Direct Google Pay UPI or Bank Remittance below.`
+### Epistemic Category Separation:
+To eliminate hallucination and ungrounded sales pitches, the system enforces a strict epistemic taxonomy:
 
----
-
-## 9. ZERO FAKE SUCCESS Mandate
-
-The implementation strictly maintains honest commercial boundaries:
-- **Customer claim $\neq$ Payment confirmation**: A customer stating they transferred funds or submitting a reference leaves the gate locked.
-- **Screenshot $\neq$ Payment confirmation**: Image uploads or payment receipts are not accepted as automated verification.
-- **Frontend button $\neq$ Payment confirmation**: Clicking authorize or submit buttons triggers review, never automatic completion.
-- **Test payment $\neq$ Real payment**: Mock runs and dry-run sessions are segregated and excluded from commercial delivery unlocking.
-- **Implementation $\neq$ Live provider**: Having code for a provider does not mean live payment processing is active without credentials.
-
----
-
-## 10. Verification Evidence
-
-The payment subsystem was verified using focused, non-destructive test suites:
-
-```text
-============================= test session starts =============================
-platform win32 -- Python 3.11.9, pytest-8.4.2, pluggy-1.6.0
-rootdir: S:\AGENCY\BY AG, configfile: pytest.ini
-collected 33 items
-
-tests/test_payment_production_gate_e2e.py::test_commercial_gate_blocks_unpaid_and_underpaid PASSED [  3%]
-tests/test_payment_production_gate_e2e.py::test_customer_reference_submission_does_not_unlock_production PASSED [  6%]
-tests/test_payment_production_gate_e2e.py::test_untrusted_source_rejection PASSED [  9%]
-tests/test_payment_production_gate_e2e.py::test_operator_verification_unlocks_commercial_gate PASSED [ 12%]
-tests/test_payment_production_gate_e2e.py::test_customer_facing_payment_page_renders_and_handles_submit PASSED [ 15%]
-tests/test_google_pay_manual_flow.py::test_google_pay_manual_provider_properties PASSED [ 18%]
-tests/test_google_pay_manual_flow.py::test_generate_payment_instructions_fields PASSED [ 21%]
-tests/test_google_pay_manual_flow.py::test_operator_confirm_payment_flow_and_delivery_unlock PASSED [ 24%]
-tests/test_google_pay_manual_flow.py::test_confirm_manual_payment_idempotency PASSED [ 27%]
-tests/test_google_pay_manual_flow.py::test_confirm_manual_payment_validations PASSED [ 30%]
-tests/test_google_pay_manual_flow.py::test_payment_api_confirm_and_instructions_endpoints PASSED [ 33%]
-tests/test_payment_strategy_lifecycle.py::test_payment_provider_abstraction_and_gpay_properties PASSED [ 36%]
-tests/test_payment_strategy_lifecycle.py::test_5_stage_payment_lifecycle_google_pay_end_to_end PASSED [ 39%]
-tests/test_payment_strategy_lifecycle.py::test_payment_api_endpoints_and_untrusted_rejections PASSED [ 42%]
-tests/test_deal_closing_and_payments.py::test_commercial_threshold_minimum_service_value PASSED [ 45%]
-tests/test_deal_closing_and_payments.py::test_proposal_approval_gate PASSED [ 48%]
-tests/test_deal_closing_and_payments.py::test_payment_order_creation_does_not_mark_paid PASSED [ 51%]
-tests/test_deal_closing_and_payments.py::test_cryptographic_webhook_verification_and_tamper_rejection PASSED [ 54%]
-tests/test_deal_closing_and_payments.py::test_failed_payment_webhook_transitions_to_failed PASSED [ 57%]
-tests/test_deal_closing_and_payments.py::test_advance_payment_and_remaining_balance_calculation PASSED [ 60%]
-tests/test_deal_closing_and_payments.py::test_webhook_idempotency_prevents_duplicate_revenue PASSED [ 63%]
-tests/test_deal_closing_and_payments.py::test_dry_run_revenue_isolation PASSED [ 66%]
-tests/test_deal_closing_and_payments.py::test_human_takeover_blocks_automated_actions PASSED [ 69%]
-tests/test_deal_closing_and_payments.py::test_complete_audit_trail_recorded PASSED [ 72%]
-tests/test_deal_closing_and_payments.py::test_rest_api_proposal_and_deal_lifecycle PASSED [ 75%]
-tests/test_real_intelligence_cycle.py::test_multi_niche_autonomous_intelligence_cycle PASSED [ 78%]
-tests/test_real_intelligence_cycle.py::test_failure_categorization_and_bounded_self_correction PASSED [ 81%]
-tests/test_real_intelligence_cycle.py::test_failure_pattern_learning_persistence PASSED [ 84%]
-tests/test_real_intelligence_cycle.py::test_commercial_advance_payment_gate_enforcement PASSED [ 87%]
-tests/test_real_intelligence_cycle.py::test_real_controlled_demo_factory_execution PASSED [ 90%]
-tests/test_payments_and_onboarding.py::test_stripe_checkout_session_dry_run PASSED [ 93%]
-tests/test_payments_and_onboarding.py::test_stripe_hmac_signature_verification PASSED [ 96%]
-tests/test_payments_and_onboarding.py::test_payment_confirmation_and_automatic_onboarding PASSED [100%]
-
-============================= 33 passed in 15.68s =============================
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      EPISTEMIC SEPARATION SYSTEM                         │
+├──────────────────┬───────────────────────────────────────────────────────┤
+│ OBSERVATION      │ Empirically verified fact with direct URL/HTTP proof. │
+│                  │ e.g., "Meta viewport tag missing on mobile homepage." │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ INFERENCE        │ Analytical deduction clearly demarcated as estimate.  │
+│                  │ e.g., "Probable manual appointment intake workflow."  │
+├──────────────────┼───────────────────────────────────────────────────────┤
+│ RECOMMENDATION   │ Actionable capability proposed to solve friction.     │
+│                  │ e.g., "Deploy automated appointment booking intake."  │
+└──────────────────┴───────────────────────────────────────────────────────┘
 ```
 
+### Safety Rules:
+- **Observations Require Provenance**: Must include exact source URI, HTTP status, or DOM element evidence.
+- **Inferences Never Stated as Facts**: Prohibited from asserting operational details without corroboration.
+- **Fabrications Prohibited**: Speculative revenue estimates, headcount claims, and ROI guarantees are strictly forbidden.
+- **Country Bias Prohibition**: Geographic location cannot be used as proof of ability to pay or commercial suitability.
+
 ---
 
-## 11. Production Status Matrix
+## 6. Commercial Fit
 
-| Subsystem / Capability | Production Status | Operational Description |
+Commercial Fit is an **operational prioritization score** measuring whether a business exhibits genuine procedural friction that automation can solve.
+
+### Evaluated Operational Signals:
+- **Intake Friction**: Absence of online intake forms, broken form submissions, or reliance on raw mailto links.
+- **Missed Call Exposure**: Absence of interactive after-hours response mechanisms.
+- **Scheduling Friction**: Phone-only booking, multi-day email tag, or missing calendar integrations.
+- **Manual Data Entry**: Multi-step PDF forms, unstructured quote inquiries, or disconnected lead flows.
+- **Repetitive Support Burden**: Lack of structured FAQs or self-serve status tracking for customers.
+- **Visible Workflow Complexity**: High-touch service requirements requiring multi-party handoffs.
+
+> [!IMPORTANT]
+> **Commercial Fit $\neq$ Ability to Pay.**  
+> A high commercial fit score indicates high operational friction where software adds value. It does **not** guarantee budget, solvency, or creditworthiness.
+
+---
+
+## 7. Offer Matching
+
+The Offer Matching Engine maps observed operational bottlenecks directly to canonical agency capabilities:
+
+$$\text{OBSERVED PAIN} \longrightarrow \text{MATCHED CAPABILITY} \longrightarrow \text{DEMO BLUEPRINT} \longrightarrow \text{PROPOSAL SCOPE}$$
+
+### Canonical Capability Catalog:
+| Observed Business Pain | Matched Canonical Capability | Demo Blueprint Reference |
 | :--- | :--- | :--- |
-| **Payment Models & Tables** | **IMPLEMENTED** | SQLite/SQLAlchemy schemas for `Payment`, `DealAuditTrail`, and `PaymentWebhookEvent`. |
-| **Customer Payment Portal** | **IMPLEMENTED** | `GET /pay/{ref}` and `GET /payment/{ref}` HTML rendering with pricing cards and UPI links. |
-| **Reference Submission Form** | **IMPLEMENTED** | `POST /pay/{ref}/submit-reference` and `/api/payments/{id}/submit-reference`. |
-| **Operator Verification API** | **IMPLEMENTED** | `POST /api/payments/{id}/confirm` enforcing bank UTR verification and idempotency. |
-| **Commercial Gate** | **IMPLEMENTED** | Enforces $500 floor and 40% advance milestone before delivery unlocking. |
-| **Automated Test Suite** | **TESTED** | 33/33 payment, commercial gate, and onboarding tests verified passing. |
-| **Manual Google Pay UPI** | **CONFIGURED** | VPA `mrsufiyansurve@okaxis` active for customer remittance with unique reference codes. |
-| **Automated Card Gateways** | **BLOCKED** | Stripe and Razorpay remain `PAYMENT_PROVIDER_CONFIGURATION_REQUIRED` until live credentials are set. |
-| **Live Customer Revenue** | **NONE** | No real external customer payments have been processed; system is in pre-revenue state. |
+| Unanswered after-hours calls / lost inbound calls | **Missed Call Recovery** | `blueprint_missed_call_recovery` |
+| Slow form response / delayed manual triage | **Lead Capture / Qualification** | `blueprint_lead_qualification` |
+| Repetitive customer inquiries / front-desk load | **AI Customer Concierge / Receptionist** | `blueprint_customer_concierge` |
+| Phone tag for appointments / calendar conflicts | **Appointment Automation** | `blueprint_appointment_scheduling` |
+| Manual data re-entry across CRM and billing tools | **CRM Automation** | `blueprint_crm_sync_pipeline` |
+
+*No speculative or uncatalogued capability names are generated by the engine.*
 
 ---
 
-# Agency OS — Global Acquisition Targeting System Walkthrough
+## 8. Outreach & Reply Handling
 
-## 1. Canonical Targeting Hierarchy
-The global acquisition system implements the canonical hierarchy:
-$$\text{COUNTRY} \longrightarrow \text{ADMINISTRATIVE REGION} \longrightarrow \text{CITY} \longrightarrow \text{NICHE} \longrightarrow \text{BUSINESS} \longrightarrow \text{RESEARCH} \longrightarrow \text{AUDIT} \longrightarrow \text{QUALIFICATION}$$
+### Operational Safeguards:
+- **Verified Deliverability**: Transmissions permitted only to verified, deliverable business mailboxes.
+- **Suppression List Compliance**: Automatic exclusion of unsubscribed recipients, complaint addresses, and competitor domains.
+- **Provider Cadence Caps**: System-wide operational ceiling of **200 emails per day** across providers to preserve domain reputation.
+- **No Performance Guarantees**: A 200/day volume cap is an infrastructure protection threshold, not a guarantee of replies, meetings, or deals.
+- **CEO Approval Mandate**: All cold outreach drafts enter `OUTREACH_READY` and require explicit CEO authorization before dispatch.
 
-- **Country-Specific Administrative Abstraction**: Avoids forcing every jurisdiction into "State". Uses `region_type` metadata:
-  - United States $\to$ `State` (Texas, Florida, California, etc.)
-  - Canada $\to$ `Province` (Ontario, British Columbia, Alberta, etc.)
-  - United Kingdom $\to$ `Region / Nation` (Greater London, North West, Scotland, etc.)
-  - United Arab Emirates $\to$ `Emirate` (Dubai, Abu Dhabi, Sharjah, etc.)
-  - Saudi Arabia $\to$ `Region` (Riyadh Region, Makkah Region, Eastern Province, etc.)
-  - Germany $\to$ `Bundesland` (North Rhine-Westphalia, Bavaria, Hesse, etc.)
-  - Japan $\to$ `Prefecture` (Tokyo, Osaka, Kanagawa, etc.)
-  - Switzerland $\to$ `Canton` (Zürich, Geneva, Vaud, Zug, Basel-Stadt)
-  - India $\to$ `State` (Maharashtra, Karnataka, Telangana, Tamil Nadu, etc.)
+### Inbound Reply Classification:
+Inbound email responses are intercepted, threaded, and classified into deterministic categories:
+- `INTERESTED`: General positive inquiry.
+- `DEMO_REQUESTED`: Explicit demand to see a working prototype.
+- `INFORMATION_REQUEST`: Request for pricing, portfolio, or scope details.
+- `NOT_INTERESTED`: Explicit refusal $\to$ Automatic suppression list addition.
+- `UNSUBSCRIBE / BOUNCE`: Immediate auto-suppression and sequence termination.
 
-## 2. Reusable Global Catalogues
-- **Global Countries (`app/acquisition/targeting_catalog.py`)**: 41 initially supported countries complete with ISO codes, currencies, region types, and structured city clusters.
-- **Canonical Niches**: 32 canonical niches with uppercase canonical IDs (`HVAC`, `PLUMBING`, `ROOFING`, `DENTAL`, `REAL_ESTATE`, `MEDICAL_CLINICS`, `LEGAL_SERVICES`, etc.).
-- **Alias Normalization**: Normalized mappings ensure aliases resolve to standard canonical IDs (e.g., "Air Conditioning", "AC Repair", "Heating & Cooling" $\to$ `HVAC`; "Realty", "Realtor" $\to$ `REAL_ESTATE`; "Doctor Clinic", "Medical Center" $\to$ `MEDICAL_CLINICS`).
-- **Country $\to$ Niche Relevance Matrix**: Strict mappings associate commercially viable niches with each supported country.
+---
 
-## 3. Database Safety & Prospect Provenance
-- **`TargetDefinition` Model (`app/database/models.py`)**:
-  - Columns: `country_code`, `country_name`, `region`, `region_type`, `city`, `niche_id`, `niche_name`, `enabled`, `status` (`ACTIVE`, `PAUSED`, `DISABLED`), `priority` (`P1`, `P2`, `P3`).
-  - Unique Constraint: `UniqueConstraint("country_code", "region", "city", "niche_id")` strictly blocks duplicate target definitions.
-- **`Business` Model Provenance**:
-  - Fields `administrative_region` and `region_type` ensure that every discovered prospect preserves full canonical provenance without identity or location mismatch across pipeline stages.
+## 9. Next-Best Action
 
-## 4. Targeting Engine & Discovery Integration
-- **`TargetingManager` (`app/acquisition/targeting_manager.py`)**:
-  - Priority Queue Generation: Orders active targets by `P1 > P2 > P3` and creation order.
-  - Automatic Seed Initialization: Seeds canonical initial targets (US/Texas/Houston/HVAC, US/Florida/Miami/Dental, AE/Dubai/Dubai/Real Estate, SA/Eastern Province/Dammam/HVAC, UK/Greater London/London/Real Estate, IN/Maharashtra/Pune/Dental) on first launch.
-  - Real Aggregate Summary: Calculates actual database and catalog metrics (zero fake metrics).
-- **Discovery Engine**: `GlobalProspectPool.discover_from_active_targets` and `RealProspectDiscoveryEngine` consume active targets, respecting priority, skipping paused/disabled targets, and attaching provenance to all discovered entities.
+Every prospect advances through a discrete, deterministic state transition machine:
 
-## 5. Dashboard UI & Cascading Controls
-- Located in the personal dashboard under **Growth $\to$ Acquisition (`#view-global-acquisition`)**:
-  - **Global Acquisition Summary KPI Cards**: Real counts for Total Countries (41), Active Regions, Active Cities, Active Niches, Active Targets, and P1 Targets.
-  - **Top Active Targets Banner**: Live badges showing priority combinations.
-  - **Cascading Filter Form**: Selecting Country updates Region type label and filters Regions; selecting Region filters Cities; selecting Country filters Niches.
-  - **Active Targets Table**: Displays configured targets with priority badges, status badges, and action controls (`ENABLE`, `PAUSE`, `REMOVE`).
-
-## 6. Verification Evidence
-All 15 focused targeting tests passed cleanly:
-```text
-tests/test_global_targeting_hierarchy.py::test_country_catalog_loads_all_41 PASSED
-tests/test_global_targeting_hierarchy.py::test_region_mapping_types PASSED
-tests/test_global_targeting_hierarchy.py::test_city_mapping_clusters PASSED
-tests/test_global_targeting_hierarchy.py::test_canonical_niche_catalog_and_aliases PASSED
-tests/test_global_targeting_hierarchy.py::test_country_to_region_filtering PASSED
-tests/test_global_targeting_hierarchy.py::test_region_to_city_filtering PASSED
-tests/test_global_targeting_hierarchy.py::test_country_niche_association PASSED
-tests/test_global_targeting_hierarchy.py::test_duplicate_target_prevention PASSED
-tests/test_global_targeting_hierarchy.py::test_target_status_transitions PASSED
-tests/test_global_targeting_hierarchy.py::test_priority_ordering PASSED
-tests/test_global_targeting_hierarchy.py::test_targeting_api_endpoints PASSED
-tests/test_global_targeting_hierarchy.py::test_discovery_consumes_active_targets_and_skips_disabled PASSED
-tests/test_global_targeting_hierarchy.py::test_prospect_provenance_retention PASSED
-tests/test_global_targeting_hierarchy.py::test_hierarchy_validation_rejections PASSED
-tests/test_global_targeting_hierarchy.py::test_existing_acquisition_pipeline_compatibility PASSED
-============================= 15 passed in 14.57s =============================
+```
+NEW_QUALIFIED ─────────────▶ AUDIT
+                               │
+AUDITED ───────────────────▶ OPPORTUNITY_ANALYSIS
+                               │
+OPPORTUNITY_IDENTIFIED ────▶ PERSONALIZE
+                               │
+OUTREACH_READY ────────────▶ CEO_REVIEW
+                               │ (CEO Approves)
+OUTREACH_SENT ─────────────▶ WAIT_FOR_REPLY
+                               │ (Reply Received)
+REPLY_RECEIVED ────────────▶ CEO_NOTIFICATION / PREPARE_RESPONSE
+                               │
+DEMO_REQUESTED ────────────▶ DEMO_FACTORY
+                               │ (8-Gate QA Passes)
+DEMO_READY ────────────────▶ PROPOSAL
+                               │ (Customer Accepts)
+PROPOSAL_ACCEPTED ─────────▶ PAYMENT
+                               │ (UTR Verified by Operator)
+PAYMENT_CONFIRMED ─────────▶ PRODUCTION
+                               │ (10-Gate QA Passes)
+DELIVERY_COMPLETE ─────────▶ EXPANSION_ANALYSIS
 ```
 
+---
+
+## 10. Demo Factory
+
+The Demo Factory constructs tailored, interactive web prototypes designed to prove capability before commercial closing:
+
+$$\text{DEMO\_REQUESTED} \longrightarrow \text{REQUIREMENTS} \longrightarrow \text{DEMO\_SPEC} \longrightarrow \text{BUILD} \longrightarrow \text{8-GATE QA} \longrightarrow \text{PUBLIC DEMO}$$
+
+### Operational Invariants:
+1. **Explicit Request Required**: An `INTERESTED` reply does **NOT** trigger demo construction. An explicit `DEMO_REQUESTED` intent is required.
+2. **Total Sandbox Isolation**: Demos are sandboxed interactive environments. They use mock dispatchers, simulated notifications, and isolated test databases. Demos **never** trigger real-world customer actions (no real SMS sent to end clients, no real dispatch, no live CRM mutation).
+3. **8-Gate Quality Assurance**:
+   - Gate 1: Blueprint Structural Integrity
+   - Gate 2: Niche Alignment & Metadata Validity
+   - Gate 3: UI Rendering & Responsiveness
+   - Gate 4: Interactive Sandbox Execution
+   - Gate 5: Epistemic Brand Grounding (No Fake Proof)
+   - Gate 6: Sandbox Containment (Zero Real-World Calls)
+   - Gate 7: Asset Delivery & HTTPS Availability
+   - Gate 8: Lead Attribution & Logging
+4. **Public URL Authorization**: A public preview URL (`/demo/{slug}`) is generated **only after** all 8 gates pass green.
+5. **Sandbox $\neq$ Production**: The demo prototype is a sales-enablement artifact, not production software.
+
+---
+
+## 11. Proposal & Payment
+
+### Manual Google Pay UPI Architecture:
+- **Active Beneficiary VPA**: `mrsufiyansurve@okaxis`
+- **Beneficiary Name**: `Sufiyan Surve / Agency OS`
+- **Direct UPI Protocol**: `upi://pay?pa=mrsufiyansurve@okaxis&pn=Sufiyan%20Surve&am=<advance>&cu=USD&tr=<reference>&tn=Invoice%20<reference>`
+- **No Standalone Webhooks**: Standalone UPI transfers do **NOT** provide automated banking callbacks. Verification is performed exclusively via operator reconciliation against banking inward ledgers.
+- **Standby Card Gateways**: Stripe and Razorpay integrations exist in code but remain in **`PAYMENT_PROVIDER_CONFIGURATION_REQUIRED`** standby mode until production merchant credentials are configured.
+
+### Commercial Floors & Milestone Structure:
+- **Contract Minimum Floor**: **$500.00 USD** minimum total project value.
+- **Required Milestone Advance**: **40% Advance** ($200.00 USD minimum on $500 floor) required before engineering authorization.
+- **Handover Balance**: **60% Balance** due upon completion of production QA and before production deployment.
+
+### Payment Verification Lifecycle:
+$$\text{PROPOSAL} \longrightarrow \text{PAYMENT\_PENDING} \longrightarrow \text{CUSTOMER PAYS} \longrightarrow \text{UTR SUBMITTED} \longrightarrow \text{PAYMENT\_REVIEW\_REQUIRED} \longrightarrow \text{OPERATOR VERIFIES} \longrightarrow \text{PAYMENT\_CONFIRMED}$$
+
+- **Customer Reference Submission**: Submitting a bank UTR updates the status to `PAYMENT_REVIEW_REQUIRED`. Production remains **STRICTLY LOCKED**.
+- **Human Verification Requirement**: Operator verifies inward funds in the bank ledger and submits confirmation via `POST /api/payments/{id}/confirm`.
+- **Anti-Fraud Controls**: Untrusted sources (`screenshot`, `customer_claim`, `ai_inference`) are rejected with `PermissionError`. Underpayment below the 40% floor is rejected with `ValueError`. Duplicate UTRs trigger replay rejections.
+
+---
+
+## 12. Production Authorization
+
+The Commercial Gate (`operator_learning_engine.enforce_commercial_gate`) controls access to engineering execution:
+
+$$\text{PAYMENT\_CONFIRMED} \longrightarrow \text{Commercial Gate Verification} \longrightarrow \text{PRODUCTION\_BUILD\_AUTHORIZED}$$
+
+### Authorization Criteria:
+1. `payment_status == "PAYMENT_CONFIRMED"`
+2. `verification_method == "HUMAN_OPERATOR_VERIFICATION"`
+3. `amount_paid >= total_amount * 0.40`
+4. Total contract value meets or exceeds the **$500.00 USD** commercial floor.
+
+### Project Provisioning:
+Upon gate passage:
+- `Customer` record updated to `ONBOARDED`.
+- `ProductionProject` instantiated with discrete delivery milestones.
+- **Specification Freeze**: Deliverable requirements are locked to prevent scope creep.
+- Comprehensive audit event recorded in `DealAuditTrail`.
+
+---
+
+## 13. Production Build & QA
+
+Production builds are executed as bespoke, dedicated applications separate from the Demo Factory sandbox.
+
+### 10-Gate Production QA Matrix:
+Before deployment authorization, production software must clear 10 non-negotiable verification gates:
+1. **Contract Specification Compliance**: All contracted deliverables implemented.
+2. **Real Infrastructure Integration**: Live third-party APIs (CRMs, SMS, Email, Calendars) connected with production credentials.
+3. **Security & Data Sanitization**: Strict input validation, credential encryption, and zero hardcoded secrets.
+4. **Data Isolation & Tenant Security**: Customer data partitioned with strict database tenancy.
+5. **Error Recovery & Circuit Breaking**: Graceful degradation on upstream API failure.
+6. **Performance & Latency**: Sub-second execution on critical workflow paths.
+7. **Responsive UI & Cross-Device Ergonomics**: Validated on mobile, tablet, and desktop viewports.
+8. **Logging & Operational Observability**: Structured telemetry and error logging.
+9. **Rollback Readiness**: Automated rollback scripts and database migration reversibility verified.
+10. **Operator Pre-Delivery Review**: Human engineer inspection and delivery sign-off.
+
+---
+
+## 14. Deployment & Handover
+
+### Deployment Workflow:
+1. Staging deployment to isolated tenant namespace.
+2. Smoke testing of production webhooks and triggers.
+3. DNS configuration, SSL provisioning, and uptime monitoring activation.
+4. Production promotion.
+
+### Customer Handover:
+- Transfer of administrative credentials and integration keys.
+- Delivery of operating documentation, API schemas, and maintenance guides.
+- Acceptance sign-off by customer representative.
+- Collection of remaining 60% handover balance.
+
+> [!NOTE]
+> **Zero False Delivery Claim**: The platform records production delivery completion **only when physical evidence exists**. No fabricated client completions are permitted in system metrics.
+
+---
+
+## 15. Retention / Expansion
+
+Post-delivery client relationships are governed by the Retention & Expansion Engine:
+
+$$\text{DELIVERY\_COMPLETE} \longrightarrow \text{EXPANSION\_ANALYSIS} \longrightarrow \text{GAP IDENTIFICATION} \longrightarrow \text{CEO APPROVAL} \longrightarrow \text{PROPOSAL}$$
+
+### Operational Protocol:
+- Analyzes deployed workflows to identify natural expansion opportunities (e.g., initial deployment automated missed calls; expansion opportunity exists for post-service review collection).
+- Formulates expansion recommendations based on observed usage.
+- **Human Approval Gate**: Expansion proposals are never sent automatically. The CEO must explicitly review, adjust, and approve any outreach to existing clients.
+- **Anti-Spam Invariant**: Zero autonomous follow-up spam sent to active paying customers.
+
+---
+
+## 16. Learning Loop
+
+The platform aggregates performance traces across all lifecycle dimensions:
+
+$$\text{TARGET} \to \text{COUNTRY} \to \text{CITY} \to \text{NICHE} \to \text{PAIN} \to \text{OFFER} \to \text{VARIANT} \to \text{REPLY} \to \text{DEMO} \to \text{PAYMENT} \to \text{DELIVERY}$$
+
+### Feedback Loops:
+- **Targeting**: Deprioritizes low-yield city/niche segments; promotes high-conversion combinations.
+- **Commercial Fit**: Calibrates friction signal weighting based on verified closed deals.
+- **Offer Matching**: Identifies highest-converting capability mappings per vertical.
+- **Outreach**: Refines email framing variants based on verified positive reply rates.
+- **Delivery Efficiency**: Feeds delivery timing data into future project scope estimates.
+
+### Statistical Safety Safeguard:
+$$\text{Sample Size } (N) < 10 \longrightarrow \mathbf{NOT\_ENOUGH\_DATA}$$
+- The learning engine refuses to declare segment winners, recommend niche abandonment, or bias outreach models on small sample sizes ($N < 10$).
+- Prevents premature algorithmic over-fitting on early variance.
+
+---
+
+## 17. Revenue Attribution
+
+The financial accounting subsystem enforces strict epistemic separation between pipeline expectations and realized earnings:
+
+$$\mathbf{PIPELINE\_VALUE} \neq \mathbf{COLLECTED\_REVENUE}$$
+
+### Absolute Invariants:
+1. **Pipeline Value**: Reflects the estimated gross value of leads in qualification, audit, outreach, and proposal stages.
+2. **Collected Revenue**: Reflects **only** transactions with `payment_status == "PAYMENT_CONFIRMED"` verified by bank ledger reconciliation.
+3. **Excluded from Revenue**:
+   - Sent proposals
+   - Projected contract values
+   - Issued payment requests (`PAYMENT_PENDING`)
+   - Unverified customer reference submissions (`PAYMENT_REVIEW_REQUIRED`)
+   - Simulated, dry-run, or test sandbox transactions
+4. Any financial metric displayed on the dashboard or reported by telemetry must adhere strictly to this distinction.
+
+---
+
+## 18. Safety / Human Gates
+
+Agency OS enforces an explicit division of authority between algorithmic execution and executive control:
+
+```
+┌──────────────────────────────────────┬──────────────────────────────────────┐
+│       AUTOMATED SYSTEM LAYER         │          EXECUTIVE / CEO GATE        │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ • Geographic target ingestion        │ • Outreach dispatch authorization    │
+│ • Prospect discovery & deduplication │ • Live sales conversations & calls   │
+│ • Technical audit & evidence parsing │ • Custom price & scope negotiation   │
+│ • Commercial fit scoring             │ • Commercial exception approvals     │
+│ • Capability catalog offer matching  │ • Bank UTR verification & reconcile  │
+│ • Draft personalization generation   │ • Client onboarding approvals        │
+│ • Inbound reply classification       │ • Unusual production build decisions │
+│ • Demo sandbox generation & 8-gate QA│ • Client expansion offer approval    │
+│ • Proposal document preparation      │                                      │
+│ • Commercial gate enforcement        │                                      │
+│ • Production project provisioning    │                                      │
+│ • 10-gate production QA execution    │                                      │
+│ • Learning trace telemetry capture   │                                      │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+> [!WARNING]
+> **No Autonomous Closing**: The software does **not** autonomously negotiate contracts, sign legal agreements, or verify incoming funds. Commercial transactions require human executive confirmation.
+
+---
+
+## 19. Test Evidence
+
+The platform's behavioral correctness is verified by automated test suites spanning all architecture layers:
+
+### Smart Revenue Engineering Suite:
+- **Suite**: `tests/test_smart_revenue_engineering.py`
+- **Test Count**: **10 / 10 Passing Green** (11.93s)
+- **Verified Capabilities**:
+  - `test_opportunity_generation_truthful`: Truthful opportunity generation without hallucinated ROI.
+  - `test_evidence_attribution_and_epistemics`: Strict observation vs inference separation.
+  - `test_identity_consistency_and_validation`: Entity mismatch rejection (`OUTREACH_VALIDATION_FAILED`).
+  - `test_offer_matching_canonical_capabilities`: Canonical capability mapping.
+  - `test_next_best_action_canonical_lifecycle`: State progression transitions.
+  - `test_empirical_learning_loop_insufficient_data`: Enforces $N < 10$ safeguard.
+  - `test_empirical_learning_loop_sufficient_data`: Validates optimization when statistical threshold is met.
+  - `test_delivery_efficiency_tracker`: Delivery duration and repair cycle tracking.
+  - `test_retention_and_expansion_engine`: Human-gated expansion analysis.
+  - `test_revenue_attribution_collected_vs_pipeline`: Strictly segregates pipeline value from collected revenue.
+
+### Demo Factory, Payments & Delivery Verification:
+- **Focused Pipeline Suite**: **65 Tests Passing Green** across:
+  - `tests/test_demo_factory_pipeline.py`: Automated demo generation and 8-gate QA.
+  - `tests/test_payment_production_gate_e2e.py`: End-to-end commercial gate locking and unlocking.
+  - `tests/test_google_pay_manual_flow.py`: Manual UPI reference handling and operator verification.
+  - `tests/test_payment_strategy_lifecycle.py`: 5-stage payment lifecycle and anti-fraud rejections.
+  - `tests/test_deal_closing_and_payments.py`: $500 floor, 40% advance, and idempotent accounting.
+  - `tests/test_global_targeting_hierarchy.py`: 41-country catalog and disabled market exclusion.
+  - `tests/test_public_business_website.py`: Public website boundary and contact intake.
+
+*Note: Automated tests prove software behavior, contract enforcement, and state transitions. They do not represent real-world customer acquisition, customer satisfaction, or external commercial success.*
+
+---
+
+## 20. Current System Status
+
+Every major platform subsystem is categorized by its actual operational readiness:
+
+| Subsystem / Capability | Operational Status | Technical Description |
+| :--- | :--- | :--- |
+| **Global Targeting Engine** | **IMPLEMENTED & VERIFIED** | 41-country catalog, priority queues, and canonical niche normalization active. |
+| **Disabled Markets Safety** | **IMPLEMENTED & VERIFIED** | India, Pakistan, and Israel strictly excluded from active outbound acquisition. |
+| **Entity & Identity Resolver** | **IMPLEMENTED & VERIFIED** | Cross-attribute validation rejects inconsistent prospects (`OUTREACH_VALIDATION_FAILED`). |
+| **Research & Evidence Engine** | **IMPLEMENTED & VERIFIED** | 3-tier epistemic separation enforced; zero fabricated ROI claims. |
+| **Commercial Fit Engine** | **IMPLEMENTED & VERIFIED** | Evaluates procedural friction signals as an operational prioritization metric. |
+| **Offer Matching Engine** | **IMPLEMENTED & VERIFIED** | Strictly constrained to canonical capability catalog and blueprint mappings. |
+| **Outreach Safeguards** | **IMPLEMENTED & VERIFIED** | 200/day provider cap, suppression lists, bounce handling, and CEO approval gate. |
+| **Reply Classifier & NBA** | **IMPLEMENTED & VERIFIED** | Deterministic state progression across the canonical customer journey. |
+| **Demo Factory & 8-Gate QA** | **IMPLEMENTED & VERIFIED** | Isolated sandbox generation; public URLs authorized only upon full QA pass. |
+| **Manual Google Pay UPI** | **CONFIGURED & TESTED** | VPA `mrsufiyansurve@okaxis` configured for customer remittances. |
+| **Operator Reconciliation** | **IMPLEMENTED & TESTED** | Human verification endpoint (`POST /api/payments/{id}/confirm`) unlocks gate. |
+| **Commercial Gate ($500 / 40%)** | **IMPLEMENTED & TESTED** | $500 minimum floor and 40% advance milestone enforced before production. |
+| **Automated Card Gateways** | **BLOCKED (STANDBY)** | Stripe & Razorpay adapters ready; blocked awaiting live production credentials. |
+| **10-Gate Production QA** | **IMPLEMENTED & TESTED** | Rigorous pre-delivery gate matrix for production applications. |
+| **Delivery Efficiency Tracker** | **IMPLEMENTED & TESTED** | Logs delivery duration, first-pass QA success, and repair cycles. |
+| **Retention & Expansion Engine** | **IMPLEMENTED & TESTED** | Identifies post-delivery opportunities requiring explicit CEO authorization. |
+| **Empirical Learning Loop** | **IMPLEMENTED & TESTED** | Full performance trace aggregation with $N < 10$ statistical guard. |
+| **Revenue Accounting** | **IMPLEMENTED & VERIFIED** | Strict segregation between pipeline value and collected revenue. |
+| **Sent Outreach History** | **IMPLEMENTED & VERIFIED** | Canonical Sent API (`/api/outreach/sent`), Subtab UI, detail inspector, and realtime SSE cache invalidation. |
+| **Live Customer Revenue** | **NONE** | Pre-revenue state; no external customer transactions have settled. |
+| **Autonomous Business Closing** | **DISALLOWED** | Human executive oversight required for all commercial and contractual decisions. |
+
+---
+
+## 21. Sent Outreach History Architecture & Forensic Verification
+
+### Forensic Audit of Historical & Live Sends
+An end-to-end database trace of all records in `outreach_messages` with `status = 'SENT'` revealed an exact count of **42 sent records**, classified deterministically:
+
+1. **Real External Prospects (8 Records)**:
+   - Recipient domains: Real estate and professional services firms in Ireland (`.ie`) and the UK (`.com`).
+   - Transmission Rail: Live Titan SMTP (`provider='titan'`, provider message IDs present).
+   - Dispatch Timestamps: September 15–16, 2026.
+2. **Canary / Internal Verification (1 Record)**:
+   - Message ID #72 sent on September 17, 2026 to `hello@automatedagencyos.tech` (`Agency OS Verification Lab`) via Titan SMTP.
+3. **Historical / Early Development Scaffolding (33 Records)**:
+   - Message IDs 1–34 (excluding #12 which failed delivery), dispatched during pre-September 15 scaffolding runs (`provider=None`).
+
+### Canonical API Architecture
+Two canonical endpoints provide operator-only access to sent history:
+- `GET /api/outreach/sent`: Supports category filtering (`real_external` [default], `canary`, `historical_test`, `all`), search query across 7 fields (business, domain, recipient, country, city, niche, subject), pagination (`page`, `page_size`), category counters, linked CRM reply state, and follow-up status.
+- `GET /api/outreach/sent/{message_id}`: Detailed inspection modal endpoint returning full email body, recipient, approved/sent timestamps, delivery provider headers, compliance notes, linked reply snippet/classification, and follow-up sequence cadence.
+
+### Operator UI & Realtime Integration
+- **Subtabs in Approval Queue**: View 4 now provides `#subtab-btn-pending` ("Pending Approval") and `#subtab-btn-sent` ("Sent History") with reactive count badges.
+- **Filter Pills & Search**: Operators can switch between "Real External (8)", "Canary (1)", "Historical / Dev (33)", and "All Sent (42)" or execute instant text searches.
+- **Inspector Modal**: Clicking any sent row opens `#sent-detail-modal` showing the full message, transmission headers, and reply timeline.
+- **Realtime Cache Invalidation**: The Event Projection Map registers `'sentHistory'` under `OUTREACH_SENT`, auto-refreshing the sent history table whenever new emails are dispatched without requiring page reloads.
 

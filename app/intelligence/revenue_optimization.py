@@ -84,5 +84,62 @@ class RevenueOptimizationEngine:
             }
         }
 
+    @classmethod
+    async def attribute_deal_revenue(
+        cls,
+        session: AsyncSession,
+        business_id: int
+    ) -> Dict[str, Any]:
+        """
+        Truthful Revenue Attribution:
+        lead -> opportunity -> offer -> proposal -> payment -> delivery
+        Enforces: Pipeline/proposal value is NOT counted as collected cash. Only verified payments count.
+        """
+        from app.database.models import Business, Offer, Proposal, Payment, CustomerProject
+
+        biz = await session.get(Business, business_id)
+        if not biz:
+            raise ValueError(f"Business #{business_id} not found.")
+
+        # Offer
+        offer_stmt = select(Offer).where(Offer.business_id == business_id).order_by(Offer.id.desc())
+        offer = (await session.execute(offer_stmt)).scalars().first()
+
+        # Proposal
+        prop_stmt = select(Proposal).where(Proposal.business_id == business_id).order_by(Proposal.id.desc())
+        proposal = (await session.execute(prop_stmt)).scalars().first()
+
+        # Payments
+        pay_stmt = select(Payment).where(Payment.business_id == business_id)
+        payments = (await session.execute(pay_stmt)).scalars().all()
+
+        confirmed_statuses = {"CONFIRMED", "PAYMENT_CONFIRMED", "COMPLETED", "PAID", "VERIFIED_PAYMENT", "SETTLED"}
+        verified_collected_usd = sum(float(p.amount) for p in payments if p.status in confirmed_statuses and p.amount)
+        unverified_pending_usd = sum(float(p.amount) for p in payments if p.status not in confirmed_statuses and p.amount)
+
+        # Delivery project
+        proj_stmt = select(CustomerProject).where(CustomerProject.business_id == business_id).order_by(CustomerProject.id.desc())
+        cust_proj = (await session.execute(proj_stmt)).scalars().first()
+
+        proposal_val = float(getattr(proposal, "total_value", getattr(proposal, "total_price_usd", 0.0)) or 0.0) if proposal else 0.0
+
+        return {
+            "business_id": biz.id,
+            "business_name": biz.name,
+            "domain": biz.domain,
+            "pipeline_stage": biz.pipeline_stage,
+            "matched_offer_title": offer.title if offer else "None",
+            "proposal_id": proposal.id if proposal else None,
+            "proposal_value_usd": proposal_val,
+            "verified_collected_revenue_usd": verified_collected_usd,
+            "unverified_pending_usd": unverified_pending_usd,
+            "is_revenue_collected": verified_collected_usd > 0.0,
+            "delivery_project_status": cust_proj.status if cust_proj else "NOT_STARTED",
+            "truthfulness_declaration": (
+                "Only verified settled payments count as collected revenue. "
+                "Active proposals and pipeline amounts represent commercial projections, not cash in bank."
+            )
+        }
+
 
 revenue_optimization_engine = RevenueOptimizationEngine()

@@ -1,38 +1,33 @@
 /**
- * Agency OS: Autonomous Demo & Build Pipeline HUD Controller
- * Language: JavaScript (ES2020)
- * Description: Client controller rendering live project build states,
- *              20-gate QA scores, and customer sandbox links.
+ * Agency OS: Autonomous Demo & Build Pipeline HUD
+ * Language: TypeScript
+ * Description: Type-safe interface, state management, and real-time dashboard
+ *              monitoring for customer demo builds, 20-gate QA telemetry, and sandboxes.
  */
-
 export class ProjectPipelineHUD {
     constructor(containerId = 'project-pipeline-hud-root', pollIntervalMs = 8000) {
         this.containerId = containerId;
         this.pollIntervalMs = pollIntervalMs;
-        this.timerId = null;
     }
-
     async init() {
         await this.refresh();
         this.startPolling();
     }
-
     startPolling() {
-        if (this.timerId) window.clearInterval(this.timerId);
+        if (this.timerId)
+            window.clearInterval(this.timerId);
         this.timerId = window.setInterval(() => this.refresh(), this.pollIntervalMs);
     }
-
     stopPolling() {
         if (this.timerId) {
             window.clearInterval(this.timerId);
-            this.timerId = null;
+            this.timerId = undefined;
         }
     }
-
     async refresh() {
         const root = document.getElementById(this.containerId);
-        if (!root) return;
-
+        if (!root)
+            return;
         try {
             const resp = await fetch('/api/projects');
             if (!resp.ok) {
@@ -41,11 +36,11 @@ export class ProjectPipelineHUD {
             }
             const projects = await resp.json();
             this.render(root, projects);
-        } catch (err) {
+        }
+        catch (err) {
             console.error('[ProjectPipelineHUD] Network error fetching projects:', err);
         }
     }
-
     render(root, projects) {
         if (!projects || projects.length === 0) {
             root.innerHTML = `
@@ -56,18 +51,15 @@ export class ProjectPipelineHUD {
             `;
             return;
         }
-
         let rowsHtml = '';
         for (const p of projects) {
             const statusBadge = this.getStatusBadge(p.status);
-            const qaBadge = (p.qa_score !== null && p.qa_score !== undefined)
+            const qaBadge = p.qa_score !== null && p.qa_score !== undefined
                 ? `<span class="px-2 py-0.5 rounded text-xs font-semibold ${p.qa_status === 'PASS' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${p.qa_score}% (${p.qa_status})</span>`
                 : `<span class="text-xs text-slate-500">Pending</span>`;
-
             const demoLink = p.demo_url
                 ? `<a href="${p.demo_url}" target="_blank" class="text-xs font-medium text-blue-400 hover:text-blue-300 underline flex items-center gap-1">Open Sandbox ↗</a>`
                 : `<span class="text-xs text-slate-500">In Progress</span>`;
-
             rowsHtml += `
                 <tr class="border-b border-slate-800 hover:bg-slate-800/40 transition">
                     <td class="px-4 py-3 text-xs font-mono text-slate-300">${p.project_id}</td>
@@ -82,7 +74,6 @@ export class ProjectPipelineHUD {
                 </tr>
             `;
         }
-
         root.innerHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
                 <div class="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -117,7 +108,6 @@ export class ProjectPipelineHUD {
             </div>
         `;
     }
-
     getStatusBadge(status) {
         switch (status) {
             case 'READY':
@@ -137,12 +127,10 @@ export class ProjectPipelineHUD {
                 return '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-800 text-slate-300">' + status + '</span>';
         }
     }
-
     escapeHtml(str) {
         return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 }
-
 if (typeof window !== 'undefined') {
     window.pipelineHUD = new ProjectPipelineHUD();
     document.addEventListener('DOMContentLoaded', () => {

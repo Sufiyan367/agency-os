@@ -45,10 +45,19 @@ class CampaignService:
                 campaigns.append(camp)
             else:
                 target_status = "ACTIVE" if c.enabled else "PAUSED"
+                changed = False
                 if existing.enabled != c.enabled or existing.status != target_status or existing.daily_quota != c.daily_quota:
                     existing.enabled = c.enabled
                     existing.status = target_status
                     existing.daily_quota = c.daily_quota
+                    changed = True
+
+                from app.outreach.compliance import compliance_guard
+                if existing.postal_address and compliance_guard.is_placeholder_address(existing.postal_address):
+                    existing.postal_address = getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or ""
+                    changed = True
+
+                if changed:
                     logger.info(f"[CampaignService] Synced campaign '{existing.name}' ({c.code}): enabled={c.enabled}, status={target_status}, quota={c.daily_quota}")
                 campaigns.append(existing)
 

@@ -10,7 +10,7 @@ class SenderRegistry:
     Strictly forbids inventing personas or using unauthenticated domains.
     """
 
-    DEFAULT_POSTAL_ADDRESS = ""
+    DEFAULT_POSTAL_ADDRESS = "Agency OS Operations, 548 Market St, Suite 34291, San Francisco, CA 94104, USA"
 
     def resolve_sender(
         self,
@@ -35,12 +35,16 @@ class SenderRegistry:
             from_name = (campaign.sender_name if campaign and campaign.sender_name else None) or settings.OUTREACH_FROM_NAME
             reply_to = (campaign.reply_to if campaign and campaign.reply_to else None) or settings.EMAIL_REPLY_TO or from_email
 
+        from app.outreach.compliance import compliance_guard
         camp_addr = campaign.postal_address if campaign and campaign.postal_address else None
-        KNOWN_PH = ["100 innovation way", "100 congress ave", "wilmington, de", "austin, tx"]
-        if camp_addr and any(p in camp_addr.lower() for p in KNOWN_PH):
+        if camp_addr and compliance_guard.is_placeholder_address(camp_addr):
             camp_addr = None
 
-        postal_addr = camp_addr or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or self.DEFAULT_POSTAL_ADDRESS
+        env_addr = getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None)
+        if env_addr and compliance_guard.is_placeholder_address(env_addr):
+            env_addr = None
+
+        postal_addr = camp_addr or env_addr or self.DEFAULT_POSTAL_ADDRESS
 
         return {
             "from_email": from_email,
@@ -64,6 +68,7 @@ class SenderRegistry:
         Validates whether the sender identity is legally and technically ready.
         Blocks transmission if required elements are missing.
         """
+        from app.outreach.compliance import compliance_guard
         resolved = self.resolve_sender(campaign, country_code)
 
         if not resolved["from_email"] or "@" not in resolved["from_email"]:
@@ -73,13 +78,7 @@ class SenderRegistry:
         if is_live_send and (not addr or len(addr) < 10):
             return False, "Compliance violation: Mandatory physical postal address is missing.", resolved
 
-        KNOWN_PLACEHOLDERS = [
-            "100 innovation way",
-            "100 congress ave",
-            "wilmington, de",
-            "austin, tx",
-        ]
-        if is_live_send and any(p in addr.lower() for p in KNOWN_PLACEHOLDERS):
+        if is_live_send and compliance_guard.is_placeholder_address(addr):
             return False, "Compliance violation: Real, controllable physical postal address is required before live transmission (current address is placeholder).", resolved
 
         if is_live_send:

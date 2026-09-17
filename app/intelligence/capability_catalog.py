@@ -562,9 +562,17 @@ class SolutionCapabilityCatalog:
     def list_capabilities(self) -> List[SolutionCapability]:
         return list(self._capabilities)
 
+    ALIAS_MAP = {
+        "CAP-002-CALL-RECOVERY": "AGY-AUTO-MISSED-CALL-TEXTBACK",
+        "CAP-003-AI-RECEPTIONIST": "CAP-005-AI-CONCIERGE",
+        "CAP-004-APPOINTMENT-AUTOMATION": "CAP-002-BOOKING-AUTOMATION",
+        "CAP-005-CRM-AUTOMATION": "CAP-004-CRM-PIPELINE-SYNC",
+    }
+
     def get_capability(self, capability_id: str) -> Optional[SolutionCapability]:
+        resolved_id = self.ALIAS_MAP.get(capability_id, capability_id)
         for cap in self._capabilities:
-            if cap.capability_id == capability_id:
+            if cap.capability_id == resolved_id or cap.capability_id == capability_id:
                 return cap
         return None
 

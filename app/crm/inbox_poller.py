@@ -115,11 +115,21 @@ class InboxPoller:
                 return await self.poll_gmail(session)
 
             # 2. Resolve IMAP settings (Titan business email or standard IMAP)
-            is_titan = (settings.EMAIL_PROVIDER or "").lower().strip() in ("titan", "titan_smtp") or getattr(settings, "TITAN_IMAP_USER", None)
+            is_titan = (
+                (settings.EMAIL_PROVIDER or "").lower().strip() in ("titan", "titan_smtp")
+                or bool(getattr(settings, "TITAN_IMAP_USER", None))
+                or bool(getattr(settings, "TITAN_SMTP_USER", None))
+            )
             imap_host = getattr(settings, "TITAN_IMAP_HOST", None) if is_titan else getattr(settings, "IMAP_HOST", None)
+            if is_titan and not imap_host:
+                imap_host = "imap.titan.email"
             imap_port = getattr(settings, "TITAN_IMAP_PORT", 993) if is_titan else getattr(settings, "IMAP_PORT", 993)
             imap_user = getattr(settings, "TITAN_IMAP_USER", None) if is_titan else getattr(settings, "IMAP_USER", None)
+            if is_titan and not imap_user:
+                imap_user = getattr(settings, "TITAN_SMTP_USER", None)
             imap_password = getattr(settings, "TITAN_IMAP_PASSWORD", None) if is_titan else getattr(settings, "IMAP_PASSWORD", None)
+            if is_titan and not imap_password:
+                imap_password = getattr(settings, "TITAN_SMTP_PASSWORD", None)
 
             if not imap_host:
                 imap_host = getattr(settings, "IMAP_HOST", None)

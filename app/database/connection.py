@@ -114,9 +114,10 @@ SyncSessionLocal = sessionmaker(bind=sync_engine, expire_on_commit=False, autoco
 
 @event.listens_for(engine.sync_engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
-    """Enforces WAL journal mode and timeouts on SQLite."""
+    """Enforces WAL journal mode, timeouts, and foreign key constraints on SQLite."""
     if "sqlite" in str(engine.url):
         cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA busy_timeout=10000")
         cursor.execute("PRAGMA synchronous=NORMAL")
@@ -125,13 +126,15 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 @event.listens_for(sync_engine, "connect")
 def set_sync_sqlite_pragma(dbapi_connection, connection_record):
-    """Enforces WAL journal mode on synchronous SQLite connections."""
+    """Enforces WAL journal mode and foreign key constraints on synchronous SQLite connections."""
     if "sqlite" in str(sync_engine.url):
         cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA busy_timeout=10000")
         cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()
+
 
 
 AsyncSessionLocal = async_sessionmaker(

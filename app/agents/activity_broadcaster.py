@@ -51,7 +51,11 @@ class AgentEventType(str, Enum):
 
     OUTREACH_DRAFT_STARTED = "OUTREACH_DRAFT_STARTED"
     OUTREACH_DRAFTED = "OUTREACH_DRAFTED"
-
+    OUTREACH_APPROVED = "OUTREACH_APPROVED"
+    OUTREACH_QUEUED = "OUTREACH_QUEUED"
+    OUTREACH_SENT = "OUTREACH_SENT"
+    OUTREACH_REJECTED = "OUTREACH_REJECTED"
+    OUTREACH_BLOCKED = "OUTREACH_BLOCKED"
     OUTREACH_DISPATCH_STARTED = "OUTREACH_DISPATCH_STARTED"
     OUTREACH_DISPATCHED = "OUTREACH_DISPATCHED"
     OUTREACH_FAILED = "OUTREACH_FAILED"
@@ -84,6 +88,37 @@ class AgentEventType(str, Enum):
     # Safety & Human Intervention
     HUMAN_TAKEOVER = "HUMAN_TAKEOVER"
     KILL_SWITCH_ACTIVATED = "KILL_SWITCH_ACTIVATED"
+    SAFEGUARD_TRIGGERED = "SAFEGUARD_TRIGGERED"
+    ERROR = "ERROR"
+    CEO_ALERT = "CEO_ALERT"
+
+    # Multi-Market Autonomous Pipeline & Revenue Ops
+    MARKET_REBALANCED = "MARKET_REBALANCED"
+    MARKET_ACTIVATED = "MARKET_ACTIVATED"
+    MARKET_DEACTIVATED = "MARKET_DEACTIVATED"
+    MARKET_PAUSED = "MARKET_PAUSED"
+    MARKET_REACTIVATED = "MARKET_REACTIVATED"
+    CAPACITY_REALLOCATED = "CAPACITY_REALLOCATED"
+    OPPORTUNITY_IDENTIFIED = "OPPORTUNITY_IDENTIFIED"
+    OFFER_SELECTED = "OFFER_SELECTED"
+
+    # Demo Factory & Commercial Pipeline
+    DEMO_STARTED = "DEMO_STARTED"
+    DEMO_READY = "DEMO_READY"
+    PROPOSAL_CREATED = "PROPOSAL_CREATED"
+    PAYMENT_REVIEW_REQUIRED = "PAYMENT_REVIEW_REQUIRED"
+    PAYMENT_CONFIRMED = "PAYMENT_CONFIRMED"
+    PRODUCTION_AUTHORIZED = "PRODUCTION_AUTHORIZED"
+
+    # Production Delivery & Lifecycle
+    BUILD_STARTED = "BUILD_STARTED"
+    BUILD_COMPLETED = "BUILD_COMPLETED"
+    QA_STARTED = "QA_STARTED"
+    QA_PASSED = "QA_PASSED"
+    DEPLOYMENT_STARTED = "DEPLOYMENT_STARTED"
+    DEPLOYED = "DEPLOYED"
+    DELIVERY_COMPLETE = "DELIVERY_COMPLETE"
+    EXPANSION_OPPORTUNITY = "EXPANSION_OPPORTUNITY"
 
 
 class AgentActivityBroadcaster:
@@ -94,6 +129,7 @@ class AgentActivityBroadcaster:
 
     def __init__(self):
         self._clients: Set[WebSocket] = set()
+        self._sse_listeners: Set[asyncio.Queue] = set()
         self._lock = asyncio.Lock()
         self._global_seq = 0
 
@@ -101,16 +137,30 @@ class AgentActivityBroadcaster:
         """Registers a new connected WebSocket client."""
         async with self._lock:
             self._clients.add(websocket)
-            logger.info(f"[ActivityBroadcaster] Client connected. Total active clients: {len(self._clients)}")
+            logger.info(f"[ActivityBroadcaster] WS Client connected. Total active clients: {len(self._clients)}")
 
     async def unregister(self, websocket: WebSocket):
         """Unregisters a disconnected WebSocket client."""
         async with self._lock:
             self._clients.discard(websocket)
-            logger.info(f"[ActivityBroadcaster] Client disconnected. Total active clients: {len(self._clients)}")
+            logger.info(f"[ActivityBroadcaster] WS Client disconnected. Total active clients: {len(self._clients)}")
+
+    async def register_sse_listener(self) -> asyncio.Queue:
+        """Registers a new Server-Sent Events (SSE) listener queue."""
+        q: asyncio.Queue = asyncio.Queue(maxsize=100)
+        async with self._lock:
+            self._sse_listeners.add(q)
+            logger.info(f"[ActivityBroadcaster] SSE listener connected. Total active SSE listeners: {len(self._sse_listeners)}")
+        return q
+
+    async def unregister_sse_listener(self, q: asyncio.Queue):
+        """Unregisters an SSE listener queue."""
+        async with self._lock:
+            self._sse_listeners.discard(q)
+            logger.info(f"[ActivityBroadcaster] SSE listener disconnected. Total active SSE listeners: {len(self._sse_listeners)}")
 
     def get_active_client_count(self) -> int:
-        return len(self._clients)
+        return len(self._clients) + len(self._sse_listeners)
 
     async def record_event(
         self,
@@ -125,7 +175,8 @@ class AgentActivityBroadcaster:
         error: Optional[str] = None
     ) -> AgentActivityEvent:
         """
-        Persists an activity event to SQLite and broadcasts it in real-time to all connected WebSocket clients.
+        Persists an activity event to SQLite and broadcasts it in real-time to all connected WebSocket
+        and Server-Sent Events (SSE) clients using the canonical Interservice Event Schema.
         """
         async with self._lock:
             self._global_seq += 1
@@ -151,13 +202,33 @@ class AgentActivityBroadcaster:
         await session.commit()
         await session.refresh(event)
 
-        # Broadcast payload
+        entity_id = str(event.business_id) if event.business_id else (event.domain or event.run_id or "system")
+        event_id = f"evt_{event.id}_{event.sequence_number}"
+
+        # Standardized Interservice Event Envelope
         payload = {
+            # Canonical Envelope
+            "event_id": event_id,
+            "event_type": event.event_type,
+            "timestamp": event.created_at.isoformat(),
+            "source": "agency_os.core",
+            "entity_id": entity_id,
+            "correlation_id": event.run_id,
+            "payload_version": "1.0",
+            "payload": {
+                "message": event.message,
+                "status": event.status,
+                "domain": event.domain,
+                "metadata": event.metadata_json,
+                "sequence_number": event.sequence_number,
+                "error": event.error,
+                "completed_at": event.completed_at.isoformat() if event.completed_at else None
+            },
+            # Backward-compatible fields
             "id": event.id,
             "run_id": event.run_id,
             "business_id": event.business_id,
             "domain": event.domain,
-            "event_type": event.event_type,
             "status": event.status,
             "message": event.message,
             "metadata_json": event.metadata_json,
@@ -171,22 +242,33 @@ class AgentActivityBroadcaster:
         return event
 
     async def _broadcast(self, payload: Dict[str, Any]):
-        """Dispatches event payload to all active WebSocket clients."""
+        """Dispatches event payload to all active WebSocket and SSE clients."""
         msg_str = json.dumps(payload)
+        
+        # 1. Dispatch to WebSockets
         dead_clients = []
         clients_copy = list(self._clients)
-
         for client in clients_copy:
             try:
                 await client.send_text(msg_str)
             except Exception as e:
-                logger.debug(f"[ActivityBroadcaster] Send error to client: {e}")
+                logger.debug(f"[ActivityBroadcaster] Send error to WS client: {e}")
                 dead_clients.append(client)
 
         if dead_clients:
             async with self._lock:
                 for dc in dead_clients:
                     self._clients.discard(dc)
+
+        # 2. Dispatch to SSE listener queues
+        sse_copy = list(self._sse_listeners)
+        for q in sse_copy:
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                logger.debug("[ActivityBroadcaster] Dropping slow SSE client queue")
+            except Exception as e:
+                logger.debug(f"[ActivityBroadcaster] Error enqueueing SSE event: {e}")
 
     async def get_recent_events(
         self,

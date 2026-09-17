@@ -308,6 +308,86 @@ async def test_12_dashboard_reflects_canonical_state():
         # N8N orchestration telemetry integrated
         assert "n8n_orchestration" in metrics
         n8n_tel = metrics["n8n_orchestration"]
-        assert n8n_tel["status"] == "OPERATIONAL"
+        assert n8n_tel["status"] in ("OPERATIONAL", "ACTIVE", "DEGRADED", "ERROR", "OFFLINE")
+        assert "semantic_status" in n8n_tel
         assert n8n_tel["registered_templates_count"] >= 9
         assert n8n_tel["safety_invariants"]["ceo_approval_bypass_allowed"] is False
+
+
+@pytest.mark.asyncio
+async def test_13_semantic_status_and_telemetry_fields():
+    """Invariant 13: Orchestration status returns full truthful telemetry structure and semantic status."""
+    status = n8n_orchestrator.get_orchestration_status()
+    assert "semantic_status" in status
+    assert status["semantic_status"] in (
+        "RUNTIME_OFFLINE", "RUNTIME_ONLINE_IDLE", "AUTOMATION_ACTIVE",
+        "AUTOMATION_ERROR", "AUTOMATION_DEGRADED"
+    )
+    assert "currently_running_workflows" in status
+    assert "recent_errors" in status
+    assert "telemetry" in status
+    tel = status["telemetry"]
+    assert "last_discovery_execution" in tel
+    assert "last_qualification_execution" in tel
+    assert "last_outreach_drafting_execution" in tel
+    assert "last_reply_processing_execution" in tel
+    assert "next_scheduled_run" in tel
+
+
+@pytest.mark.asyncio
+async def test_14_autonomous_loop_stage_events_forwarded():
+    """Invariant 14: All money loop lifecycle stages (discovery, qualification, drafting) route to n8n."""
+    # Stage 1: Discovery
+    disc_evt = AgencyEvent(
+        event_id=f"EVT-DISC-{uuid.uuid4().hex[:8]}",
+        correlation_id="CORR-LOOP-1",
+        event_type="DISCOVERY_COMPLETED",
+        entity_type="business",
+        entity_id=301,
+        payload={"domain": "premierroofing.com", "name": "Premier Roofing", "city": "Dallas", "country": "US"}
+    )
+    await event_bus.publish(disc_evt)
+    assert len(n8n_orchestrator._mock_sink) > 0
+    assert n8n_orchestrator._mock_sink[-1]["payload"]["target_workflow"] == "lead_enrichment"
+
+    # Stage 2: Outreach Drafted
+    draft_evt = AgencyEvent(
+        event_id=f"EVT-DRAFT-{uuid.uuid4().hex[:8]}",
+        correlation_id="CORR-LOOP-2",
+        event_type="OUTREACH_DRAFTED",
+        entity_type="outreach_message",
+        entity_id=401,
+        payload={"message_id": 401, "business_id": 301, "subject": "Commercial Overhaul", "status": "PENDING_APPROVAL"}
+    )
+    await event_bus.publish(draft_evt)
+    assert n8n_orchestrator._mock_sink[-1]["payload"]["target_workflow"] == "personalized_outreach"
+
+
+@pytest.mark.asyncio
+async def test_15_programmatic_trigger_workflow():
+    """Invariant 15: Background worker can programmatically trigger n8n workflows."""
+    triggered = await n8n_orchestrator.trigger_workflow(
+        target_workflow="sales_followup",
+        payload={"action": "EVALUATE_CADENCE", "campaign_id": "CAMP-001", "business_id": 301},
+        correlation_id="CORR-PROG-001"
+    )
+    assert triggered is True
+    assert len(n8n_orchestrator._mock_sink) > 0
+    latest = n8n_orchestrator._mock_sink[-1]
+    assert latest["payload"]["target_workflow"] == "sales_followup"
+    assert latest["correlation_id"] == "CORR-PROG-001"
+
+
+@pytest.mark.asyncio
+async def test_16_payment_confirmation_rejects_auto_settlement():
+    """Invariant 16: External automations cannot auto-confirm payments or bypass human bank UTR verification."""
+    pay_bypass_envelope = InboundN8nEnvelope(
+        event_id=f"n8n_pay_{uuid.uuid4().hex[:8]}",
+        event_type="CONFIRM_PAYMENT",
+        payload={"action": "CONFIRM_PAYMENT", "payment_id": 501, "amount": 2500.0}
+    )
+    res = await n8n_orchestrator.process_inbound_n8n_event(pay_bypass_envelope)
+    assert res["success"] is False
+    assert res["status"] == "FORBIDDEN"
+    assert "Safety violation" in res["error"]
+

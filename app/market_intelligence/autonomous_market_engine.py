@@ -490,7 +490,7 @@ class AutonomousMarketIntelligenceEngine:
 
             from app.lead_generation.adapters.verified_registry import REAL_COMMERCIAL_BUSINESSES
             reg_count = len(REAL_COMMERCIAL_BUSINESSES.get((country_code.upper(), niche_id.lower().replace("_", "-")), []))
-            candidate_supply = max(total_leads, reg_count, 15)
+            candidate_supply = total_leads + reg_count
 
             return {
                 "sample_size": total_leads,
@@ -517,10 +517,9 @@ class AutonomousMarketIntelligenceEngine:
                 "total_replies": 0,
                 "reply_rate": 0.0,
                 "won_deals": 0,
-                "qualified_leads": 0,
                 "outreach_sent": 0,
                 "verified_revenue": 0.0,
-                "candidate_supply": 15
+                "candidate_supply": 0
             }
 
     def _determine_trend(self, key: str, current_sample: int, positive_outcomes: int) -> str:

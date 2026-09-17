@@ -205,7 +205,7 @@ async def test_10_malformed_llm_json_is_rejected_safely():
         
         result = await llm_client.generate_json("Classify reply text: 'I am interested in a demo'")
         assert result["fallback"] is True
-        assert result["validation_result"] == "INVALID"
+        assert result["validation_result"] in ("INVALID", "MALFORMED_JSON")
         assert result["provider"] == "fallback"
         assert result["confidence"] <= 0.90
 

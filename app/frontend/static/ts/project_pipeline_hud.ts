@@ -7,7 +7,7 @@
 
 export interface CustomerProjectSummary {
     id: number;
-    project_id: str;
+    project_id: string;
     business_id: number;
     business_name: string;
     domain: string;

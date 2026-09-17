@@ -116,7 +116,8 @@ class UxConversionAuditor:
         appointment_terms = [
             "appointment", "book appointment", "schedule consultation", "consultation",
             "reserve", "book online", "patient portal", "book your visit", "schedule a visit",
-            "request appointment"
+            "request appointment", "free inspection", "roof inspection", "schedule inspection",
+            "free estimate", "estimate", "quote", "get a quote", "request a quote"
         ]
         has_appointment_dep = any(t in text_content for t in appointment_terms)
 

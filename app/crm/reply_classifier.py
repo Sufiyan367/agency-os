@@ -78,8 +78,8 @@ class ReplyClassifier:
                 "classifier_provider": "deterministic_rules"
             }
 
-        if re.search(r"\b(schedule|call|calendar|calendly|meet|zoom|thursday|monday|tuesday|wednesday|friday|tomorrow)\b", lower) and \
-           any(w in lower for w in ["time", "talk", "chat", "discuss", "available", "morning", "afternoon"]):
+        if re.search(r"\b(schedule|call|calendar|calendly|meet|zoom)\b", lower) and \
+           any(w in lower for w in ["time", "talk", "chat", "discuss", "available", "morning", "afternoon", "meet", "zoom", "call", "schedule", "friday", "monday", "tuesday", "wednesday", "thursday", "tomorrow", "am", "pm"]):
             return {
                 "classification": ReplyClassification.MEETING_REQUEST.value,
                 "confidence": 0.95,
@@ -116,7 +116,7 @@ class ReplyClassifier:
                 "classifier_provider": "deterministic_rules"
             }
 
-        if any(w in lower for w in ["interested", "sounds good", "send more", "send video", "send audit", "send demo", "sure", "love to see", "yes please", "would love to see", "show me", "definitely"]):
+        if any(w in lower for w in ["interested", "interesting", "sounds good", "send more", "send video", "send audit", "send demo", "sure", "love to see", "yes please", "would love to see", "show me", "definitely"]):
             return {
                 "classification": ReplyClassification.POSITIVE.value,
                 "confidence": 0.92,
@@ -347,7 +347,8 @@ class ReplyClassifier:
         if sensitive_trigger.get("is_sensitive"):
             if biz:
                 biz.human_takeover = True
-                biz.pipeline_stage = PipelineStage.APPROVAL.value
+                if biz.pipeline_stage not in (PipelineStage.WON.value, PipelineStage.PROPOSAL.value):
+                    biz.pipeline_stage = PipelineStage.QUALIFIED_REPLY.value
 
         if detected_objections or sensitive_trigger.get("is_sensitive"):
             # Retrieve audit context for grounded response

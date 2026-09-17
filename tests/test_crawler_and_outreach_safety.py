@@ -209,17 +209,31 @@ async def test_crawler_successful_public_redirect():
 # ==============================================================================
 
 def test_email_sanitization_rejects_media_and_retina_artifacts():
-    """Rejects retina image filenames (@2x.jpeg) and image extensions that masquerade as emails."""
+    """Rejects retina image filenames (@2x.jpeg), image filenames in local part/domain, and data URIs."""
     # Retina image artifacts observed in scrapers
     assert sanitize_scraped_email("hero@2x.jpeg") is None
     assert sanitize_scraped_email("logo@2x.png") is None
     assert sanitize_scraped_email("banner@3x.webp") is None
+
+    # Image artifacts in local part or domain
+    assert sanitize_scraped_email("logo.png@example.com") is None
+    assert sanitize_scraped_email("header_img.jpg@domain.com") is None
+    assert sanitize_scraped_email("icon.svg@domain.com") is None
+    assert sanitize_scraped_email("user@example.com.png") is None
+    assert sanitize_scraped_email("user@example.png") is None
+    assert sanitize_scraped_email("img_123.png@domain.com") is None
+    assert sanitize_scraped_email("data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==") is None
+    assert sanitize_scraped_email("image/png") is None
 
     # Syntax validator direct check
     assert not validate_email_syntax("hero@2x.jpeg")
     assert not validate_email_syntax("image@2x.png")
     assert not validate_email_syntax("icon.png")
     assert not validate_email_syntax("photo@domain.jpg")
+    assert not validate_email_syntax("logo.png@example.com")
+    assert not validate_email_syntax("user@example.png")
+    assert not validate_email_syntax("user@domain.com.png")
+    assert not validate_email_syntax("data:image/jpeg;base64,123")
 
 
 def test_email_sanitization_cleans_mailto_and_entities():

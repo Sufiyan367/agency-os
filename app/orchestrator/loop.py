@@ -21,6 +21,9 @@ from app.crm.reply_classifier import reply_classifier
 from app.crm.pipeline import pipeline_manager
 from app.analytics.engine import analytics_engine
 from app.core.logging import setup_logging
+from app.core.config import settings
+from app.core.event_bus import event_bus, AgencyEvent
+from app.campaigns.config import campaign_config_loader
 
 class AutonomousCycleOrchestrator:
     """
@@ -69,57 +72,113 @@ class AutonomousCycleOrchestrator:
                 metadata_json={"target_leads": total_targets, "run_id": run_id}
             )
 
-            # 1. Market Research & Intelligence: Select Best Opportunity
+            # 1. Market Research & Intelligence: Select Best Opportunity via Autonomous Market Intelligence Engine
             logger.info("Step 1: Discovering and evaluating global market opportunities...")
-            opportunities = await market_intelligence_engine.scan_and_rank_markets(session)
-            
-            # Filter opportunities by sending window, campaign enablement, and daily country capacity
-            from app.campaigns.scheduler import campaign_scheduler
-            from app.campaigns.config import campaign_config_loader
-            from app.core.config import settings
+            best_market = None
+            try:
+                from app.market_intelligence.autonomous_market_engine import autonomous_market_engine
+                from app.campaigns.scheduler import campaign_scheduler
+                from app.lead_generation.adapters.verified_registry import REAL_COMMERCIAL_BUSINESSES
+                auto_queue = await autonomous_market_engine.get_autonomous_target_queue(session=session, limit=max_opportunities_to_mine or 5)
+                active_portfolio = auto_queue.get("active_portfolio", [])
+                
+                for candidate in active_portfolio:
+                    cc = (candidate.get("country_code") or "US").upper()
+                    n_slug = (candidate.get("niche_id") or "general-contractors").lower().replace(" ", "-").replace("_", "-")
+                    has_supply = (
+                        candidate.get("candidate_supply", 0) > 0 or 
+                        len(REAL_COMMERCIAL_BUSINESSES.get((cc, n_slug), [])) > 0 or
+                        any(k[0] == cc for k in REAL_COMMERCIAL_BUSINESSES.keys())
+                    )
+                    if not has_supply:
+                        continue
 
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            active_window_opportunities = []
-            uncapped_opportunities = []
+                    in_win, _, _, _ = campaign_scheduler.is_within_sending_window(cc)
+                    if in_win:
+                        class AutonomousSelectedMarket:
+                            def __init__(self, am):
+                                self.country_name = am.get("country_name", am.get("country_code"))
+                                self.country_code = am.get("country_code")
+                                self.region = am.get("region", "")
+                                self.city = am.get("city", "")
+                                self.niche_name = am.get("niche_name", am.get("niche_id"))
+                                self.niche_slug = (am.get("niche_id") or "general-contractors").lower().replace(" ", "-").replace("_", "-")
+                                self.total_score = float(am.get("score", 85.0))
+                                self.expected_deal_value = 1500.0
+                                self.reasoning = f"{am.get('type', 'EXPLOIT')} [{am.get('reason_code', 'HIGH_AUTOMATION_FIT')}]: {am.get('city')}, {am.get('region')}, {am.get('country_name')}"
+                        best_market = AutonomousSelectedMarket(candidate)
+                        break
 
-            for opp in opportunities:
-                cc = (opp.country_code or "US").upper()
-                c_prof = campaign_config_loader.get_country(cc)
-                if c_prof and not c_prof.enabled:
-                    continue
+                if not best_market and active_portfolio:
+                    for candidate in active_portfolio:
+                        cc = (candidate.get("country_code") or "US").upper()
+                        n_slug = (candidate.get("niche_id") or "general-contractors").lower().replace(" ", "-").replace("_", "-")
+                        if candidate.get("candidate_supply", 0) > 0 or any(k[0] == cc for k in REAL_COMMERCIAL_BUSINESSES.keys()):
+                            class AutonomousSelectedMarket0:
+                                def __init__(self, am):
+                                    self.country_name = am.get("country_name", am.get("country_code"))
+                                    self.country_code = am.get("country_code")
+                                    self.region = am.get("region", "")
+                                    self.city = am.get("city", "")
+                                    self.niche_name = am.get("niche_name", am.get("niche_id"))
+                                    self.niche_slug = (am.get("niche_id") or "general-contractors").lower().replace(" ", "-").replace("_", "-")
+                                    self.total_score = float(am.get("score", 85.0))
+                                    self.expected_deal_value = 1500.0
+                                    self.reasoning = f"{am.get('type', 'EXPLOIT')} [{am.get('reason_code', 'HIGH_AUTOMATION_FIT')}]: {am.get('city')}, {am.get('region')}, {am.get('country_name')}"
+                            best_market = AutonomousSelectedMarket0(candidate)
+                            break
+            except Exception as ame_err:
+                logger.warning(f"Autonomous market engine query skipped or failed: {ame_err}")
+                best_market = None
 
-                # Check if corridor has already reached its daily qualified prospect quota
-                country_quota = c_prof.daily_quota if c_prof else 10
-                codes_to_match = [cc]
-                if cc == "UK":
-                    codes_to_match.append("GB")
-                elif cc == "GB":
-                    codes_to_match.append("UK")
+            if not best_market:
+                opportunities = await market_intelligence_engine.scan_and_rank_markets(session)
+                
+                # Filter opportunities by sending window, campaign enablement, and daily country capacity
+                from app.campaigns.scheduler import campaign_scheduler
 
-                q_cntry_check = select(func.count(Business.id)).where(
-                    Business.country.in_(codes_to_match),
-                    Business.pipeline_stage.in_([
-                        PipelineStage.APPROVAL.value,
-                        PipelineStage.OUTREACH_READY.value,
-                        PipelineStage.CONTACTED.value,
-                        PipelineStage.WON.value
-                    ]),
-                    Business.created_at >= today_start
-                )
-                cntry_today = (await session.execute(q_cntry_check)).scalar() or 0
-                if cntry_today >= country_quota and getattr(settings, "APP_ENV", "") != "test":
-                    continue
+                today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                active_window_opportunities = []
+                uncapped_opportunities = []
 
-                uncapped_opportunities.append(opp)
-                in_win, _, _, _ = campaign_scheduler.is_within_sending_window(cc)
-                if in_win:
-                    active_window_opportunities.append(opp)
+                for opp in opportunities:
+                    cc = (opp.country_code or "US").upper()
+                    c_prof = campaign_config_loader.get_country(cc)
+                    if c_prof and not c_prof.enabled:
+                        continue
 
-            candidate_markets = active_window_opportunities if active_window_opportunities else uncapped_opportunities
-            if not candidate_markets:
-                candidate_markets = opportunities
-            top_markets = candidate_markets[:max_opportunities_to_mine]
-            best_market = top_markets[0]
+                    # Check if corridor has already reached its daily qualified prospect quota
+                    country_quota = c_prof.daily_quota if c_prof else 10
+                    codes_to_match = [cc]
+                    if cc == "UK":
+                        codes_to_match.append("GB")
+                    elif cc == "GB":
+                        codes_to_match.append("UK")
+
+                    q_cntry_check = select(func.count(Business.id)).where(
+                        Business.country.in_(codes_to_match),
+                        Business.pipeline_stage.in_([
+                            PipelineStage.APPROVAL.value,
+                            PipelineStage.OUTREACH_READY.value,
+                            PipelineStage.CONTACTED.value,
+                            PipelineStage.WON.value
+                        ]),
+                        Business.created_at >= today_start
+                    )
+                    cntry_today = (await session.execute(q_cntry_check)).scalar() or 0
+                    if cntry_today >= country_quota and getattr(settings, "APP_ENV", "") != "test":
+                        continue
+
+                    uncapped_opportunities.append(opp)
+                    in_win, _, _, _ = campaign_scheduler.is_within_sending_window(cc)
+                    if in_win:
+                        active_window_opportunities.append(opp)
+
+                candidate_markets = active_window_opportunities if active_window_opportunities else uncapped_opportunities
+                if not candidate_markets:
+                    candidate_markets = opportunities
+                top_markets = candidate_markets[:max_opportunities_to_mine]
+                best_market = top_markets[0]
             cycle_summary["selected_market"] = {
                 "country": best_market.country_name,
                 "country_code": best_market.country_code,
@@ -151,7 +210,6 @@ class AutonomousCycleOrchestrator:
 
             for prospect_idx in range(total_targets):
                 # 2a. Pre-discovery safety: Emergency Kill Switch
-                from app.core.config import settings
                 from app.outreach.compliance import compliance_guard
                 from app.crm.memory_service import memory_service
 
@@ -259,6 +317,26 @@ class AutonomousCycleOrchestrator:
                     }
                 )
 
+                try:
+                    await event_bus.publish(AgencyEvent(
+                        event_id=f"EVT-DISC-{uuid.uuid4().hex[:8].upper()}",
+                        correlation_id=run_id,
+                        event_type="DISCOVERY_COMPLETED",
+                        entity_type="business",
+                        entity_id=biz.id,
+                        payload={
+                            "domain": biz.domain,
+                            "name": biz.name,
+                            "city": biz.city,
+                            "country": biz.country,
+                            "niche": getattr(biz, "niche", best_market.niche_slug),
+                            "public_email": biz.public_email,
+                            "phone": biz.phone
+                        }
+                    ))
+                except Exception as eb_disc_err:
+                    logger.debug(f"[Discovery] Event bus publish skipped: {eb_disc_err}")
+
                 # 2c. Verification check
                 await activity_broadcaster.record_event(
                     session=session,
@@ -361,6 +439,24 @@ class AutonomousCycleOrchestrator:
                     }
                 )
 
+                try:
+                    await event_bus.publish(AgencyEvent(
+                        event_id=f"EVT-AUDIT-{uuid.uuid4().hex[:8].upper()}",
+                        correlation_id=run_id,
+                        event_type="AUDIT_COMPLETED",
+                        entity_type="business",
+                        entity_id=biz.id,
+                        payload={
+                            "domain": biz.domain,
+                            "performance_score": perf_score,
+                            "load_time_seconds": load_time,
+                            "seo_score": seo_score,
+                            "a11y_score": a11y_score
+                        }
+                    ))
+                except Exception as eb_audit_err:
+                    logger.debug(f"[Audit] Event bus publish skipped: {eb_audit_err}")
+
                 # 2e. Lead Scoring for THIS single prospect
                 logger.info(f"[Prospect {biz.domain}] Computing transparent commercial 0-100 lead score...")
                 try:
@@ -406,6 +502,21 @@ class AutonomousCycleOrchestrator:
                         "priority": getattr(score_rec, "priority", "B") if score_rec else "B"
                     }
                 )
+
+                # 2e.1 Qualification Depth Gate: Low scores (<55) or insufficient research are strictly DISQUALIFIED
+                if opp_score < 55.0 or biz.pipeline_stage == PipelineStage.REJECTED.value:
+                    logger.info(f"[Prospect {biz.domain}] Disqualified with score {opp_score:.1f}/100 (< 55.0 qualification floor). Skipping offer and outreach drafting.")
+                    await activity_broadcaster.record_event(
+                        session=session,
+                        run_id=run_id,
+                        event_type=AgentEventType.PROSPECT_DISQUALIFIED.value,
+                        message=f"Prospect {biz.domain} disqualified: Commercial score {opp_score:.1f}/100 below 55.0 qualification floor.",
+                        business_id=biz.id,
+                        domain=biz.domain,
+                        status="WARNING",
+                        metadata_json={"total_score": opp_score, "priority": getattr(score_rec, "priority", "LOW")}
+                    )
+                    continue
 
                 # 2f. Service Recommendation & Commercial Offer Generation ($500+ Minimum Floor)
                 logger.info(f"[Prospect {biz.domain}] Synthesizing customized commercial package & offer...")
@@ -468,6 +579,25 @@ class AutonomousCycleOrchestrator:
                         "service_type": getattr(offer, "service_type", "Performance Turnaround")
                     }
                 )
+
+                try:
+                    await event_bus.publish(AgencyEvent(
+                        event_id=f"EVT-QUAL-{uuid.uuid4().hex[:8].upper()}",
+                        correlation_id=run_id,
+                        event_type="COMMERCIAL_QUALIFICATION",
+                        entity_type="business",
+                        entity_id=biz.id,
+                        payload={
+                            "domain": biz.domain,
+                            "score": opp_score,
+                            "offer_price": offer_price,
+                            "commercial_floor": commercial_floor,
+                            "service_type": getattr(offer, "service_type", "Performance Turnaround"),
+                            "requires_ceo_review": True
+                        }
+                    ))
+                except Exception as eb_qual_err:
+                    logger.debug(f"[Qualification] Event bus publish skipped: {eb_qual_err}")
 
                 await activity_broadcaster.record_event(
                     session=session,
@@ -541,18 +671,18 @@ class AutonomousCycleOrchestrator:
                     )
                     break
 
-                # 4. Valid public contact details (never fabricate)
-                if not biz.public_email and not biz.phone:
-                    logger.info(f"[Prospect {biz.domain}] No verified public contact details found. Skipping outreach (no contact fabrication).")
+                # 4. Valid public email required for email outreach (never fabricate)
+                if not biz.public_email:
+                    logger.info(f"[Prospect {biz.domain}] No verified public email found. Skipping outreach (no email fabrication).")
                     await activity_broadcaster.record_event(
                         session=session,
                         run_id=run_id,
                         event_type=AgentEventType.COMPLIANCE_BLOCKED.value,
-                        message=f"No verified public contact info found for {biz.domain}. Skipping outreach (no fabrication).",
+                        message=f"No verified public email found for {biz.domain}. Skipping outreach (no email fabrication).",
                         business_id=biz.id,
                         domain=biz.domain,
                         status="INFO",
-                        metadata_json={"reason": "NO_VERIFIED_CONTACT"}
+                        metadata_json={"reason": "NO_VERIFIED_EMAIL"}
                     )
                     continue
 
@@ -632,6 +762,25 @@ class AutonomousCycleOrchestrator:
                     }
                 )
 
+                try:
+                    await event_bus.publish(AgencyEvent(
+                        event_id=f"EVT-DRAFT-{uuid.uuid4().hex[:8].upper()}",
+                        correlation_id=run_id,
+                        event_type="OUTREACH_DRAFTED",
+                        entity_type="outreach_message",
+                        entity_id=msg.id,
+                        payload={
+                            "message_id": msg.id,
+                            "business_id": biz.id,
+                            "subject": msg.subject,
+                            "recipient": msg.recipient_email,
+                            "status": "PENDING_APPROVAL",
+                            "requires_ceo_approval": True
+                        }
+                    ))
+                except Exception as eb_draft_err:
+                    logger.debug(f"[OutreachDraft] Event bus publish skipped: {eb_draft_err}")
+
                 # 2j. Persistent Memory Snapshot (Non-Blocking Event-Driven Memory)
                 await activity_broadcaster.record_event(
                     session=session,
@@ -652,7 +801,7 @@ class AutonomousCycleOrchestrator:
                     contact_phone=biz.phone,
                     thread_id=f"thread-{biz.domain}",
                     channel_used="EMAIL",
-                    pipeline_stage=PipelineStage.CONTACTED.value,
+                    pipeline_stage=biz.pipeline_stage,
                     audit_results={
                         "performance_score": perf_score,
                         "load_time_seconds": load_time,
@@ -674,8 +823,8 @@ class AutonomousCycleOrchestrator:
                         "recipient": msg.recipient_email,
                         "body": msg.body
                     },
-                    last_interaction="Autonomous outreach placed via EMAIL (DRY RUN)",
-                    next_expected_action="AWAITING_INBOUND_EVENT"
+                    last_interaction="Outreach drafted; placed in PENDING_APPROVAL awaiting CEO approval",
+                    next_expected_action="AWAITING_CEO_APPROVAL"
                 )
 
                 await activity_broadcaster.record_event(

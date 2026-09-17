@@ -107,25 +107,85 @@ class NextBestActionEngine:
                 policy_notes="RESOLVE_SUPPORT_FIRST"
             )
 
-        # 3. Check Payment Status
-        stmt_pay = select(Payment).where(Payment.business_id == business_id, Payment.status == "PENDING")
-        pending_payment = (await session.execute(stmt_pay)).scalar_one_or_none()
-        if pending_payment:
+        stage = str(biz.pipeline_stage or "").upper()
+
+        # 3. Canonical Post-Delivery & Production Stages
+        if stage in ("WON", "DELIVERY_COMPLETE", "DELIVERED"):
             return NextBestActionDecision(
                 entity_type="business",
                 entity_id=business_id,
-                action=ActionType.PAYMENT_FOLLOWUP,
-                confidence=0.88,
+                action=ActionType.EXPANSION_ANALYSIS,
+                confidence=0.92,
                 confidence_band=ConfidenceBand.HIGH,
                 priority_score=85.0,
-                reasoning=f"Proposal accepted but payment ${float(pending_payment.amount):.0f} pending verification.",
-                evidence=[f"Payment ID {pending_payment.id}, status: {pending_payment.status}"],
+                reasoning="Client delivery complete; evaluate legitimate operational expansion opportunities.",
+                evidence=[f"Pipeline stage: {stage}"],
                 policy_passed=True,
-                policy_notes="AWAIT_VERIFIED_PAYMENT",
-                commercial_value_usd=float(pending_payment.amount)
+                policy_notes="ANALYZE_EXPANSION"
             )
 
-        # 4. Check Replies & Inbound History
+        if stage in ("PAYMENT_CONFIRMED", "PRODUCTION_BUILD_AUTHORIZED"):
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.PRODUCTION,
+                confidence=0.98,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=95.0,
+                reasoning="Verified advance payment confirmed; proceed with isolated production build.",
+                evidence=[f"Pipeline stage: {stage}"],
+                policy_passed=True,
+                policy_notes="EXECUTE_PRODUCTION_BUILD"
+            )
+
+        if stage in ("PROPOSAL_ACCEPTED", "PAYMENT_PENDING", "PAYMENT_REVIEW_REQUIRED"):
+            stmt_pay = select(Payment).where(Payment.business_id == business_id).order_by(desc(Payment.id))
+            pending_payment = (await session.execute(stmt_pay)).scalars().first()
+            amt = float(pending_payment.amount) if pending_payment and pending_payment.amount else 0.0
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.PAYMENT,
+                confidence=0.90,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=90.0,
+                reasoning=f"Proposal accepted; awaiting verified payment ({stage}).",
+                evidence=[f"Payment status: {pending_payment.status if pending_payment else 'PENDING'}"],
+                policy_passed=True,
+                policy_notes="AWAIT_VERIFIED_PAYMENT",
+                commercial_value_usd=amt
+            )
+
+        # 4. Demo & Proposal Stages
+        if stage == "DEMO_READY":
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.PROPOSAL,
+                confidence=0.92,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=88.0,
+                reasoning="Custom demo verified and ready; prepare 40% milestone proposal.",
+                evidence=["Demo artifact ready in sandbox."],
+                policy_passed=True,
+                policy_notes="GENERATE_PROPOSAL"
+            )
+
+        if stage == "DEMO_REQUESTED" or getattr(biz, "demo_requested", False):
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.DEMO_FACTORY,
+                confidence=0.95,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=92.0,
+                reasoning="Explicit demo requested; trigger Demo Factory build pipeline.",
+                evidence=[f"demo_requested=True, stage={stage}"],
+                policy_passed=True,
+                policy_notes="BUILD_DEMO"
+            )
+
+        # 5. Check Replies & Inbound History
         stmt_replies = (
             select(Reply)
             .where(Reply.business_id == business_id)
@@ -141,28 +201,108 @@ class NextBestActionEngine:
                 return NextBestActionDecision(
                     entity_type="business",
                     entity_id=business_id,
-                    action=ActionType.SCHEDULE_CALL,
-                    confidence=0.92,
+                    action=ActionType.CEO_NOTIFICATION,
+                    confidence=0.95,
                     confidence_band=ConfidenceBand.HIGH,
-                    priority_score=90.0,
-                    reasoning="Prospect expressed positive interest; prompt call scheduling required.",
+                    priority_score=94.0,
+                    reasoning="Positive prospect reply received; notify CEO and schedule consultation.",
                     evidence=[f"Reply: '{reply_preview[:100]}'"],
                     policy_passed=True,
-                    policy_notes="CONVERT_HOT_LEAD"
+                    policy_notes="NOTIFY_OPERATOR_HOT_LEAD"
                 )
             elif cls_name in ("QUESTION", "PRICE_OBJECTION"):
                 return NextBestActionDecision(
                     entity_type="business",
                     entity_id=business_id,
-                    action=ActionType.ANSWER_QUESTION,
-                    confidence=0.85,
+                    action=ActionType.PREPARE_RESPONSE,
+                    confidence=0.88,
                     confidence_band=ConfidenceBand.HIGH,
-                    priority_score=78.0,
-                    reasoning="Prospect asked a technical or pricing question.",
+                    priority_score=80.0,
+                    reasoning="Prospect asked technical or commercial question; prepare response.",
                     evidence=[f"Question: '{reply_preview[:100]}'"],
                     policy_passed=True,
-                    policy_notes="HANDLE_INQUIRY"
+                    policy_notes="DRAFT_INQUIRY_RESPONSE"
                 )
+
+        # 6. Check Outreach Status (Sent vs Approval Required)
+        from app.database.models import OutreachMessage
+        stmt_msg = (
+            select(OutreachMessage)
+            .where(OutreachMessage.business_id == business_id)
+            .order_by(desc(OutreachMessage.id))
+            .limit(1)
+        )
+        latest_msg = (await session.execute(stmt_msg)).scalar_one_or_none()
+        if latest_msg:
+            if latest_msg.status == "SENT":
+                return NextBestActionDecision(
+                    entity_type="business",
+                    entity_id=business_id,
+                    action=ActionType.WAIT_FOR_REPLY,
+                    confidence=0.90,
+                    confidence_band=ConfidenceBand.HIGH,
+                    priority_score=50.0,
+                    reasoning="Outreach dispatched; awaiting prospect reply.",
+                    evidence=[f"Message ID {latest_msg.id} sent at {latest_msg.sent_at or 'today'}"],
+                    policy_passed=True,
+                    policy_notes="AWAIT_PROSPECT_REPLY"
+                )
+            elif latest_msg.status == "PENDING_APPROVAL":
+                return NextBestActionDecision(
+                    entity_type="business",
+                    entity_id=business_id,
+                    action=ActionType.CEO_REVIEW,
+                    confidence=0.92,
+                    confidence_band=ConfidenceBand.HIGH,
+                    priority_score=75.0,
+                    reasoning="Outreach staged; operator review and approval required before dispatch.",
+                    evidence=[f"Message ID {latest_msg.id} awaiting approval"],
+                    policy_passed=True,
+                    policy_notes="OPERATOR_SIGN_OFF_REQUIRED"
+                )
+
+        # 7. Mid-Funnel Operational Stages
+        if stage in ("AUDITED", "AUDIT_COMPLETED"):
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.OPPORTUNITY_ANALYSIS,
+                confidence=0.90,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=70.0,
+                reasoning="Audit completed; analyze commercial fit and synthesize opportunity packet.",
+                evidence=["Audit records present."],
+                policy_passed=True,
+                policy_notes="RUN_OPPORTUNITY_ANALYSIS"
+            )
+
+        if stage in ("RESEARCHED", "RESEARCH_COMPLETED"):
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.AUDIT,
+                confidence=0.88,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=68.0,
+                reasoning="Research completed; execute deterministic website and digital asset audit.",
+                evidence=["Research completed."],
+                policy_passed=True,
+                policy_notes="TRIGGER_WEBSITE_AUDIT"
+            )
+
+        if stage in ("READY", "QUALIFIED_REPLY"):
+            return NextBestActionDecision(
+                entity_type="business",
+                entity_id=business_id,
+                action=ActionType.PERSONALIZE,
+                confidence=0.88,
+                confidence_band=ConfidenceBand.HIGH,
+                priority_score=72.0,
+                reasoning="Prospect qualified; personalize outreach copy with verified research.",
+                evidence=[f"Stage: {stage}"],
+                policy_passed=True,
+                policy_notes="PERSONALIZE_OUTREACH"
+            )
 
         # 5. Lead Intelligence Scoring Evaluation
         lead_eval = await lead_intelligence_engine.evaluate_lead(session, business_id)

@@ -34,12 +34,12 @@ async def test_outreach_queue_and_approval_gate(db_session):
     assert "al faisaliah" not in msg.body.lower()
 
     # 2. Verify Unapproved message cannot be sent!
-    with pytest.raises(ValueError, match="must be APPROVED"):
+    with pytest.raises(ValueError, match="must be APPROVED or OUTREACH_QUEUED"):
         await outreach_sender_adapter.send_approved_message(db_session, msg.id)
 
     # 3. Approve message
     appr = await outreach_approval_queue.approve_message(db_session, msg.id)
-    assert appr.status == OutreachStatus.APPROVED.value
+    assert appr.status == OutreachStatus.OUTREACH_QUEUED.value
 
     # 4. Send message (DRY_RUN simulation)
     send_res = await outreach_sender_adapter.send_approved_message(db_session, msg.id)

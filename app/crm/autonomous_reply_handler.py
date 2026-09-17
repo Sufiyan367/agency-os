@@ -353,7 +353,7 @@ class AutonomousReplyHandler:
                 "Halting automated communications. Requiring HUMAN_REVIEW."
             )
             old_stage = biz.pipeline_stage
-            biz.pipeline_stage = PipelineStage.APPROVAL.value  # Holds for human operator
+            biz.pipeline_stage = PipelineStage.QUALIFIED_REPLY.value  # Holds for human review under CRM replied state
             if lock and lock.business_id == business_id:
                 lock.status = "HUMAN_REVIEW"
                 lock.current_stage = "ESCALATED"

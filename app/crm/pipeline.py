@@ -89,7 +89,10 @@ class PipelineManager:
             session.add(cust)
             await session.flush()
 
-            # Create Delivery Project
+        # Create Delivery Project idempotently
+        proj_q = select(Project).where(Project.customer_id == cust.id)
+        existing_proj = (await session.execute(proj_q)).scalars().first()
+        if not existing_proj:
             proj = Project(
                 customer_id=cust.id,
                 title=f"Delivery: {svc_title}",
@@ -104,7 +107,10 @@ class PipelineManager:
             )
             session.add(proj)
 
-            # Record Payment confirmation
+        # Record Payment confirmation idempotently if no completed payment exists
+        pmt_q = select(Payment).where(Payment.customer_id == cust.id, Payment.status == "COMPLETED")
+        existing_pmt = (await session.execute(pmt_q)).scalars().first()
+        if not existing_pmt:
             pmt = Payment(
                 customer_id=cust.id,
                 amount=amount,

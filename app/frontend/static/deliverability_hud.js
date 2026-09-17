@@ -72,7 +72,6 @@ export class DeliverabilityHUDController {
         const spf = report.spf ? report.spf.status : 'Verified';
         const dkim = report.dkim ? report.dkim.status : 'Verified';
         const dmarc = report.dmarc ? report.dmarc.status : 'Not Verified';
-
         const badgeHtml = `
             <div class="deliverability-hud-pill" title="Sender: ${sender} | SPF: ${spf} | DKIM: ${dkim} | DMARC: ${dmarc} | Outbound: ${authStatus}${authBlocker ? ` (${authBlocker})` : ''}" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(24, 24, 27, 0.85); border:1px solid ${isAuthBlocked ? '#ef4444' : '#10b981'}; border-radius:20px; font-size:0.75rem; font-family:'JetBrains Mono', monospace; cursor:help;">
                 <span style="width:8px; height:8px; border-radius:50%; background:${isAuthBlocked ? '#ef4444' : '#10b981'}; display:inline-block;"></span>

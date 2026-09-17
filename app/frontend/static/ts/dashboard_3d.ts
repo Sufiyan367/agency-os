@@ -426,3 +426,5 @@ interface Dashboard3DState {
     initDashboard3DCore();
   }
 })();
+
+export {};

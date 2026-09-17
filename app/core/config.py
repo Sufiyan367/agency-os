@@ -66,7 +66,8 @@ class Settings(BaseSettings):
     # Pipeline Safeguards & Compliance
     DRY_RUN: bool = True
     RESEARCH_ONLY: bool = os.getenv("RESEARCH_ONLY", "true").lower() in ("true", "1", "yes")
-    MAX_OUTREACH_PER_DAY: int = int(os.getenv("MAX_OUTREACH_PER_DAY", "200"))
+    MAX_OUTREACH_PER_DAY: int = int(os.getenv("OUTREACH_DAILY_LIMIT", os.getenv("MAX_OUTREACH_PER_DAY", "200")))
+    OUTREACH_DAILY_LIMIT: int = int(os.getenv("OUTREACH_DAILY_LIMIT", os.getenv("MAX_OUTREACH_PER_DAY", "200")))
     MAX_FOLLOWUPS: int = 3
     REPLY_STOP_RULE: bool = True
     BOUNCE_STOP_RULE: bool = True
@@ -158,6 +159,7 @@ class Settings(BaseSettings):
     EMAIL_REPLY_TO: Optional[str] = os.getenv("EMAIL_REPLY_TO", None)
     COMPLIANCE_PROFILE_ENABLED: bool = os.getenv("COMPLIANCE_PROFILE_ENABLED", "false").lower() in ("true", "1")
     PHYSICAL_POSTAL_ADDRESS: Optional[str] = os.getenv("PHYSICAL_POSTAL_ADDRESS")
+    CAN_SPAM_POSTAL_ADDRESS: Optional[str] = os.getenv("CAN_SPAM_POSTAL_ADDRESS")
     PUBLIC_DEMO_BASE_URL: Optional[str] = os.getenv("PUBLIC_DEMO_BASE_URL")
 
     # Gmail OAuth2 Provider Configuration
