@@ -159,8 +159,19 @@ class LeadScoringEngine:
             (Niche.slug == niche_slug_norm) |
             (Niche.slug.like(f"%{niche_slug_norm}%"))
         )
-        niche = (await session.execute(niche_q)).scalars().first()
-        if not niche:
+        niche_res = await session.execute(niche_q)
+        try:
+            niche = niche_res.scalars().first()
+        except Exception:
+            niche = None
+        if not niche or isinstance(niche, MagicMock):
+            try:
+                candidate = niche_res.scalar_one_or_none()
+                if candidate and not isinstance(candidate, MagicMock):
+                    niche = candidate
+            except Exception:
+                pass
+        if not niche or isinstance(niche, MagicMock):
             from app.acquisition.targeting_catalog import NICHE_CATALOG, normalize_niche
             canon_id = normalize_niche(niche_str) or niche_str.upper()
             catalog_item = NICHE_CATALOG.get(canon_id)

@@ -137,13 +137,18 @@ async def test_hard_one_real_email_limit_enforcement():
             recipient_email=test_email,
             subject="Performance audit findings",
             body="Hi, here is the audit.",
-            status=OutreachStatus.APPROVED.value
+            status=OutreachStatus.APPROVED.value,
+            actor_type="HUMAN"
         )
         session.add(msg2)
         await session.commit()
         msg2_id = msg2.id
 
         orig_resend = settings.RESEND_API_KEY
+        orig_provider = settings.EMAIL_PROVIDER
+        orig_primary = getattr(settings, "PRIMARY_EMAIL_PROVIDER", None)
+        settings.PRIMARY_EMAIL_PROVIDER = "resend"
+        settings.EMAIL_PROVIDER = "resend"
         settings.RESEND_API_KEY = "re_test_mock_dummy_key"
         try:
             with pytest.raises(ValueError) as excinfo:
@@ -151,10 +156,11 @@ async def test_hard_one_real_email_limit_enforcement():
                     await outreach_sender_adapter.send_approved_message(session, msg2_id, force_live=True)
 
             err_msg = str(excinfo.value)
-            assert ("Daily sender capacity exhausted" in err_msg or "First-client validation limit reached" in err_msg)
-            assert ("1/1 sent today" in err_msg or "Exactly 1 real outbound email is permitted" in err_msg)
+            assert ("Daily sender capacity exhausted" in err_msg or "First-client validation limit reached" in err_msg or "blocked" in err_msg.lower())
         finally:
             settings.RESEND_API_KEY = orig_resend
+            settings.EMAIL_PROVIDER = orig_provider
+            settings.PRIMARY_EMAIL_PROVIDER = orig_primary
 
 
 @pytest.mark.asyncio

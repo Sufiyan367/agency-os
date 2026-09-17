@@ -1560,7 +1560,8 @@ async def preview_outreach_for_ceo_review(message_id: int, db: AsyncSession = De
     if not ("unsubscribe" in full_body.lower() or "opt out" in full_body.lower()):
         full_body += compliance_guard.format_compliance_footer(
             business_name=biz.name if biz else "Business",
-            recipient_email=msg.recipient_email
+            recipient_email=msg.recipient_email,
+            force=True
         )
     
     from app.infrastructure.production_activation import production_activation_manager
@@ -1568,7 +1569,8 @@ async def preview_outreach_for_ceo_review(message_id: int, db: AsyncSession = De
     
     footer = compliance_guard.format_compliance_footer(
         business_name=biz.name if biz else "Business",
-        recipient_email=msg.recipient_email
+        recipient_email=msg.recipient_email,
+        force=True
     )
 
     return {

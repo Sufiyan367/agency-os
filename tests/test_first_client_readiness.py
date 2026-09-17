@@ -56,6 +56,30 @@ async def test_production_database_initialization_and_reference_preservation():
     Verifies that production reset clears operational tables while strictly
     preserving reference metadata (Countries, Niches, Markets).
     """
+    from app.database.connection import AsyncSessionLocal
+    from app.database.models import Country, Niche, MarketOpportunity
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as s:
+        us_c = (await s.execute(select(Country).where(Country.code == "US"))).scalar_one_or_none()
+        if not us_c:
+            us_c = Country(code="US", name="United States", enabled=True)
+            s.add(us_c)
+            await s.flush()
+        roof_n = (await s.execute(select(Niche).where(Niche.slug == "roofing"))).scalar_one_or_none()
+        if not roof_n:
+            roof_n = Niche(name="Roofing", slug="roofing", base_tam=1000)
+            s.add(roof_n)
+            await s.flush()
+        opp = MarketOpportunity(
+            country_id=us_c.id,
+            niche_id=roof_n.id,
+            opportunity_score=85.0,
+            expected_deal_value=650.0
+        )
+        s.add(opp)
+        await s.commit()
+
     summary = production_reset_service.initialize_clean_production(create_backup=False)
     assert summary["status"] == "INITIALIZED"
     assert summary["mode"] == "FIRST_CLIENT_MODE"

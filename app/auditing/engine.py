@@ -55,6 +55,7 @@ class WebsiteAuditEngine:
                 confidence=1.0
             )
             session.add(finding_record)
+            audit_run.findings = [finding_record]
             business.pipeline_stage = PipelineStage.REJECTED.value
             event = PipelineEvent(
                 business_id=business.id,

@@ -1256,6 +1256,10 @@ def get_country(country_code: str) -> Optional[CountryDefinition]:
     if code in GLOBAL_COUNTRIES:
         return GLOBAL_COUNTRIES[code]
 
+    # Known invalid / test codes should not be dynamically created
+    if code in {"XX", "ZZ", "TEST", "MOCK", "NULL", "NONE", "NA", "AA"}:
+        return None
+
     # Dynamic expansion for any valid 2-letter ISO country code
     if len(code) == 2 and code.isalpha():
         if code in DISABLED_MARKETS:
@@ -1371,10 +1375,9 @@ def validate_target_combination(
             matched_region = r
             break
     if not matched_region:
-        if region and region.strip():
+        if not c.regions and region and region.strip():
             matched_region = region.strip()
-            if matched_region not in c.regions:
-                c.regions[matched_region] = []
+            c.regions[matched_region] = []
         else:
             raise ValueError(
                 f"Region '{region}' does not exist in {c.name}. Available {c.region_type}s: {list(c.regions.keys())[:5]}..."
@@ -1387,10 +1390,9 @@ def validate_target_combination(
             matched_city = ct
             break
     if not matched_city:
-        if city and city.strip():
+        if not cities and city and city.strip():
             matched_city = city.strip()
-            if matched_city not in c.regions[matched_region]:
-                c.regions[matched_region].append(matched_city)
+            c.regions[matched_region].append(matched_city)
         else:
             raise ValueError(
                 f"City '{city}' not recognized in {c.region_type} '{matched_region}'. Supported cities: {cities}"

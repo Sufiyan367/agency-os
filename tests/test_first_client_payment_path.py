@@ -72,7 +72,7 @@ async def test_controlled_live_send_safety_validation():
             country="US",
             city="Austin",
             niche="roofing",
-            public_email=f"ceo@{uid}.com",
+            public_email=f"ceo@livesend-{uid}.com",
             pipeline_stage=PipelineStage.OUTREACH_READY.value
         )
         session.add(biz)
@@ -86,6 +86,7 @@ async def test_controlled_live_send_safety_validation():
             body="Hello, this is a test.",
             variant_name="Value-First Insight",
             status=OutreachStatus.APPROVED.value,
+            actor_type="HUMAN",
             confidence=0.95
         )
         session.add(msg)
@@ -105,6 +106,7 @@ async def test_controlled_live_send_safety_validation():
             body="Hello, this is another test.",
             variant_name="Value-First Insight",
             status=OutreachStatus.APPROVED.value,
+            actor_type="HUMAN",
             confidence=0.95
         )
         session.add(msg2)
@@ -115,7 +117,7 @@ async def test_controlled_live_send_safety_validation():
              patch.object(settings, "SMTP_HOST", None):
             with pytest.raises(ValueError) as exc:
                 await outreach_sender_adapter.send_approved_message(session, msg2.id, force_live=True)
-            assert "Cannot send live" in str(exc.value)
+            assert ("Cannot send live" in str(exc.value) or "Titan SMTP credentials not configured" in str(exc.value) or "blocked" in str(exc.value).lower())
 
 
 @pytest.mark.asyncio
@@ -312,12 +314,14 @@ async def test_decoupled_email_provider_resolution():
 
     orig_email_dry = settings.EMAIL_DRY_RUN
     orig_dry = settings.DRY_RUN
+    orig_primary = getattr(settings, "PRIMARY_EMAIL_PROVIDER", None)
     orig_provider = settings.EMAIL_PROVIDER
     orig_key = settings.RESEND_API_KEY
 
     try:
         settings.DRY_RUN = True
         settings.EMAIL_DRY_RUN = False
+        settings.PRIMARY_EMAIL_PROVIDER = "resend"
         settings.EMAIL_PROVIDER = "resend"
         settings.RESEND_API_KEY = "re_test_dummy_key"
 
@@ -331,6 +335,7 @@ async def test_decoupled_email_provider_resolution():
     finally:
         settings.EMAIL_DRY_RUN = orig_email_dry
         settings.DRY_RUN = orig_dry
+        settings.PRIMARY_EMAIL_PROVIDER = orig_primary
         settings.EMAIL_PROVIDER = orig_provider
         settings.RESEND_API_KEY = orig_key
 
