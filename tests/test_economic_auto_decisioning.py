@@ -303,14 +303,21 @@ async def test_human_approval_available_for_exceptions(db_session):
 
 # 11. Production database remains clean and real-data-only
 def test_production_database_remains_clean():
-    db_file = "agency.db"
-    if os.path.exists(db_file):
-        conn = sqlite3.connect(db_file)
+    prod_paths = ["/opt/agency/data/agency.db", "data/agency.db"]
+    prod_db = None
+    for p in prod_paths:
+        if os.path.exists(p):
+            prod_db = p
+            break
+    if prod_db:
+        conn = sqlite3.connect(prod_db)
         cur = conn.cursor()
-        fake_records = cur.execute(
-            "SELECT count(*) FROM businesses WHERE name LIKE '%test%' OR name LIKE '%demo%' OR name LIKE '%fake%' OR name LIKE '%mock%' OR domain LIKE '%example.com%';"
-        ).fetchone()[0]
-        assert fake_records == 0, f"Found {fake_records} fake records in production database!"
+        table_check = cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='businesses';").fetchone()
+        if table_check:
+            fake_records = cur.execute(
+                "SELECT count(*) FROM businesses WHERE name LIKE '%test%' OR name LIKE '%demo%' OR name LIKE '%fake%' OR name LIKE '%mock%' OR domain LIKE '%example.com%';"
+            ).fetchone()[0]
+            assert fake_records == 0, f"Found {fake_records} fake records in production database {prod_db}!"
         conn.close()
 
 

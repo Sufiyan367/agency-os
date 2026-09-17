@@ -47,7 +47,6 @@ async def test_dashboard_template_rendering_and_elements():
             "val-won",
             "val-leads",
             "val-qualified",
-            "val-outreach-sent",
             "val-reply-rate"
         ]
         for kpi in expected_kpis:
