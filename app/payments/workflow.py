@@ -203,6 +203,8 @@ class PaymentWorkflowCoordinator:
         return {
             "payment_id": payment.id,
             "status": "VERIFIED_PAYMENT",
+            "is_confirmed": True,
+            "pipeline_stage": "VERIFIED_PAYMENT",
             "amount_received": amount_received,
             "transaction_reference": transaction_reference.strip(),
             "production_project_id": prod_project.id if prod_project else None,

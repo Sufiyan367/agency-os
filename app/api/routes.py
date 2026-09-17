@@ -2578,14 +2578,17 @@ async def get_ceo_control_center_overview(
     actions_required = []
 
     # Priority 1: Payment authorization & verification (Direct Money Inflow)
+    from app.analytics.truth_engine import classify_payment_provenance
     pending_payments = (await db.execute(
         select(Payment).where(
             Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"])
-        ).order_by(desc(Payment.created_at)).limit(5)
+        ).order_by(desc(Payment.created_at)).limit(10)
     )).scalars().all()
     for pay in pending_payments:
         b = await db.get(Business, pay.business_id) if pay.business_id else None
         if not b:
+            continue
+        if classify_payment_provenance(pay, b) != "REAL_CUSTOMER":
             continue
         b_name = b.name or b.domain or f"Lead #{pay.business_id}"
         actions_required.append({
@@ -2593,7 +2596,7 @@ async def get_ceo_control_center_overview(
             "type": "PAYMENT_VERIFICATION",
             "severity": "CRITICAL" if float(pay.amount or 0.0) >= 500 else "WARNING",
             "title": f"Payment Verification: {b_name} (${float(pay.amount or 0.0):,.2f})",
-            "description": f"Google Pay / UPI Inward Remittance (Ref: {pay.reference_id}) — Awaiting human operator confirmation.",
+            "description": f"Google Pay / UPI Inward Remittance (Ref: {pay.reference_id}) — Awaiting human operator verification.",
             "entity_id": pay.id,
             "item_id": pay.id,
             "payment_id": pay.id,
@@ -2603,7 +2606,7 @@ async def get_ceo_control_center_overview(
             "business_name": b_name,
             "company": b_name,
             "actions": [
-                {"label": "Confirm Payment", "action": "confirm_payment", "style": "emerald"},
+                {"label": "Verify Payment", "action": "verify_payment", "style": "amber"},
                 {"label": "View Instructions", "action": "view_payment_instructions", "style": "secondary"}
             ]
         })
@@ -6318,11 +6321,14 @@ class PaymentInstructionsRequest(BaseModel):
     amount_usd: Optional[float] = None
 
 class PaymentVerificationRequest(BaseModel):
-    transaction_reference: str
-    amount_received: float
-    source: str = "CEO_VERIFICATION"
+    transaction_reference: Optional[str] = None
+    payment_reference: Optional[str] = None
+    amount_received: Optional[float] = None
+    source: Optional[str] = "CEO_VERIFICATION"
     verified_by: Optional[str] = None
+    operator: Optional[str] = None
     evidence: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
 
 @router.post("/api/proposals/{proposal_id}/accept")
 async def accept_proposal_endpoint(
@@ -6371,18 +6377,32 @@ async def verify_payment_endpoint(
     db: AsyncSession = Depends(get_db),
     user_info: Dict[str, str] = Depends(get_current_user_info)
 ):
-    verifier = req.verified_by or user_info.get("username", "CEO")
+    verifier = req.verified_by or req.operator or user_info.get("username", "CEO")
+    tx_ref = (req.transaction_reference or req.payment_reference or "").strip()
+    if not tx_ref or len(tx_ref) < 3:
+        raise HTTPException(status_code=400, detail="Invalid or missing transaction reference. Legitimate verification requires bank reference / UTR.")
+
+    amt = req.amount_received
+    if amt is None:
+        pmt = await db.get(Payment, payment_id)
+        if not pmt:
+            raise HTTPException(status_code=404, detail=f"Payment #{payment_id} not found.")
+        amt = float(pmt.amount)
+
     try:
         res = await payment_workflow_manager.verify_payment(
             session=db,
             payment_id=payment_id,
             verified_by=verifier,
-            transaction_reference=req.transaction_reference,
-            amount_received=req.amount_received,
-            source=req.source,
+            transaction_reference=tx_ref,
+            amount_received=amt,
+            source=req.source or "CEO_VERIFICATION",
             evidence=req.evidence
         )
-        return res.model_dump()
+        res_data = res.model_dump()
+        if not res_data.get("production_project_id") and res_data.get("project_id"):
+            res_data["production_project_id"] = res_data["project_id"]
+        return res_data
     except PermissionError as pe:
         raise HTTPException(status_code=403, detail=str(pe))
     except ValueError as ve:
@@ -6403,12 +6423,16 @@ async def unlock_delivery_endpoint(
         raise HTTPException(status_code=404, detail=str(ve))
 
 class PaymentConfirmRequest(BaseModel):
-    payment_reference: str
+    payment_reference: Optional[str] = None
+    transaction_reference: Optional[str] = None
     amount_received: Optional[float] = None
     operator: Optional[str] = None
+    verified_by: Optional[str] = None
+    source: Optional[str] = None
     notes: Optional[str] = None
 
 @router.post("/api/payments/{payment_id}/confirm")
+@router.post("/api/payments/{payment_id}/verify-manual")
 async def confirm_payment_endpoint(
     payment_id: int,
     req: PaymentConfirmRequest,
@@ -6421,16 +6445,21 @@ async def confirm_payment_endpoint(
     using human verification, bank transaction reference / UTR, and unlocks delivery automation.
     Idempotent: Duplicate requests safely return ALREADY_CONFIRMED.
     """
-    operator = req.operator or user_info.get("username", "operator")
+    ref = (req.payment_reference or req.transaction_reference or "").strip()
+    if not ref or len(ref) < 3:
+        raise HTTPException(status_code=400, detail="A valid bank reference / UTR is required.")
+    operator = (req.operator or req.verified_by or user_info.get("username", "operator")).strip()
     try:
         res = await deal_closing_service.confirm_manual_payment(
             session=db,
             payment_id=payment_id,
-            payment_reference=req.payment_reference,
+            payment_reference=ref,
             operator=operator,
             amount_received=req.amount_received,
             notes=req.notes
         )
+        if "production_project_id" not in res and "project_id" in res:
+            res["production_project_id"] = res["project_id"]
         return res
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
@@ -6729,28 +6758,6 @@ async def accept_commercial_proposal_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-
-@router.post("/api/payments/{payment_id}/verify")
-async def verify_payment_endpoint(
-    payment_id: int,
-    req: PaymentVerificationRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """Verifies payment with bank reference / UTR and unlocks production build."""
-    from app.payments.workflow import PaymentWorkflowCoordinator
-    try:
-        res = await PaymentWorkflowCoordinator.verify_payment(
-            session=db,
-            payment_id=payment_id,
-            verified_by=req.verified_by or "CEO_VERIFIER",
-            transaction_reference=req.transaction_reference,
-            amount_received=req.amount_received,
-            source=req.source or "CEO_VERIFICATION",
-            evidence=req.evidence
-        )
-        return res
-    except (ValueError, PermissionError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/proposal/{proposal_id}", response_class=HTMLResponse)

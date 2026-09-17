@@ -806,7 +806,7 @@ function renderCeoActionsRequired(actions) {
             const payId = item.payment_id || item.entity_id || item.item_id;
             actionBtns = `
                 <div style="display:flex; align-items:center; gap:6px; width:100%;">
-                    <button class="btn btn-xs btn-primary" onclick="confirmPaymentModal(${payId})" style="flex:1; background:#10b981; color:#000000; font-weight:700; padding:6px 10px; border-radius:5px; border:none; cursor:pointer; font-size:0.72rem; text-align:center;">✓ Confirm Payment</button>
+                    <button class="btn btn-xs btn-primary" onclick="confirmPaymentModal(${payId})" style="flex:1; background:#f59e0b; color:#000000; font-weight:700; padding:6px 10px; border-radius:5px; border:none; cursor:pointer; font-size:0.72rem; text-align:center;">VERIFY PAYMENT</button>
                     <button class="btn btn-xs btn-secondary" onclick="viewPaymentInstructionsModal(${payId})" style="flex:1; background:#18181b; color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:600; padding:6px 10px; border-radius:5px; cursor:pointer; font-size:0.72rem; text-align:center;">📋 View Instructions</button>
                 </div>
             `;
@@ -3836,7 +3836,7 @@ async function loadPayments() {
             let actionBtns = `<button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" onclick="viewAuditReport(${p.business_id || p.customer_id})">📄 Delivery Pack</button>`;
             if (isPending) {
                 actionBtns = `
-                    <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; background:#10b981; color:#000000; font-weight:700; border:none; border-radius:4px; margin-right:4px;" onclick="confirmPaymentModal(${p.id})">✓ Confirm</button>
+                    <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem; background:#f59e0b; color:#000000; font-weight:700; border:none; border-radius:4px; margin-right:4px;" onclick="confirmPaymentModal(${p.id})">VERIFY PAYMENT</button>
                     <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="viewPaymentInstructionsModal(${p.id})">📋 Instructions</button>
                 `;
             }
@@ -3857,9 +3857,9 @@ async function loadPayments() {
 }
 
 async function confirmPaymentModal(paymentId) {
-    const utr = prompt(`Enter bank settlement reference / UTR for Payment #${paymentId}:\n(Required for human operator confirmation)`);
+    const utr = prompt(`Enter bank settlement reference / UTR for Payment #${paymentId}:\n(Required for human operator verification)`);
     if (!utr || utr.trim().length < 3) {
-        if (utr !== null) alert("Error: A valid settlement reference / UTR is required to confirm payment.");
+        if (utr !== null) alert("Error: A valid settlement reference / UTR is required to verify payment.");
         return;
     }
     const operator = prompt("Confirm Operator Name/ID:", "operator") || "operator";
@@ -3874,11 +3874,11 @@ async function confirmPaymentModal(paymentId) {
         });
         const data = await res.json();
         if (res.ok) {
-            alert(`✓ Payment #${paymentId} confirmed successfully!\nStatus: ${data.status}\nDelivery automation has unlocked.`);
+            alert(`✓ Payment #${paymentId} verified successfully!\nStatus: ${data.status}\nDelivery automation has unlocked.`);
             if (typeof loadCeoControlCenter === 'function') loadCeoControlCenter();
             if (typeof loadPayments === 'function') loadPayments();
         } else {
-            alert(`Payment confirmation failed: ${data.detail || JSON.stringify(data)}`);
+            alert(`Payment verification failed: ${data.detail || JSON.stringify(data)}`);
         }
     } catch (e) {
         alert(`Error contacting payment API: ${e}`);
