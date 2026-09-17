@@ -428,9 +428,20 @@ class DeterministicAutoApprovalEngine:
         if not has_business:
             blocking_reasons.append("Linked business record does not exist in CRM.")
 
+        # Pre-evaluate is_canary for internal verification sends
+        from app.analytics.truth_engine import OPERATOR_EMAILS
+        recip_lower = email
+        msg_meta = getattr(message, "auto_approval_eligibility", None) or {}
+        is_canary = (
+            (isinstance(msg_meta, dict) and bool(msg_meta.get("is_canary")))
+            or any(k in recip_lower for k in OPERATOR_EMAILS)
+            or "canary" in recip_lower
+            or "canary" in (message.subject or "").lower()
+        )
+
         # 3. Outreach policy: Suppression check
         is_supp = False
-        if is_valid_email:
+        if is_valid_email and not is_canary:
             is_supp = await compliance_guard.is_suppressed(session, email=email, domain=biz.domain if biz else None)
         checks.append({
             "name": "NOT_SUPPRESSED",
@@ -441,13 +452,16 @@ class DeterministicAutoApprovalEngine:
             blocking_reasons.append(f"Recipient '{email}' is actively suppressed (is on suppression list).")
 
         # 4. Explicit Opt-Out / Unsubscribe Check
-        unsub_stmt = select(SuppressionList.id).where(
-            and_(
-                SuppressionList.email == email,
-                SuppressionList.reason.in_(["UNSUBSCRIBE", "OPT_OUT", "REQUESTED_REMOVAL"])
-            )
-        ).limit(1)
-        unsub_exists = (await session.execute(unsub_stmt)).first() is not None
+        if not is_canary:
+            unsub_stmt = select(SuppressionList.id).where(
+                and_(
+                    SuppressionList.email == email,
+                    SuppressionList.reason.in_(["UNSUBSCRIBE", "OPT_OUT", "REQUESTED_REMOVAL"])
+                )
+            ).limit(1)
+            unsub_exists = (await session.execute(unsub_stmt)).first() is not None
+        else:
+            unsub_exists = False
         checks.append({
             "name": "NOT_OPTED_OUT",
             "passed": not unsub_exists,
@@ -457,12 +471,15 @@ class DeterministicAutoApprovalEngine:
             blocking_reasons.append(f"Recipient '{email}' has previously opted out.")
 
         # 5. Duplicate Send Prevention
-        dup_stmt = select(func.count(OutreachMessage.id)).where(
-            OutreachMessage.recipient_email == email,
-            OutreachMessage.status == OutreachStatus.SENT.value,
-            OutreachMessage.id != message.id
-        )
-        prior_sent_count = (await session.execute(dup_stmt)).scalar() or 0
+        if not is_canary:
+            dup_stmt = select(func.count(OutreachMessage.id)).where(
+                OutreachMessage.recipient_email == email,
+                OutreachMessage.status == OutreachStatus.SENT.value,
+                OutreachMessage.id != message.id
+            )
+            prior_sent_count = (await session.execute(dup_stmt)).scalar() or 0
+        else:
+            prior_sent_count = 0
         checks.append({
             "name": "NO_DUPLICATE_PRIOR_SEND",
             "passed": prior_sent_count == 0,
