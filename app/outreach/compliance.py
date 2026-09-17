@@ -77,13 +77,27 @@ class ComplianceGuard:
         "100 congress ave",
         "wilmington, de",
         "austin, tx",
+        "al faisaliah",
+        "digital strategy advisory",
+        "riyadh 12212",
+        "riyadh",
+        "controllable business mailing address",
+        "placeholder",
+        "suite 2000",
+        "anytown",
     ]
+
+    def is_placeholder_address(self, addr: Optional[str]) -> bool:
+        if not addr:
+            return True
+        addr_lower = addr.lower().strip()
+        return any(p in addr_lower for p in self.KNOWN_PLACEHOLDERS)
 
     def is_postal_address_valid(self, postal_address: Optional[str] = None) -> bool:
         addr = (postal_address or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or "").strip()
         if not addr or len(addr) < 10:
             return False
-        if any(p in addr.lower() for p in self.KNOWN_PLACEHOLDERS):
+        if self.is_placeholder_address(addr):
             return False
         return True
 
@@ -109,9 +123,17 @@ class ComplianceGuard:
         if not force and not getattr(settings, "COMPLIANCE_PROFILE_ENABLED", False):
             return ""
 
-        addr = (postal_address or getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None) or "").strip()
+        candidate_addr = postal_address
+        if candidate_addr and self.is_placeholder_address(candidate_addr):
+            candidate_addr = None
+
+        env_addr = getattr(settings, "PHYSICAL_POSTAL_ADDRESS", None) or getattr(settings, "CAN_SPAM_POSTAL_ADDRESS", None)
+        if env_addr and self.is_placeholder_address(env_addr):
+            env_addr = None
+
+        addr = (candidate_addr or env_addr or "").strip()
         parts = []
-        if addr and not any(p in addr.lower() for p in self.KNOWN_PLACEHOLDERS):
+        if addr and not self.is_placeholder_address(addr):
             parts.append(f"Mailing Address: {addr}")
         parts.append("To opt out of future communications, reply 'unsubscribe'.")
         return "\n\n---\n" + "\n".join(parts)

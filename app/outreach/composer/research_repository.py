@@ -44,33 +44,20 @@ class ResearchRepository:
         audit = (await session.execute(audit_q)).scalars().first()
 
         if audit:
-            # Overall score metrics
-            facts.append(ResearchFact(
-                prospect_id=pid,
-                fact=f"Mobile UX conversion score measured at {audit.ux_conversion_score:.0f}/100",
-                source="audit_run:ux_conversion",
-                category="conversion",
-                metric_value=audit.ux_conversion_score
-            ))
-            facts.append(ResearchFact(
-                prospect_id=pid,
-                fact=f"Page performance measured at {audit.performance_score:.0f}/100",
-                source="audit_run:performance",
-                category="speed",
-                metric_value=audit.performance_score
-            ))
-
-            # Specific findings
+            # Concrete actionable audit findings FIRST
             findings_q = select(AuditFinding).where(AuditFinding.audit_id == audit.id).order_by(AuditFinding.severity.desc())
             findings = (await session.execute(findings_q)).scalars().all()
             for f in findings:
                 cat = "conversion"
-                if "speed" in (f.finding or "").lower() or "load" in (f.finding or "").lower():
+                f_text = (f.finding or "").lower()
+                if "speed" in f_text or "load" in f_text or "performance" in f_text:
                     cat = "speed"
-                elif "seo" in (f.finding or "").lower() or "schema" in (f.finding or "").lower():
+                elif "seo" in f_text or "schema" in f_text or "meta" in f_text:
                     cat = "seo"
-                elif "accessibility" in (f.finding or "").lower() or "aria" in (f.finding or "").lower():
+                elif "accessibility" in f_text or "aria" in f_text or "contrast" in f_text:
                     cat = "a11y"
+                elif "call" in f_text or "phone" in f_text or "tel:" in f_text or "after-hours" in f_text:
+                    cat = "booking"
 
                 facts.append(ResearchFact(
                     prospect_id=pid,
@@ -78,6 +65,24 @@ class ResearchRepository:
                     source=f"audit_finding:{f.id}",
                     category=cat,
                     metric_value=f.evidence
+                ))
+
+            # Sub-par overall scores ONLY added if deficient (< 60)
+            if audit.ux_conversion_score < 60.0:
+                facts.append(ResearchFact(
+                    prospect_id=pid,
+                    fact=f"Mobile UX conversion friction measured at {audit.ux_conversion_score:.0f}/100",
+                    source="audit_run:ux_conversion",
+                    category="conversion",
+                    metric_value=audit.ux_conversion_score
+                ))
+            if audit.performance_score < 60.0:
+                facts.append(ResearchFact(
+                    prospect_id=pid,
+                    fact=f"Mobile Core Web Vitals speed measured at {audit.performance_score:.0f}/100",
+                    source="audit_run:performance",
+                    category="speed",
+                    metric_value=audit.performance_score
                 ))
 
         # 3. Prospect evidence (e.g. from scraping or inquiry analysis)

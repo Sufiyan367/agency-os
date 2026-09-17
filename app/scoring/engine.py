@@ -44,12 +44,19 @@ class LeadScoringEngine:
         after_hours_gap = bool(call_opp.get("after_hours_gap_detected", False))
         app_dep = bool(call_opp.get("appointment_dependency", False))
 
-        niche_slug = getattr(niche, "slug", "") or ""
-        is_call_icp = niche_slug in (
-            "dental-medical-clinics", "cosmetic-clinics", "dental-practices",
-            "hvac-home-services", "hvac-services", "automotive",
-            "commercial-law", "professional-services", "salons-barbers", "real-estate"
-        )
+        raw_slug = (getattr(niche, "slug", "") or getattr(niche, "id", "") or getattr(niche, "name", "") or "").lower().replace("_", "-").strip()
+        call_icp_slugs = {
+            "dental", "dental-practices", "dental-medical-clinics", "cosmetic-clinics", "dentist",
+            "roofing", "roofing-contractors", "roofers",
+            "hvac", "hvac-home-services", "hvac-services", "heating-cooling",
+            "medical-clinics", "med-spas", "med-spa",
+            "real-estate", "property-management",
+            "commercial-law", "legal-services", "law-firm", "professional-services",
+            "plumbing", "electrical", "electrical-contractors",
+            "automotive", "auto-repair",
+            "salons-barbers", "beauty",
+        }
+        is_call_icp = raw_slug in call_icp_slugs or any(k in raw_slug for k in ("dental", "roof", "hvac", "clinic", "real-estate", "plumb", "electric", "auto", "law"))
         call_value_potential = min(100.0, (niche.avg_deal_size / 1500.0) * 70.0 + (call_driven_score * 0.3))
         after_hours_demand = 85.0 if after_hours_gap else (60.0 if has_hours else 40.0)
 
@@ -145,12 +152,36 @@ class LeadScoringEngine:
             # Fallback default country
             country = Country(code=business.country, name=business.country, gdp_per_capita=65000.0)
 
-        niche_q = select(Niche).where(Niche.slug == business.niche)
-        niche = (await session.execute(niche_q)).scalar_one_or_none()
+        niche_str = (business.niche or "").strip()
+        niche_slug_norm = niche_str.lower().replace("_", "-")
+        niche_q = select(Niche).where(
+            (Niche.slug == niche_str) | 
+            (Niche.slug == niche_slug_norm) |
+            (Niche.slug.like(f"%{niche_slug_norm}%"))
+        )
+        niche = (await session.execute(niche_q)).scalars().first()
         if not niche:
-            niche = Niche(slug=business.niche, name=business.niche, avg_deal_size=800.0)
+            from app.acquisition.targeting_catalog import NICHE_CATALOG, normalize_niche
+            canon_id = normalize_niche(niche_str) or niche_str.upper()
+            catalog_item = NICHE_CATALOG.get(canon_id)
+            avg_deal = (
+                float(catalog_item.min_estimated_service_value)
+                if catalog_item and catalog_item.min_estimated_service_value
+                else 1200.0
+            )
+            niche = Niche(
+                slug=niche_slug_norm,
+                name=catalog_item.name if catalog_item else niche_str,
+                avg_deal_size=avg_deal
+            )
 
         total_score, priority, breakdown, rationale = self.calculate_score(business, audit, country, niche)
+
+        # If audit failed due to insufficient research, zero score immediately
+        if audit.overall_health_score == 0.0 or "RESEARCH_INSUFFICIENT" in (audit.summary or ""):
+            total_score = 0.0
+            priority = LeadPriority.LOW.value
+            rationale = "Disqualified: Research insufficient due to unreachable website."
 
         # Check for existing score
         score_q = select(LeadScore).where(LeadScore.business_id == business.id)
@@ -185,7 +216,7 @@ class LeadScoringEngine:
             lead_score.scoring_breakdown = breakdown
             lead_score.rationale = rationale
 
-        # If qualified (score >= 55), transition pipeline stage
+        # If qualified (score >= 55), transition pipeline stage; otherwise explicitly DISQUALIFY
         old_stage = business.pipeline_stage
         if total_score >= 55.0:
             business.pipeline_stage = PipelineStage.QUALIFIED.value
@@ -197,9 +228,19 @@ class LeadScoringEngine:
                 note=f"Lead qualified with score {total_score}/100 (Priority {priority})."
             )
             session.add(event)
+        else:
+            business.pipeline_stage = PipelineStage.REJECTED.value
+            event = PipelineEvent(
+                business_id=business.id,
+                from_stage=old_stage,
+                to_stage=PipelineStage.REJECTED.value,
+                deal_value=0.0,
+                note=f"Lead disqualified: Score {total_score}/100 below 55.0 qualification floor or research insufficient."
+            )
+            session.add(event)
 
         await session.commit()
-        logger.info(f"Scored {business.name}: {total_score}/100 (Priority {priority})")
+        logger.info(f"Scored {business.name}: {total_score}/100 (Priority {priority}, Stage: {business.pipeline_stage})")
         return lead_score
 
 lead_scoring_engine = LeadScoringEngine()

@@ -4,7 +4,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
 
-from app.core.security import validate_email_syntax
+from app.core.security import validate_email_syntax, sanitize_scraped_email
+
 
 DISALLOWED_EMAIL_DOMAINS = {
     "example.com", "example.org", "domain.com", "yoursite.com", "email.com",
@@ -68,8 +69,9 @@ class RealContactVerifier:
             href = a["href"].strip()
             if href.lower().startswith("mailto:"):
                 raw_em = href[7:].split("?")[0].strip()
-                if self._is_valid_email(raw_em):
-                    extracted_emails.append(raw_em.lower())
+                cleaned_em = sanitize_scraped_email(raw_em)
+                if cleaned_em and self._is_valid_email(cleaned_em):
+                    extracted_emails.append(cleaned_em)
 
             elif href.lower().startswith("tel:"):
                 raw_ph = href[4:].strip()
@@ -96,11 +98,10 @@ class RealContactVerifier:
         # 2. Extract from body text
         body_text = soup.get_text(separator=" ", strip=True)
         for match in self.EMAIL_PATTERN.finditer(body_text):
-            em = match.group(0).strip(".,;:()")
-            if self._is_valid_email(em):
-                lower_em = em.lower()
-                if lower_em not in extracted_emails:
-                    extracted_emails.append(lower_em)
+            cleaned_em = sanitize_scraped_email(match.group(0))
+            if cleaned_em and self._is_valid_email(cleaned_em):
+                if cleaned_em not in extracted_emails:
+                    extracted_emails.append(cleaned_em)
 
         for match in self.PHONE_PATTERN.finditer(body_text):
             ph = match.group(0).strip(".,;:()")

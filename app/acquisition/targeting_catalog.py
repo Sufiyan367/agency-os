@@ -1247,10 +1247,45 @@ COUNTRY_NICHE_MAP: Dict[str, List[str]] = {
 # ==============================================================================
 
 def get_country(country_code: str) -> Optional[CountryDefinition]:
-    """Retrieves country definition by 2-letter uppercase ISO code."""
+    """Retrieves country definition by 2-letter uppercase ISO code, dynamically supporting any valid ISO country."""
     if not country_code:
         return None
-    return GLOBAL_COUNTRIES.get(country_code.upper().strip())
+    code = country_code.upper().strip()
+    if code in GLOBAL_COUNTRIES:
+        return GLOBAL_COUNTRIES[code]
+
+    # Dynamic expansion for any valid 2-letter ISO country code
+    if len(code) == 2 and code.isalpha():
+        if code in DISABLED_MARKETS:
+            c = CountryDefinition(
+                code=code,
+                name=code,
+                currency="USD",
+                region_type="Region",
+                regions={},
+                default_priority="DISABLED",
+                market_class="DISABLED",
+                country_priority="DISABLED",
+                acquisition_enabled=False
+            )
+            GLOBAL_COUNTRIES[code] = c
+            return c
+        else:
+            # Dynamically supported non-disabled country
+            c = CountryDefinition(
+                code=code,
+                name=code,
+                currency="USD",
+                region_type="Region",
+                regions={},
+                default_priority="P3",
+                market_class="SECONDARY",
+                country_priority="P3",
+                acquisition_enabled=True
+            )
+            GLOBAL_COUNTRIES[code] = c
+            return c
+    return None
 
 def list_countries() -> List[Dict[str, Any]]:
     """Lists all supported countries with key metadata including market classification."""
@@ -1334,20 +1369,30 @@ def validate_target_combination(
             matched_region = r
             break
     if not matched_region:
-        raise ValueError(
-            f"Region '{region}' does not exist in {c.name}. Available {c.region_type}s: {list(c.regions.keys())[:5]}..."
-        )
+        if region and region.strip():
+            matched_region = region.strip()
+            if matched_region not in c.regions:
+                c.regions[matched_region] = []
+        else:
+            raise ValueError(
+                f"Region '{region}' does not exist in {c.name}. Available {c.region_type}s: {list(c.regions.keys())[:5]}..."
+            )
 
-    cities = c.regions[matched_region]
+    cities = c.regions.get(matched_region, [])
     matched_city = None
     for ct in cities:
         if ct.lower().strip() == city.lower().strip():
             matched_city = ct
             break
     if not matched_city:
-        raise ValueError(
-            f"City '{city}' not recognized in {c.region_type} '{matched_region}'. Supported cities: {cities}"
-        )
+        if city and city.strip():
+            matched_city = city.strip()
+            if matched_city not in c.regions[matched_region]:
+                c.regions[matched_region].append(matched_city)
+        else:
+            raise ValueError(
+                f"City '{city}' not recognized in {c.region_type} '{matched_region}'. Supported cities: {cities}"
+            )
 
     norm_niche = normalize_niche_id(niche_id)
     if not norm_niche:

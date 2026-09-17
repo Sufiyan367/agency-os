@@ -17,6 +17,29 @@ class GeneralizedOutreachComposer:
     Target word count: 60–140 words.
     """
 
+    @staticmethod
+    def sanitize_untrusted_text(text: str) -> str:
+        """Strips control characters, HTML markup, and dangerous prompt injection tokens."""
+        import re
+        if not text:
+            return ""
+        cleaned = re.sub(r'[\r\n\t]+', ' ', text)
+        cleaned = re.sub(r'<[^>]*>', '', cleaned)
+        injection_patterns = [
+            r"ignore\s+(?:all\s+)?previous\s+instructions",
+            r"system\s+prompt",
+            r"you\s+are\s+now\s+a",
+            r"new\s+instructions:",
+            r"drop\s+table",
+            r"eval\s*\(",
+            r"curl\s+http",
+            r"powershell",
+            r"bash\s+-c",
+        ]
+        for pattern in injection_patterns:
+            cleaned = re.sub(pattern, "[FILTERED]", cleaned, flags=re.IGNORECASE)
+        return cleaned.strip()
+
     def compose_variants(
         self,
         prospect: CanonicalProspect,
@@ -33,17 +56,37 @@ class GeneralizedOutreachComposer:
         else:
             greeting = f"Hi {prospect.company_name} team,"
 
-        # 2. Extract top evidence observation
-        top_facts = [f for f in facts if f.category in ("conversion", "speed", "seo", "booking")]
+        # 2. Extract top evidence observation (Concrete findings preferred over scores)
+        concrete_facts = [
+            f for f in facts 
+            if f.category in ("conversion", "speed", "seo", "booking") 
+            and "score measured at" not in f.fact.lower()
+        ]
+        top_facts = concrete_facts if concrete_facts else [
+            f for f in facts if f.category in ("conversion", "speed", "seo", "booking")
+        ]
+
         if top_facts:
             primary_fact = top_facts[0]
-            observation_1 = f"While reviewing {prospect.website}, I noticed {primary_fact.fact.lower().rstrip('.')}."
-            observation_2 = f"I was recently reviewing {prospect.website} and noted {primary_fact.fact.lower().rstrip('.')}."
-            observation_3 = f"I wanted to share a brief operational observation regarding {prospect.website}: {primary_fact.fact.lower().rstrip('.')}."
+            raw_fact = self.sanitize_untrusted_text(primary_fact.fact.strip().rstrip('.'))
+            f_lower = raw_fact.lower()
+            if f_lower.startswith("missing"):
+                obs_detail = f"an opportunity regarding {f_lower}"
+            elif f_lower.startswith("no clear"):
+                obs_detail = f"{f_lower} on the primary landing page"
+            elif "friction" in f_lower or "deficit" in f_lower:
+                obs_detail = f"that {f_lower}"
+            else:
+                obs_detail = f"{f_lower}"
+
+            observation_1 = f"While reviewing {prospect.website}, I noticed {obs_detail}."
+            observation_2 = f"I was recently reviewing {prospect.website} and noted {obs_detail}."
+            observation_3 = f"I wanted to share a brief operational observation regarding {prospect.website}: {raw_fact}."
         else:
-            observation_1 = f"While reviewing {prospect.website}, I looked at how inquiries are currently handled."
-            observation_2 = f"I was recently looking at {prospect.website} and noticed your current contact pathway."
-            observation_3 = f"I wanted to share a brief observation regarding customer inquiry flow on {prospect.website}."
+            solution.requires_review = True
+            observation_1 = f"While reviewing {prospect.website}, I wanted to share a brief operational observation."
+            observation_2 = f"I was recently reviewing {prospect.website} and had an operational inquiry."
+            observation_3 = f"I wanted to share a brief inquiry regarding {prospect.website}."
 
         signature = sender.signature()
         footer = compliance.render_footer()

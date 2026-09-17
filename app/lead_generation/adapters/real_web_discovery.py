@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from app.lead_generation.adapters.base import BaseLeadDiscoveryAdapter, DiscoveredLeadRaw
 from app.lead_generation.adapters.verified_registry import REAL_COMMERCIAL_BUSINESSES
-from app.core.security import normalize_domain, is_safe_url, validate_email_syntax
+from app.core.security import normalize_domain, is_safe_url, validate_email_syntax, sanitize_scraped_email
 from app.core.rate_limiter import default_rate_limiter
 from app.core.logging import logger
 from app.compliance.negative_disclaimer import detect_negative_disclaimer
@@ -154,6 +154,26 @@ UNWANTED_TITLES = {
     "blocked", "robot check", "captcha", "one moment please..."
 }
 
+def _is_phone_consistent_with_country(phone: Optional[str], country_code: str) -> bool:
+    """Detects obvious cross-border telephone prefix contradictions."""
+    if not phone:
+        return True
+    p = phone.strip()
+    cc = country_code.upper()
+    if p.startswith("+1") and cc not in ("US", "CA"):
+        return False
+    if p.startswith("+44") and cc not in ("UK", "GB"):
+        return False
+    if p.startswith("+971") and cc != "AE":
+        return False
+    if p.startswith("+81") and cc != "JP":
+        return False
+    if p.startswith("+49") and cc != "DE":
+        return False
+    if p.startswith("+61") and cc != "AU":
+        return False
+    return True
+
 class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
     """
     Production multi-source lead discovery engine that mines verified public directories
@@ -166,7 +186,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
     ) -> List[DiscoveredLeadRaw]:
         country_norm = country_code.upper()
         cities = EXPANDED_CITIES.get(country_norm, ["Metropolitan Area", "Commercial Center"])
-        search_term = NICHE_SEARCH_MAP.get(niche_slug, niche_slug.replace("-", " "))
+        n_slug = niche_slug.lower().replace("_", "-")
+        search_term = NICHE_SEARCH_MAP.get(n_slug, NICHE_SEARCH_MAP.get(niche_slug, n_slug.replace("-", " ")))
         
         discovered_leads: List[DiscoveredLeadRaw] = []
         seen_domains: Set[str] = set()
@@ -176,12 +197,25 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         logger.info(f"Starting REAL web prospect discovery for '{search_term}' in {country_norm} (Target: {limit}, Excluded: {len(excluded)})...")
 
         # Source 1: Verified Commercial Registry of authentic registered companies
-        registry_matches = list(REAL_COMMERCIAL_BUSINESSES.get((country_norm, niche_slug), []))
-        if not registry_matches and niche_slug in ("hvac", "hvac-services", "hvac-home-services"):
-            for alt_slug in ["hvac", "hvac-home-services", "hvac-services"]:
-                matches = REAL_COMMERCIAL_BUSINESSES.get((country_norm, alt_slug), [])
-                if matches:
-                    registry_matches.extend(matches)
+        candidate_slugs = [n_slug, niche_slug]
+        if "roof" in n_slug:
+            candidate_slugs.extend(["roofing-contractors", "roofing"])
+        elif "dental" in n_slug:
+            candidate_slugs.extend(["dental-medical-clinics", "dental-practices", "dental"])
+        elif "hvac" in n_slug:
+            candidate_slugs.extend(["hvac", "hvac-home-services", "hvac-services"])
+        elif "real" in n_slug:
+            candidate_slugs.extend(["real-estate", "property-services"])
+        elif "plumb" in n_slug:
+            candidate_slugs.extend(["plumbing", "plumbing-services"])
+        elif "law" in n_slug or "legal" in n_slug:
+            candidate_slugs.extend(["commercial-law", "commercial-lawyers", "professional-services"])
+
+        registry_matches = []
+        for s in candidate_slugs:
+            for item in REAL_COMMERCIAL_BUSINESSES.get((country_norm, s), []):
+                if item not in registry_matches:
+                    registry_matches.append(item)
         for item in registry_matches:
             norm_dom = normalize_domain(item["domain"])
             if norm_dom and norm_dom not in seen_domains and norm_dom not in excluded:
@@ -212,14 +246,20 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 if len(words) > 2:
                     query_terms.append(" ".join(words[:2]))
 
+                osm_rate_limited = False
+                osm_cc = "gb" if country_norm in ("UK", "GB") else country_norm.lower()
                 for city in cities:
-                    if len(candidates) >= limit * 3:
+                    if len(candidates) >= limit * 3 or osm_rate_limited:
                         break
                     for q_term in query_terms:
                         query = f"{city} {q_term}"
-                        url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&format=json&extratags=1&limit=10"
+                        url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&countrycodes={osm_cc}&format=json&extratags=1&limit=10"
                         try:
                             r = await client.get(url, headers=osm_headers)
+                            if r.status_code == 429:
+                                logger.info("Nominatim rate limit (429) reached. Fast-failing OSM search.")
+                                osm_rate_limited = True
+                                break
                             if r.status_code == 200:
                                 for item in r.json():
                                     tags = item.get("extratags") or {}
@@ -274,12 +314,18 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     for c in chunk
                 ]
                 results = await asyncio.gather(*chunk_tasks, return_exceptions=True)
-                for res in results:
-                    if isinstance(res, DiscoveredLeadRaw):
-                        discovered_leads.append(res)
-                        logger.info(f"Discovered REAL Lead [{len(discovered_leads)}/{limit}]: {res.name} ({res.domain}) | Email: {res.public_email or 'None'}")
-                        if len(discovered_leads) >= limit:
-                            break
+                valid_batch = [res for res in results if isinstance(res, DiscoveredLeadRaw)]
+                # Prioritize leads with valid public email and high digital deficits
+                valid_batch.sort(key=lambda r: (
+                    0 if r.public_email else 1,
+                    -len(r.social_profiles.get("deficit_signals", []))
+                ))
+                for res in valid_batch:
+                    discovered_leads.append(res)
+                    deficits = res.social_profiles.get("deficit_signals", [])
+                    logger.info(f"Discovered REAL Lead [{len(discovered_leads)}/{limit}]: {res.name} ({res.domain}) | Email: {res.public_email or 'None'} | Deficits: {len(deficits)} {deficits}")
+                    if len(discovered_leads) >= limit:
+                        break
 
         logger.info(f"REAL web prospect discovery completed: Found {len(discovered_leads)} authentic businesses.")
         return discovered_leads
@@ -300,6 +346,9 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
             clean_name = domain.replace(".com", "").replace(".net", "").replace("-", " ").title()
 
         phone = candidate.get("phone")
+        if phone and not _is_phone_consistent_with_country(phone, country):
+            logger.info(f"[LeadDiscovery] Entity mismatch: Phone {phone} contradicts country {country}. Discarding candidate {domain}.")
+            return None
 
         try:
             resp = await client.get(target_url, headers=headers, timeout=5.0)
@@ -331,11 +380,12 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                     clean_name = pt
 
             # Extract emails from homepage
-            emails = set(EMAIL_REGEX.findall(resp.text))
-            valid_emails = [
-                e for e in emails 
-                if validate_email_syntax(e) and not any(ext in e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org", "domain.com", "bootstrap", "wordpress"])
-            ]
+            raw_emails = set(EMAIL_REGEX.findall(resp.text))
+            valid_emails = []
+            for raw_e in raw_emails:
+                clean_e = sanitize_scraped_email(raw_e)
+                if clean_e and not any(ext in clean_e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org", "domain.com", "bootstrap", "wordpress"]):
+                    valid_emails.append(clean_e)
 
             # Check for express negative disclaimer on homepage
             has_hp_disclaimer, matched_hp = detect_negative_disclaimer(resp.text)
@@ -368,10 +418,11 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                             logger.info(f"[LeadDiscovery] Prohibited contact disclaimer on contact page for {domain}: '{matched_cp}'. Suppressing harvested emails.")
                         else:
                             c_emails = set(EMAIL_REGEX.findall(c_resp.text))
-                            valid_c_emails = [
-                                e for e in c_emails 
-                                if validate_email_syntax(e) and not any(ext in e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"])
-                            ]
+                            valid_c_emails = []
+                            for raw_ce in c_emails:
+                                clean_ce = sanitize_scraped_email(raw_ce)
+                                if clean_ce and not any(ext in clean_ce.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"]):
+                                    valid_c_emails.append(clean_ce)
                             if valid_c_emails:
                                 valid_emails = valid_c_emails
                 except Exception:
@@ -380,6 +431,29 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
             candidate_email = candidate.get("email") if not (has_hp_disclaimer or has_cp_disclaimer) else None
             chosen_email = valid_emails[0] if valid_emails else candidate_email
             email_status = "prohibited_contact" if (has_hp_disclaimer or has_cp_disclaimer) else ("verified" if chosen_email else "unknown")
+
+            # Detect evidence-backed digital deficit signals on target website
+            deficit_signals = []
+            if not soup.find("meta", attrs={"name": "viewport"}):
+                deficit_signals.append("missing_viewport")
+            meta_desc = soup.find("meta", attrs={"name": "description"})
+            if not meta_desc or not meta_desc.get("content"):
+                deficit_signals.append("missing_meta_description")
+            if not soup.find("script", attrs={"type": "application/ld+json"}):
+                deficit_signals.append("missing_schema_org")
+            if not soup.find_all("a", href=re.compile(r"^tel:", re.IGNORECASE)):
+                deficit_signals.append("missing_click_to_call")
+            
+            cta_kw = ["book", "schedule", "quote", "contact", "call now", "free estimate", "consultation", "get started"]
+            has_cta = any(any(k in el.get_text(strip=True).lower() for k in cta_kw) for el in soup.find_all(["button", "a"]))
+            if not has_cta:
+                deficit_signals.append("missing_primary_cta")
+
+            text_lower = resp.text.lower()
+            if re.search(r"copyright\s*(?:©)?\s*(199\d|200\d|201[0-8])", text_lower):
+                deficit_signals.append("legacy_copyright")
+            if soup.find("table", attrs={"width": True}) or soup.find("frame"):
+                deficit_signals.append("legacy_table_frame_layout")
 
             return DiscoveredLeadRaw(
                 name=clean_name[:150],
@@ -393,6 +467,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 phone=phone,
                 contact_page_url=contact_page_url,
                 address=f"{candidate['city']}, {country}",
+                social_profiles={"deficit_signals": deficit_signals},
                 source=candidate["source"],
                 source_url=candidate.get("registry_source_url") or target_url
             )
@@ -408,6 +483,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 email_status="verified" if candidate.get("email") else "unknown",
                 phone=phone,
                 address=f"{candidate['city']}, {country}",
+                social_profiles={},
                 source=candidate["source"],
                 source_url=candidate.get("registry_source_url") or target_url
             )

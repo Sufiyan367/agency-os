@@ -22,7 +22,50 @@ class WebsiteAuditEngine:
         logger.info(f"Auditing website for business {business.name} ({business.website_url})...")
         crawl_res = await website_crawler.fetch(business.website_url)
 
-        # Run individual audit suites
+        # Research Depth Gate: Verify target website was successfully retrieved
+        if not getattr(crawl_res, "is_successful", True) or getattr(crawl_res, "error_msg", None) or crawl_res.status_code >= 400:
+            logger.warning(f"Audit aborted for {business.name} ({business.website_url}): website unreachable ({crawl_res.error_msg or f'status {crawl_res.status_code}'}).")
+            audit_run = AuditRun(
+                business_id=business.id,
+                url_audited=business.website_url,
+                audited_at=datetime.utcnow(),
+                performance_score=0.0,
+                seo_score=0.0,
+                a11y_score=0.0,
+                ux_conversion_score=0.0,
+                security_score=0.0,
+                content_score=0.0,
+                overall_health_score=0.0,
+                summary=f"RESEARCH_INSUFFICIENT: Target web server failed to return reachable HTTP content ({crawl_res.error_msg or f'HTTP {crawl_res.status_code}'}).",
+                tech_stack=[],
+                metrics={"error": crawl_res.error_msg or f"HTTP {crawl_res.status_code}"}
+            )
+            session.add(audit_run)
+            await session.flush()
+
+            finding_record = AuditFinding(
+                audit_id=audit_run.id,
+                category="Connectivity",
+                finding="RESEARCH_INSUFFICIENT: Target Website Unreachable",
+                severity="CRITICAL",
+                evidence=f"Network fetch failed with HTTP {crawl_res.status_code} ({crawl_res.error_msg or 'Server connection error'}).",
+                url=business.website_url,
+                recommended_fix="Verify target domain DNS records, SSL certificate, and server firewall status.",
+                estimated_business_impact="Site is completely inaccessible to prospective customers and automated diagnostics.",
+                confidence=1.0
+            )
+            session.add(finding_record)
+            business.pipeline_stage = PipelineStage.REJECTED.value
+            event = PipelineEvent(
+                business_id=business.id,
+                from_stage=business.pipeline_stage,
+                to_stage=PipelineStage.REJECTED.value,
+                deal_value=0.0,
+                note="Audit aborted: RESEARCH_INSUFFICIENT (Target website unreachable)."
+            )
+            session.add(event)
+            await session.commit()
+            return audit_run
         perf_score, perf_findings, perf_metrics = performance_auditor.audit(crawl_res)
         seo_score, seo_findings, seo_metrics = seo_auditor.audit(crawl_res)
         a11y_score, a11y_findings, a11y_metrics = accessibility_auditor.audit(crawl_res)

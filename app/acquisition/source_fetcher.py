@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import httpx
 from bs4 import BeautifulSoup
 
-from app.core.security import is_safe_url, normalize_domain
+from app.core.security import is_safe_url, normalize_domain, sanitize_scraped_email
 from app.core.logging import logger
 
 DEFAULT_TIMEOUT_SECONDS = 8.0
@@ -200,8 +200,8 @@ class SafeSourceFetcher:
 
                 # Extract emails
                 for match in self.EMAIL_PATTERN.finditer(extracted_text):
-                    em = match.group(0).lower().strip(".,;")
-                    if not any(ext in em for ext in [".png", ".jpg", ".webp", ".gif", "@example.", "@domain."]):
+                    em = sanitize_scraped_email(match.group(0))
+                    if em and not any(ext in em for ext in [".png", ".jpg", ".webp", ".gif", "@example.", "@domain."]):
                         if em not in emails:
                             emails.append(em)
 

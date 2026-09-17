@@ -669,8 +669,8 @@ class DeterministicAutoApprovalEngine:
 
         # 17. Jurisdiction Provenance & Lawful Basis Tracking
         audit_summary = None
-        if biz and getattr(biz, "audits", None) and len(biz.audits) > 0:
-            audit_summary = biz.audits[0].summary
+        if biz and hasattr(biz, "__dict__") and biz.__dict__.get("audits"):
+            audit_summary = biz.__dict__["audits"][0].summary
 
         provenance = build_jurisdiction_provenance(
             country_code=country_code,

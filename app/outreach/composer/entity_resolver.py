@@ -66,12 +66,34 @@ class EntityResolver:
         if not industry:
             warnings.append("Industry is unspecified; defaulting to commercial services.")
 
-        # 5. Geographic location check
+        # 5. Geographic & Phone location check
         if not prospect.country:
             warnings.append("Country unspecified; defaulting to US.")
+        elif prospect.phone:
+            p = prospect.phone.strip()
+            c = prospect.country.upper()
+            if p.startswith("+1") and c not in ("US", "CA"):
+                errors.append(f"Entity mismatch: North American phone number '{p}' assigned to country '{c}'.")
+            elif p.startswith("+44") and c not in ("UK", "GB"):
+                errors.append(f"Entity mismatch: UK phone number '{p}' assigned to country '{c}'.")
+            elif p.startswith("+971") and c != "AE":
+                errors.append(f"Entity mismatch: UAE phone number '{p}' assigned to country '{c}'.")
+            elif p.startswith("+81") and c != "JP":
+                errors.append(f"Entity mismatch: Japanese phone number '{p}' assigned to country '{c}'.")
 
         return ValidationResult(
             is_valid=(len(errors) == 0),
             errors=errors,
             warnings=warnings
         )
+
+    @classmethod
+    def validate_identity_consistency(cls, prospect: CanonicalProspect) -> tuple[bool, Optional[str]]:
+        """
+        Validates cross-prospect consistency: company, domain, city, industry, contact.
+        Returns (True, None) if valid, or (False, 'OUTREACH_VALIDATION_FAILED: ...') on mismatch.
+        """
+        res = cls.resolve_and_validate(prospect)
+        if not res.is_valid:
+            return False, f"OUTREACH_VALIDATION_FAILED: {'; '.join(res.errors)}"
+        return True, None

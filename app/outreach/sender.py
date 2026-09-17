@@ -35,8 +35,33 @@ class OutreachSenderAdapter:
         if msg.status == OutreachStatus.SENT.value or msg.sent_at is not None:
             raise ValueError(f"Message {message_id} has already been sent at {msg.sent_at}. Duplicate dispatch is prohibited.")
 
-        if msg.status != OutreachStatus.APPROVED.value:
-            raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED).")
+        if msg.status == OutreachStatus.REJECTED.value:
+            raise ValueError(f"Message {message_id} is REJECTED and cannot be dispatched.")
+
+        valid_send_statuses = (
+            OutreachStatus.OUTREACH_QUEUED.value,
+            OutreachStatus.APPROVED.value,
+            OutreachStatus.SEND_ATTEMPTED.value
+        )
+        if msg.status not in valid_send_statuses:
+            raise ValueError(f"Message {message_id} cannot be sent: status is '{msg.status}' (must be APPROVED or OUTREACH_QUEUED).")
+
+        # Record atomic transition to SEND_ATTEMPTED
+        msg.status = OutreachStatus.SEND_ATTEMPTED.value
+        await session.commit()
+        try:
+            from app.agents.activity_broadcaster import activity_broadcaster
+            await activity_broadcaster.record_event(
+                session=session,
+                run_id="outreach_dispatch",
+                event_type="OUTREACH_SEND_ATTEMPTED",
+                message=f"Dispatch attempted for message #{msg.id} to {msg.recipient_email}",
+                business_id=msg.business_id,
+                status="INFO",
+                metadata_json={"message_id": msg.id, "recipient": msg.recipient_email}
+            )
+        except Exception:
+            pass
 
         # Deterministic Outbound Authorization & Policy Gates
         is_live_send = force_live or (not getattr(settings, "EMAIL_DRY_RUN", True) and not getattr(settings, "DRY_RUN", True))
@@ -47,12 +72,29 @@ class OutreachSenderAdapter:
                 or (msg.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
             )
             if not is_authorized:
+                msg.status = OutreachStatus.OUTREACH_BLOCKED.value
+                await session.commit()
                 raise ValueError("Live email transmission blocked: Explicit human CEO approval or autonomous auto-approval policy required.")
 
         # Comprehensive 14-Point Pre-Send Safety Evaluation
         from app.outreach.auto_approval import auto_approval_engine
         send_eval = await auto_approval_engine.evaluate_send_authorization(session, msg, force_live=force_live)
         if not send_eval.is_eligible:
+            msg.status = OutreachStatus.OUTREACH_BLOCKED.value
+            await session.commit()
+            try:
+                from app.agents.activity_broadcaster import activity_broadcaster
+                await activity_broadcaster.record_event(
+                    session=session,
+                    run_id="outreach_dispatch",
+                    event_type="OUTREACH_BLOCKED",
+                    message=f"Outbound message #{msg.id} blocked by safety policy: {'; '.join(send_eval.blocking_reasons)}",
+                    business_id=msg.business_id,
+                    status="WARNING",
+                    metadata_json={"message_id": msg.id, "reasons": send_eval.blocking_reasons}
+                )
+            except Exception:
+                pass
             raise ValueError(f"Outbound dispatch blocked by safety policy: {'; '.join(send_eval.blocking_reasons)}")
 
         # 1. Execution via modular email provider (Titan primary, Resend, SendGrid, SMTP, Gmail)
@@ -148,10 +190,14 @@ class OutreachSenderAdapter:
 
         # Ensure mandatory CAN-SPAM / international opt-out notice is present on outbound transmission
         if msg.body and not ("unsubscribe" in msg.body.lower() or "opt out" in msg.body.lower() or "opt-out" in msg.body.lower()):
+            camp_postal = campaign.postal_address if campaign else None
+            if camp_postal and compliance_guard.is_placeholder_address(camp_postal):
+                camp_postal = None
+
             footer_text = compliance_guard.format_compliance_footer(
                 business_name=biz.name if biz else "Business",
                 recipient_email=msg.recipient_email,
-                postal_address=campaign.postal_address if campaign else None,
+                postal_address=camp_postal,
                 force=True
             )
             if footer_text:
@@ -166,12 +212,31 @@ class OutreachSenderAdapter:
             enforce_window=enforce_window
         )
         if not gate_res.is_eligible:
-            is_jurisdiction_blocked = any(
-                "OUTBOUND_BLOCKED" in r or "jurisdiction_requires_consent" in r or "personal_webmail_ineligible" in r or "prohibited_contact" in r
-                for r in gate_res.failure_reasons
-            )
-            msg.status = "OUTBOUND_BLOCKED" if is_jurisdiction_blocked else OutreachStatus.FAILED.value
+            msg.status = OutreachStatus.OUTREACH_BLOCKED.value
+            if biz and biz.pipeline_stage == PipelineStage.APPROVAL.value:
+                biz.pipeline_stage = PipelineStage.LOST.value
+                pevent = PipelineEvent(
+                    business_id=biz.id,
+                    from_stage=PipelineStage.APPROVAL.value,
+                    to_stage=PipelineStage.LOST.value,
+                    deal_value=0.0,
+                    note=f"Outreach blocked by compliance gate: {'; '.join(gate_res.failure_reasons)}"
+                )
+                session.add(pevent)
             await session.commit()
+            try:
+                from app.agents.activity_broadcaster import activity_broadcaster
+                await activity_broadcaster.record_event(
+                    session=session,
+                    run_id="outreach_dispatch",
+                    event_type="OUTREACH_BLOCKED",
+                    message=f"Outreach message #{msg.id} blocked: {'; '.join(gate_res.failure_reasons)}",
+                    business_id=msg.business_id,
+                    status="WARNING",
+                    metadata_json={"message_id": msg.id, "reasons": gate_res.failure_reasons}
+                )
+            except Exception:
+                pass
             raise ValueError(f"Send cancelled: {'; '.join(gate_res.failure_reasons)}")
 
         # Sender identity resolution: Never invent a persona for owner's real Gmail or Titan
@@ -200,12 +265,35 @@ class OutreachSenderAdapter:
                 reply_to=reply_to
             )
         except Exception as e:
-            msg.status = OutreachStatus.FAILED.value
-            await session.commit()
+            msg.status = OutreachStatus.SEND_FAILED.value
             safe_err = str(e)
             for s in [getattr(settings, "TITAN_SMTP_PASSWORD", None), getattr(settings, "SMTP_PASSWORD", None), getattr(settings, "GMAIL_CLIENT_SECRET", None)]:
                 if s and len(s) > 2 and s in safe_err:
                     safe_err = safe_err.replace(s, "[REDACTED]")
+            if biz and biz.pipeline_stage == PipelineStage.APPROVAL.value:
+                biz.pipeline_stage = PipelineStage.LOST.value
+                pevent = PipelineEvent(
+                    business_id=biz.id,
+                    from_stage=PipelineStage.APPROVAL.value,
+                    to_stage=PipelineStage.LOST.value,
+                    deal_value=0.0,
+                    note=f"Outreach send failed: {safe_err}"
+                )
+                session.add(pevent)
+            await session.commit()
+            try:
+                from app.agents.activity_broadcaster import activity_broadcaster
+                await activity_broadcaster.record_event(
+                    session=session,
+                    run_id="outreach_dispatch",
+                    event_type="OUTREACH_FAILED",
+                    message=f"Dispatch failed for message #{msg.id}: {safe_err}",
+                    business_id=msg.business_id,
+                    status="ERROR",
+                    metadata_json={"message_id": msg.id, "error": safe_err}
+                )
+            except Exception:
+                pass
             logger.error(
                 f"[LIVE_SEND_FAILURE] message_id={msg.id} lead_id={msg.business_id} "
                 f"provider={provider_name} error_class={e.__class__.__name__} "
@@ -214,7 +302,17 @@ class OutreachSenderAdapter:
             raise RuntimeError(f"Email delivery failed via {provider.__class__.__name__}: {safe_err}")
 
         if delivery_res.get("status") != "SUCCESS":
-            msg.status = OutreachStatus.FAILED.value
+            msg.status = OutreachStatus.SEND_FAILED.value
+            if biz and biz.pipeline_stage == PipelineStage.APPROVAL.value:
+                biz.pipeline_stage = PipelineStage.LOST.value
+                pevent = PipelineEvent(
+                    business_id=biz.id,
+                    from_stage=PipelineStage.APPROVAL.value,
+                    to_stage=PipelineStage.LOST.value,
+                    deal_value=0.0,
+                    note=f"Outreach delivery status unsuccessful: {delivery_res.get('status')}"
+                )
+                session.add(pevent)
             await session.commit()
             logger.error(
                 f"[LIVE_SEND_FAILURE] message_id={msg.id} lead_id={msg.business_id} "
@@ -263,6 +361,26 @@ class OutreachSenderAdapter:
             details=details
         )
         session.add(event_log)
+
+        try:
+            from app.agents.activity_broadcaster import activity_broadcaster
+            await activity_broadcaster.record_event(
+                session=session,
+                run_id="outreach_dispatch",
+                event_type="OUTREACH_SENT",
+                message=f"Outreach message #{msg.id} dispatched successfully to {msg.recipient_email} via {provider.__class__.__name__}",
+                business_id=msg.business_id,
+                domain=biz.domain if biz else None,
+                status="SUCCESS",
+                metadata_json={
+                    "message_id": msg.id,
+                    "recipient": msg.recipient_email,
+                    "provider": provider.__class__.__name__,
+                    "provider_message_id": delivery_res.get("message_id")
+                }
+            )
+        except Exception:
+            pass
 
         conv_event = ConversationEvent(
             business_id=msg.business_id,

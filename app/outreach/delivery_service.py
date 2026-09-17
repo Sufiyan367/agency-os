@@ -427,25 +427,59 @@ class OutreachDeliveryService:
 
     async def get_outreach_metrics(self, session: AsyncSession) -> Dict[str, Any]:
         """
-        Calculates real database-derived outreach metrics.
+        Calculates real database-derived outreach metrics from canonical models,
+        excluding synthetic/test records.
         """
-        q_pending = select(func.count(LocalOutreachMessage.id)).where(LocalOutreachMessage.status == MessageStatus.PENDING_APPROVAL.value)
+        from app.database.models import OutreachMessage, OutreachStatus, Reply
+        from app.core.safety_filters import (
+            get_synthetic_outreach_filter_clauses,
+            get_synthetic_reply_filter_clauses
+        )
+
+        msg_filters = get_synthetic_outreach_filter_clauses(OutreachMessage)
+        rep_filters = get_synthetic_reply_filter_clauses(Reply)
+
+        q_pending = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value,
+            *msg_filters
+        )
         pending_approval = (await session.execute(q_pending)).scalar() or 0
 
-        q_approved = select(func.count(LocalOutreachMessage.id)).where(LocalOutreachMessage.status == MessageStatus.APPROVED.value)
+        q_approved = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status.in_([OutreachStatus.APPROVED.value, OutreachStatus.OUTREACH_QUEUED.value]),
+            *msg_filters
+        )
         approved = (await session.execute(q_approved)).scalar() or 0
 
-        q_sent = select(func.count(LocalOutreachMessage.id)).where(LocalOutreachMessage.status.in_([MessageStatus.SENT.value, MessageStatus.MOCKED_SENT.value]))
+        q_sent = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status.in_([OutreachStatus.SENT.value, "MOCKED_SENT"]),
+            *msg_filters
+        )
         sent = (await session.execute(q_sent)).scalar() or 0
 
-        q_failed = select(func.count(LocalOutreachMessage.id)).where(LocalOutreachMessage.status.in_([MessageStatus.FAILED.value, MessageStatus.SEND_FAILED.value]))
+        q_failed = select(func.count(OutreachMessage.id)).where(
+            OutreachMessage.status.in_([
+                OutreachStatus.FAILED.value,
+                OutreachStatus.SEND_FAILED.value,
+                OutreachStatus.OUTREACH_BLOCKED.value,
+                OutreachStatus.OUTBOUND_BLOCKED.value
+            ]),
+            *msg_filters
+        )
         failed = (await session.execute(q_failed)).scalar() or 0
 
-        q_replies = select(func.count(LocalLead.id)).where(LocalLead.status.in_([LeadStatus.REPLIED.value, LeadStatus.REPLY_PENDING_HUMAN_REVIEW.value]))
+        q_replies = select(func.count(Reply.id)).where(
+            Reply.is_handled == False,
+            *rep_filters
+        )
         replies = (await session.execute(q_replies)).scalar() or 0
 
-        q_takeover = select(func.count(LocalLead.id)).where(LocalLead.human_takeover == True)
-        human_takeover = (await session.execute(q_takeover)).scalar() or 0
+        human_takeover = 0
+        try:
+            q_takeover = select(func.count(LocalLead.id)).where(LocalLead.human_takeover == True)
+            human_takeover = (await session.execute(q_takeover)).scalar() or 0
+        except Exception:
+            human_takeover = 0
 
         return {
             "outreach_pending_approval": pending_approval,

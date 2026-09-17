@@ -99,6 +99,45 @@ class PreSendValidator:
         elif words > 160:
             errors.append(f"Length violation: Email body exceeds maximum length ({words} words; maximum is 160).")
 
+        # 8. Fabricated Commercial Claim & ROI Gate
+        import re
+        if re.search(r'\b\d+(?:-\d+)?%', full_text) or re.search(r'\b\d+\s+percent\b', full_text):
+            errors.append("Evidence violation: Prohibited commercial claim or fabricated ROI percentage detected.")
+
+        prohibited_commercial_phrases = [
+            "helped similar firms",
+            "our clients see",
+            "guaranteed results",
+            "guarantee",
+            "case study",
+            "increase your revenue by",
+            "boost conversions by",
+        ]
+        for phrase in prohibited_commercial_phrases:
+            if phrase in full_text:
+                errors.append(f"Evidence violation: Prohibited fabricated commercial claim '{phrase}' detected.")
+
+        # 9. Prompt Injection & Control Pattern Gate
+        injection_patterns = [
+            r'ignore\s+(?:all\s+)?previous\s+instructions',
+            r'system\s+prompt',
+            r'you\s+are\s+now\s+a',
+            r'new\s+instructions:',
+            r'<script',
+            r'eval\(',
+            r'drop\s+table',
+            r'rm\s+-rf',
+        ]
+        for pattern in injection_patterns:
+            if re.search(pattern, full_text, re.IGNORECASE):
+                errors.append(f"Security violation: Prompt injection or hostile pattern detected matching '{pattern}'.")
+
+        # 10. Invented Person / Title Gate
+        if not prospect.recipient_name:
+            prohibited_titles = ["dear ceo", "hi ceo", "dear founder", "dear managing director"]
+            if any(t in full_text for t in prohibited_titles):
+                errors.append("Factual violation: Invented recipient title or persona detected without verified contact name.")
+
         return ValidationResult(
             is_valid=(len(errors) == 0),
             errors=errors,

@@ -258,3 +258,68 @@ async def trigger_active_target_discovery(
             for b in discovered
         ]
     }
+
+
+# ==============================================================================
+# 3. AUTONOMOUS MULTI-MARKET ACQUISITION & CEO OPS ENDPOINTS
+# ==============================================================================
+
+class CEOOverrideRequest(BaseModel):
+    action: str = Field(..., description="Override action: pause, exclude, force, emergency_stop, clear")
+    market_key: Optional[str] = Field(None, description="Canonical market key: COUNTRY:REGION:CITY:NICHE or ALL")
+    reason: Optional[str] = Field(default="CEO manual intervention", description="Audit rationale")
+
+
+@router.get("/api/targeting/autonomous-queue")
+async def get_autonomous_targeting_queue(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns the real-time autonomous acquisition state:
+    - Active market portfolio (with reason codes, explore/exploit classification, freshness)
+    - Next candidate targets prioritized by multi-factor score
+    - Currently running operations counters (discovery, research, audit, demos, deploys)
+    - CEO overrides in effect
+    """
+    from app.market_intelligence.autonomous_market_engine import autonomous_market_engine
+    return await autonomous_market_engine.get_autonomous_target_queue(session=db, limit=limit)
+
+
+@router.post("/api/targeting/rebalance")
+async def rebalance_autonomous_portfolio(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Triggers an immediate autonomous rebalance of the market acquisition portfolio.
+    Evaluates evidence, rotates underperforming or stale markets, and emits MARKET_REBALANCED event.
+    """
+    from app.market_intelligence.autonomous_market_engine import autonomous_market_engine
+    result = await autonomous_market_engine.rebalance_portfolio(session=db)
+    return {
+        "status": "COMPLETED",
+        "result": result
+    }
+
+
+@router.post("/api/targeting/override")
+async def set_ceo_targeting_override(
+    req: CEOOverrideRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Executes a CEO manual override on autonomous acquisition:
+    - pause: Suspend discovery in specified market
+    - exclude: Add market to exclusion list
+    - force: Force immediate active status and discovery priority
+    - emergency_stop: Immediately pause all active discovery
+    - clear: Reset override for specified market or all
+    """
+    from app.market_intelligence.autonomous_market_engine import autonomous_market_engine
+    res = await autonomous_market_engine.set_ceo_override(
+        action=req.action,
+        market_key=req.market_key,
+        reason=req.reason,
+        session=db
+    )
+    return res

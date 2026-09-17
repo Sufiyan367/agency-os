@@ -75,6 +75,9 @@ app/
 4. **Anti-SSRF Protection**: Prevents attacks against loopback (`127.0.0.1`), private networks (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`), link-local metadata services (`169.254.169.254`), or non-HTTP schemes.
 5. **Deduplication & Idempotency**: Normalizes root domains and prevents duplicate database records across runs.
 6. **Production Truth & Provenance Integrity**: The CEO Command Center and Live Pipeline enforce strict provenance boundaries. Synthetic fixtures, developer simulations, canary pings, and unverified mock payments are deterministically isolated from real commercial outcomes. Zero divergence is maintained between executive KPIs and pipeline funnel stages.
+7. **Lead Qualification Dual-Gate**: Strict qualification invariant requires `LeadScore >= 55.0` AND `verification_status == 'VERIFIED'` with non-destructive audit completed. Prospects with unverified audits or scores below commercial floors cannot enter qualified pipeline stages.
+8. **Niche Slug Normalization**: Canonical slug resolution and alias indexing across international targeting catalogs prevent taxonomy fragmentation and ensure consistent ICP scoring.
+9. **Sent Outreach History Preservation**: Historical outreach messages are permanently preserved in persistence with immutable classification (`REAL_EXTERNAL`, `CANARY`, `HISTORICAL_DEV`, `TEST`), ensuring complete auditability without contaminating active pipeline counts.
 
 ---
 
@@ -128,9 +131,26 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser to acces
 
 ## Running Automated Tests
 
-Run the full automated pytest suite (17 passed tests covering security, auditing, deduplication, scoring, offers, outreach queue, and CRM replies):
+Run focused test suites for verified subsystems:
+
 ```bash
-pytest -v
+# Production Truth Engine invariants (12 tests)
+pytest tests/test_production_truth_metrics.py -v
+
+# Crawler SSRF defense & evidence grounding (11 tests)
+pytest tests/test_crawler_ssrf_and_evidence_safety.py -v
+
+# Real external outreach quality & niche normalization (7 tests)
+pytest tests/test_real_external_outreach_quality.py -v
+
+# Sent outreach history & provenance classification (2 tests)
+pytest tests/test_sent_outreach_history.py -v
+
+# Dynamic active portfolio & multi-market allocation (17 tests)
+pytest tests/test_dynamic_active_portfolio.py -v
+
+# Outreach approval unification & pipeline sync (4 tests)
+pytest tests/test_outreach_approval_unification.py -v
 ```
 
 ---
