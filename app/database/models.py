@@ -65,11 +65,15 @@ class AuditSeverity(str, enum.Enum):
 class OutreachStatus(str, enum.Enum):
     PENDING_APPROVAL = "PENDING_APPROVAL"
     APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    HELD = "HELD"
+    OUTREACH_QUEUED = "OUTREACH_QUEUED"
+    SEND_ATTEMPTED = "SEND_ATTEMPTED"
     SENT = "SENT"
     FAILED = "FAILED"
+    SEND_FAILED = "SEND_FAILED"
+    OUTREACH_BLOCKED = "OUTREACH_BLOCKED"
     OUTBOUND_BLOCKED = "OUTBOUND_BLOCKED"
+    REJECTED = "REJECTED"
+    HELD = "HELD"
 
 class ReplyClassification(str, enum.Enum):
     INTERESTED = "INTERESTED"
