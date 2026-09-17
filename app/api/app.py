@@ -194,6 +194,8 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             "/apple-touch-icon.png",
             "/apple-touch-icon-precomposed.png",
             "/api/notifications/vapid-public-key",
+            "/api/inbound/webhook",
+            "/api/automations/n8n/webhook",
         }
         privileged_prefixes = (
             "/api/ceo",
