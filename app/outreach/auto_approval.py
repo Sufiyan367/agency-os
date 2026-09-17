@@ -574,20 +574,40 @@ class DeterministicAutoApprovalEngine:
         if not lock_available:
             blocking_reasons.append(f"ActiveOutreachLock is currently held by another process ({lock.status}).")
 
-        # 13. Deterministic Authorization Policy Check
-        is_authorized = (
-            not is_live_send
-            or force_live
-            or message.actor_type == "HUMAN"
-            or (message.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
+        # 13. Deterministic Authorization Policy Check (Cold external strictly requires CEO approval)
+        from app.analytics.truth_engine import OPERATOR_EMAILS
+        recip_lower = (message.recipient_email or "").lower().strip()
+        msg_meta = getattr(message, "auto_approval_eligibility", None) or {}
+        is_canary = (
+            (isinstance(msg_meta, dict) and bool(msg_meta.get("is_canary")))
+            or any(k in recip_lower for k in OPERATOR_EMAILS)
+            or "canary" in recip_lower
         )
+        is_cold_external = (not is_canary) and (getattr(message, "sequence_step", 1) == 1) and (not getattr(message, "is_followup", False))
+
+        if is_live_send and is_cold_external:
+            is_authorized = message.actor_type in ("HUMAN", "CEO_HUMAN", "OPERATOR")
+            auth_detail = (
+                f"Cold external send authorized by CEO/HUMAN ({message.actor_type})"
+                if is_authorized
+                else "Cold external outreach strictly requires explicit human CEO approval. AUTO_APPROVAL_ENABLED cannot authorize external cold outreach."
+            )
+        else:
+            is_authorized = (
+                not is_live_send
+                or force_live
+                or message.actor_type in ("HUMAN", "CEO_HUMAN", "OPERATOR")
+                or (message.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
+            )
+            auth_detail = f"Send authorized by {message.actor_type or 'POLICY'}" if is_authorized else "Message lacks valid authorization from CEO or autonomous policy"
+
         checks.append({
             "name": "SEND_AUTHORIZATION_POLICY",
             "passed": is_authorized,
-            "detail": f"Send authorized by {message.actor_type or 'POLICY'}" if is_authorized else "Message lacks valid authorization from CEO or autonomous policy"
+            "detail": auth_detail
         })
         if not is_authorized:
-            blocking_reasons.append(f"Message #{message.id} has not been authorized for live dispatch.")
+            blocking_reasons.append(f"Message #{message.id} has not been authorized for live dispatch: {auth_detail}")
 
         # 14. Jurisdiction Sanction Policy Check (DE, IT, ES, CH blocked)
         country_code = (biz.country if biz and biz.country else "US").strip().upper()

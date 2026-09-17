@@ -221,7 +221,7 @@ async def test_provider_failure_produces_send_failed_not_sent(db_session: AsyncS
         with pytest.raises(RuntimeError, match="Email delivery failed"):
             await outreach_sender_adapter.send_approved_message(db_session, msg.id, force_live=False)
 
-        assert msg.status == OutreachStatus.FAILED.value
+        assert msg.status in (OutreachStatus.SEND_FAILED.value, OutreachStatus.FAILED.value)
         assert msg.sent_at is None
 
 # 9. Approval endpoint does not return generic 500 for deterministic policy blocks

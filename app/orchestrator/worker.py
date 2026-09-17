@@ -235,6 +235,23 @@ class PersistentAgencyWorker:
                     if available_cap > 0 and approved_msgs:
                         to_send = approved_msgs[:available_cap]
                         for msg in to_send:
+                            # Pre-check: Cold external outreach strictly requires explicit human CEO approval
+                            from app.analytics.truth_engine import OPERATOR_EMAILS
+                            recip_lower = (msg.recipient_email or "").lower().strip()
+                            msg_meta = getattr(msg, "auto_approval_eligibility", None) or {}
+                            msg_is_canary = (
+                                (isinstance(msg_meta, dict) and bool(msg_meta.get("is_canary")))
+                                or any(k in recip_lower for k in OPERATOR_EMAILS)
+                                or "canary" in recip_lower
+                            )
+                            is_cold = (not msg_is_canary) and (getattr(msg, "sequence_step", 1) == 1) and (not getattr(msg, "is_followup", False))
+                            if is_cold and msg.actor_type not in ("HUMAN", "CEO_HUMAN", "OPERATOR"):
+                                logger.info(
+                                    f"[PersistentWorker] Message #{msg.id} to {msg.recipient_email} is cold external outreach awaiting CEO approval (actor_type='{msg.actor_type}'). Deferring."
+                                )
+                                summary["approved_queue_deferred"] += 1
+                                continue
+
                             try:
                                 sent_ok = await outreach_sender_adapter.send_approved_message(session, msg.id)
                                 if sent_ok:

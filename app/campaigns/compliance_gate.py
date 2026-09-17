@@ -4,7 +4,7 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
-from app.database.models import OutreachMessage, OutreachStatus, Business, Campaign, SuppressionList, Contact
+from app.database.models import OutreachMessage, OutreachStatus, Business, Campaign, SuppressionList, Contact, AuditRun
 from app.core.config import settings
 from app.outreach.compliance import compliance_guard
 from app.campaigns.models import ComplianceGateResult, ComplianceCheckItem
@@ -246,15 +246,19 @@ class CampaignComplianceGate:
 
         # Check 13: Hard Safety Brake — Automatic Sender Capacity Management
         cap_summary = await sender_registry.get_sender_capacity_summary(session)
-        sender_capacity_ok = (not is_live) or (cap_summary["available_capacity"] > 0)
+        available_cap = cap_summary.get("available_capacity", 0)
+        safe_limit = cap_summary.get("safe_per_sender_daily_limit", cap_summary.get("rollout_daily_cap", 10))
+        rollout_cap = cap_summary.get("rollout_daily_cap", 10)
+        sent_today = cap_summary.get("sent_today", 0)
+        sender_capacity_ok = (not is_live) or (available_cap > 0)
         checks.append(ComplianceCheckItem(
             check_name="SENDER_CAPACITY_MANAGEMENT",
             passed=sender_capacity_ok,
-            detail=f"Available sender capacity: {cap_summary['available_capacity']}/{cap_summary['safe_per_sender_daily_limit']} (Rollout cap: {cap_summary['rollout_daily_cap']})"
+            detail=f"Available sender capacity: {available_cap}/{safe_limit} (Rollout cap: {rollout_cap})"
         ))
         if is_live and not sender_capacity_ok:
             failure_reasons.append(
-                f"Sender capacity exhausted ({cap_summary['sent_today']} sent today, safe limit {cap_summary['safe_per_sender_daily_limit']}). Message queued."
+                f"Sender capacity exhausted ({sent_today} sent today, safe limit {safe_limit}). Message queued."
             )
 
         # Check 14: Hard Safety Brake — Jurisdiction Sanction / Strict Consent Policy
@@ -350,8 +354,12 @@ class CampaignComplianceGate:
 
         # Check 17: Jurisdiction Provenance & Lawful Basis Tracking
         audit_summary = None
-        if biz and getattr(biz, "audits", None) and len(biz.audits) > 0:
-            audit_summary = biz.audits[0].summary
+        if biz:
+            if hasattr(biz, "__dict__") and biz.__dict__.get("audits"):
+                audit_summary = getattr(biz.__dict__["audits"][0], "summary", None)
+            else:
+                a_stmt = select(AuditRun.summary).where(AuditRun.business_id == biz.id).limit(1)
+                audit_summary = (await session.execute(a_stmt)).scalar_one_or_none()
 
         provenance = build_jurisdiction_provenance(
             country_code=country_code,

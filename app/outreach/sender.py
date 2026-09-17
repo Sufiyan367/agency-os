@@ -25,6 +25,9 @@ class OutreachSenderAdapter:
     """
 
     async def send_approved_message(self, session: AsyncSession, message_id: int, force_live: bool = False, enforce_window: Optional[bool] = None) -> Dict[str, Any]:
+        if getattr(settings, "EMERGENCY_STOP", False):
+            raise ValueError("Outreach blocked: System EMERGENCY_STOP is actively engaged.")
+
         if getattr(settings, "RESEARCH_ONLY", False):
             raise ValueError("Outreach blocked: System is operating in RESEARCH_ONLY mode.")
 
@@ -64,17 +67,50 @@ class OutreachSenderAdapter:
             pass
 
         # Deterministic Outbound Authorization & Policy Gates
+        from app.analytics.truth_engine import OPERATOR_EMAILS, classify_business_provenance
+        from app.core.safety_filters import is_test_or_synthetic
+
+        biz = await session.get(Business, msg.business_id) if msg.business_id else None
+
+        recipient_clean = (msg.recipient_email or "").lower().strip()
+        msg_meta = getattr(msg, "auto_approval_eligibility", None) or {}
+        is_canary = (
+            (isinstance(msg_meta, dict) and bool(msg_meta.get("is_canary")))
+            or any(k in recipient_clean for k in OPERATOR_EMAILS)
+            or "canary" in recipient_clean
+        )
+        is_cold_external = (not is_canary) and (getattr(msg, "sequence_step", 1) == 1) and (not getattr(msg, "is_followup", False))
+
         is_live_send = force_live or (not getattr(settings, "EMAIL_DRY_RUN", True) and not getattr(settings, "DRY_RUN", True))
         if is_live_send:
-            is_authorized = (
-                force_live
-                or msg.actor_type == "HUMAN"
-                or (msg.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
-            )
-            if not is_authorized:
+            # 1. Exclude mock / test outreach from live production send paths
+            is_msg_mock = getattr(msg, "is_mock", False) is True
+            is_biz_mock = (biz is not None and (getattr(biz, "is_mock", False) is True or classify_business_provenance(biz) in ("SYNTHETIC", "TEST")))
+            if is_msg_mock or (is_biz_mock and not is_canary):
                 msg.status = OutreachStatus.OUTREACH_BLOCKED.value
                 await session.commit()
-                raise ValueError("Live email transmission blocked: Explicit human CEO approval or autonomous auto-approval policy required.")
+                raise ValueError("Outbound dispatch blocked: Mock/test outreach cannot enter real production send path.")
+
+            # 2. Strict Cold External Outreach CEO Gate: Explicit human CEO approval required
+            if is_cold_external:
+                is_authorized = msg.actor_type in ("HUMAN", "CEO_HUMAN", "OPERATOR")
+                if not is_authorized:
+                    msg.status = OutreachStatus.OUTREACH_BLOCKED.value
+                    await session.commit()
+                    raise ValueError(
+                        "Outbound dispatch blocked: Cold external outreach strictly requires explicit human CEO approval. "
+                        f"Message #{msg.id} has actor_type='{msg.actor_type}'. AUTO_APPROVAL_ENABLED cannot bypass CEO approval."
+                    )
+            else:
+                is_authorized = (
+                    force_live
+                    or msg.actor_type in ("HUMAN", "CEO_HUMAN", "OPERATOR")
+                    or (msg.actor_type == "SYSTEM_AUTO_APPROVAL" and getattr(settings, "AUTO_APPROVAL_ENABLED", True))
+                )
+                if not is_authorized:
+                    msg.status = OutreachStatus.OUTREACH_BLOCKED.value
+                    await session.commit()
+                    raise ValueError("Live email transmission blocked: Explicit human CEO approval or autonomous auto-approval policy required.")
 
         # Comprehensive 14-Point Pre-Send Safety Evaluation
         from app.outreach.auto_approval import auto_approval_engine
