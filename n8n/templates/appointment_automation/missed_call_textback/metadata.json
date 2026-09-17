@@ -1,0 +1,20 @@
+{
+  "workflow_name": "AGY-AUTO-MissedCallTextBack-SafetyFloor-v1.0",
+  "version": "1.0.0",
+  "category": "appointment automation",
+  "use_case": "Instant automated SMS text-back to missed customer calls with caller identification, business hours detection, suppression checking, and CRM logging.",
+  "source_repo": "https://github.com/Sufiyan367/agency-os",
+  "source_path": "app/automations/missed_call_service.py",
+  "source_license": "PROPRIETARY_AGENCY_OS",
+  "adaptation_status": "PROVEN_AGENCY_OS_CORE",
+  "commercialization_status": "COMMERCIAL_READY",
+  "test_status": "PASSED_STRICT_AUDIT",
+  "dependencies": [
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.if",
+    "n8n-nodes-base.respondToWebhook"
+  ],
+  "author": "Agency OS Engineering",
+  "last_verified": "2026-09-16"
+}
