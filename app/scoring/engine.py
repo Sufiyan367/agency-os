@@ -164,14 +164,14 @@ class LeadScoringEngine:
             niche = niche_res.scalars().first()
         except Exception:
             niche = None
-        if not niche or isinstance(niche, MagicMock):
+        if not isinstance(niche, Niche):
             try:
                 candidate = niche_res.scalar_one_or_none()
-                if candidate and not isinstance(candidate, MagicMock):
+                if isinstance(candidate, Niche):
                     niche = candidate
             except Exception:
                 pass
-        if not niche or isinstance(niche, MagicMock):
+        if not isinstance(niche, Niche):
             from app.acquisition.targeting_catalog import NICHE_CATALOG, normalize_niche
             canon_id = normalize_niche(niche_str) or niche_str.upper()
             catalog_item = NICHE_CATALOG.get(canon_id)

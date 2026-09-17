@@ -150,13 +150,26 @@ async def test_hard_one_real_email_limit_enforcement():
         settings.PRIMARY_EMAIL_PROVIDER = "resend"
         settings.EMAIL_PROVIDER = "resend"
         settings.RESEND_API_KEY = "re_test_mock_dummy_key"
+
+        from unittest.mock import patch
+        from app.campaigns.models import RolloutConfig, RolloutLevelDTO
+        canary_rollout = RolloutConfig(
+            current_level=1,
+            current_level_name="Canary Test",
+            daily_max_real_emails=1,
+            is_simulation=False,
+            levels=[RolloutLevelDTO(level=1, name="Canary Test", daily_max_real_emails=1, description="Canary")]
+        )
+
         try:
-            with pytest.raises(ValueError) as excinfo:
-                async with AsyncSessionLocal() as session:
-                    await outreach_sender_adapter.send_approved_message(session, msg2_id, force_live=True)
+            with patch("app.campaigns.config.campaign_config_loader.get_rollout_config", return_value=canary_rollout):
+                with pytest.raises(ValueError) as excinfo:
+                    async with AsyncSessionLocal() as session:
+                        await outreach_sender_adapter.send_approved_message(session, msg2_id, force_live=True)
 
             err_msg = str(excinfo.value)
             assert ("Daily sender capacity exhausted" in err_msg or "First-client validation limit reached" in err_msg or "blocked" in err_msg.lower())
+            assert ("1/1 sent today" in err_msg or "Exactly 1 real outbound email is permitted" in err_msg or "blocked" in err_msg.lower())
         finally:
             settings.RESEND_API_KEY = orig_resend
             settings.EMAIL_PROVIDER = orig_provider

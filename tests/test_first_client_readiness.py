@@ -68,7 +68,7 @@ async def test_production_database_initialization_and_reference_preservation():
             await s.flush()
         roof_n = (await s.execute(select(Niche).where(Niche.slug == "roofing"))).scalar_one_or_none()
         if not roof_n:
-            roof_n = Niche(name="Roofing", slug="roofing", base_tam=1000)
+            roof_n = Niche(name="Roofing", slug="roofing", avg_deal_size=750.0)
             s.add(roof_n)
             await s.flush()
         opp = MarketOpportunity(
