@@ -3230,11 +3230,19 @@ async def get_kpi_drilldown_details(
 
     elif kpi_key in ("qualified_pipeline", "qualified", "qualified-pipeline"):
         title = "Qualified Pipeline"
-        definition = "Verified commercial leads satisfying the qualification invariant: verified data integrity and LeadScore >= 55 with empirical audit."
-        why_counted = "Verified businesses with total lead score >= 55.0, excluding synthetic fixtures, test domains, and historical records."
+        definition = "Verified commercial leads satisfying the qualification invariant: verified data integrity, LeadScore >= 55, empirical audit completed, and compliance passed."
+        why_counted = "Verified commercial leads meeting all 5 qualification invariant criteria (verified business, score >= 55, completed audit, passed compliance, non-synthetic origin)."
 
         from app.core.safety_filters import get_synthetic_business_filter_clauses
+        from app.analytics.truth_engine import is_lead_qualified
+        from app.database.models import SuppressionList
+        
         biz_filters = get_synthetic_business_filter_clauses(Business)
+
+        q_supp = select(SuppressionList)
+        supp_rows = (await db.execute(q_supp)).scalars().all()
+        supp_domains = {s.domain.lower() for s in supp_rows if s.domain}
+        supp_emails = {s.email.lower() for s in supp_rows if s.email}
 
         q_base = (
             select(Business)
@@ -3253,13 +3261,32 @@ async def get_kpi_drilldown_details(
             s = f"%{search}%"
             q_base = q_base.where(Business.name.ilike(s) | Business.domain.ilike(s) | Business.niche.ilike(s))
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        q = q_base.order_by(desc(Business.id)).offset(offset).limit(limit)
-        items = (await db.execute(q)).scalars().all()
+        all_candidate_biz = (await db.execute(q_base.order_by(desc(Business.id)))).scalars().all()
+        
+        cand_ids = [b.id for b in all_candidate_biz]
+        score_map = {}
+        audit_map = {}
+        if cand_ids:
+            q_scores = select(LeadScore).where(LeadScore.business_id.in_(cand_ids))
+            for sc in (await db.execute(q_scores)).scalars().all():
+                score_map[sc.business_id] = sc
+            
+            q_audits = select(AuditRun).where(AuditRun.business_id.in_(cand_ids)).order_by(desc(AuditRun.audited_at))
+            for a in (await db.execute(q_audits)).scalars().all():
+                if a.business_id not in audit_map:
+                    audit_map[a.business_id] = a
 
-        for b in items:
-            score = (await db.execute(select(LeadScore).where(LeadScore.business_id == b.id))).scalars().first()
-            audit = (await db.execute(select(AuditRun).where(AuditRun.business_id == b.id).order_by(desc(AuditRun.audited_at)))).scalars().first()
+        qualified_items = []
+        for b in all_candidate_biz:
+            score = score_map.get(b.id)
+            audit = audit_map.get(b.id)
+            if is_lead_qualified(b, score, audit, supp_domains, supp_emails):
+                qualified_items.append((b, score, audit))
+
+        total_records = len(qualified_items)
+        paginated_items = qualified_items[offset : offset + limit]
+
+        for b, score, audit in paginated_items:
             score_val = float(score.total_score if score else (b.prospect_score or 0.0))
             audit_status = "AUDITED" if audit else "PENDING AUDIT"
             audit_score = float(audit.overall_health_score) if audit and audit.overall_health_score else 0.0
@@ -3273,7 +3300,7 @@ async def get_kpi_drilldown_details(
                 "niche": b.niche or "—",
                 "stage": b.pipeline_stage,
                 "qualification_score": score_val,
-                "criteria_met": "Data integrity verified · Target corridor & niche fit · Active domain",
+                "criteria_met": "Data integrity verified · Score >= 55 · Empirical audit complete · Compliance passed",
                 "audit_status": audit_status,
                 "audit_score": audit_score,
                 "channel": "EMAIL" if b.public_email else "OMNICHANNEL",

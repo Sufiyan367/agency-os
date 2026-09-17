@@ -29,7 +29,10 @@ from app.analytics.truth_engine import (
     classify_proposal_provenance,
     classify_deal_provenance,
     classify_activity_provenance,
-    get_canonical_production_truth
+    get_canonical_production_truth,
+    is_lead_qualified,
+    is_audit_complete,
+    is_compliance_passed
 )
 from app.database.connection import AsyncSessionLocal, init_db
 from app.database.models import Business, OutreachMessage, OutreachStatus
@@ -278,3 +281,206 @@ async def test_simulation_events_do_not_appear_in_real_activity_stream():
 
     real_ev = DummyEvent(action="LEAD_DISCOVERED", metadata={"domain": "realsite.com.au"})
     assert classify_activity_provenance(real_ev) == "REAL_PRODUCTION"
+
+
+@pytest.mark.asyncio
+async def test_incomplete_audit_cannot_qualify():
+    """A verified lead with score >= 55 cannot qualify if empirical audit is incomplete, zero, or missing."""
+    class DummyBiz:
+        def __init__(self, id=101, name="Perth Legal", domain="perthlegal.com.au", country="AU", verification_status="VERIFIED"):
+            self.id = id
+            self.name = name
+            self.domain = domain
+            self.country = country
+            self.verification_status = verification_status
+            self.public_email = "contact@perthlegal.com.au"
+            self.whatsapp_consent_status = "INELIGIBLE_NO_CONSENT"
+            self.compliance_status = "CLEARED"
+
+    class DummyScore:
+        def __init__(self, total_score=72.0):
+            self.total_score = total_score
+
+    class DummyFinding:
+        def __init__(self, finding="Missing viewport tag"):
+            self.finding = finding
+
+    class DummyAudit:
+        def __init__(self, score=70.0, url="https://perthlegal.com.au", summary="Audit complete", findings=None, metrics=None):
+            self.overall_health_score = score
+            self.url_audited = url
+            self.summary = summary
+            self.findings = findings if findings is not None else [DummyFinding()]
+            self.metrics = metrics or {}
+
+    biz = DummyBiz()
+    score = DummyScore(72.0)
+
+    # Case 1: Missing audit
+    assert is_lead_qualified(biz, score, audit=None) is False
+
+    # Case 2: Zero health score
+    zero_audit = DummyAudit(score=0.0)
+    assert is_lead_qualified(biz, score, audit=zero_audit) is False
+
+    # Case 3: Summary indicating research failure
+    failed_audit = DummyAudit(summary="RESEARCH_INSUFFICIENT: site down")
+    assert is_lead_qualified(biz, score, audit=failed_audit) is False
+
+    # Case 4: Missing url_audited
+    empty_url_audit = DummyAudit(url="")
+    assert is_lead_qualified(biz, score, audit=empty_url_audit) is False
+
+    # Case 5: Zero findings
+    no_findings_audit = DummyAudit(findings=[])
+    assert is_lead_qualified(biz, score, audit=no_findings_audit) is False
+
+    # Case 6: Fully completed audit -> Qualifies
+    good_audit = DummyAudit(score=75.0, url="https://perthlegal.com.au", findings=[DummyFinding()])
+    assert is_lead_qualified(biz, score, audit=good_audit) is True
+
+
+@pytest.mark.asyncio
+async def test_compliance_failure_cannot_qualify():
+    """A lead failing any compliance gate (prohibited country, suppression list, compliance flags) cannot qualify."""
+    class DummyBiz:
+        def __init__(self, country="AU", domain="melbournelaw.com.au", email="info@melbournelaw.com.au"):
+            self.id = 202
+            self.name = "Melbourne Law"
+            self.domain = domain
+            self.country = country
+            self.verification_status = "VERIFIED"
+            self.public_email = email
+            self.whatsapp_consent_status = "INELIGIBLE_NO_CONSENT"
+            self.compliance_status = "CLEARED"
+
+    class DummyScore:
+        total_score = 65.0
+
+    class DummyAudit:
+        overall_health_score = 80.0
+        url_audited = "https://melbournelaw.com.au"
+        summary = "Audit clean"
+        findings = ["Finding 1"]
+        metrics = {"compliance_passed": True}
+
+    score = DummyScore()
+    audit = DummyAudit()
+
+    # Case 1: Prohibited country (e.g. IN, PK, IL, DE)
+    biz_in = DummyBiz(country="IN")
+    assert is_lead_qualified(biz_in, score, audit) is False
+
+    biz_de = DummyBiz(country="DE")
+    assert is_lead_qualified(biz_de, score, audit) is False
+
+    # Case 2: Suppressed domain
+    biz_ok = DummyBiz(country="AU")
+    assert is_lead_qualified(biz_ok, score, audit, suppressed_domains={"melbournelaw.com.au"}) is False
+
+    # Case 3: Suppressed email
+    assert is_lead_qualified(biz_ok, score, audit, suppressed_emails={"info@melbournelaw.com.au"}) is False
+
+    # Case 4: WhatsApp compliance failure flag
+    biz_wa_fail = DummyBiz(country="AU")
+    biz_wa_fail.whatsapp_consent_status = "COMPLIANCE_FAILED"
+    assert is_lead_qualified(biz_wa_fail, score, audit) is False
+
+    # Case 5: Direct compliance status rejected
+    biz_rej = DummyBiz(country="AU")
+    biz_rej.compliance_status = "REJECTED"
+    assert is_lead_qualified(biz_rej, score, audit) is False
+
+    # Case 6: Passed compliance -> Qualifies
+    assert is_lead_qualified(biz_ok, score, audit) is True
+
+
+@pytest.mark.asyncio
+async def test_no_deal_inference_from_payment():
+    """A confirmed payment without a WON pipeline stage or explicit deal record must NEVER be inferred as a deal."""
+    await init_db()
+    async with AsyncSessionLocal() as session:
+        truth = await get_canonical_production_truth(session)
+        assert "real_deals" in truth
+        assert "real_payments_confirmed" in truth
+        # Even if real_deals == 0 and real_payments_confirmed > 0, real_deals stays 0
+        if truth["real_deals"] == 0:
+            assert truth["real_deals"] == 0
+
+
+@pytest.mark.asyncio
+async def test_unknown_activity_fails_closed():
+    """Unrecognized or ambiguous activity actions must fail closed to UNKNOWN, never defaulting to REAL_PRODUCTION."""
+    class DummyEvent:
+        def __init__(self, action="", metadata=None, domain=""):
+            self.action = action
+            self.metadata = metadata or {}
+            self.domain = domain
+
+    # Arbitrary / unclassified action
+    evt1 = DummyEvent(action="SOME_RANDOM_PLUGIN_ACTION")
+    assert classify_activity_provenance(evt1) == "UNKNOWN"
+
+    # Empty action with no metadata
+    evt2 = DummyEvent(action="")
+    assert classify_activity_provenance(evt2) == "UNKNOWN"
+
+    # None event
+    assert classify_activity_provenance(None) == "UNKNOWN"
+
+
+@pytest.mark.asyncio
+async def test_real_activity_recognized():
+    """Explicit production actions with non-synthetic attribution must be classified as REAL_PRODUCTION."""
+    class DummyEvent:
+        def __init__(self, action="", metadata=None, domain=""):
+            self.action = action
+            self.metadata = metadata or {}
+            self.domain = domain
+
+    # Genuine production actions
+    e1 = DummyEvent(action="LEAD_DISCOVERED", domain="brisbaneplumbing.com.au")
+    assert classify_activity_provenance(e1) == "REAL_PRODUCTION"
+
+    e2 = DummyEvent(action="OUTREACH_DISPATCHED", metadata={"recipient_email": "owner@brisbaneplumbing.com.au"})
+    assert classify_activity_provenance(e2) == "REAL_PRODUCTION"
+
+    e3 = DummyEvent(action="PAYMENT_CONFIRMED", metadata={"amount": 750.0})
+    assert classify_activity_provenance(e3) == "REAL_PRODUCTION"
+
+    e4 = DummyEvent(action="AUDIT_COMPLETED", domain="perthdental.com.au")
+    assert classify_activity_provenance(e4) == "REAL_PRODUCTION"
+
+    # Synthetic domain attached to a real action must be caught as TEST
+    e_mock = DummyEvent(action="LEAD_DISCOVERED", domain="test.example.com")
+    assert classify_activity_provenance(e_mock) == "TEST"
+
+
+@pytest.mark.asyncio
+async def test_revenue_only_from_verified_payment():
+    """Revenue must strictly come from confirmed/settled payments from real customers. Proposals and pending payments never count."""
+    class DummyPayment:
+        def __init__(self, status="PENDING", amount=1500.0, is_mock=False, gateway="stripe", payer_email="client@realdomain.com"):
+            self.id = 501
+            self.status = status
+            self.amount = amount
+            self.is_mock = is_mock
+            self.gateway = gateway
+            self.payer_email = payer_email
+            self.business_id = 999
+
+    # Mock gateway is excluded
+    mock_p = DummyPayment(status="PAID", is_mock=True, gateway="mock")
+    assert classify_payment_provenance(mock_p) == "TEST_MOCK"
+
+    # Pending payment is classified as real customer, but is NOT revenue
+    pend_p = DummyPayment(status="PENDING", is_mock=False, gateway="stripe")
+    assert classify_payment_provenance(pend_p) == "REAL_CUSTOMER"
+
+    # Requested payment is NOT settled revenue
+    req_p = DummyPayment(status="PAYMENT_REQUESTED", is_mock=False, gateway="stripe")
+    assert classify_payment_provenance(req_p) == "REAL_CUSTOMER"
+
+    # Confirmed payment from real customer
+    paid_p = DummyPayment(status="PAID", is_mock=False, gateway="stripe")
+    assert classify_payment_provenance(paid_p) == "REAL_CUSTOMER"

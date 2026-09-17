@@ -6,13 +6,14 @@ are NEVER displayed as real commercial outcomes on the CEO Command Center or exe
 """
 
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, Set
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_, or_
 from app.database.models import (
     Business, OutreachMessage, OutreachStatus, Reply,
     ReplyClassification, Customer, PipelineStage, Offer,
-    LeadScore, AuditRun, Proposal, Payment, Artifact
+    LeadScore, AuditRun, Proposal, Payment, Artifact,
+    SuppressionList
 )
 from app.core.safety_filters import (
     is_test_or_synthetic,
@@ -98,19 +99,136 @@ def classify_reply_provenance(rep: Any, biz: Any = None) -> str:
     return "REAL_CUSTOMER"
 
 
+PROHIBITED_COUNTRIES = {"IN", "PK", "IL", "DE", "IT", "ES", "CH"}
+
+REAL_PRODUCTION_ACTIONS = {
+    "LEAD_DISCOVERED", "PROSPECT_FOUND", "DISCOVERY_STARTED", "DISCOVERY_COMPLETED",
+    "PROSPECT_SCORED", "PROSPECT_QUALIFIED", "SCORING_STARTED", "SCORING_COMPLETED",
+    "COMMERCIAL_QUALIFICATION",
+    "LEAD_VERIFIED", "VERIFICATION_STARTED", "VERIFICATION_COMPLETED",
+    "AUDIT_STARTED", "AUDIT_COMPLETED",
+    "COMPLIANCE_STARTED", "COMPLIANCE_PASSED",
+    "OFFER_GENERATION_STARTED", "OFFER_GENERATED",
+    "OUTREACH_DRAFT_STARTED", "OUTREACH_DRAFTED", "OUTREACH_APPROVED",
+    "OUTREACH_QUEUED", "OUTREACH_DISPATCH_STARTED", "OUTREACH_DISPATCHED",
+    "OUTREACH_SENT", "OUTREACH_DELIVERED",
+    "INBOUND_EVENT_RECEIVED", "REPLY_RECEIVED", "CUSTOMER_REPLY_RECEIVED",
+    "REPLY_CLASSIFIED", "CONVERSATION_RESPONSE_GENERATED",
+    "COMMITMENT_CREATED", "COMMITMENT_COMPLETED", "OBJECTION_DETECTED",
+    "LEAD_CONTEXT_RECONSTRUCTED", "MEMORY_PERSISTED",
+    "DEAL_SIGNED", "DEAL_WON", "CONTRACT_SIGNED", "PROPOSAL_SENT", "PROPOSAL_ACCEPTED",
+    "PAYMENT_CONFIRMED", "PRODUCTION_AUTHORIZED", "PAYMENT_RECEIVED", "REVENUE_SETTLED",
+    "WEBSITE_BUILD_STARTED", "WEBSITE_BUILD_PROGRESS", "WEBSITE_BUILD_COMPLETED",
+    "DEPLOYED", "DELIVERY_COMPLETE", "DEMO_STARTED", "DEMO_READY", "DEMO_GENERATED",
+}
+
+SYSTEM_ACTIONS = {
+    "RUN_STARTED", "RUN_COMPLETED", "RUN_FAILED",
+    "MARKET_SELECTED", "MARKET_REBALANCED", "MARKET_ACTIVATED",
+    "MARKET_DEACTIVATED", "MARKET_PAUSED", "MARKET_REACTIVATED",
+    "SAFEGUARD_TRIGGERED", "KILL_SWITCH_ACTIVATED", "HUMAN_TAKEOVER",
+    "SYSTEM_MAINTENANCE", "BACKUP_COMPLETED", "CAPACITY_EVALUATED",
+    "CEO_ALERT", "ERROR"
+}
+
+
+def is_audit_complete(audit: Any, findings_count: int = 0) -> bool:
+    """Verifies empirical audit completion: positive overall score, valid url, findings recorded, no failure flags."""
+    if not audit:
+        return False
+    score = float(getattr(audit, "overall_health_score", 0.0) or 0.0)
+    if score <= 0.0:
+        return False
+    url = getattr(audit, "url_audited", "") or ""
+    if not url.strip():
+        return False
+    summary = (getattr(audit, "summary", "") or "").upper()
+    if any(k in summary for k in ("RESEARCH_INSUFFICIENT", "FAILED", "UNREACHABLE", "ERROR")):
+        return False
+    metrics = getattr(audit, "metrics", {}) or {}
+    if isinstance(metrics, dict) and (metrics.get("error") or metrics.get("status") == "FAILED"):
+        return False
+    findings = getattr(audit, "findings", None)
+    total_findings = len(findings) if findings is not None else findings_count
+    if total_findings <= 0:
+        return False
+    return True
+
+
+def is_compliance_passed(
+    biz: Any,
+    audit: Any = None,
+    suppressed_domains: Optional[Set[str]] = None,
+    suppressed_emails: Optional[Set[str]] = None
+) -> bool:
+    """Verifies that a business satisfies all compliance gates: non-prohibited country, not suppressed, no compliance failure flags."""
+    if not biz:
+        return False
+    country = (getattr(biz, "country", "") or "").upper().strip()
+    if country in PROHIBITED_COUNTRIES:
+        return False
+    domain = (getattr(biz, "domain", "") or "").lower().strip()
+    if suppressed_domains and domain in suppressed_domains:
+        return False
+    email = (getattr(biz, "public_email", "") or "").lower().strip()
+    if suppressed_emails and email in suppressed_emails:
+        return False
+    whatsapp_status = getattr(biz, "whatsapp_consent_status", "") or ""
+    if whatsapp_status == "COMPLIANCE_FAILED":
+        return False
+    comp_status = (getattr(biz, "compliance_status", "") or "").upper()
+    if comp_status in ("FAILED", "REJECTED", "NON_COMPLIANT"):
+        return False
+    if audit:
+        metrics = getattr(audit, "metrics", {}) or {}
+        if isinstance(metrics, dict) and metrics.get("compliance_passed") is False:
+            return False
+    return True
+
+
+def is_lead_qualified(
+    biz: Any,
+    score: Any,
+    audit: Any,
+    suppressed_domains: Optional[Set[str]] = None,
+    suppressed_emails: Optional[Set[str]] = None
+) -> bool:
+    """
+    Canonical Qualification Invariant:
+    1. Business provenance is REAL
+    2. Verification status is VERIFIED
+    3. LeadScore total_score >= 55.0
+    4. Empirical audit completed with overall_health_score > 0 and findings recorded
+    5. Compliance passed (jurisdiction allowed, not suppressed, no compliance rejection flags)
+    """
+    if not biz:
+        return False
+    if classify_business_provenance(biz) != "REAL":
+        return False
+    if getattr(biz, "verification_status", "") != "VERIFIED":
+        return False
+    if not score or float(getattr(score, "total_score", 0.0) or 0.0) < 55.0:
+        return False
+    if not is_audit_complete(audit):
+        return False
+    if not is_compliance_passed(biz, audit, suppressed_domains, suppressed_emails):
+        return False
+    return True
+
+
 def classify_payment_provenance(pay: Any, biz: Any = None) -> str:
     """Classifies a payment into REAL_CUSTOMER, TEST_MOCK, or OPERATOR_TEST."""
     if getattr(pay, "is_mock", False) is True:
         return "TEST_MOCK"
     p_id = str(getattr(pay, "id", "") or "")
-    if p_id.startswith("mock-") or p_id.startswith("test-"):
+    if p_id.startswith("mock-") or p_id.startswith("test-") or p_id.startswith("sim-"):
         return "TEST_MOCK"
     gateway = (getattr(pay, "gateway", None) or getattr(pay, "provider", None) or "").lower()
-    if gateway in ("mock", "test"):
+    if gateway in ("mock", "test", "dev", "simulation", "sandbox"):
         return "TEST_MOCK"
     payer_email = (getattr(pay, "payer_email", None) or getattr(pay, "customer_email", None) or "").lower()
     ref_id = (getattr(pay, "reference_id", None) or "").lower()
-    if any(k in payer_email for k in OPERATOR_EMAILS) or any(k in ref_id for k in ("test", "mock", "sufiyan")):
+    if any(k in payer_email for k in OPERATOR_EMAILS) or any(k in ref_id for k in ("test", "mock", "sufiyan", "sandbox")):
         return "OPERATOR_TEST"
     if biz and classify_business_provenance(biz) != "REAL":
         return "OPERATOR_TEST"
@@ -144,9 +262,34 @@ def classify_deal_provenance(deal_or_biz: Any, biz: Any = None) -> str:
 
 
 def classify_activity_provenance(event: Any) -> str:
-    """Classifies an operational or audit event into REAL_PRODUCTION, SYSTEM, CANARY, SIMULATION, or TEST."""
-    action = (getattr(event, "action", "") or getattr(event, "event_type", "") or "").upper()
-    meta = getattr(event, "metadata", None) or getattr(event, "details", None) or {}
+    """
+    Classifies an activity event using strict fail-closed evaluation:
+    1. SIMULATION
+    2. CANARY
+    3. TEST
+    4. SYSTEM
+    5. REAL_PRODUCTION (strictly explicit verified actions and non-synthetic attribution)
+    6. UNKNOWN (fallback for all unclassified, ambiguous, or unmatched events)
+    """
+    if event is None:
+        return "UNKNOWN"
+
+    action = (
+        getattr(event, "action", None)
+        or getattr(event, "event_type", None)
+        or (event.get("action") if isinstance(event, dict) else None)
+        or (event.get("event_type") if isinstance(event, dict) else None)
+        or ""
+    ).upper().strip()
+
+    meta = (
+        getattr(event, "metadata", None)
+        or getattr(event, "metadata_json", None)
+        or getattr(event, "details", None)
+        or (event.get("metadata_json") if isinstance(event, dict) else None)
+        or (event.get("metadata") if isinstance(event, dict) else None)
+        or {}
+    )
     if isinstance(meta, str):
         import json
         try:
@@ -154,18 +297,81 @@ def classify_activity_provenance(event: Any) -> str:
         except Exception:
             meta = {}
 
+    msg = (
+        getattr(event, "message", None)
+        or (event.get("message") if isinstance(event, dict) else None)
+        or ""
+    )
+    domain = (
+        getattr(event, "domain", None)
+        or (event.get("domain") if isinstance(event, dict) else None)
+        or (meta.get("domain") if isinstance(meta, dict) else None)
+        or ""
+    ).lower().strip()
+
     meta_str = str(meta).lower()
     action_str = action.lower()
+    msg_str = str(msg).lower()
 
-    if "simulation" in action_str or "simulation" in meta_str or (isinstance(meta, dict) and meta.get("channel") in ("dev_simulator", "simulation")):
+    # 1. SIMULATION
+    if (
+        "simulation" in action_str
+        or "simulation" in meta_str
+        or "dev_simulator" in action_str
+        or "dev_simulator" in meta_str
+        or (isinstance(meta, dict) and (meta.get("channel") in ("dev_simulator", "simulation") or meta.get("is_simulation") is True or meta.get("dry_run") is True))
+        or "[dry run]" in msg_str
+        or "[simulated]" in msg_str
+    ):
         return "SIMULATION"
-    if "canary" in action_str or "canary" in meta_str:
+
+    # 2. CANARY
+    if (
+        "canary" in action_str
+        or "canary" in meta_str
+        or "canary" in msg_str
+        or (isinstance(meta, dict) and meta.get("is_canary") is True)
+    ):
         return "CANARY"
-    if "test" in action_str or "test" in meta_str or (isinstance(meta, dict) and meta.get("is_test")):
+
+    # 3. TEST
+    if (
+        "test" in action_str
+        or "mock" in action_str
+        or "test" in meta_str
+        or "mock" in meta_str
+        or (isinstance(meta, dict) and (meta.get("is_test") is True or meta.get("is_mock") is True))
+        or domain.endswith((".test", ".example", ".invalid", ".local"))
+        or any(k in domain for k in ("test.", "example.", "mock.", "synthetic"))
+    ):
         return "TEST"
-    if any(k in action_str for k in ("cron", "scheduler", "heartbeat", "cleanup", "sync")):
+
+    # 4. SYSTEM
+    if (
+        action in SYSTEM_ACTIONS
+        or any(k in action_str for k in ("cron", "scheduler", "heartbeat", "cleanup", "sync", "system", "daemon", "backup", "health", "reconcile", "init", "checkpoint", "rebalance", "capacity"))
+        or any(k in msg_str for k in ("cron", "heartbeat", "scheduler", "health check"))
+    ):
         return "SYSTEM"
-    return "REAL_PRODUCTION"
+
+    # 5. REAL_PRODUCTION
+    if action in REAL_PRODUCTION_ACTIONS:
+        if domain:
+            if domain.endswith((".test", ".example", ".invalid", ".local")) or any(k in domain for k in ("mock", "test", "synthetic", "example")):
+                return "TEST"
+            if "agencyos.local" in domain or "titan.email" in domain:
+                return "SYSTEM"
+        
+        email = (meta.get("recipient_email") or meta.get("email") or meta.get("payer_email") or "") if isinstance(meta, dict) else ""
+        if email:
+            email_lower = str(email).lower()
+            if any(op in email_lower for op in OPERATOR_EMAILS) or "agencyos.local" in email_lower:
+                return "TEST"
+
+        return "REAL_PRODUCTION"
+
+    # 6. UNKNOWN (FAIL CLOSED)
+    return "UNKNOWN"
 
 
 async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any]:
@@ -189,9 +395,14 @@ async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any
     )
     real_verified_leads = (await session.execute(q_verified)).scalar() or 0
 
-    # 3. Real Qualified Leads: verified lead with LeadScore.total_score >= 55.0
-    q_qualified = (
-        select(func.count(Business.id))
+    # 3. Real Qualified Leads: verified lead with LeadScore.total_score >= 55.0, audit completed, compliance passed, real provenance
+    q_supp = select(SuppressionList)
+    supp_rows = (await session.execute(q_supp)).scalars().all()
+    supp_domains = {s.domain.lower() for s in supp_rows if s.domain}
+    supp_emails = {s.email.lower() for s in supp_rows if s.email}
+
+    q_candidates = (
+        select(Business, LeadScore)
         .join(LeadScore, LeadScore.business_id == Business.id)
         .where(
             Business.verification_status == "VERIFIED",
@@ -199,7 +410,24 @@ async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any
             *biz_filters
         )
     )
-    real_qualified_leads = (await session.execute(q_qualified)).scalar() or 0
+    candidates = (await session.execute(q_candidates)).all()
+    cand_biz_ids = [b.id for b, _ in candidates]
+    audit_map = {}
+    if cand_biz_ids:
+        q_audits = (
+            select(AuditRun)
+            .where(AuditRun.business_id.in_(cand_biz_ids))
+            .order_by(desc(AuditRun.audited_at))
+        )
+        for a in (await session.execute(q_audits)).scalars().all():
+            if a.business_id not in audit_map:
+                audit_map[a.business_id] = a
+
+    real_qualified_leads = 0
+    for b, ls in candidates:
+        audit = audit_map.get(b.id)
+        if is_lead_qualified(b, ls, audit, supp_domains, supp_emails):
+            real_qualified_leads += 1
 
     # 4. Sent Messages & Real External Contacted
     q_sent = (
@@ -302,14 +530,12 @@ async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any
                 real_payments_confirmed += 1
                 real_verified_revenue += float(py.amount or 0.0)
 
-    # 8. Real Deals Won
+    # 8. Real Deals Won (Zero Deal Inference: Payments are NOT deals)
     q_deals = select(func.count(Business.id)).where(
         Business.pipeline_stage == PipelineStage.WON.value,
         *biz_filters
     )
     real_deals = (await session.execute(q_deals)).scalar() or 0
-    if real_deals == 0 and real_payments_confirmed > 0:
-        real_deals = real_payments_confirmed
 
     # 9. Demos (Turnkey Artifacts for active real leads)
     q_demos = select(Artifact).where(Artifact.artifact_type == "DEMO_PACKAGE")

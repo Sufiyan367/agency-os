@@ -1623,28 +1623,30 @@ async function loadRecentAiActivity() {
     try {
         const res = await fetch('/api/agent/activity?limit=20');
         if (!res.ok) {
-            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">No external production events recorded yet. Ready for live dispatches.</div>`;
             return;
         }
         const data = await res.json();
         const events = data.events || (Array.isArray(data) ? data : []);
-        // Default to showing REAL PRODUCTION and SYSTEM events
-        const realAndSystemEvents = events.filter(ev => {
-            const meta = ev.metadata_json || {};
+        // Default to showing ONLY REAL_PRODUCTION events
+        const realEvents = events.filter(ev => {
+            const meta = ev.metadata_json || ev.metadata || {};
             const isSim = meta.is_simulation === true || meta.dry_run === true || (typeof ev.message === 'string' && (ev.message.includes('[DRY RUN]') || ev.message.includes('[SIMULATED]')));
-            const isTest = meta.is_test === true || (ev.domain && (ev.domain.endsWith('.test') || ev.domain.endsWith('.example')));
-            return !(isSim || isTest);
+            const isCanary = meta.is_canary === true || (typeof ev.message === 'string' && ev.message.toLowerCase().includes('canary'));
+            const isTest = meta.is_test === true || (ev.domain && (ev.domain.endsWith('.test') || ev.domain.endsWith('.example') || ev.domain.includes('test')));
+            const isSys = (ev.event_type && (ev.event_type.includes('MARKET') || ev.event_type.includes('SYSTEM') || ev.event_type.includes('SAFEGUARD') || ev.event_type.includes('KILL_SWITCH') || ev.event_type.includes('REBALANCED') || ev.event_type.includes('CAPACITY')));
+            return !(isSim || isCanary || isTest || isSys);
         });
 
-        const displayEvents = (realAndSystemEvents.length > 0 ? realAndSystemEvents : events).slice(0, 8);
+        const displayEvents = realEvents.slice(0, 8);
         if (displayEvents.length === 0) {
-            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Autonomous engine operational. Standby for next cycle.</div>`;
+            list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">No external production events recorded yet. Ready for live dispatches.</div>`;
             return;
         }
         list.innerHTML = displayEvents.map(ev => formatOperationalEvent(ev)).join('');
     } catch (e) {
         console.error('Failed to load AI activity feed:', e);
-        list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
+        list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">No external production events recorded yet. Ready for live dispatches.</div>`;
     }
 }
 
@@ -5300,12 +5302,21 @@ function updateCeoActivityList(events) {
     const container = document.getElementById('ceo-recent-activity-list');
     if (!container) return;
 
-    if (!events || events.length === 0) {
-        container.innerHTML = '<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:24px 0; font-style:italic;">No operational activity recorded yet. Events will stream here in real time.</div>';
+    const realEvents = (events || []).filter(ev => {
+        const meta = ev.metadata_json || ev.metadata || {};
+        const isSim = meta.is_simulation === true || meta.dry_run === true || (typeof ev.message === 'string' && (ev.message.includes('[DRY RUN]') || ev.message.includes('[SIMULATED]')));
+        const isCanary = meta.is_canary === true || (typeof ev.message === 'string' && ev.message.toLowerCase().includes('canary'));
+        const isTest = meta.is_test === true || (ev.domain && (ev.domain.endsWith('.test') || ev.domain.endsWith('.example') || ev.domain.includes('test')));
+        const isSys = (ev.event_type && (ev.event_type.includes('MARKET') || ev.event_type.includes('SYSTEM') || ev.event_type.includes('SAFEGUARD') || ev.event_type.includes('KILL_SWITCH') || ev.event_type.includes('REBALANCED') || ev.event_type.includes('CAPACITY')));
+        return !(isSim || isCanary || isTest || isSys);
+    });
+
+    if (realEvents.length === 0) {
+        container.innerHTML = '<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">No external production events recorded yet. Ready for live dispatches.</div>';
         return;
     }
 
-    const displayEvents = events.slice(0, 8);
+    const displayEvents = realEvents.slice(0, 8);
     container.innerHTML = displayEvents.map(ev => formatOperationalEvent(ev)).join('');
 }
 
