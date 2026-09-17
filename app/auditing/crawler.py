@@ -190,7 +190,14 @@ class ResilientWebsiteCrawler:
         except Exception as e:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             err_str = str(e)
-            if "certificate verify failed" in err_str.lower() or "sslcertaverificationerror" in err_str.lower() or ("ssl" in err_str.lower() and "verify" in err_str.lower()):
+            if (
+                "certificate verify failed" in err_str.lower()
+                or "sslcertverificationerror" in err_str.lower()
+                or "sslcertaverificationerror" in err_str.lower()
+                or "tlscertificate" in err_str.lower()
+                or ("ssl" in err_str.lower() and "verify" in err_str.lower())
+                or ("tls" in err_str.lower() and "certificate" in err_str.lower())
+            ):
                 logger.info(f"TLS certificate verification error for {current_url}: {err_str}. Recording as audit fact.")
                 return CrawlResult(
                     url=current_url,

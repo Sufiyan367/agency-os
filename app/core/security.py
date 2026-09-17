@@ -179,6 +179,10 @@ def sanitize_scraped_email(email: str) -> Optional[str]:
     from urllib.parse import unquote
 
     em = email.strip()
+    # Reject data URIs or base64 immediately
+    if "data:image" in em.lower() or em.lower().startswith("data:") or ";base64," in em.lower():
+        return None
+
     # Strip mailto: prefix if present
     if em.lower().startswith("mailto:"):
         em = em[7:].strip()
@@ -215,12 +219,24 @@ def validate_email_syntax(email: str) -> bool:
     lower = email.lower()
     if lower.startswith(("u003e", "u003c", "\\u003e", "\\u003c", "&gt;", "&lt;")):
         return False
-    # Reject media file extensions (e.g. .jpeg, .png, .webp)
+    # Reject data URIs, base64 payloads, or HTML/image tags
+    if "data:image" in lower or lower.startswith("data:") or ";base64," in lower or "base64" in lower:
+        return False
+    if any(tag in lower for tag in ("<img", "srcset=", "src=", "url(")):
+        return False
+    if any(m in lower for m in ("image/", "img/")):
+        return False
+
+    # Reject media file extensions at end (e.g. .jpeg, .png, .webp)
     if any(lower.endswith(ext) for ext in DISALLOWED_EMAIL_EXTENSIONS):
         return False
-    # Reject retina image filename patterns (e.g. hero@2x.jpeg, icon@3x.png)
-    if re.search(r"@\d+x\.", lower):
+    # Reject retina image filename patterns (e.g. hero@2x.jpeg, icon@3x.png, logo@2x)
+    if re.search(r"@\d+x(?:\.|$)", lower):
         return False
+    # Reject image extensions in local part or domain (e.g. logo.png@example.com, icon.jpg@..., pic.svg@...)
+    if re.search(r"\.(?:jpe?g|png|webp|gif|svg|avif|bmp|tiff|ico)(?:@|\.|$)", lower):
+        return False
+
     if any(p in lower for p in DISALLOWED_EMAIL_PREFIXES):
         return False
     return bool(EMAIL_REGEX.match(email))

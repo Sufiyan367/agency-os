@@ -10038,15 +10038,12 @@ async function loadAutonomousAcquisitionQueue() {
                         ? '<span style="font-size:9px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); padding:1px 5px; border-radius:3px;">EXPLORE</span>'
                         : '<span style="font-size:9px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:1px 5px; border-radius:3px;">EXPLOIT</span>';
                     
-                    const reasonMap = {
-                        'HIGH_CONTACTABILITY': 'Contactability',
-                        'HIGH_AUTOMATION_FIT': 'Automation Fit',
-                        'POSITIVE_HISTORICAL_OUTCOMES': (m.historical_sample_count >= 10 && m.win_rate > 0) ? 'Proven Outcomes' : 'INSUFFICIENT REAL DATA',
-                        'HIGH_PAIN_DENSITY': 'Pain Density',
-                        'DATA_REFRESHED': 'Refreshed Data',
-                        'EXPLORATION_REQUIRED': 'Exploration'
-                    };
-                    const reasonLabel = reasonMap[m.reason_code] || m.reason_code || 'Qualified';
+                    const reasonLabel = m.is_insufficient_data 
+                        ? 'INSUFFICIENT REAL DATA' 
+                        : (m.reason_code || 'Qualified');
+                    const reasonBadgeStyle = m.is_insufficient_data
+                        ? 'color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25);'
+                        : 'color:#34d399; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25);';
 
                     return `
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:5px; font-size:12px; gap:8px;">
@@ -10059,7 +10056,8 @@ async function loadAutonomousAcquisitionQueue() {
                             </div>
                             <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                                 ${modeBadge}
-                                <span style="font-size:10px; color:#d4d4d8; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px; font-family:var(--font-mono);">${reasonLabel}</span>
+                                <span style="font-size:10px; padding:2px 6px; border-radius:3px; font-family:var(--font-mono); ${reasonBadgeStyle}">${reasonLabel}</span>
+                                <span style="font-size:10px; color:#38bdf8; font-family:var(--font-mono); font-weight:700;">Score: ${m.score}</span>
                                 <button type="button" onclick="triggerPauseMarket('${m.key}')" title="Pause market discovery" style="background:transparent; border:1px solid rgba(255,255,255,0.1); color:#a1a1aa; font-size:10px; padding:1px 5px; border-radius:3px; cursor:pointer;">Pause</button>
                             </div>
                         </div>
@@ -10077,13 +10075,14 @@ async function loadAutonomousAcquisitionQueue() {
                 activeTableBody.innerHTML = activePortfolio.map(m => {
                     const isExplore = m.type === 'EXPLORE';
                     const modeBadge = isExplore
-                        ? '<span style="font-size:10px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); padding:2px 6px; border-radius:4px;">EXPLORATION (25%)</span>'
-                        : '<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:2px 6px; border-radius:4px;">EXPLOITATION (75%)</span>';
+                        ? '<span style="font-size:10px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); padding:2px 6px; border-radius:4px;">EXPLORATION</span>'
+                        : '<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:2px 6px; border-radius:4px;">EXPLOITATION</span>';
                     
-                    const reasonDisplay = (m.reason_code === 'POSITIVE_HISTORICAL_OUTCOMES' && (!m.historical_sample_count || m.historical_sample_count < 10 || !m.win_rate)) ? 'INSUFFICIENT REAL DATA' : m.reason_code;
-                    const reasonStyle = reasonDisplay === 'INSUFFICIENT REAL DATA'
-                        ? 'font-size:11px; font-weight:600; color:#fbbf24; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); padding:2px 6px; border-radius:4px; font-family:var(--font-mono);'
-                        : 'font-size:11px; font-weight:600; color:#10b981; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); padding:2px 6px; border-radius:4px; font-family:var(--font-mono);';
+                    const evidenceDisplay = m.is_insufficient_data
+                        ? `<div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; font-weight:700; color:#fbbf24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); padding:1px 5px; border-radius:3px; width:fit-content;">INSUFFICIENT REAL DATA</span><span style="font-size:11px; color:#71717a; font-family:var(--font-mono);">Sample N=${m.historical_sample_count || 0}</span></div>`
+                        : `<div style="font-size:11px; font-family:var(--font-mono); color:#34d399;">N=${m.historical_sample_count} &bull; ${(m.win_rate * 100).toFixed(1)}% replies</div>`;
+
+                    const revFormatted = (m.real_revenue || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
 
                     return `
                         <tr style="border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px;">
@@ -10092,12 +10091,18 @@ async function loadAutonomousAcquisitionQueue() {
                                 <div style="font-size:11px; color:#71717a;">${m.country_name} (${m.country_code}) &bull; <strong style="color:#e4e4e7;">${m.niche_name}</strong></div>
                             </td>
                             <td style="padding:10px 12px;">${modeBadge}</td>
-                            <td style="padding:10px 12px;"><span style="${reasonStyle}">${reasonDisplay}</span></td>
-                            <td style="padding:10px 12px; font-family:var(--font-mono); font-weight:700; color:#38bdf8;">${m.score}</td>
-                            <td style="padding:10px 12px; font-family:var(--font-mono); color:#a1a1aa;">
-                                N=${m.historical_sample_count || 0} &bull; ${m.historical_sample_count < 10 ? '<span style="color:#fbbf24;">INSUFFICIENT_DATA</span>' : `${(m.win_rate * 100).toFixed(1)}%`}
+                            <td style="padding:10px 12px;">
+                                <div style="font-family:var(--font-mono); font-weight:700; color:#38bdf8; font-size:13px;">${m.score}</div>
+                                <div style="font-size:10px; color:#a1a1aa; margin-top:2px;">${m.revenue_opportunity_signal || 'Est. Deal: $2,500+'}</div>
                             </td>
-                            <td style="padding:10px 12px; color:#a1a1aa;">${m.freshness}</td>
+                            <td style="padding:10px 12px; font-family:var(--font-mono);">
+                                <span style="color:#e4e4e7;">${m.candidate_supply || 0}</span> / <strong style="color:${(m.qualified_lead_count || 0) > 0 ? '#10b981' : '#a1a1aa'};">${m.qualified_lead_count || 0}</strong>
+                            </td>
+                            <td style="padding:10px 12px; font-family:var(--font-mono);">
+                                <span style="color:#e4e4e7;">Outreach: ${m.real_outreach_count || 0}</span><br>
+                                <strong style="color:${(m.real_revenue || 0) > 0 ? '#10b981' : '#71717a'}; font-size:11px;">Rev: ${revFormatted}</strong>
+                            </td>
+                            <td style="padding:10px 12px;">${evidenceDisplay}</td>
                             <td style="padding:10px 12px; text-align:right;">
                                 <button type="button" onclick="triggerPauseMarket('${m.key}')" style="background:transparent; border:1px solid rgba(255,255,255,0.12); color:#e4e4e7; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer; margin-right:4px;">Pause</button>
                                 <button type="button" onclick="triggerExcludeMarket('${m.key}')" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Exclude</button>

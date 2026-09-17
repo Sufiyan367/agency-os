@@ -18,7 +18,18 @@ class PerformanceAuditor:
 
         # 1. Response time (TTFB / Network latency)
         ttfb = crawl.load_time_ms
-        if ttfb > 1200:
+        if ttfb > 3000:
+            deductions += 35
+            findings.append({
+                "category": "Performance",
+                "finding": "Critical Server Response Time / TTFB",
+                "severity": AuditSeverity.CRITICAL.value,
+                "evidence": f"Initial page response took {ttfb:.0f}ms (threshold: < 600ms, critical: > 3000ms).",
+                "recommended_fix": "Configure edge caching, CDN, or upgrade hosting compute.",
+                "estimated_business_impact": "Severe visitor abandonment (>50% bounce rate) on mobile devices.",
+                "confidence": 0.98
+            })
+        elif ttfb > 1200:
             deductions += 25
             findings.append({
                 "category": "Performance",
@@ -60,7 +71,18 @@ class PerformanceAuditor:
         styles = soup.find_all("link", attrs={"rel": "stylesheet"})
         un_deferred_scripts = [s for s in scripts if s.get("src") and not (s.get("defer") or s.get("async"))]
         
-        if len(un_deferred_scripts) > 3:
+        if len(un_deferred_scripts) > 15:
+            deductions += 25
+            findings.append({
+                "category": "Performance",
+                "finding": "Severe Render-Blocking JavaScript Resources",
+                "severity": AuditSeverity.CRITICAL.value,
+                "evidence": f"Found {len(un_deferred_scripts)} external scripts loaded without defer or async attributes.",
+                "recommended_fix": "Add defer or async attribute to non-critical external scripts.",
+                "estimated_business_impact": "Critically delays First Contentful Paint (FCP) and Largest Contentful Paint (LCP).",
+                "confidence": 0.96
+            })
+        elif len(un_deferred_scripts) > 3:
             deductions += 15
             findings.append({
                 "category": "Performance",
