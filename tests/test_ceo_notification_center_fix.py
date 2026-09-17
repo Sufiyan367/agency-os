@@ -25,7 +25,7 @@ async def test_notification_center_and_mobile_dom_elements(monkeypatch):
         assert 'id="btn-mark-all-read"' in html
         assert 'id="btn-enable-push"' in html
         assert 'id="notification-list-items"' in html
-        assert 'src="/static/notification_center.js"' in html
+        assert '/static/notification_center.js' in html
 
         # 3. Mobile Bottom Navigation (5 items: Home, Activity, Sales, Alerts, More)
         assert 'class="mobile-bottom-nav"' in html

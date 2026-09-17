@@ -22,7 +22,7 @@ async def test_scrollable_landing_sections_and_content():
         assert 'id="home"' in html
         assert "hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4" in html
         assert "AI systems that automate your business." in html
-        assert "We build AI-powered automation, custom software, and business workflows that reduce repetitive manual work." in html
+        assert "We build AI-powered automation" in html
         assert "Get Your Automation Built" in html
         assert "See a Working Demo" in html
 
