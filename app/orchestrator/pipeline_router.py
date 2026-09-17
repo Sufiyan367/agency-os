@@ -198,7 +198,7 @@ class AcquisitionPipelineRouter:
         # -------------------------------------------------------------
         # STAGE 8 & 9: REPLY_CLASSIFIED & INTERESTED STATE
         # -------------------------------------------------------------
-        assert reply_record.classification == ReplyClassification.INTERESTED.value
+        assert reply_record.classification in (ReplyClassification.INTERESTED.value, ReplyClassification.DEMO_REQUEST.value)
         stages_completed.append("REPLY_CLASSIFIED")
         stages_completed.append("INTERESTED")
 

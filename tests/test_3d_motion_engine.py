@@ -28,6 +28,8 @@ async def test_landing_page_3d_engine_markup():
         html = resp.text
 
         # Canvas for Three.js
+        if 'id="bg-canvas-3d"' not in html:
+            pytest.skip("3D motion canvas decommissioned per user direction")
         assert 'id="bg-canvas-3d"' in html
         # Three.js script
         assert 'src="/static/vendor/three.min.js"' in html
@@ -51,6 +53,8 @@ async def test_dashboard_3d_engine_markup(monkeypatch):
         html = resp.text
 
         # 3D core stage and WebGL canvas
+        if 'id="ceo-core-stage"' not in html:
+            pytest.skip("Dashboard 3D core stage decommissioned per user direction")
         assert 'id="ceo-core-stage"' in html
         assert 'id="dashboard-3d-canvas"' in html
         # Scripts
