@@ -13,7 +13,7 @@ from app.database.models import (
     Business, OutreachMessage, OutreachStatus, Reply,
     ReplyClassification, Customer, PipelineStage, Offer,
     LeadScore, AuditRun, Proposal, Payment, Artifact,
-    SuppressionList
+    SuppressionList, Deal, ProjectProposal
 )
 from app.core.safety_filters import (
     is_test_or_synthetic,
@@ -216,29 +216,14 @@ def is_lead_qualified(
     return True
 
 
-def classify_payment_provenance(pay: Any, biz: Any = None) -> str:
-    """Classifies a payment into REAL_CUSTOMER, TEST_MOCK, or OPERATOR_TEST."""
-    if getattr(pay, "is_mock", False) is True:
-        return "TEST_MOCK"
-    p_id = str(getattr(pay, "id", "") or "")
-    if p_id.startswith("mock-") or p_id.startswith("test-") or p_id.startswith("sim-"):
-        return "TEST_MOCK"
-    gateway = (getattr(pay, "gateway", None) or getattr(pay, "provider", None) or "").lower()
-    if gateway in ("mock", "test", "dev", "simulation", "sandbox"):
-        return "TEST_MOCK"
-    payer_email = (getattr(pay, "payer_email", None) or getattr(pay, "customer_email", None) or "").lower()
-    ref_id = (getattr(pay, "reference_id", None) or "").lower()
-    if any(k in payer_email for k in OPERATOR_EMAILS) or any(k in ref_id for k in ("test", "mock", "sufiyan", "sandbox")):
-        return "OPERATOR_TEST"
-    if biz and classify_business_provenance(biz) != "REAL":
-        return "OPERATOR_TEST"
-    return "REAL_CUSTOMER"
-
-
 def classify_proposal_provenance(prop: Any, biz: Any = None) -> str:
     """Classifies a proposal into REAL_CUSTOMER, TEST_MOCK, or OPERATOR_TEST."""
-    if getattr(prop, "is_mock", False) is True:
+    if not prop or getattr(prop, "is_mock", False) is True:
         return "TEST_MOCK"
+    extra = getattr(prop, "extra_metadata", None) or {}
+    if isinstance(extra, dict):
+        if any(extra.get(k) is True for k in ("is_mock", "is_test", "mock", "dry_run", "simulation")):
+            return "TEST_MOCK"
     title = (getattr(prop, "title", None) or "").lower()
     if "test" in title or "mock" in title:
         return "TEST_MOCK"
@@ -249,9 +234,17 @@ def classify_proposal_provenance(prop: Any, biz: Any = None) -> str:
 
 def classify_deal_provenance(deal_or_biz: Any, biz: Any = None) -> str:
     """Classifies a deal into REAL_CUSTOMER or SIMULATED_TEST."""
+    if not deal_or_biz:
+        return "SIMULATED_TEST"
+    if getattr(deal_or_biz, "is_mock", False) is True:
+        return "SIMULATED_TEST"
     d_id = str(getattr(deal_or_biz, "id", "") or "")
     if d_id.startswith("mock-") or d_id.startswith("test-"):
         return "SIMULATED_TEST"
+    deal_extra = getattr(deal_or_biz, "extra_metadata", None) or {}
+    if isinstance(deal_extra, dict):
+        if any(deal_extra.get(k) is True for k in ("is_mock", "is_test", "mock", "dry_run", "simulation")):
+            return "SIMULATED_TEST"
     d_name = getattr(deal_or_biz, "deal_name", None) or getattr(deal_or_biz, "name", None) or ""
     if any(k in d_name.lower() for k in ("[test]", "[mock]", "sample", "test")):
         return "SIMULATED_TEST"
@@ -259,6 +252,147 @@ def classify_deal_provenance(deal_or_biz: Any, biz: Any = None) -> str:
     if classify_business_provenance(target_biz) != "REAL":
         return "SIMULATED_TEST"
     return "REAL_CUSTOMER"
+
+
+def classify_payment_provenance(
+    pay: Any,
+    biz: Any = None,
+    proposal: Any = None,
+    deal: Any = None,
+    customer: Any = None,
+    outreach: Any = None,
+    reply: Any = None
+) -> str:
+    """
+    Classifies a payment into REAL_CUSTOMER, TEST_MOCK, or OPERATOR_TEST with fail-closed commercial provenance:
+    If ANY upstream commercial object (payment, proposal, deal, customer, outreach, reply) is synthetic/mock,
+    or originates from a simulated/dry-run test, classify as TEST_MOCK or OPERATOR_TEST.
+    """
+    if not pay:
+        return "TEST_MOCK"
+
+    # 1. Direct payment mock/test flags
+    if getattr(pay, "is_mock", False) is True:
+        return "TEST_MOCK"
+
+    p_id = str(getattr(pay, "id", "") or "")
+    if p_id.startswith("mock-") or p_id.startswith("test-") or p_id.startswith("sim-"):
+        return "TEST_MOCK"
+
+    extra = getattr(pay, "extra_metadata", None) or {}
+    if isinstance(extra, dict):
+        if any(extra.get(k) is True for k in ("is_mock", "is_test", "mock", "dry_run", "simulated", "simulation")):
+            return "TEST_MOCK"
+        source_str = str(extra.get("source", "")).lower()
+        if any(k in source_str for k in ("test", "mock", "simulation", "synthetic", "dry_run")):
+            return "TEST_MOCK"
+
+    gateway = (getattr(pay, "gateway", None) or getattr(pay, "provider", None) or "").lower()
+    if gateway in ("mock", "test", "dev", "simulation", "sandbox"):
+        return "TEST_MOCK"
+
+    ref_id = (getattr(pay, "reference_id", None) or "").lower()
+    gpay_ref = (getattr(pay, "gpay_reference", None) or "").lower()
+    payer_email = (getattr(pay, "payer_email", None) or getattr(pay, "customer_email", None) or "").lower()
+
+    if any(k in payer_email for k in OPERATOR_EMAILS) or any(k in ref_id for k in ("test", "mock", "sufiyan", "sandbox")) or any(k in gpay_ref for k in ("test", "mock", "sandbox")):
+        return "OPERATOR_TEST"
+
+    # 2. Upstream Proposal Provenance Check
+    target_prop = proposal or getattr(pay, "proposal", None)
+    if target_prop:
+        if getattr(target_prop, "is_mock", False) is True:
+            return "TEST_MOCK"
+        prop_extra = getattr(target_prop, "extra_metadata", None) or {}
+        if isinstance(prop_extra, dict):
+            if any(prop_extra.get(k) is True for k in ("is_mock", "is_test", "mock", "dry_run", "simulation")):
+                return "TEST_MOCK"
+        prop_prov = classify_proposal_provenance(target_prop, biz)
+        if prop_prov in ("TEST_MOCK", "OPERATOR_TEST"):
+            return prop_prov
+
+    # 3. Upstream Deal Provenance Check
+    target_deal = deal or getattr(pay, "deal", None)
+    if target_deal:
+        if getattr(target_deal, "is_mock", False) is True:
+            return "TEST_MOCK"
+        deal_extra = getattr(target_deal, "extra_metadata", None) or {}
+        if isinstance(deal_extra, dict):
+            if any(deal_extra.get(k) is True for k in ("is_mock", "is_test", "mock", "dry_run", "simulation")):
+                return "TEST_MOCK"
+        deal_prov = classify_deal_provenance(target_deal, biz)
+        if deal_prov != "REAL_CUSTOMER":
+            return "TEST_MOCK"
+
+    # 4. Upstream Customer Provenance Check
+    target_cust = customer or getattr(pay, "customer", None)
+    if target_cust:
+        if getattr(target_cust, "is_mock", False) is True:
+            return "TEST_MOCK"
+        cust_email = (getattr(target_cust, "email", None) or "").lower()
+        if any(k in cust_email for k in OPERATOR_EMAILS) or any(k in cust_email for k in ("test", "example.com")):
+            return "OPERATOR_TEST"
+
+    # 5. Upstream Outreach / Reply Check
+    target_outreach = outreach or getattr(pay, "outreach", None)
+    if target_outreach:
+        outreach_prov = classify_outreach_provenance(target_outreach, biz)
+        if outreach_prov in ("DEV_SIMULATOR", "SIMULATION", "HISTORICAL_DEV", "TEST", "CANARY"):
+            return "TEST_MOCK"
+
+    target_reply = reply or getattr(pay, "reply", None)
+    if target_reply:
+        reply_prov = classify_reply_provenance(target_reply, biz)
+        if reply_prov != "REAL_CUSTOMER":
+            return "OPERATOR_TEST" if reply_prov == "OPERATOR_TEST" else "TEST_MOCK"
+
+    # 6. Business Provenance Check
+    if biz and classify_business_provenance(biz) != "REAL":
+        return "OPERATOR_TEST"
+
+    return "REAL_CUSTOMER"
+
+
+async def resolve_payment_provenance(
+    session: AsyncSession,
+    pay: Any,
+    biz: Any = None
+) -> str:
+    """
+    Asynchronously resolves upstream commercial objects (proposal, deal, customer, biz)
+    if they are not already loaded, then classifies the payment.
+    """
+    if not pay:
+        return "TEST_MOCK"
+
+    if getattr(pay, "is_mock", False) is True:
+        return "TEST_MOCK"
+
+    target_biz = biz
+    if not target_biz and getattr(pay, "business_id", None):
+        target_biz = await session.get(Business, pay.business_id)
+
+    target_prop = getattr(pay, "proposal", None)
+    if not target_prop and getattr(pay, "proposal_id", None):
+        target_prop = await session.get(Proposal, pay.proposal_id)
+        if not target_prop:
+            target_prop = await session.get(ProjectProposal, pay.proposal_id)
+
+    target_deal = getattr(pay, "deal", None)
+    if not target_deal and getattr(pay, "deal_id", None):
+        target_deal = await session.get(Deal, pay.deal_id)
+
+    target_cust = getattr(pay, "customer", None)
+    if not target_cust and getattr(pay, "customer_id", None):
+        target_cust = await session.get(Customer, pay.customer_id)
+
+    return classify_payment_provenance(
+        pay=pay,
+        biz=target_biz,
+        proposal=target_prop,
+        deal=target_deal,
+        customer=target_cust
+    )
 
 
 def classify_activity_provenance(event: Any) -> str:
@@ -516,13 +650,39 @@ async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any
         pyb_res = await session.execute(select(Business).where(Business.id.in_(pay_biz_ids)))
         pay_biz_map = {b.id: b for b in pyb_res.scalars().all()}
 
+    pay_prop_ids = [py.proposal_id for py in all_payments if py.proposal_id]
+    pay_prop_map = {}
+    if pay_prop_ids:
+        pyp_res = await session.execute(select(Proposal).where(Proposal.id.in_(pay_prop_ids)))
+        pay_prop_map = {p.id: p for p in pyp_res.scalars().all()}
+        missing_prop_ids = [pid for pid in pay_prop_ids if pid not in pay_prop_map]
+        if missing_prop_ids:
+            pypp_res = await session.execute(select(ProjectProposal).where(ProjectProposal.id.in_(missing_prop_ids)))
+            for pp in pypp_res.scalars().all():
+                pay_prop_map[pp.id] = pp
+
+    pay_deal_ids = [py.deal_id for py in all_payments if py.deal_id]
+    pay_deal_map = {}
+    if pay_deal_ids:
+        pyd_res = await session.execute(select(Deal).where(Deal.id.in_(pay_deal_ids)))
+        pay_deal_map = {d.id: d for d in pyd_res.scalars().all()}
+
+    pay_cust_ids = [py.customer_id for py in all_payments if py.customer_id]
+    pay_cust_map = {}
+    if pay_cust_ids:
+        pyc_res = await session.execute(select(Customer).where(Customer.id.in_(pay_cust_ids)))
+        pay_cust_map = {c.id: c for c in pyc_res.scalars().all()}
+
     real_payments_pending = 0
     real_payments_confirmed = 0
     real_verified_revenue = 0.0
 
     for py in all_payments:
         biz = pay_biz_map.get(py.business_id)
-        if classify_payment_provenance(py, biz) == "REAL_CUSTOMER":
+        prop = pay_prop_map.get(py.proposal_id)
+        deal = pay_deal_map.get(py.deal_id)
+        cust = pay_cust_map.get(py.customer_id)
+        if classify_payment_provenance(py, biz=biz, proposal=prop, deal=deal, customer=cust) == "REAL_CUSTOMER":
             st = (py.status or "").upper()
             if st in ("PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION", "PAYMENT_REVIEW_REQUIRED"):
                 real_payments_pending += 1

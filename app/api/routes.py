@@ -2578,7 +2578,7 @@ async def get_ceo_control_center_overview(
     actions_required = []
 
     # Priority 1: Payment authorization & verification (Direct Money Inflow)
-    from app.analytics.truth_engine import classify_payment_provenance
+    from app.analytics.truth_engine import classify_payment_provenance, classify_proposal_provenance
     pending_payments = (await db.execute(
         select(Payment).where(
             Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"])
@@ -2588,7 +2588,12 @@ async def get_ceo_control_center_overview(
         b = await db.get(Business, pay.business_id) if pay.business_id else None
         if not b:
             continue
-        if classify_payment_provenance(pay, b) != "REAL_CUSTOMER":
+        prop = await db.get(Proposal, pay.proposal_id) if pay.proposal_id else None
+        if not prop and pay.proposal_id:
+            prop = await db.get(ProjectProposal, pay.proposal_id)
+        deal = await db.get(Deal, pay.deal_id) if pay.deal_id else None
+        cust = await db.get(Customer, pay.customer_id) if pay.customer_id else None
+        if classify_payment_provenance(pay, biz=b, proposal=prop, deal=deal, customer=cust) != "REAL_CUSTOMER":
             continue
         b_name = b.name or b.domain or f"Lead #{pay.business_id}"
         actions_required.append({
@@ -2721,6 +2726,8 @@ async def get_ceo_control_center_overview(
     for prop in pending_props:
         b = await db.get(Business, prop.business_id) if prop.business_id else None
         if not b:
+            continue
+        if classify_proposal_provenance(prop, b) != "REAL_CUSTOMER":
             continue
         b_name = b.name or b.domain or f"Lead #{prop.business_id}"
         actions_required.append({
@@ -3560,9 +3567,20 @@ async def get_kpi_drilldown_details(
             )
 
         all_rows = (await db.execute(q_base.order_by(desc(Payment.id)))).all()
+        pay_prop_ids = [pay.proposal_id for pay, _ in all_rows if pay.proposal_id]
+        pay_prop_map = {}
+        if pay_prop_ids:
+            pyp_res = await db.execute(select(Proposal).where(Proposal.id.in_(pay_prop_ids)))
+            pay_prop_map = {p.id: p for p in pyp_res.scalars().all()}
+            missing = [pid for pid in pay_prop_ids if pid not in pay_prop_map]
+            if missing:
+                pypp_res = await db.execute(select(ProjectProposal).where(ProjectProposal.id.in_(missing)))
+                for pp in pypp_res.scalars().all():
+                    pay_prop_map[pp.id] = pp
+
         filtered_rows = [
             (pay, b) for pay, b in all_rows
-            if classify_payment_provenance(pay, b) == "REAL_CUSTOMER"
+            if classify_payment_provenance(pay, biz=b, proposal=pay_prop_map.get(pay.proposal_id)) == "REAL_CUSTOMER"
         ]
 
         total_records = len(filtered_rows)
@@ -3605,9 +3623,20 @@ async def get_kpi_drilldown_details(
             )
 
         all_rows = (await db.execute(q_base.order_by(desc(Payment.id)))).all()
+        pay_prop_ids = [pay.proposal_id for pay, _ in all_rows if pay.proposal_id]
+        pay_prop_map = {}
+        if pay_prop_ids:
+            pyp_res = await db.execute(select(Proposal).where(Proposal.id.in_(pay_prop_ids)))
+            pay_prop_map = {p.id: p for p in pyp_res.scalars().all()}
+            missing = [pid for pid in pay_prop_ids if pid not in pay_prop_map]
+            if missing:
+                pypp_res = await db.execute(select(ProjectProposal).where(ProjectProposal.id.in_(missing)))
+                for pp in pypp_res.scalars().all():
+                    pay_prop_map[pp.id] = pp
+
         filtered_rows = [
             (pay, b) for pay, b in all_rows
-            if classify_payment_provenance(pay, b) == "REAL_CUSTOMER"
+            if classify_payment_provenance(pay, biz=b, proposal=pay_prop_map.get(pay.proposal_id)) == "REAL_CUSTOMER"
         ]
 
         total_records = len(filtered_rows)

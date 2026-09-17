@@ -13,7 +13,8 @@ from app.sales.payment_flow import PaymentWorkflowManager
 from app.analytics.truth_engine import (
     classify_payment_provenance,
     classify_business_provenance,
-    get_canonical_production_truth
+    get_canonical_production_truth,
+    resolve_payment_provenance
 )
 from app.core.config import settings
 
@@ -55,7 +56,8 @@ async def test_payment_pending_state_preserves_zero_revenue():
             business_id=biz.id,
             title="Roofing SEO Acceleration Agreement",
             total_value=650.0,
-            advance_required=260.0
+            advance_required=260.0,
+            is_mock=False
         )
         await service.approve_proposal(session, prop.id, operator="CEO")
         res = await service.request_payment_order(session, prop.id, payment_type="ADVANCE")
@@ -69,8 +71,9 @@ async def test_payment_pending_state_preserves_zero_revenue():
         pmt.is_mock = False
         pmt.provider = "google_pay"
         pmt.reference_id = f"gpay_{biz.id}_{pmt.id}_remittance"
+        pmt.extra_metadata = {}
         await session.commit()
-        assert classify_payment_provenance(pmt, biz) == "REAL_CUSTOMER"
+        assert classify_payment_provenance(pmt, biz, proposal=prop) == "REAL_CUSTOMER"
 
 # -----------------------------------------------------------------------------
 # 2. Payment Confirmation Gate
@@ -417,3 +420,96 @@ async def test_payment_dashboard_truth():
 
         assert classify_payment_provenance(real_pmt, biz) == "REAL_CUSTOMER"
         assert classify_payment_provenance(mock_pmt, biz) == "TEST_MOCK"
+
+
+# -----------------------------------------------------------------------------
+# 12. Fail-Closed Commercial Provenance (Upstream Synthetic Proposal Isolation)
+# -----------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_upstream_mock_proposal_forces_payment_mock_provenance():
+    """
+    Even if payment.is_mock is False, if linked proposal is_mock is True,
+    payment MUST be classified as TEST_MOCK and excluded from pending real payments and revenue.
+    """
+    async with AsyncSessionLocal() as session:
+        biz = await create_real_business(session, "Salis Roofing Mock Linked")
+
+        # Mock Proposal (like Proposal #1 in production)
+        mock_prop = Proposal(
+            business_id=biz.id,
+            title="Core Web Vitals & Load Speed Acceleration",
+            total_value=650.0,
+            advance_required=260.0,
+            status="APPROVED",
+            is_mock=True
+        )
+        session.add(mock_prop)
+        await session.commit()
+        await session.refresh(mock_prop)
+
+        # Payment with is_mock = False, but linked to mock_prop
+        pmt = Payment(
+            business_id=biz.id,
+            proposal_id=mock_prop.id,
+            amount=260.0,
+            currency="USD",
+            status="PAYMENT_PENDING",
+            is_mock=False,
+            provider="google_pay",
+            reference_id=f"gpay_{biz.id}_{mock_prop.id}_1789323530"
+        )
+        session.add(pmt)
+        await session.commit()
+        await session.refresh(pmt)
+
+        # 1. Direct classification with proposal passed
+        assert classify_payment_provenance(pmt, biz=biz, proposal=mock_prop) == "TEST_MOCK"
+
+        # 2. Async resolver dynamically fetches proposal and classifies
+        assert await resolve_payment_provenance(session, pmt, biz=biz) == "TEST_MOCK"
+
+        # 3. Canonical production truth must NOT count this payment in real_payments_pending
+        truth = await get_canonical_production_truth(session)
+        # Verify revenue remains 0.00
+        assert truth["real_verified_revenue"] == 0.0
+        assert truth["revenue_label"] == "$0.00"
+
+
+@pytest.mark.asyncio
+async def test_upstream_real_proposal_allows_real_customer_payment():
+    """
+    When payment.is_mock is False AND linked proposal is_mock is False on a REAL business,
+    payment is classified as REAL_CUSTOMER.
+    """
+    async with AsyncSessionLocal() as session:
+        biz = await create_real_business(session, "Genuine Roofing Co")
+
+        real_prop = Proposal(
+            business_id=biz.id,
+            title="Roofing SEO Acceleration Agreement",
+            total_value=1000.0,
+            advance_required=400.0,
+            status="APPROVED",
+            is_mock=False
+        )
+        session.add(real_prop)
+        await session.commit()
+        await session.refresh(real_prop)
+
+        real_pmt = Payment(
+            business_id=biz.id,
+            proposal_id=real_prop.id,
+            amount=400.0,
+            currency="USD",
+            status="PAYMENT_PENDING",
+            is_mock=False,
+            provider="google_pay",
+            reference_id=f"gpay_{biz.id}_{real_prop.id}_genuine"
+        )
+        session.add(real_pmt)
+        await session.commit()
+        await session.refresh(real_pmt)
+
+        assert classify_payment_provenance(real_pmt, biz=biz, proposal=real_prop) == "REAL_CUSTOMER"
+        assert await resolve_payment_provenance(session, real_pmt, biz=biz) == "REAL_CUSTOMER"
+

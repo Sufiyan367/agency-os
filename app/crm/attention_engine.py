@@ -20,6 +20,7 @@ from app.database.models import (
     Reply, ReplyClassification, Payment, Proposal, FollowupSequence,
     PipelineStage, ProspectMemory
 )
+from app.analytics.truth_engine import classify_payment_provenance, classify_reply_provenance
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,9 @@ class AttentionEngine:
         ).order_by(Reply.received_at.desc())
         interested_replies = (await session.execute(q_high_replies)).scalars().all()
         for r in interested_replies:
-            biz = await session.get(Business, r.business_id)
+            biz = await session.get(Business, r.business_id) if r.business_id else None
+            if classify_reply_provenance(r, biz) != "REAL_CUSTOMER":
+                continue
             high_items.append({
                 "id": f"reply-high-{r.id}",
                 "type": "INTERESTED_PROSPECT",
@@ -69,7 +72,10 @@ class AttentionEngine:
         ).order_by(Payment.created_at.desc())
         payment_issues = (await session.execute(q_pay_issues)).scalars().all()
         for p in payment_issues:
-            biz = await session.get(Business, p.business_id)
+            biz = await session.get(Business, p.business_id) if p.business_id else None
+            prop = await session.get(Proposal, p.proposal_id) if p.proposal_id else None
+            if classify_payment_provenance(p, biz=biz, proposal=prop) != "REAL_CUSTOMER":
+                continue
             high_items.append({
                 "id": f"pay-issue-{p.id}",
                 "type": "PAYMENT_EXCEPTION",
@@ -92,6 +98,9 @@ class AttentionEngine:
         action_payments = (await session.execute(q_pay_action)).scalars().all()
         for p in action_payments:
             biz = await session.get(Business, p.business_id) if p.business_id else None
+            prop = await session.get(Proposal, p.proposal_id) if p.proposal_id else None
+            if classify_payment_provenance(p, biz=biz, proposal=prop) != "REAL_CUSTOMER":
+                continue
             is_review = p.status == "PAYMENT_REVIEW_REQUIRED"
             title = f"Payment action required: Verify remittance for {biz.name if biz else 'Client'}" if is_review else f"Payment action required: Awaiting payment for {biz.name if biz else 'Client'}"
             desc = (
@@ -119,7 +128,10 @@ class AttentionEngine:
         ).order_by(Payment.created_at.desc()).limit(5)
         recent_payments = (await session.execute(q_pay_won)).scalars().all()
         for p in recent_payments:
-            biz = await session.get(Business, p.business_id)
+            biz = await session.get(Business, p.business_id) if p.business_id else None
+            prop = await session.get(Proposal, p.proposal_id) if p.proposal_id else None
+            if classify_payment_provenance(p, biz=biz, proposal=prop) != "REAL_CUSTOMER":
+                continue
             high_items.append({
                 "id": f"pay-won-{p.id}",
                 "type": "PAYMENT_CONFIRMED",
