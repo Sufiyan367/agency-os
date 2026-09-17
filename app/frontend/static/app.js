@@ -5459,6 +5459,19 @@ async function loadCanonicalDashboardState() {
             inboundBadge.innerText = `${data.unhandled_replies_count}`;
             if (data.unhandled_replies_count > 0) inboundBadge.style.display = 'inline-block';
         }
+
+        // 5. N8N Orchestration Live Telemetry
+        if (data.metrics && data.metrics.n8n_orchestration) {
+            const n8n = data.metrics.n8n_orchestration;
+            const n8nBadge = document.getElementById('n8n-status-badge');
+            if (n8nBadge) {
+                n8nBadge.innerText = `${n8n.status} (${n8n.registered_templates_count} Templates)`;
+            }
+            const n8nEvts = document.getElementById('n8n-events-badge');
+            if (n8nEvts) {
+                n8nEvts.innerText = `${n8n.events_forwarded_to_n8n} fwd / ${n8n.inbound_n8n_events_received} in`;
+            }
+        }
     } catch (e) {
         console.debug('Failed to load canonical dashboard state:', e);
     }

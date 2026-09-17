@@ -38,6 +38,8 @@ async def lifespan(app: FastAPI):
         await seed_initial_data(session)
     from app.notifications.service import notification_service
     notification_service.hook_event_bus()
+    from app.automations.n8n_orchestrator import n8n_orchestrator
+    n8n_orchestrator.hook_event_bus()
     logger.info("Application initialized and ready.")
 
     if settings.WORKER_ENABLED:
@@ -227,6 +229,8 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
             or normalized_path.startswith("/api/webhooks")
             or normalized_path.startswith("/demo/")
             or normalized_path.startswith("/proposal/")
+            or normalized_path.startswith("/pay/")
+            or normalized_path.startswith("/payment/")
         )
 
         if not is_public:

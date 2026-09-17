@@ -154,9 +154,23 @@ pytest tests/test_sent_outreach_history.py -v
 # Dynamic active portfolio & multi-market allocation (17 tests)
 pytest tests/test_dynamic_active_portfolio.py -v
 
-# Outreach approval unification & pipeline sync (4 tests)
-pytest tests/test_outreach_approval_unification.py -v
+# N8N Agency OS Money-First Orchestration (12 Invariants)
+pytest tests/test_n8n_agency_os_money_orchestration.py -v
+
+# Autonomous Market Diversification (11 Invariants)
+pytest tests/test_autonomous_market_diversification.py -v
 ```
+
+---
+
+## N8N Orchestration & Agency OS Architecture
+
+Agency OS and n8n operate as a unified, money-first operating system without duplicate databases or microservices:
+1. **Agency OS = Single Source of Truth**: Houses all CRM records, commercial qualification invariants ($\ge 55.0$), commercial floor ($\ge \$500$, $40\%$ advance minimum), CEO approval gates, verified external payments, and Demo Factory.
+2. **n8n = External Orchestration Engine**: Handles multi-channel workflows, webhook scheduling, operator alerts, and follow-up sequencing via the 9 standard templates in `n8n/templates/`.
+3. **Bi-Directional Bridge (`app/automations/n8n_orchestrator.py`)**:
+   - Outbound: Subscribes to `event_bus` and transforms lifecycle events into n8n webhook payloads.
+   - Inbound: Exposes `/api/inbound/webhook` with replay-safe idempotency caching, operator audit logging, and hard safety gates (strictly rejecting unverified payment confirmations or attempts to bypass CEO approval).
 
 ---
 

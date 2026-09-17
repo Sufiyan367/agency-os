@@ -35,6 +35,7 @@ from app.payments.razorpay import razorpay_payment_provider
 from app.payments.service import payment_service
 from app.payments.deal_service import deal_closing_service
 from app.sales.payment_flow import payment_workflow_manager
+from app.automations.n8n_orchestrator import n8n_orchestrator, InboundN8nEnvelope
 from app.orchestrator.worker import agency_worker
 from app.delivery.report_generator import delivery_report_generator
 from app.orchestrator.loop import orchestrator
@@ -1512,6 +1513,13 @@ async def get_canonical_dashboard_state(
         "server_timestamp": datetime.utcnow().isoformat()
     }
 
+    # 6. Canonical Truth Metrics & N8N Orchestration Telemetry
+    from app.analytics.truth_engine import get_canonical_production_truth
+    from app.automations.n8n_orchestrator import n8n_orchestrator
+
+    truth_metrics = await get_canonical_production_truth(db)
+    truth_metrics["n8n_orchestration"] = n8n_orchestrator.get_orchestration_status()
+
     return {
         "success": True,
         "timestamp": datetime.utcnow().isoformat(),
@@ -1522,7 +1530,9 @@ async def get_canonical_dashboard_state(
             "items": queue_items
         },
         "unhandled_replies_count": unhandled_replies_count,
-        "system_status": system_status
+        "system_status": system_status,
+        "metrics": truth_metrics,
+        "n8n_orchestration": truth_metrics["n8n_orchestration"]
     }
 
 @router.get("/api/email/readiness")
@@ -2560,7 +2570,8 @@ async def get_ceo_control_center_overview(
         "revenue_label": revenue_label,
         "payment_status": payment_status,
         "payment_method": payment_method,
-        "provenance_notes": truth["provenance_notes"]
+        "provenance_notes": truth["provenance_notes"],
+        "n8n_orchestration": n8n_orchestrator.get_orchestration_status()
     }
 
     # --- 2. Action Required (Executive Action Feed) ---
@@ -4287,6 +4298,50 @@ async def voice_transcript_webhook_unified(request: Request, db: AsyncSession = 
         normalized_payload=evt_data
     )
     return {"status": "ok", "transcript_length": len(evt_data.get("content", ""))}
+
+
+# --- N8N Orchestration & Webhooks ---
+
+@router.get("/api/automations/n8n/status")
+async def get_n8n_orchestration_status():
+    """Returns live telemetry regarding connected n8n workflows and bridge activity."""
+    return n8n_orchestrator.get_orchestration_status()
+
+
+@router.post("/api/inbound/webhook")
+@router.post("/api/automations/n8n/webhook")
+async def receive_n8n_inbound_webhook(
+    envelope_data: Dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Receives and processes inbound webhook events from n8n or the integration edge adapter.
+    Enforces idempotency, validation, and safety invariants.
+    """
+    event_id = envelope_data.get("event_id") or request.headers.get("X-Agency-Event-ID")
+    if not event_id:
+        import uuid
+        event_id = f"n8n_in_{uuid.uuid4().hex[:12]}"
+
+    correlation_id = envelope_data.get("correlation_id") or request.headers.get("X-Agency-Correlation-ID") or ""
+    event_type = envelope_data.get("event_type") or "N8N_WORKFLOW_EXECUTED"
+    payload = envelope_data.get("payload") or envelope_data.get("data") or envelope_data
+
+    env = InboundN8nEnvelope(
+        event_id=str(event_id),
+        event_type=str(event_type),
+        source=envelope_data.get("source", "agency_os.n8n_edge"),
+        timestamp=envelope_data.get("timestamp"),
+        entity_id=str(envelope_data.get("entity_id", "")),
+        correlation_id=str(correlation_id),
+        payload=payload if isinstance(payload, dict) else {"data": payload}
+    )
+
+    res = await n8n_orchestrator.process_inbound_n8n_event(env)
+    if not res.get("success") and res.get("status") == "FORBIDDEN":
+        raise HTTPException(status_code=403, detail=res.get("error", "Action forbidden by safety invariants"))
+    return res
 
 
 # --- Replies Management ---

@@ -516,6 +516,7 @@ class DemoFactory:
 
     # Alias for builder calls
     build_demo_for_business = generate_demo_package
+    build_demo = generate_demo_package
 
 
 demo_factory = DemoFactory()

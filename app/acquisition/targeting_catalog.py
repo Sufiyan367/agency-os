@@ -379,6 +379,8 @@ def normalize_niche_id(query: str) -> Optional[str]:
             return nid
     return None
 
+normalize_niche = normalize_niche_id
+
 # ==============================================================================
 # 2. GLOBAL COUNTRY CATALOG & ADMINISTRATIVE REGIONS
 # ==============================================================================
