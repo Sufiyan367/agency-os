@@ -239,7 +239,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         # Source 2: If more candidates needed, query OpenStreetMap Public Business Index
         if len(candidates) < limit:
             osm_headers = {"User-Agent": "AgencyB2BResearch/2.0 (contact@agencygrowth.co)"}
-            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=False) as client:
+            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=True) as client:
                 query_terms = [search_term]
                 # Also try first 2 words if search_term has 3+ words (e.g. 'real estate agency brokerage' -> 'real estate')
                 words = search_term.split()
@@ -297,7 +297,7 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         }
 
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=False, verify=True) as client:
             chunk_size = 12
             for i in range(0, len(candidates), chunk_size):
                 if len(discovered_leads) >= limit:
@@ -341,6 +341,13 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
         """Fetches the real business website and extracts authentic contact info."""
         domain = candidate["domain"]
         target_url = candidate["url"] if candidate["url"].startswith("http") else f"https://{domain}"
+
+        # Enforce strict SSRF check on candidate target URL
+        is_safe, ssrf_reason = is_safe_url(target_url)
+        if not is_safe:
+            logger.warning(f"[LeadDiscovery] SSRF guard rejected candidate URL {target_url}: {ssrf_reason}")
+            return None
+
         clean_name = candidate["title"].split("|")[0].split("-")[0].split("–")[0].strip()
         if len(clean_name) < 3 or clean_name.lower() in UNWANTED_TITLES:
             clean_name = domain.replace(".com", "").replace(".net", "").replace("-", " ").title()

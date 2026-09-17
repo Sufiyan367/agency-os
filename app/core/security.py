@@ -10,16 +10,125 @@ PHONE_CLEAN_REGEX = re.compile(r"[^\d+]")
 
 DISALLOWED_EMAIL_PREFIXES = ("you@company", "test@", "example@", "sentry@", "wixpress", "domain@domain")
 
+DISALLOWED_EMAIL_EXTENSIONS = (
+    ".jpeg", ".jpg", ".png", ".webp", ".gif", ".svg", ".avif", ".bmp", ".tiff", ".ico"
+)
+
 PRIVATE_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-    ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("100.64.0.0/10"),     # Carrier-Grade NAT
+    ipaddress.ip_network("192.0.0.0/24"),      # IETF Protocol Assignments
+    ipaddress.ip_network("192.0.2.0/24"),      # TEST-NET-1
+    ipaddress.ip_network("198.51.100.0/24"),   # TEST-NET-2
+    ipaddress.ip_network("203.0.113.0/24"),    # TEST-NET-3
+    ipaddress.ip_network("198.18.0.0/15"),     # Benchmarking
+    ipaddress.ip_network("240.0.0.0/4"),       # Reserved / Future use
+    ipaddress.ip_network("0.0.0.0/8"),         # Broadcast / current network
+    ipaddress.ip_network("::1/128"),           # IPv6 loopback
+    ipaddress.ip_network("::/128"),            # IPv6 unspecified
+    ipaddress.ip_network("::/96"),             # IPv4-compatible IPv6
+    ipaddress.ip_network("fc00::/7"),          # IPv6 Unique Local / private
+    ipaddress.ip_network("fe80::/10"),         # IPv6 Link-local
+    ipaddress.ip_network("ff00::/8"),          # IPv6 Multicast
+    ipaddress.ip_network("::ffff:0:0/96"),     # IPv4-mapped IPv6
+    ipaddress.ip_network("2001:db8::/32"),     # Documentation IPv6
 ]
+
+def is_safe_ip(ip_str: str) -> Tuple[bool, str]:
+    """
+    Validates that an IP address is safe to connect to.
+    Rejects:
+      - loopback (127.0.0.0/8, ::1)
+      - private IPv4 (10/8, 172.16/12, 192.168/16)
+      - link-local / cloud metadata (169.254.0.0/16, fe80::/10, 169.254.169.254)
+      - multicast (224.0.0.0/4, ff00::/8)
+      - reserved/special-use (0.0.0.0/8, 240.0.0.0/4, ::/128)
+      - private/link-local/loopback IPv6 (fc00::/7, fe80::/10, ::1)
+      - IPv4-mapped IPv6 (::ffff:0:0/96)
+      - Carrier-Grade NAT (100.64.0.0/10)
+    """
+    if not ip_str or not isinstance(ip_str, str):
+        return False, "IP address is empty or invalid"
+
+    clean_ip = ip_str.strip()
+    try:
+        ip = ipaddress.ip_address(clean_ip)
+    except ValueError:
+        return False, f"Invalid IP address format: '{clean_ip}'"
+
+    # Handle IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+
+    if ip.is_loopback:
+        return False, f"Loopback IP rejected: {ip}"
+    if ip.is_link_local:
+        return False, f"Link-local / metadata IP rejected: {ip}"
+    if ip.is_private:
+        return False, f"Private IP rejected: {ip}"
+    if ip.is_multicast:
+        return False, f"Multicast IP rejected: {ip}"
+    if ip.is_reserved:
+        return False, f"Reserved IP rejected: {ip}"
+    if ip.is_unspecified:
+        return False, f"Unspecified IP rejected: {ip}"
+
+    for net in PRIVATE_NETWORKS:
+        if ip in net:
+            return False, f"Restricted network rejected: {ip} in {net}"
+
+    return True, "Safe"
+
+def resolve_and_validate_hostname(hostname: str) -> Tuple[bool, list, str]:
+    """
+    Resolves all IPv4 and IPv6 addresses for a hostname and validates
+    that NONE of them resolve to private, loopback, or restricted addresses.
+    Returns (is_safe, resolved_ip_list, reason).
+    """
+    if not hostname or not isinstance(hostname, str):
+        return False, [], "Hostname is empty or invalid"
+
+    h = hostname.lower().strip()
+    if h in ("localhost", "0.0.0.0", "127.0.0.1", "::1"):
+        return False, [], f"Prohibited loopback/restricted hostname: {hostname}"
+
+    # If hostname is an IP literal
+    try:
+        ip_obj = ipaddress.ip_address(h)
+        safe, reason = is_safe_ip(str(ip_obj))
+        if not safe:
+            return False, [], reason
+        return True, [str(ip_obj)], "Safe IP literal"
+    except ValueError:
+        pass
+
+    try:
+        addr_info = socket.getaddrinfo(h, None)
+    except socket.gaierror as e:
+        return False, [], f"DNS resolution failed for {hostname}: {e}"
+    except Exception as e:
+        return False, [], f"DNS resolution error for {hostname}: {e}"
+
+    if not addr_info:
+        return False, [], f"DNS returned no records for {hostname}"
+
+    safe_ips = []
+    for item in addr_info:
+        ip_str = item[4][0]
+        safe, reason = is_safe_ip(ip_str)
+        if not safe:
+            return False, [], f"Hostname '{hostname}' resolves to restricted IP {ip_str}: {reason}"
+        if ip_str not in safe_ips:
+            safe_ips.append(ip_str)
+
+    if not safe_ips:
+        return False, [], f"No safe IPs resolved for {hostname}"
+
+    return True, safe_ips, "Safe hostname"
 
 def is_safe_url(url: str) -> Tuple[bool, str]:
     """
@@ -39,22 +148,9 @@ def is_safe_url(url: str) -> Tuple[bool, str]:
         if not hostname:
             return False, "URL lacks valid hostname"
 
-        # Disallow localhost directly
-        if hostname.lower() in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
-            return False, "Loopback address is disallowed"
-
-        # Resolve IP to check for internal/private networks
-        try:
-            addr_info = socket.getaddrinfo(hostname, None)
-            for item in addr_info:
-                ip_str = item[4][0]
-                ip_obj = ipaddress.ip_address(ip_str)
-                for net in PRIVATE_NETWORKS:
-                    if ip_obj in net:
-                        return False, f"Target IP {ip_str} is in private/restricted network"
-        except socket.gaierror:
-            # If resolution fails, let caller decide or block
-            pass
+        safe, _, reason = resolve_and_validate_hostname(hostname)
+        if not safe:
+            return False, reason
 
         return True, "URL is safe"
     except Exception as e:
@@ -72,16 +168,63 @@ def normalize_domain(domain_or_url: str) -> str:
         d = d[4:]
     return d.strip("/")
 
+def sanitize_scraped_email(email: str) -> Optional[str]:
+    """
+    Sanitizes scraped email string, stripping mailto: schemes, query parameters,
+    HTML entities, Unicode artifacts, and punctuation.
+    """
+    if not email or not isinstance(email, str):
+        return None
+    import html
+    from urllib.parse import unquote
+
+    em = email.strip()
+    # Strip mailto: prefix if present
+    if em.lower().startswith("mailto:"):
+        em = em[7:].strip()
+
+    # Strip query parameters or URL fragments if embedded in mailto link
+    if "?" in em:
+        em = em.split("?")[0].strip()
+    if "#" in em:
+        em = em.split("#")[0].strip()
+
+    em = em.strip("<>\"'`:;,()[]{}")
+    em = html.unescape(em)
+    em = unquote(em)
+
+    # Strip leading/trailing unicode entity artifacts like u003e, \u003e, &gt;, &lt;
+    em = re.sub(r"^(?:\\u003[ce]|u003[ce]|&gt;|&lt;|>|<)+", "", em, flags=re.IGNORECASE)
+    em = re.sub(r"(?:\\u003[ce]|u003[ce]|&gt;|&lt;|>|<)+$", "", em, flags=re.IGNORECASE)
+    em = em.strip().strip("<>\"'`:;,()[]{}")
+
+    if validate_email_syntax(em):
+        return em.lower()
+    return None
+
 def validate_email_syntax(email: str) -> bool:
-    """Verifies email syntax conforms to standard and is not a placeholder/script."""
+    """
+    Verifies email syntax conforms to standard and is not a placeholder, script,
+    or media/image artifact (such as retina @2x.jpeg or logo.png).
+    """
     if not email or not isinstance(email, str):
         return False
     email = email.strip()
     if len(email) > 254:
         return False
-    if any(p in email.lower() for p in DISALLOWED_EMAIL_PREFIXES):
+    lower = email.lower()
+    if lower.startswith(("u003e", "u003c", "\\u003e", "\\u003c", "&gt;", "&lt;")):
+        return False
+    # Reject media file extensions (e.g. .jpeg, .png, .webp)
+    if any(lower.endswith(ext) for ext in DISALLOWED_EMAIL_EXTENSIONS):
+        return False
+    # Reject retina image filename patterns (e.g. hero@2x.jpeg, icon@3x.png)
+    if re.search(r"@\d+x\.", lower):
+        return False
+    if any(p in lower for p in DISALLOWED_EMAIL_PREFIXES):
         return False
     return bool(EMAIL_REGEX.match(email))
+
 
 def sanitize_phone(phone: str) -> str:
     """Normalizes phone numbers to readable clean format."""
@@ -485,12 +628,15 @@ class PromptInjectionGuard:
     INJECTION_PATTERNS = [
         re.compile(r'(?i)\b(?:ignore|disregard|forget|override)\s+(?:all\s+)?(?:previous|prior|system)\s+(?:instruction|prompt|rule|command)s?\b'),
         re.compile(r'(?i)\b(?:you\s+are\s+now|act\s+as|pretend\s+to\s+be)\s+(?:DAN|developer\s+mode|jailbreak|unrestricted|god\s+mode)\b'),
-        re.compile(r'(?i)\b(?:reveal|show|print|leak|output|export)\s+(?:all\s+)?(?:secret|password|api[_-]?key|system\s+prompt|instruction|credential)s?\b'),
+        re.compile(r'(?i)\b(?:reveal|show|print|leak|output|export)\s+(?:all\s+)?(?:secrets?|passwords?|api[_\s-]?keys?|admin\s+passwords?|system\s+prompt|instructions?|credentials?)\b'),
         re.compile(r'(?i)\b(?:bypass|disable|turn\s+off|override)\s+(?:safety|compliance|commercial\s+floor|kill[_-]?switch|guardrail|rule|pricing)s?\b'),
         re.compile(r'(?i)\b(?:set|change|update|override)\s+(?:price|pricing|floor|fee)\s+(?:to\s+)?(?:\$0|0|free|zero)\b'),
         re.compile(r'(?i)\b(?:delete|drop|truncate|alter)\s+(?:database|table|record|prospect)s?\b'),
         re.compile(r'(?i)<script\b[^>]*>'),
         re.compile(r'(?i)(?:system\s*:\s*you\s+are|assistant\s*:\s*sure|human\s*:\s*ignore)'),
+        re.compile(r'(?i)<\|im_start\|>|<\|im_end\|>|\[(?:INST|/INST)\]'),
+        re.compile(r'(?i)\b(?:call\s+tool|execute\s+command|run\s+tool)\b'),
+        re.compile(r'(?i)\b(?:bypass\s+approval|mark\s+as\s+approved|auto[_-]?approve)\b'),
     ]
 
     @classmethod

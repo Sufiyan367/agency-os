@@ -20,6 +20,15 @@ class CanonicalProspect:
 
 
 @dataclass
+class OutreachEvidence:
+    """Explicit evidence backing commercial observations in outreach."""
+    evidence_id: str
+    source_url: str
+    evidence_text: str
+    confidence: float = 1.0
+
+
+@dataclass
 class ResearchFact:
     """A factual research item grounded in verified prospect analysis."""
     prospect_id: int
@@ -28,6 +37,10 @@ class ResearchFact:
     category: str  # e.g., "speed", "conversion", "booking", "workflow", "seo", "a11y"
     is_verified: bool = True
     metric_value: Optional[Any] = None
+    evidence_id: Optional[str] = None
+    source_url: Optional[str] = None
+    evidence_text: Optional[str] = None
+    confidence: float = 1.0
 
 
 @dataclass
@@ -86,6 +99,7 @@ class ComposedEmail:
     variant_name: str
     prospect_id: int
     solution_matched: str
+    evidence_list: List[OutreachEvidence] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 

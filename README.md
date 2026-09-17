@@ -134,8 +134,11 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser to acces
 Run focused test suites for verified subsystems:
 
 ```bash
-# Production Truth Engine invariants (12 tests)
+# Production Truth Engine invariants (18 tests)
 pytest tests/test_production_truth_metrics.py -v
+
+# Crawler SSRF defense, TLS fact recording & outreach evidence safety (16 tests)
+pytest tests/test_crawler_and_outreach_safety.py -v
 
 # Crawler SSRF defense & evidence grounding (11 tests)
 pytest tests/test_crawler_ssrf_and_evidence_safety.py -v

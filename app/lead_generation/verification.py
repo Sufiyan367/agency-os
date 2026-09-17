@@ -52,7 +52,7 @@ class LeadVerificationEngine:
         # 3. HTTP Reachability Check
         # Attempt a lightweight HEAD or GET request with short timeout
         try:
-            async with httpx.AsyncClient(timeout=4.0, verify=False) as client:
+            async with httpx.AsyncClient(timeout=4.0, verify=True) as client:
                 resp = await client.head(website_url, headers={"User-Agent": "Mozilla/5.0"})
                 if resp.status_code in (200, 301, 302, 307, 308, 403):
                     details["http_reachable"] = True

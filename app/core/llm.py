@@ -1,7 +1,8 @@
 import os
+import re
 import json
 import httpx
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -16,12 +17,19 @@ class LLMClient:
         self.nvidia_key = settings.NVIDIA_API_KEY
         self.openrouter_key = settings.OPENROUTER_API_KEY
 
-    async def generate_text(self, prompt: str, system_prompt: str = "", max_tokens: int = 1000) -> str:
-        """Generates text completion using the best available provider."""
+    async def _generate_text_with_meta(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        max_tokens: int = 1000
+    ) -> Tuple[str, str, str]:
+        """
+        Attempts generation across configured providers and returns (text, provider_name, model_name).
+        """
         # 1. Try NVIDIA API if configured
         if (self.provider in ("nvidia", "auto")) and self.nvidia_key and not self.nvidia_key.startswith("REPLACE_"):
             try:
-                return await self._call_openai_compatible(
+                res = await self._call_openai_compatible(
                     base_url="https://integrate.api.nvidia.com/v1",
                     api_key=self.nvidia_key,
                     model=settings.NVIDIA_MODEL,
@@ -29,6 +37,7 @@ class LLMClient:
                     system_prompt=system_prompt,
                     max_tokens=max_tokens
                 )
+                return res, "nvidia", settings.NVIDIA_MODEL
             except httpx.HTTPStatusError as e:
                 logger.warning(f"[LLMClient] NVIDIA API returned HTTP {e.response.status_code}. Falling back to next provider...")
             except Exception as e:
@@ -37,7 +46,7 @@ class LLMClient:
         # 2. Try OpenAI API if configured
         if (self.provider in ("openai", "auto")) and self.openai_key and not self.openai_key.startswith("REPLACE_"):
             try:
-                return await self._call_openai_compatible(
+                res = await self._call_openai_compatible(
                     base_url="https://api.openai.com/v1",
                     api_key=self.openai_key,
                     model=settings.LLM_MODEL,
@@ -45,6 +54,7 @@ class LLMClient:
                     system_prompt=system_prompt,
                     max_tokens=max_tokens
                 )
+                return res, "openai", settings.LLM_MODEL
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 401:
                     logger.warning("[LLMClient] OpenAI API key unauthorized (HTTP 401). Falling back to next provider...")
@@ -57,7 +67,7 @@ class LLMClient:
         if (self.provider in ("openrouter", "auto")) and self.openrouter_key and not self.openrouter_key.startswith("REPLACE_"):
             openrouter_model = getattr(settings, "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
             try:
-                return await self._call_openai_compatible(
+                res = await self._call_openai_compatible(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=self.openrouter_key,
                     model=openrouter_model,
@@ -69,6 +79,7 @@ class LLMClient:
                         "X-Title": "Autonomous B2B Agency"
                     }
                 )
+                return res, "openrouter", openrouter_model
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
                     logger.warning(f"[LLMClient] OpenRouter model '{openrouter_model}' returned 404. Falling back to heuristic engine...")
@@ -77,13 +88,22 @@ class LLMClient:
             except Exception as e:
                 logger.warning(f"[LLMClient] OpenRouter API call failed: {e}. Falling back to heuristic engine...")
 
-        # 4. Heuristic Fallback (deterministic reasoning)
-        return self._heuristic_text_fallback(prompt, system_prompt)
+        # 4. Heuristic Fallback (deterministic evidence-grounded reasoning)
+        fallback_text = self._heuristic_text_fallback(prompt, system_prompt)
+        return fallback_text, "fallback", "heuristic-evidence-v1"
+
+    async def generate_text(self, prompt: str, system_prompt: str = "", max_tokens: int = 1000) -> str:
+        """Generates text completion using the best available provider."""
+        text, _, _ = await self._generate_text_with_meta(prompt, system_prompt, max_tokens)
+        return text
 
     async def generate_json(self, prompt: str, system_prompt: str = "") -> Dict[str, Any]:
-        """Generates structured JSON output from LLM with strict error recovery."""
+        """
+        Generates structured JSON output from LLM with strict error recovery,
+        explicit provenance metadata, and zero fabricated commercial claims.
+        """
         enhanced_prompt = prompt + "\n\nRespond ONLY with valid JSON. No markdown code fences, no introductory or concluding text."
-        raw = await self.generate_text(enhanced_prompt, system_prompt=system_prompt)
+        raw, provider_used, model_used = await self._generate_text_with_meta(enhanced_prompt, system_prompt=system_prompt)
         
         # Clean potential markdown wrapping
         cleaned = raw.strip()
@@ -96,10 +116,20 @@ class LLMClient:
         cleaned = cleaned.strip()
 
         try:
-            return json.loads(cleaned)
-        except Exception:
-            # Fallback JSON parsing
-            return self._heuristic_json_fallback(prompt)
+            parsed = json.loads(cleaned)
+            if not isinstance(parsed, dict):
+                parsed = {"data": parsed}
+            is_fallback = (provider_used == "fallback")
+            parsed.setdefault("provider", provider_used)
+            parsed.setdefault("model", model_used)
+            parsed.setdefault("fallback", is_fallback)
+            parsed.setdefault("fallback_used", is_fallback)
+            parsed.setdefault("validation_result", "VALID")
+            parsed.setdefault("confidence", 0.50 if is_fallback else 0.90)
+            return parsed
+        except Exception as e:
+            logger.warning(f"[LLMClient] Failed to parse JSON from {provider_used} response: {e}. Returning safe fallback.")
+            return self._heuristic_json_fallback(prompt, malformed=True)
 
     async def _call_openai_compatible(
         self,
@@ -136,30 +166,47 @@ class LLMClient:
             return data["choices"][0]["message"]["content"]
 
     def _heuristic_text_fallback(self, prompt: str, system_prompt: str) -> str:
-        """Deterministic heuristic generator when external LLM endpoints are unreachable."""
+        """
+        Deterministic heuristic generator when external LLM endpoints are unreachable.
+        STRICT SAFETY INVARIANT:
+        Never invent ROI percentages, conversion improvements, testimonials,
+        previous-client claims, unsupported website findings, or decision-maker titles.
+        """
         lower = prompt.lower()
         if "outreach" in lower or "email" in lower:
+            # Strictly evidence-grounded fallback with zero fabricated claims
+            domain_match = re.search(r'(?:https?://)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})', prompt)
+            target_site = domain_match.group(0) if domain_match else "your website"
             return (
-                "Hi there,\n\n"
-                "I was reviewing your website and noticed your primary consultation CTA is missing above the fold "
-                "on mobile devices, and several key service pages lack local schema tags. In competitive local search, "
-                "fixing this typically captures 15-25% more direct inquiry volume.\n\n"
-                "We recently helped similar firms resolve this in under 5 business days with zero downtime.\n\n"
-                "Would you be open to a quick 5-minute video walkthrough showing exactly what we found?\n\n"
+                f"Hi there,\n\n"
+                f"I was reviewing {target_site} and noticed some technical areas on the site that may warrant attention.\n\n"
+                f"Would you be open to a brief summary of the specific findings from our diagnostic review?\n\n"
                 f"Best regards,\n{getattr(settings, 'OUTREACH_FROM_NAME', 'Agency Operations')}"
             )
         elif "classify" in lower or "reply" in lower:
             return "INTERESTED"
         elif "offer" in lower:
             return (
-                "Executive Web Optimization & Conversion Turnaround: Remediate mobile conversion blockers, "
-                "implement Core Web Vitals speed optimizations, and deploy local SEO schema markup."
+                "Technical Web Optimization Remediate Package: Factual remediation of verified audit findings, "
+                "addressing mobile performance bottlenecks and technical accessibility compliance."
             )
-        return "Analysis completed successfully based on deterministic heuristic evaluation."
+        return "Diagnostic review completed based on deterministic evidence evaluation."
 
-    def _heuristic_json_fallback(self, prompt: str) -> Dict[str, Any]:
-        """Provides rich structured fallback data tailored to domain prompts."""
+    def _heuristic_json_fallback(self, prompt: str, malformed: bool = True) -> Dict[str, Any]:
+        """
+        Provides structured, evidence-only fallback data with explicit provenance metadata.
+        STRICT SAFETY INVARIANT:
+        Never inject fake ROI percentages, testimonials, or unsupported claims.
+        """
         lower = prompt.lower()
+        metadata = {
+            "provider": "fallback",
+            "model": "heuristic-evidence-v1",
+            "fallback": True,
+            "fallback_used": True,
+            "validation_result": "MALFORMED_JSON" if malformed else "FALLBACK",
+            "confidence": 0.50,
+        }
         if "classify" in lower or "reply" in lower:
             # Extract reply text from prompt if possible
             reply_match = re.search(r'reply text:\s*"([^"]+)"', lower)
@@ -182,28 +229,36 @@ class LLMClient:
                 cat = "UNKNOWN"
                 conf = 0.50
 
-            return {
+            res = {
                 "classification": cat,
                 "confidence": conf,
                 "reasoning": f"Heuristic classification fallback: {cat}.",
                 "suggested_response": "Thank you for getting back to us. Let me follow up with the requested information."
             }
+            res.update(metadata)
+            res["confidence"] = conf
+            return res
         elif "offer" in lower:
-            return {
-                "service_name": "Full Conversion & Technical SEO Remediate Package",
+            res = {
+                "service_name": "Technical Web Optimization Remediate Package",
                 "price": 750.0,
-                "scope": "Mobile CTA overhaul, Core Web Vitals script deferral, WCAG contrast fixes, Local schema injection.",
+                "scope": "Factual remediation of verified audit findings.",
                 "estimated_hours": 14,
                 "deliverables": [
-                    "Mobile CTA above-fold placement",
-                    "Core Web Vitals LCP optimization",
-                    "Accessibility label compliance",
-                    "LocalBusiness structured data audit"
+                    "Technical audit remediation",
+                    "Core Web Vitals script optimization",
+                    "Accessibility compliance fixes",
+                    "Structured data markup"
                 ]
             }
-        return {
-            "status": "success",
-            "message": "Heuristic fallback evaluation completed"
+            res.update(metadata)
+            return res
+
+        res = {
+            "status": "fallback",
+            "message": "Heuristic fallback evaluation completed with no commercial claims."
         }
+        res.update(metadata)
+        return res
 
 llm_client = LLMClient()

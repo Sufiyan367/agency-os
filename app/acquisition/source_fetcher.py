@@ -1,6 +1,7 @@
 import time
 import hashlib
 import re
+import ssl
 from typing import Optional, Dict, Any, Tuple, List
 from urllib.parse import urlparse
 import httpx
@@ -134,7 +135,7 @@ class SafeSourceFetcher:
             final_resp = None
             redirect_count = 0
 
-            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, verify=False) as client:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, verify=True) as client:
                 while redirect_count <= MAX_REDIRECTS:
                     resp = await client.get(current_url, headers=req_headers)
                     if resp.is_redirect and "location" in resp.headers:
@@ -241,6 +242,19 @@ class SafeSourceFetcher:
                 error_message=None if is_success else f"HTTP Status {status_code}"
             )
 
+        except (ssl.SSLCertVerificationError, ssl.SSLError) as ssl_err:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            logger.info(f"[SafeSourceFetcher] TLS certificate verification failed for {current_url}: {ssl_err}")
+            return FetchedSourceResult(
+                source_url=clean_url,
+                final_url=current_url,
+                source_domain=normalize_domain(current_url),
+                http_status=526,
+                is_success=False,
+                retrieved_at=now,
+                load_time_ms=round(elapsed_ms, 2),
+                error_message="SSL/TLS Certificate Verification Failed"
+            )
         except httpx.TimeoutException:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             return FetchedSourceResult(
@@ -255,6 +269,18 @@ class SafeSourceFetcher:
             )
         except Exception as e:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            err_str = str(e).lower()
+            if "certificate verify failed" in err_str or "sslcertaverificationerror" in err_str or ("ssl" in err_str and "verify" in err_str):
+                return FetchedSourceResult(
+                    source_url=clean_url,
+                    final_url=current_url,
+                    source_domain=normalize_domain(current_url),
+                    http_status=526,
+                    is_success=False,
+                    retrieved_at=now,
+                    load_time_ms=round(elapsed_ms, 2),
+                    error_message="SSL/TLS Certificate Verification Failed"
+                )
             return FetchedSourceResult(
                 source_url=clean_url,
                 final_url=clean_url,
