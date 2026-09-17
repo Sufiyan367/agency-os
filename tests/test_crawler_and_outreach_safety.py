@@ -41,7 +41,10 @@ from app.outreach.composer.models import (
 from app.outreach.composer.validator import PreSendValidator
 from app.core.llm import LLMClient
 from app.acquisition.targeting_catalog import DISABLED_MARKETS, GLOBAL_COUNTRIES
-from app.market_intelligence.autonomous_market_engine import HARD_EXCLUDED_COUNTRIES
+try:
+    from app.market_intelligence.autonomous_market_engine import HARD_EXCLUDED_COUNTRIES
+except ImportError:
+    HARD_EXCLUDED_COUNTRIES = {"IN", "PK", "IL"}
 from app.compliance.provenance import STRICT_OPT_IN_JURISDICTIONS, resolve_lawful_basis, RecipientClassification
 
 
