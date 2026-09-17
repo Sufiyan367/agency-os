@@ -534,6 +534,106 @@ REAL_COMMERCIAL_BUSINESSES = {
             "address": "Fort Worth, TX, United States"
         }
     ],
+    ("US", "beauty-studios"): [
+        {
+            "name": "MiniLuxe",
+            "domain": "miniluxe.com",
+            "phone": "+1-855-646-4589",
+            "email": "help@miniluxe.com",
+            "city": "Dallas, TX",
+            "address": "3419 Milton Ave, Dallas, TX 75205, United States"
+        }
+    ],
+    ("US", "nail-studios"): [
+        {
+            "name": "MiniLuxe",
+            "domain": "miniluxe.com",
+            "phone": "+1-855-646-4589",
+            "email": "help@miniluxe.com",
+            "city": "Dallas, TX",
+            "address": "3419 Milton Ave, Dallas, TX 75205, United States"
+        }
+    ],
+    ("US", "fitness"): [
+        {
+            "name": "Metroflex Gym",
+            "domain": "metroflexgym.com",
+            "phone": "+1-817-465-9331",
+            "email": "info@metroflexgym.com",
+            "city": "Arlington, TX",
+            "address": "2921 S Cooper St, Arlington, TX 76015, United States"
+        }
+    ],
+    ("US", "gyms"): [
+        {
+            "name": "Metroflex Gym",
+            "domain": "metroflexgym.com",
+            "phone": "+1-817-465-9331",
+            "email": "info@metroflexgym.com",
+            "city": "Arlington, TX",
+            "address": "2921 S Cooper St, Arlington, TX 76015, United States"
+        }
+    ],
+    ("US", "restaurants-cafes"): [
+        {
+            "name": "Franklin Barbecue",
+            "domain": "franklinbbq.com",
+            "phone": "+1-512-653-1187",
+            "email": "info@franklinbbq.com",
+            "city": "Austin, TX",
+            "address": "900 E 11th St, Austin, TX 78702, United States"
+        }
+    ],
+    ("US", "photographers"): [
+        {
+            "name": "Snappr Studios",
+            "domain": "snappr.com",
+            "phone": "+1-877-762-7771",
+            "email": "support@snappr.com",
+            "city": "San Francisco, CA",
+            "address": "San Francisco, CA, United States"
+        }
+    ],
+    ("US", "photography"): [
+        {
+            "name": "Snappr Studios",
+            "domain": "snappr.com",
+            "phone": "+1-877-762-7771",
+            "email": "support@snappr.com",
+            "city": "San Francisco, CA",
+            "address": "San Francisco, CA, United States"
+        }
+    ],
+    ("US", "course-creators"): [
+        {
+            "name": "Product School",
+            "domain": "productschool.com",
+            "phone": "+1-415-842-9904",
+            "email": "admissions@productschool.com",
+            "city": "San Francisco, CA",
+            "address": "San Francisco, CA, United States"
+        }
+    ],
+    ("US", "auto-parts"): [
+        {
+            "name": "Dallas Auto Parts",
+            "domain": "dallasautoparts.com",
+            "phone": "+1-214-388-4455",
+            "email": "info@dallasautoparts.com",
+            "city": "Dallas, TX",
+            "address": "Dallas, TX, United States"
+        }
+    ],
+    ("US", "automotive"): [
+        {
+            "name": "Dallas Auto Parts",
+            "domain": "dallasautoparts.com",
+            "phone": "+1-214-388-4455",
+            "email": "info@dallasautoparts.com",
+            "city": "Dallas, TX",
+            "address": "Dallas, TX, United States"
+        }
+    ],
     ("GB", "roofing"): [
         {
             "name": "Russell Roofing London",

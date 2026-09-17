@@ -140,7 +140,15 @@ NICHE_SEARCH_MAP = {
     "real-estate": "real estate agency brokerage",
     "property-services": "property management services",
     "salons-barbers": "hair salon barbershop",
+    "beauty-studios": "nail salon beauty studio",
+    "nail-studios": "nail studio beauty salon",
+    "fitness": "fitness gym wellness club",
+    "gyms": "fitness gym wellness club",
     "automotive": "auto repair garage car service",
+    "auto-parts": "auto parts supply accessories",
+    "photographers": "commercial photography videography studio",
+    "photography": "photographer photography studio",
+    "course-creators": "coaching academy training course expert",
     "hotels": "boutique hotel hospitality resort",
     "local-retail": "retail boutique store shop"
 }
@@ -210,6 +218,18 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
             candidate_slugs.extend(["plumbing", "plumbing-services"])
         elif "law" in n_slug or "legal" in n_slug:
             candidate_slugs.extend(["commercial-law", "commercial-lawyers", "professional-services"])
+        elif "beauty" in n_slug or "nail" in n_slug or "salon" in n_slug:
+            candidate_slugs.extend(["salons-barbers", "beauty-studios", "nail-studios"])
+        elif "fit" in n_slug or "gym" in n_slug:
+            candidate_slugs.extend(["fitness", "gyms"])
+        elif "rest" in n_slug or "cafe" in n_slug:
+            candidate_slugs.extend(["restaurants-cafes"])
+        elif "auto" in n_slug:
+            candidate_slugs.extend(["automotive", "auto-parts"])
+        elif "photo" in n_slug or "video" in n_slug:
+            candidate_slugs.extend(["photographers", "photography", "professional-services"])
+        elif "course" in n_slug or "expert" in n_slug or "coach" in n_slug:
+            candidate_slugs.extend(["course-creators", "professional-services"])
 
         registry_matches = []
         for s in candidate_slugs:
