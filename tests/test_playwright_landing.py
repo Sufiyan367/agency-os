@@ -7,6 +7,7 @@ import time
 import threading
 import pytest
 import uvicorn
+pytest.importorskip("playwright")
 from playwright.sync_api import sync_playwright
 
 from app.api.app import app
