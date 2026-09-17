@@ -6,7 +6,8 @@ from sqlalchemy import select, func, and_
 
 from app.database.models import (
     OutreachMessage, OutreachStatus, Business, Offer,
-    SuppressionList, PipelineEvent, PipelineStage, Contact
+    SuppressionList, PipelineEvent, PipelineStage, Contact,
+    AuditRun
 )
 from app.core.config import settings
 from app.core.logging import logger
@@ -345,8 +346,12 @@ class DeterministicAutoApprovalEngine:
 
         # 18. Jurisdiction Provenance & Lawful Basis Tracking
         audit_summary = None
-        if biz and getattr(biz, "audits", None) and len(biz.audits) > 0:
-            audit_summary = biz.audits[0].summary
+        if biz:
+            if hasattr(biz, "__dict__") and biz.__dict__.get("audits"):
+                audit_summary = getattr(biz.__dict__["audits"][0], "summary", None)
+            else:
+                a_stmt = select(AuditRun.summary).where(AuditRun.business_id == biz.id).limit(1)
+                audit_summary = (await session.execute(a_stmt)).scalar_one_or_none()
 
         provenance = build_jurisdiction_provenance(
             country_code=country_code,
@@ -669,8 +674,12 @@ class DeterministicAutoApprovalEngine:
 
         # 17. Jurisdiction Provenance & Lawful Basis Tracking
         audit_summary = None
-        if biz and hasattr(biz, "__dict__") and biz.__dict__.get("audits"):
-            audit_summary = biz.__dict__["audits"][0].summary
+        if biz:
+            if hasattr(biz, "__dict__") and biz.__dict__.get("audits"):
+                audit_summary = getattr(biz.__dict__["audits"][0], "summary", None)
+            else:
+                a_stmt = select(AuditRun.summary).where(AuditRun.business_id == biz.id).limit(1)
+                audit_summary = (await session.execute(a_stmt)).scalar_one_or_none()
 
         provenance = build_jurisdiction_provenance(
             country_code=country_code,

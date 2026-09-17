@@ -258,8 +258,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
 
         # Source 2: If more candidates needed, query OpenStreetMap Public Business Index
         if len(candidates) < limit:
-            osm_headers = {"User-Agent": "AgencyB2BResearch/2.0 (contact@agencygrowth.co)"}
-            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True, verify=True) as client:
+            osm_headers = {"User-Agent": "AgencyB2BResearch/2.0 (contact@automatedagencyos.tech)"}
+            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, verify=True) as client:
                 query_terms = [search_term]
                 # Also try first 2 words if search_term has 3+ words (e.g. 'real estate agency brokerage' -> 'real estate')
                 words = search_term.split()
@@ -269,9 +269,11 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 osm_rate_limited = False
                 osm_cc = "gb" if country_norm in ("UK", "GB") else country_norm.lower()
                 for city in cities:
-                    if len(candidates) >= limit * 3 or osm_rate_limited:
+                    if len(candidates) >= limit or osm_rate_limited:
                         break
                     for q_term in query_terms:
+                        if len(candidates) >= limit:
+                            break
                         query = f"{city} {q_term}"
                         url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&countrycodes={osm_cc}&format=json&extratags=1&limit=10"
                         try:
@@ -280,6 +282,8 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                                 logger.info("Nominatim rate limit (429) reached. Fast-failing OSM search.")
                                 osm_rate_limited = True
                                 break
+                            # Respect Nominatim 1 req/sec policy
+                            await asyncio.sleep(1.0)
                             if r.status_code == 200:
                                 for item in r.json():
                                     tags = item.get("extratags") or {}
