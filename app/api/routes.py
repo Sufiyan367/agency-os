@@ -3527,7 +3527,7 @@ async def get_kpi_drilldown_details(
         from app.analytics.truth_engine import classify_payment_provenance
         valid_pay_statuses = [
             "PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING",
-            "PAYMENT_PENDING_VERIFICATION", "PAYMENT_REQUESTED"
+            "PAYMENT_PENDING_VERIFICATION", "PAYMENT_REQUESTED", "PAYMENT_REVIEW_REQUIRED"
         ]
         q_base = select(Payment, Business).outerjoin(Business, Payment.business_id == Business.id).where(
             Payment.status.in_(valid_pay_statuses)
@@ -6414,6 +6414,16 @@ async def submit_payment_reference_endpoint(
     clean_ref = (req.payment_reference or "").strip()
     if len(clean_ref) < 3:
         raise HTTPException(status_code=400, detail="A valid bank UTR or transaction reference is required (min 3 characters).")
+
+    # Check for duplicate confirmed reference across other payments
+    q_dup = select(Payment).where(
+        Payment.id != pmt.id,
+        Payment.status.in_(confirmed_statuses),
+        (Payment.gpay_reference == clean_ref) | (Payment.reference_id == clean_ref) | (Payment.razorpay_payment_id == clean_ref)
+    )
+    dup = (await db.execute(q_dup)).scalars().first()
+    if dup:
+        raise HTTPException(status_code=400, detail=f"Transaction reference '{clean_ref}' is already associated with another confirmed payment.")
 
     now = datetime.utcnow()
     pmt.status = "PAYMENT_REVIEW_REQUIRED"

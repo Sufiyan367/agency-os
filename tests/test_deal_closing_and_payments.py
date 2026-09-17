@@ -321,9 +321,13 @@ async def test_human_takeover_blocks_automated_actions():
     """Verifies that an active human takeover flag preserves safety and halts automated actions."""
     async with AsyncSessionLocal() as session:
         biz = await create_test_business(session, "Takeover Safety Co")
+        from app.models.entities import LocalBusiness
+        lb = LocalBusiness(name="Takeover Safety Co", domain=biz.domain, niche="HVAC")
+        session.add(lb)
+        await session.flush()
 
         lead = LocalLead(
-            business_id=biz.id,
+            business_id=lb.id,
             contact_email="owner@takeover.com",
             status=LeadStatus.HUMAN_TAKEOVER.value,
             human_takeover=True,

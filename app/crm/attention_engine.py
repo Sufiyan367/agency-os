@@ -85,6 +85,35 @@ class AttentionEngine:
                 "timestamp": p.created_at.isoformat() if p.created_at else None
             })
 
+        # Pending & Review-Required Payments (Requires Human Operator Action)
+        q_pay_action = select(Payment).where(
+            Payment.status.in_(["PAYMENT_REVIEW_REQUIRED", "PAYMENT_PENDING", "PENDING", "PAYMENT_REQUESTED"])
+        ).order_by(Payment.created_at.desc())
+        action_payments = (await session.execute(q_pay_action)).scalars().all()
+        for p in action_payments:
+            biz = await session.get(Business, p.business_id) if p.business_id else None
+            is_review = p.status == "PAYMENT_REVIEW_REQUIRED"
+            title = f"Payment action required: Verify remittance for {biz.name if biz else 'Client'}" if is_review else f"Payment action required: Awaiting payment for {biz.name if biz else 'Client'}"
+            desc = (
+                f"Customer submitted transaction reference '{p.gpay_reference or p.reference_id}'. Operator bank ledger verification required to confirm ${float(p.amount):,.2f} USD and unlock production."
+                if is_review
+                else f"Payment instruction #{p.id} (${float(p.amount):,.2f} USD) pending customer remittance / transaction reference submission."
+            )
+            high_items.append({
+                "id": f"pay-action-{p.id}",
+                "type": "PAYMENT_ACTION_REQUIRED",
+                "priority": "HIGH",
+                "severity": "WARNING",
+                "title": title,
+                "description": desc,
+                "business_id": p.business_id,
+                "domain": biz.domain if biz else "",
+                "deal_value": float(p.amount),
+                "action_view": "payments",
+                "action_label": "Verify Payment" if is_review else "View Payment Instructions",
+                "timestamp": p.created_at.isoformat() if p.created_at else None
+            })
+
         q_pay_won = select(Payment).where(
             Payment.status == "COMPLETED"
         ).order_by(Payment.created_at.desc()).limit(5)

@@ -78,6 +78,7 @@ app/
 7. **Canonical 5-Point Qualification Invariant**: Leads qualify ONLY when satisfying ALL five requirements simultaneously: (1) verified business data integrity (`verification_status == 'VERIFIED'`), (2) `LeadScore.total_score >= 55.0`, (3) completed empirical audit (`overall_health_score > 0`, findings recorded, no failure/insufficient status), (4) compliance passed (non-prohibited jurisdiction, absent from suppression list, zero compliance failure flags), and (5) authentic commercial origin (non-synthetic provenance).
 8. **Niche Slug Normalization**: Canonical slug resolution and alias indexing across international targeting catalogs prevent taxonomy fragmentation and ensure consistent ICP scoring.
 9. **Sent Outreach History Preservation**: Historical outreach messages are permanently preserved in persistence with immutable classification (`REAL_EXTERNAL`, `CANARY`, `HISTORICAL_DEV`, `TEST`), ensuring complete auditability without contaminating active pipeline counts.
+10. **Revenue Conversion & Payment Verification Hardening**: Strict commercial minimum deal floor ($500.00) and mandatory 40% advance deposit requirement. Rejects underpayment, duplicate transaction references (UTR/remittance IDs), and untrusted verification sources (customer chat claims, screenshots, AI inferences). Production build and delivery unlock ONLY after verified payment confirmation, with zero revenue recognized until external settlement.
 
 ---
 

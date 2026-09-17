@@ -173,8 +173,14 @@ class PaymentWorkflowManager:
         provider = get_payment_provider(effective_provider)
 
         pay_amount = float(amount_usd or prop.advance_required or prop.total_value or 1000.0)
-        if pay_amount < float(getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0)):
-            raise ValueError(f"Payment amount ${pay_amount:,.2f} is below $500 commercial floor.")
+        total_val = float(prop.total_value or pay_amount)
+        comm_floor = float(getattr(settings, "COMMERCIAL_FLOOR_USD", 500.0))
+        if total_val < comm_floor:
+            raise ValueError(f"Proposal total value ${total_val:,.2f} is below ${comm_floor:,.2f} commercial floor.")
+
+        min_adv = round(total_val * 0.40, 2)
+        if pay_amount < total_val and pay_amount < min_adv:
+            raise ValueError(f"Payment amount ${pay_amount:,.2f} is below 40% minimum advance (${min_adv:,.2f}).")
 
         # Ensure Customer exists
         c_stmt = select(Customer).where(Customer.business_id == biz.id)
@@ -292,6 +298,18 @@ class PaymentWorkflowManager:
 
         if amount_received < float(payment.amount):
             raise ValueError(f"Underpayment: Received ${amount_received:,.2f} but expected ${payment.amount:,.2f}.")
+
+        # Check duplicate reference across confirmed payments
+        clean_ref = transaction_reference.strip()
+        confirmed_statuses = ("VERIFIED_PAYMENT", "PAID", "PAYMENT_CONFIRMED", "COMPLETED", "SETTLED", "DELIVERY_UNLOCKED")
+        q_dup = select(Payment).where(
+            Payment.id != payment.id,
+            Payment.status.in_(confirmed_statuses),
+            (Payment.gpay_reference == clean_ref) | (Payment.reference_id == clean_ref) | (Payment.razorpay_payment_id == clean_ref)
+        )
+        dup = (await session.execute(q_dup)).scalars().first()
+        if dup:
+            raise ValueError(f"Duplicate transaction reference rejected: Reference '{clean_ref}' is already associated with confirmed Payment #{dup.id}.")
 
         # Update Payment Record to VERIFIED_PAYMENT
         payment.status = "VERIFIED_PAYMENT"

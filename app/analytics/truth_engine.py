@@ -524,7 +524,7 @@ async def get_canonical_production_truth(session: AsyncSession) -> Dict[str, Any
         biz = pay_biz_map.get(py.business_id)
         if classify_payment_provenance(py, biz) == "REAL_CUSTOMER":
             st = (py.status or "").upper()
-            if st in ("PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"):
+            if st in ("PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION", "PAYMENT_REVIEW_REQUIRED"):
                 real_payments_pending += 1
             elif st in ("PAID", "COMPLETED", "SETTLED", "PAYMENT_CONFIRMED", "VERIFIED_PAYMENT"):
                 real_payments_confirmed += 1

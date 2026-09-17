@@ -51,6 +51,12 @@ class DealClosingService:
                 f"${min_threshold:,.2f}+ commercial qualification requirement."
             )
 
+        min_advance = round(total_value * 0.40, 2)
+        if advance_required < min_advance:
+            raise ValueError(
+                f"Required advance (${advance_required:,.2f}) is below the minimum 40% commercial advance requirement (${min_advance:,.2f})."
+            )
+
         if advance_required > total_value or advance_required <= 0:
             raise ValueError(
                 f"Required advance (${advance_required:,.2f}) must be positive and cannot exceed total value (${total_value:,.2f})."
@@ -570,6 +576,17 @@ class DealClosingService:
 
         if confirmed_amount < expected_amount:
             raise ValueError(f"Underpayment rejected: Received ${confirmed_amount:,.2f} but required ${expected_amount:,.2f}.")
+
+        # Duplicate Reference Check across other confirmed payments
+        confirmed_statuses = ("PAYMENT_CONFIRMED", "PAID", "VERIFIED_PAYMENT", "DELIVERY_UNLOCKED", "COMPLETED", "SETTLED")
+        q_dup = select(Payment).where(
+            Payment.id != pmt.id,
+            Payment.status.in_(confirmed_statuses),
+            (Payment.gpay_reference == ref_clean) | (Payment.reference_id == ref_clean) | (Payment.razorpay_payment_id == ref_clean)
+        )
+        dup_pmt = (await session.execute(q_dup)).scalars().first()
+        if dup_pmt:
+            raise ValueError(f"Duplicate payment reference rejected: Reference '{ref_clean}' is already associated with confirmed Payment #{dup_pmt.id}.")
 
         # 3. Transition Payment Record
         now = datetime.utcnow()
