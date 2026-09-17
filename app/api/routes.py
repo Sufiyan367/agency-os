@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Request, Header, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, or_
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import os
 import re
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.database.connection import get_db
 from app.database.models import (
@@ -589,10 +589,14 @@ async def list_leads(
     priority: Optional[str] = None,
     country: Optional[str] = None,
     search: Optional[str] = None,
-    limit: int = 50,
+    include_test: bool = False,
+    limit: int = 500,
     db: AsyncSession = Depends(get_db)
 ):
+    from app.core.safety_filters import get_synthetic_business_filter_clauses
     q = select(Business).order_by(desc(Business.id))
+    if not include_test:
+        q = q.where(*get_synthetic_business_filter_clauses(Business))
     if stage:
         q = q.where(Business.pipeline_stage == stage)
     if country:
@@ -1120,11 +1124,19 @@ async def trigger_ml_training(db: AsyncSession = Depends(get_db)):
 
 # Outreach Queue
 @router.get("/api/queue")
-async def get_outreach_queue(db: AsyncSession = Depends(get_db)):
+async def get_outreach_queue(
+    include_test: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.core.safety_filters import is_test_or_synthetic
     msgs = await outreach_approval_queue.list_pending(db)
     items = []
     for m in msgs:
         biz = await db.get(Business, m.business_id)
+        if not include_test and (
+            is_test_or_synthetic(domain=biz.domain if biz else None, email=m.recipient_email, name=biz.name if biz else None)
+        ):
+            continue
         offer = await db.get(Offer, m.offer_id) if m.offer_id else None
         items.append({
             "message_id": m.id,
@@ -1149,6 +1161,369 @@ async def get_outreach_queue(db: AsyncSession = Depends(get_db)):
 async def get_outreach_delivery_metrics(db: AsyncSession = Depends(get_db)):
     from app.outreach.delivery_service import outreach_delivery_service
     return await outreach_delivery_service.get_outreach_metrics(db)
+
+def classify_outreach_record(msg: Any, biz: Any = None) -> str:
+    """Classifies outreach message into REAL_EXTERNAL, CANARY, TEST, or HISTORICAL."""
+    from app.core.safety_filters import is_test_or_synthetic
+    recipient = (getattr(msg, "recipient_email", None) or "").lower().strip()
+    provider = (getattr(msg, "provider", None) or "").lower().strip()
+
+    if any(k in recipient for k in ("automatedagencyos.tech", "agencyos.tech", "classicshot.7@gmail.com", "sufiyansurve", "arttest@")):
+        return "CANARY"
+
+    biz_domain = getattr(biz, "domain", None) if biz else None
+    biz_name = getattr(biz, "name", None) if biz else None
+    if is_test_or_synthetic(domain=biz_domain, email=recipient, name=biz_name):
+        return "TEST"
+    if provider in ("mock", "dry_run", "test"):
+        return "TEST"
+
+    sent_at = getattr(msg, "sent_at", None)
+    created_at = getattr(msg, "created_at", None)
+    ref_time = sent_at or created_at
+    if not provider or (ref_time and ref_time < datetime(2026, 9, 15, 0, 0, 0)):
+        return "HISTORICAL"
+
+    return "REAL_EXTERNAL"
+
+@router.get("/api/outreach/sent")
+async def get_sent_outreach_history(
+    category: str = Query("real_external", description="Category filter: real_external, canary, historical_test, all"),
+    search: Optional[str] = Query(None, description="Search term across business, domain, recipient, location, niche"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    user_info: Dict[str, str] = Depends(get_current_user_info),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Canonical Sent Outreach History.
+    Queries OutreachMessage records with status SENT or MOCKED_SENT, joins business and offer,
+    provides deterministic classification, search, and pagination.
+    """
+    from app.database.models import OutreachMessage, OutreachStatus, Business, Offer, Reply, FollowupSequence
+    from sqlalchemy.orm import selectinload
+
+    q = (
+        select(OutreachMessage)
+        .options(
+            selectinload(OutreachMessage.business),
+            selectinload(OutreachMessage.offer),
+            selectinload(OutreachMessage.followups)
+        )
+        .where(OutreachMessage.status.in_([OutreachStatus.SENT.value, "MOCKED_SENT"]))
+        .order_by(desc(OutreachMessage.sent_at), desc(OutreachMessage.id))
+    )
+    all_sent = (await db.execute(q)).scalars().all()
+
+    # Pre-fetch replies mapped by outreach_message_id and business_id
+    q_rep = select(Reply).order_by(desc(Reply.received_at))
+    all_replies = (await db.execute(q_rep)).scalars().all()
+    replies_by_msg = {}
+    replies_by_biz = {}
+    for r in all_replies:
+        if r.outreach_message_id and r.outreach_message_id not in replies_by_msg:
+            replies_by_msg[r.outreach_message_id] = r
+        if r.business_id and r.business_id not in replies_by_biz:
+            replies_by_biz[r.business_id] = r
+
+    counts = {
+        "all": len(all_sent),
+        "real_external": 0,
+        "canary": 0,
+        "historical_test": 0
+    }
+
+    classified_items = []
+    for m in all_sent:
+        biz = m.business
+        offer = m.offer
+        rec_type = classify_outreach_record(m, biz)
+
+        if rec_type == "REAL_EXTERNAL":
+            counts["real_external"] += 1
+        elif rec_type == "CANARY":
+            counts["canary"] += 1
+        else:
+            counts["historical_test"] += 1
+
+        reply = replies_by_msg.get(m.id) or replies_by_biz.get(m.business_id)
+
+        fu_status = "NONE"
+        if m.followups:
+            sorted_fus = sorted(m.followups, key=lambda f: f.created_at, reverse=True)
+            fu_status = sorted_fus[0].status
+
+        classified_items.append({
+            "message_id": m.id,
+            "business_id": m.business_id,
+            "business_name": biz.name if biz else "Unknown Business",
+            "domain": biz.domain if biz else "",
+            "recipient": m.recipient_email,
+            "subject": m.subject,
+            "body_snippet": (m.body[:220] + "...") if m.body and len(m.body) > 220 else (m.body or ""),
+            "sent_at": m.sent_at.isoformat() if m.sent_at else (m.created_at.isoformat() if m.created_at else None),
+            "provider": m.provider or "legacy_dev",
+            "provider_message_id": m.provider_message_id,
+            "market": {
+                "country": biz.country if biz else "",
+                "region": getattr(biz, "administrative_region", "") or "",
+                "city": biz.city if biz else "",
+                "niche": biz.niche if biz else ""
+            },
+            "offer": {
+                "id": m.offer_id,
+                "title": offer.title if offer else "Website Turnaround",
+                "price": float(offer.recommended_price) if offer and offer.recommended_price else 650.0
+            },
+            "current_crm_stage": biz.pipeline_stage if biz else "UNKNOWN",
+            "delivery_state": m.status,
+            "record_type": rec_type,
+            "has_reply": bool(reply),
+            "reply_status": reply.classification if reply else None,
+            "reply_received_at": reply.received_at.isoformat() if reply and reply.received_at else None,
+            "followup_status": fu_status
+        })
+
+    cat_lower = (category or "real_external").lower()
+    if cat_lower == "real_external":
+        filtered = [x for x in classified_items if x["record_type"] == "REAL_EXTERNAL"]
+    elif cat_lower == "canary":
+        filtered = [x for x in classified_items if x["record_type"] == "CANARY"]
+    elif cat_lower == "historical_test":
+        filtered = [x for x in classified_items if x["record_type"] in ("HISTORICAL", "TEST")]
+    else:
+        filtered = classified_items
+
+    if search and search.strip():
+        s = search.strip().lower()
+        filtered = [
+            x for x in filtered
+            if s in x["business_name"].lower()
+            or s in x["domain"].lower()
+            or s in x["recipient"].lower()
+            or s in x["subject"].lower()
+            or s in x["market"]["country"].lower()
+            or s in x["market"]["city"].lower()
+            or s in x["market"]["niche"].lower()
+        ]
+
+    total_matching = len(filtered)
+    total_pages = max(1, (total_matching + page_size - 1) // page_size)
+    page = min(page, total_pages) if total_matching > 0 else 1
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    page_items = filtered[start_idx:end_idx]
+
+    return {
+        "total_matching": total_matching,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+        "category_counts": counts,
+        "items": page_items
+    }
+
+@router.get("/api/outreach/sent/{message_id}")
+async def get_sent_outreach_detail(
+    message_id: int,
+    user_info: Dict[str, str] = Depends(get_current_user_info),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns complete inspector-level details for a specific sent outreach record."""
+    from app.database.models import OutreachMessage, Business, Offer, Reply, FollowupSequence
+    from sqlalchemy.orm import selectinload
+
+    q = (
+        select(OutreachMessage)
+        .options(
+            selectinload(OutreachMessage.business),
+            selectinload(OutreachMessage.offer),
+            selectinload(OutreachMessage.events),
+            selectinload(OutreachMessage.followups)
+        )
+        .where(OutreachMessage.id == message_id)
+    )
+    msg = (await db.execute(q)).scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail=f"OutreachMessage #{message_id} not found")
+
+    biz = msg.business
+    offer = msg.offer
+    rec_type = classify_outreach_record(msg, biz)
+
+    q_rep = select(Reply).where(
+        or_(Reply.outreach_message_id == msg.id, Reply.business_id == msg.business_id)
+    ).order_by(desc(Reply.received_at))
+    reply = (await db.execute(q_rep)).scalars().first()
+
+    followups_data = []
+    for f in msg.followups:
+        followups_data.append({
+            "id": f.id,
+            "step_number": f.step_number,
+            "scheduled_for": f.scheduled_for.isoformat() if f.scheduled_for else None,
+            "status": f.status,
+            "sent_at": f.sent_at.isoformat() if f.sent_at else None,
+            "subject": f.subject
+        })
+
+    events_data = []
+    for ev in msg.events:
+        events_data.append({
+            "id": ev.id,
+            "event_type": ev.event_type,
+            "created_at": ev.created_at.isoformat() if ev.created_at else None,
+            "details": ev.details
+        })
+
+    return {
+        "message_id": msg.id,
+        "business_id": msg.business_id,
+        "business_name": biz.name if biz else "Unknown Business",
+        "domain": biz.domain if biz else "",
+        "website_url": getattr(biz, "website_url", "") if biz else "",
+        "recipient": msg.recipient_email,
+        "subject": msg.subject,
+        "body": msg.body,
+        "variant_name": msg.variant_name,
+        "sent_at": msg.sent_at.isoformat() if msg.sent_at else (msg.created_at.isoformat() if msg.created_at else None),
+        "approved_at": msg.approved_at.isoformat() if msg.approved_at else None,
+        "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        "provider": msg.provider or "legacy_dev",
+        "provider_message_id": msg.provider_message_id,
+        "reply_to": msg.reply_to,
+        "actor_type": msg.actor_type,
+        "confidence": msg.confidence,
+        "compliance_notes": msg.compliance_notes,
+        "market": {
+            "country": biz.country if biz else "",
+            "region": getattr(biz, "administrative_region", "") or "",
+            "city": biz.city if biz else "",
+            "niche": biz.niche if biz else ""
+        },
+        "offer": {
+            "id": msg.offer_id,
+            "title": offer.title if offer else "Website Turnaround",
+            "price": float(offer.recommended_price) if offer and offer.recommended_price else 650.0
+        },
+        "current_crm_stage": biz.pipeline_stage if biz else "UNKNOWN",
+        "delivery_state": msg.status,
+        "record_type": rec_type,
+        "reply": {
+            "id": reply.id,
+            "sender_email": reply.sender_email,
+            "classification": reply.classification,
+            "received_at": reply.received_at.isoformat() if reply.received_at else None,
+            "is_handled": reply.is_handled,
+            "snippet": reply.raw_body[:200] if reply.raw_body else ""
+        } if reply else None,
+        "followups": followups_data,
+        "events": events_data
+    }
+
+
+@router.get("/api/dashboard/state")
+async def get_canonical_dashboard_state(
+    include_test: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Single Source of Truth: Canonical Unified Dashboard State Snapshot.
+    Returns an atomic, transaction-consistent snapshot of the entire agency operating state:
+    - delivery_metrics: Outreach metrics (pending, approved, sent, failed, replies, takeovers, provider, dry-run)
+    - pipeline_summary: Count of leads in each canonical pipeline stage (synthetic excluded by default)
+    - queue_summary: Count and list of pending outreach queue messages (synthetic excluded by default)
+    - unhandled_replies_count: Count of active unhandled customer replies (synthetic excluded by default)
+    - system_status: Health and safety status (dry-run, kill switch, active provider, server timestamp)
+    """
+    from datetime import datetime
+    from app.core.config import settings
+    from app.outreach.delivery_service import outreach_delivery_service
+    from app.core.safety_filters import (
+        get_synthetic_business_filter_clauses,
+        get_synthetic_reply_filter_clauses,
+        is_test_or_synthetic
+    )
+    from app.agents.revenue_agent import revenue_agent_orchestrator
+
+    # 1. Canonical Delivery Metrics
+    delivery_metrics = await outreach_delivery_service.get_outreach_metrics(db)
+
+    # 2. Canonical Pipeline Stage Counts
+    biz_filters = get_synthetic_business_filter_clauses(Business) if not include_test else []
+    pipeline_q = (
+        select(Business.pipeline_stage, func.count(Business.id))
+        .where(*biz_filters)
+        .group_by(Business.pipeline_stage)
+    )
+    pipeline_rows = (await db.execute(pipeline_q)).all()
+    pipeline_summary = {row[0]: row[1] for row in pipeline_rows if row[0]}
+
+    for stage_name in [
+        "DISCOVERED", "VERIFIED", "AUDITED", "QUALIFIED", "OUTREACH_READY",
+        "APPROVAL", "CONTACTED", "REPLIED", "QUALIFIED_REPLY", "CALL",
+        "MEETING", "PROPOSAL", "PAYMENT_REQUESTED", "ADVANCE_PAID",
+        "IN_DELIVERY", "COMPLETED", "BALANCE_PAID", "WON", "LOST", "REJECTED"
+    ]:
+        if stage_name not in pipeline_summary:
+            pipeline_summary[stage_name] = 0
+
+    # 3. Canonical Queue Summary
+    raw_pending = await outreach_approval_queue.list_pending(db)
+    queue_items = []
+    for m in raw_pending:
+        biz = await db.get(Business, m.business_id)
+        if not include_test and (
+            is_test_or_synthetic(domain=biz.domain if biz else None, email=m.recipient_email, name=biz.name if biz else None)
+        ):
+            continue
+        offer = await db.get(Offer, m.offer_id) if m.offer_id else None
+        queue_items.append({
+            "message_id": m.id,
+            "business_id": m.business_id,
+            "business_name": biz.name if biz else "Unknown",
+            "domain": biz.domain if biz else "",
+            "country": biz.country if biz else "",
+            "niche": biz.niche if biz else "",
+            "recipient_email": m.recipient_email,
+            "subject": m.subject,
+            "body": m.body,
+            "variant": m.variant_name,
+            "status": m.status,
+            "confidence": m.confidence,
+            "recommended_service": offer.title if offer else "Website Turnaround",
+            "recommended_price": offer.recommended_price if offer else 650.0,
+            "lead_score": biz.lead_score.total_score if biz and biz.lead_score else 75.0
+        })
+
+    # 4. Canonical Unhandled Replies Count
+    rep_filters = get_synthetic_reply_filter_clauses(Reply) if not include_test else []
+    unhandled_q = select(func.count(Reply.id)).where(Reply.is_handled == False, *rep_filters)
+    unhandled_replies_count = (await db.execute(unhandled_q)).scalar() or 0
+
+    # 5. System & Transport Status
+    agent_status_dict = revenue_agent_orchestrator.get_status()
+    system_status = {
+        "active_provider": outreach_delivery_service.provider.__class__.__name__,
+        "dry_run_enabled": bool(settings.EMAIL_DRY_RUN or settings.DRY_RUN),
+        "kill_switch_active": bool(agent_status_dict.get("kill_switch_active", False)),
+        "agent_running": bool(agent_status_dict.get("is_running", False)),
+        "transport_supported": ["websocket", "sse", "polling"],
+        "server_timestamp": datetime.utcnow().isoformat()
+    }
+
+    return {
+        "success": True,
+        "timestamp": datetime.utcnow().isoformat(),
+        "delivery_metrics": delivery_metrics,
+        "pipeline_summary": pipeline_summary,
+        "queue_summary": {
+            "pending_count": len(queue_items),
+            "items": queue_items
+        },
+        "unhandled_replies_count": unhandled_replies_count,
+        "system_status": system_status
+    }
 
 @router.get("/api/email/readiness")
 async def get_email_readiness_endpoint():
@@ -1288,7 +1663,7 @@ async def approve_outreach(
             "send_result": send_result
         }
 
-    return {"status": "APPROVED", "message_id": appr.id, "actor": actual_actor, "send_result": None}
+    return {"status": "OUTREACH_QUEUED", "message_id": appr.id, "actor": actual_actor, "send_result": None}
 
 @router.post("/api/queue/{message_id}/reject")
 async def reject_outreach(message_id: int, db: AsyncSession = Depends(get_db)):
@@ -2084,48 +2459,36 @@ async def get_ceo_control_center_overview(
     """
     from app.database.models import ReplyClassification
     from app.core.config import settings
+    from app.core.safety_filters import (
+        get_synthetic_business_filter_clauses,
+        get_synthetic_outreach_filter_clauses,
+        get_synthetic_reply_filter_clauses
+    )
+    from app.analytics.truth_engine import get_canonical_production_truth
+    truth = await get_canonical_production_truth(db)
 
-    # --- 1. Executive KPIs ---
-    total_prospects = (await db.execute(select(func.count(Business.id)))).scalar() or 0
-    qualified_prospects = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.QUALIFIED.value,
-            PipelineStage.OUTREACH_READY.value,
-            PipelineStage.APPROVAL.value,
-            PipelineStage.CONTACTED.value,
-            PipelineStage.REPLIED.value,
-            PipelineStage.QUALIFIED_REPLY.value,
-            PipelineStage.CALL.value,
-            PipelineStage.PROPOSAL.value,
-            PipelineStage.WON.value
-        ]))
-    )).scalar() or 0
+    biz_filters = get_synthetic_business_filter_clauses(Business)
+    out_filters = get_synthetic_outreach_filter_clauses(OutreachMessage)
+    rep_filters = get_synthetic_reply_filter_clauses(Reply)
 
-    outreach_awaiting_approval = (await db.execute(
-        select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value)
-    )).scalar() or 0
+    # --- 1. Executive KPIs (Canonical Single Source of Truth) ---
+    total_prospects = truth["real_prospects"]
+    qualified_prospects = truth["real_qualified_leads"]
+    outreach_awaiting_approval = truth["outreach_awaiting_approval"]
+    total_outreach_sent = truth["real_external_contacted"]
+    sent_today = truth["real_external_contacted_today"]
+    queued_qualified = truth["queued_qualified"]
+    interested_leads = truth["real_interested_leads"]
+    customer_replies = truth["real_customer_replies"]
+    active_demos = truth["real_demos"]
+    proposals_awaiting_action = truth["real_proposals"]
+    pending_payments_count = truth["real_payments_pending"]
+    confirmed_payments_count = truth["real_payments_confirmed"]
+    real_deals = truth["real_deals"]
+    revenue_collected = float(truth["real_verified_revenue"])
+    revenue_label = truth["revenue_label"]
 
-    interested_leads = (await db.execute(
-        select(func.count(Reply.id)).where(Reply.classification.in_([
-            ReplyClassification.INTERESTED.value,
-            ReplyClassification.MEETING_REQUEST.value,
-            ReplyClassification.PRICE_REQUEST.value
-        ]))
-    )).scalar() or 0
-
-    active_demos = (await db.execute(
-        select(func.count(Artifact.id)).where(Artifact.artifact_type == "DEMO_PACKAGE")
-    )).scalar() or 0
-
-    proposals_awaiting_action = (await db.execute(
-        select(func.count(Proposal.id)).where(Proposal.status.in_(["PENDING_AUTHORIZATION", "DRAFT", "PENDING"]))
-    )).scalar() or 0
-
-    payments_awaiting_authorization = (await db.execute(
-        select(func.count(Payment.id)).where(Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED"]))
-    )).scalar() or 0
-
-    active_projects = (await db.execute(select(func.count(Project.id)))).scalar() or 0
+    active_projects = 0
     open_support_tickets = (await db.execute(
         select(func.count(SupportTicket.id)).where(SupportTicket.status.in_(["NEW", "CLASSIFIED", "DIAGNOSED", "FIX_PENDING_APPROVAL", "REMEDIATING"]))
     )).scalar() or 0
@@ -2133,39 +2496,12 @@ async def get_ceo_control_center_overview(
         select(func.count(CustomerIncident.id)).where(CustomerIncident.is_resolved == False)
     )).scalar() or 0
 
-    # Real Outreach Dispatched: Lifetime vs Today vs Queued
-    q_sent_lifetime = select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value)
-    total_outreach_sent = (await db.execute(q_sent_lifetime)).scalar() or 0
-
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    q_sent_today = select(func.count(OutreachMessage.id)).where(
-        OutreachMessage.status == OutreachStatus.SENT.value,
-        OutreachMessage.sent_at >= today_start
-    )
-    sent_today = (await db.execute(q_sent_today)).scalar() or 0
-
-    q_queued_qualified = select(func.count(OutreachMessage.id)).where(
-        OutreachMessage.status.in_([OutreachStatus.APPROVED.value, OutreachStatus.PENDING_APPROVAL.value])
-    )
-    queued_qualified = (await db.execute(q_queued_qualified)).scalar() or 0
-
     from app.campaigns.sender_registry import sender_registry
     sender_cap = await sender_registry.get_sender_capacity_summary(db)
-
-    # Calculate real completed revenue
-    q_rev = select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status.in_(["COMPLETED", "PAID", "SETTLED"]))
-    real_revenue = (await db.execute(q_rev)).scalar() or 0.0
-    revenue_collected = float(real_revenue)
+    daily_outbound_cap = sender_cap.get("rollout_daily_cap", 70)
 
     payments_enabled = getattr(settings, "PAYMENTS_ENABLED", False)
     provider_name = (getattr(settings, "PAYMENT_PROVIDER", "") or getattr(settings, "PREFERRED_PAYMENT_METHOD", "google_pay_manual")).lower()
-
-    # Query count of pending vs confirmed payments
-    q_pending_cnt = select(func.count(Payment.id)).where(Payment.status.in_(["PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION", "PENDING"]))
-    pending_payments_count = (await db.execute(q_pending_cnt)).scalar() or 0
-
-    q_confirmed_cnt = select(func.count(Payment.id)).where(Payment.status.in_(["PAYMENT_CONFIRMED", "PAID", "VERIFIED_PAYMENT", "COMPLETED", "SETTLED"]))
-    confirmed_payments_count = (await db.execute(q_confirmed_cnt)).scalar() or 0
 
     if provider_name in ("google_pay_manual", "google_pay", "upi_manual", "manual_upi"):
         payment_method = "Google Pay / International UPI"
@@ -2184,38 +2520,38 @@ async def get_ceo_control_center_overview(
         else:
             payment_status = "LIVE"
 
-    revenue_label = f"${revenue_collected:,.2f}" if revenue_collected > 0 else "$0.00"
-
-    # Calculate real funnel & observability metrics
-    q_waiting_reply = select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.CONTACTED.value)
-    waiting_for_reply = (await db.execute(q_waiting_reply)).scalar() or 0
-
-    q_positive_leads = select(func.count(Business.id)).where(
-        Business.pipeline_stage.in_([PipelineStage.QUALIFIED_REPLY.value, PipelineStage.DEMO_REQUESTED.value])
-    )
-    positive_leads_count = (await db.execute(q_positive_leads)).scalar() or 0
-
-    daily_outbound_cap = sender_cap.get("rollout_daily_cap", 70)
-
     metrics = {
         "total_prospects": total_prospects,
+        "verified_prospects": truth["real_verified_leads"],
         "qualified_prospects": qualified_prospects,
-        "waiting_for_reply": waiting_for_reply,
-        "positive_leads": positive_leads_count,
+        "real_prospects": total_prospects,
+        "real_verified_leads": truth["real_verified_leads"],
+        "real_qualified_leads": qualified_prospects,
+        "waiting_for_reply": customer_replies,
+        "positive_leads": interested_leads,
         "outreach_awaiting_approval": outreach_awaiting_approval,
         "outreach_sent": total_outreach_sent,
         "outreach_sent_lifetime": total_outreach_sent,
         "outreach_sent_today": sent_today,
+        "real_external_contacted": total_outreach_sent,
+        "real_external_contacted_today": sent_today,
         "daily_outbound_sent": sent_today,
         "daily_outbound_cap": daily_outbound_cap,
         "queued_qualified": queued_qualified,
         "available_capacity": sender_cap.get("available_capacity", 0),
         "interested_leads": interested_leads,
+        "real_interested_leads": interested_leads,
+        "replies_pending": customer_replies,
+        "real_customer_replies": customer_replies,
         "active_demos": active_demos,
         "proposals_awaiting_action": proposals_awaiting_action,
+        "real_proposals": proposals_awaiting_action,
         "payments_awaiting_authorization": pending_payments_count,
+        "real_payments_pending": pending_payments_count,
         "payments_count": pending_payments_count,
         "confirmed_payments_count": confirmed_payments_count,
+        "deals_won": real_deals,
+        "real_deals": real_deals,
         "active_projects": active_projects,
         "customers_count": active_projects,
         "open_support_tickets": open_support_tickets,
@@ -2223,7 +2559,8 @@ async def get_ceo_control_center_overview(
         "revenue_collected": revenue_collected,
         "revenue_label": revenue_label,
         "payment_status": payment_status,
-        "payment_method": payment_method
+        "payment_method": payment_method,
+        "provenance_notes": truth["provenance_notes"]
     }
 
     # --- 2. Action Required (Executive Action Feed) ---
@@ -2414,69 +2751,25 @@ async def get_ceo_control_center_overview(
             ]
         })
 
-    # --- 3. 9-Stage Visual Pipeline Funnel ---
-    discovery_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.DISCOVERED.value,
-            PipelineStage.VERIFIED.value,
-            PipelineStage.AUDITED.value
-        ]))
-    )).scalar() or 0
-
-    qualified_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.QUALIFIED.value)
-    )).scalar() or 0
-
-    outreach_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.OUTREACH_READY.value,
-            PipelineStage.APPROVAL.value,
-            PipelineStage.CONTACTED.value
-        ]))
-    )).scalar() or 0
-
-    interested_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.REPLIED.value,
-            PipelineStage.QUALIFIED_REPLY.value
-        ]))
-    )).scalar() or 0
-
-    requirements_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.CALL.value,
-            PipelineStage.MEETING.value
-        ]))
-    )).scalar() or 0
-
-    demo_c = active_demos
-    qa_c = (await db.execute(
-        select(func.count(Artifact.id)).where(
-            Artifact.artifact_type == "DEMO_PACKAGE",
-            Artifact.status.in_(["VERIFIED", "QA_PASSED", "COMPLETED"])
-        )
-    )).scalar() or 0
-
-    proposal_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.PROPOSAL.value)
-    )).scalar() or (await db.execute(select(func.count(Proposal.id)))).scalar() or 0
-
-    payment_c = (await db.execute(
-        select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-            PipelineStage.PAYMENT_REQUESTED.value,
-            PipelineStage.ADVANCE_PAID.value,
-            PipelineStage.WON.value
-        ]))
-    )).scalar() or 0
+    # --- 3. 9-Stage Visual Pipeline Funnel (Canonical Synchronized) ---
+    discovery_c = truth["real_verified_leads"]
+    qualified_c = truth["real_qualified_leads"]
+    outreach_c = truth["real_external_contacted"]
+    interested_c = truth["real_interested_leads"]
+    requirements_c = 0
+    demo_c = truth["real_demos"]
+    qa_c = 0
+    proposal_c = truth["real_proposals"]
+    payment_c = truth["real_deals"]
 
     pipeline_stages = [
         {"stage": "DISCOVERY", "label": "Discovery", "count": discovery_c, "active": discovery_c > 0},
         {"stage": "QUALIFIED", "label": "Qualified", "count": qualified_c, "active": qualified_c > 0},
         {"stage": "OUTREACH", "label": "Outreach", "count": outreach_c, "active": outreach_c > 0},
         {"stage": "INTERESTED", "label": "Interested", "count": interested_c, "active": interested_c > 0},
-        {"stage": "REQUIREMENTS", "label": "Requirements", "count": requirements_c, "active": requirements_c > 0},
+        {"stage": "REQUIREMENTS", "label": "Requirements", "count": requirements_c, "active": False},
         {"stage": "DEMO", "label": "Demo", "count": demo_c, "active": demo_c > 0},
-        {"stage": "QA", "label": "QA", "count": qa_c, "active": qa_c > 0},
+        {"stage": "QA", "label": "QA", "count": qa_c, "active": False},
         {"stage": "PROPOSAL", "label": "Proposal", "count": proposal_c, "active": proposal_c > 0},
         {"stage": "PAYMENT", "label": "Payment", "count": payment_c, "active": payment_c > 0}
     ]
@@ -2802,14 +3095,28 @@ async def get_ceo_control_center_overview(
 
     pipeline_funnel_dict = {
         "DISCOVERY": discovery_c,
+        "discovery": discovery_c,
         "QUALIFIED": qualified_c,
+        "qualified": qualified_c,
         "OUTREACH": outreach_c,
+        "outreach": outreach_c,
+        "REPLIED": truth["real_customer_replies"],
+        "replied": truth["real_customer_replies"],
+        "WAITING_REPLY": truth["real_customer_replies"],
         "INTERESTED": interested_c,
+        "interested": interested_c,
         "REQUIREMENTS": requirements_c,
+        "requirements": requirements_c,
         "DEMO": demo_c,
+        "demo": demo_c,
         "QA": qa_c,
+        "qa": qa_c,
         "PROPOSAL": proposal_c,
-        "PAYMENT": payment_c
+        "proposal": proposal_c,
+        "PAYMENT": payment_c,
+        "payment": payment_c,
+        "WON": payment_c,
+        "won": payment_c
     }
 
     # --- 6. International Campaigns & Rollout Summary ---
@@ -2923,27 +3230,25 @@ async def get_kpi_drilldown_details(
 
     elif kpi_key in ("qualified_pipeline", "qualified", "qualified-pipeline"):
         title = "Qualified Pipeline"
-        definition = "Prospects that successfully satisfied data integrity, website viability, commercial fit criteria, and jurisdiction compliance for automated outreach."
-        why_counted = "Businesses with pipeline stage in QUALIFIED, OUTREACH_READY, APPROVAL, CONTACTED, REPLIED, QUALIFIED_REPLY, CALL, PROPOSAL, or WON, having valid contact data and acceptable compliance posture."
-        
-        valid_stages = [
-            PipelineStage.QUALIFIED.value,
-            PipelineStage.OUTREACH_READY.value,
-            PipelineStage.APPROVAL.value,
-            PipelineStage.CONTACTED.value,
-            PipelineStage.REPLIED.value,
-            PipelineStage.QUALIFIED_REPLY.value,
-            PipelineStage.CALL.value,
-            PipelineStage.PROPOSAL.value,
-            PipelineStage.WON.value
-        ]
-        q_base = select(Business).where(Business.pipeline_stage.in_(valid_stages))
+        definition = "Verified commercial leads satisfying the qualification invariant: verified data integrity and LeadScore >= 55 with empirical audit."
+        why_counted = "Verified businesses with total lead score >= 55.0, excluding synthetic fixtures, test domains, and historical records."
+
+        from app.core.safety_filters import get_synthetic_business_filter_clauses
+        biz_filters = get_synthetic_business_filter_clauses(Business)
+
+        q_base = (
+            select(Business)
+            .join(LeadScore, LeadScore.business_id == Business.id)
+            .where(
+                Business.verification_status == "VERIFIED",
+                LeadScore.total_score >= 55.0,
+                *biz_filters
+            )
+        )
         if country:
             q_base = q_base.where(Business.country == country.upper())
         if niche:
             q_base = q_base.where(Business.niche == niche)
-        if status:
-            q_base = q_base.where(Business.pipeline_stage == status.upper())
         if search:
             s = f"%{search}%"
             q_base = q_base.where(Business.name.ilike(s) | Business.domain.ilike(s) | Business.niche.ilike(s))
@@ -2955,9 +3260,9 @@ async def get_kpi_drilldown_details(
         for b in items:
             score = (await db.execute(select(LeadScore).where(LeadScore.business_id == b.id))).scalars().first()
             audit = (await db.execute(select(AuditRun).where(AuditRun.business_id == b.id).order_by(desc(AuditRun.audited_at)))).scalars().first()
-            score_val = float(b.prospect_score or b.effective_evidence_score or (score.total_score if score else 75.0))
-            audit_status = "AUDITED" if audit else ("REJECTED" if b.pipeline_stage == "REJECTED" else "PENDING AUDIT")
-            audit_score = float(audit.overall_health_score) if audit and audit.overall_health_score else (float(b.effective_evidence_score) if b.effective_evidence_score else 80.0)
+            score_val = float(score.total_score if score else (b.prospect_score or 0.0))
+            audit_status = "AUDITED" if audit else "PENDING AUDIT"
+            audit_score = float(audit.overall_health_score) if audit and audit.overall_health_score else 0.0
             qualified_date = b.updated_at.strftime("%Y-%m-%d %H:%M UTC") if b.updated_at else (b.created_at.strftime("%Y-%m-%d %H:%M UTC") if b.created_at else "—")
             
             records.append({
@@ -2971,7 +3276,7 @@ async def get_kpi_drilldown_details(
                 "criteria_met": "Data integrity verified · Target corridor & niche fit · Active domain",
                 "audit_status": audit_status,
                 "audit_score": audit_score,
-                "channel": "EMAIL" if b.public_email else ("WHATSAPP" if getattr(b, "whatsapp_eligible", False) else "OMNICHANNEL"),
+                "channel": "EMAIL" if b.public_email else "OMNICHANNEL",
                 "qualified_date": qualified_date,
                 "action_label": "Inspect Lead",
                 "action_type": "view_lead",
@@ -2981,23 +3286,11 @@ async def get_kpi_drilldown_details(
     elif kpi_key in ("outreach_approved", "outreach", "outreach-approval", "outreach_approval"):
         title = "Outreach Approval & Dispatched"
         definition = "Cold outreach communications generated by the agent architecture, categorized into awaiting human approval, approved for dispatch, and sent lifetime."
-        why_counted = "Records in the `outreach_messages` table joined with the corresponding prospect. Distinguished by status: PENDING_APPROVAL, APPROVED, and SENT."
+        why_counted = "Records in the `outreach_messages` table joined with the corresponding prospect. Filtered to real external outreach records."
         
-        # Summary counts across all statuses
-        cnt_pending = (await db.execute(select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value))).scalar() or 0
-        cnt_approved = (await db.execute(select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.APPROVED.value))).scalar() or 0
-        cnt_sent = (await db.execute(select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value))).scalar() or 0
-        cnt_failed = (await db.execute(select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.FAILED.value))).scalar() or 0
-        summary = {
-            "pending_approval": cnt_pending,
-            "approved": cnt_approved,
-            "sent": cnt_sent,
-            "failed": cnt_failed
-        }
+        from app.analytics.truth_engine import classify_outreach_provenance
 
         q_base = select(OutreachMessage, Business).outerjoin(Business, OutreachMessage.business_id == Business.id)
-        if status and status.upper() != "ALL":
-            q_base = q_base.where(OutreachMessage.status == status.upper())
         if search:
             s = f"%{search}%"
             q_base = q_base.where(
@@ -3006,9 +3299,44 @@ async def get_kpi_drilldown_details(
                 Business.name.ilike(s)
             )
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        q = q_base.order_by(desc(OutreachMessage.id)).offset(offset).limit(limit)
-        rows = (await db.execute(q)).all()
+        all_rows = (await db.execute(q_base.order_by(desc(OutreachMessage.id)))).all()
+        filtered_rows = []
+        cnt_pending = 0
+        cnt_approved = 0
+        cnt_sent = 0
+        cnt_failed = 0
+
+        for msg, b in all_rows:
+            cat = classify_outreach_provenance(msg, b)
+            if msg.status == OutreachStatus.PENDING_APPROVAL.value and cat not in ("TEST", "CANARY"):
+                cnt_pending += 1
+            elif msg.status == OutreachStatus.APPROVED.value and cat not in ("TEST", "CANARY"):
+                cnt_approved += 1
+            elif msg.status in (OutreachStatus.SENT.value, "MOCKED_SENT") and cat == "REAL_EXTERNAL":
+                cnt_sent += 1
+            elif msg.status == OutreachStatus.FAILED.value and cat not in ("TEST", "CANARY"):
+                cnt_failed += 1
+
+            if status and status.upper() != "ALL":
+                if msg.status == status.upper():
+                    if status.upper() in (OutreachStatus.SENT.value, "MOCKED_SENT"):
+                        if cat == "REAL_EXTERNAL":
+                            filtered_rows.append((msg, b))
+                    elif cat not in ("TEST", "CANARY"):
+                        filtered_rows.append((msg, b))
+            else:
+                if cat == "REAL_EXTERNAL" or (msg.status == OutreachStatus.PENDING_APPROVAL.value and cat not in ("TEST", "CANARY")):
+                    filtered_rows.append((msg, b))
+
+        summary = {
+            "pending_approval": cnt_pending,
+            "approved": cnt_approved,
+            "sent": cnt_sent,
+            "failed": cnt_failed
+        }
+
+        total_records = len(filtered_rows)
+        rows = filtered_rows[offset:offset + limit]
 
         for msg, b in rows:
             b_name = b.name if b else f"Lead #{msg.business_id}"
@@ -3035,8 +3363,9 @@ async def get_kpi_drilldown_details(
     elif kpi_key in ("interested_leads", "interested", "replies", "interested-leads"):
         title = "Interested Leads"
         definition = "Inbound replies from contacted prospects classified as having positive commercial interest, meeting requests, or pricing requests."
-        why_counted = "Records in `replies` table where classification is in INTERESTED, POSITIVE, MEETING_REQUEST, or PRICE_REQUEST. Excludes auto-responders, out-of-office, unsubscribes, and objections."
+        why_counted = "Records in `replies` table from verified real external customers with positive commercial classification."
         
+        from app.analytics.truth_engine import classify_reply_provenance
         valid_classifications = [
             ReplyClassification.INTERESTED.value,
             ReplyClassification.POSITIVE.value,
@@ -3054,9 +3383,14 @@ async def get_kpi_drilldown_details(
                 Business.name.ilike(s)
             )
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        q = q_base.order_by(desc(Reply.id)).offset(offset).limit(limit)
-        rows = (await db.execute(q)).all()
+        all_rows = (await db.execute(q_base.order_by(desc(Reply.id)))).all()
+        filtered_rows = [
+            (rep, b) for rep, b in all_rows
+            if classify_reply_provenance(rep, b) == "REAL_CUSTOMER"
+        ]
+
+        total_records = len(filtered_rows)
+        rows = filtered_rows[offset:offset + limit]
 
         for rep, b in rows:
             b_name = b.name if b else f"Lead #{rep.business_id}"
@@ -3115,8 +3449,9 @@ async def get_kpi_drilldown_details(
     elif kpi_key in ("proposals_action", "proposals", "proposals-action"):
         title = "Proposals Action"
         definition = "Commercial turnaround and service proposals created for interested leads awaiting operator review, authorization, or client signature."
-        why_counted = "Records in the `proposals` table detailing commercial scope and pricing across stages: DRAFT, PENDING_AUTHORIZATION, SENT, and ACCEPTED."
-        
+        why_counted = "Records in `proposals` table linked to genuine non-mock businesses."
+
+        from app.analytics.truth_engine import classify_proposal_provenance
         q_base = select(Proposal, Business).outerjoin(Business, Proposal.business_id == Business.id)
         if status and status.upper() != "ALL":
             q_base = q_base.where(Proposal.status == status.upper())
@@ -3128,9 +3463,14 @@ async def get_kpi_drilldown_details(
                 Business.name.ilike(s)
             )
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        q = q_base.order_by(desc(Proposal.id)).offset(offset).limit(limit)
-        rows = (await db.execute(q)).all()
+        all_rows = (await db.execute(q_base.order_by(desc(Proposal.id)))).all()
+        filtered_rows = [
+            (prop, b) for prop, b in all_rows
+            if classify_proposal_provenance(prop, b) == "REAL_CUSTOMER"
+        ]
+
+        total_records = len(filtered_rows)
+        rows = filtered_rows[offset:offset + limit]
 
         for prop, b in rows:
             b_name = b.name if b else f"Lead #{prop.business_id}"
@@ -3154,9 +3494,10 @@ async def get_kpi_drilldown_details(
 
     elif kpi_key in ("payments_auth", "payments", "payments-auth"):
         title = "Payments Auth"
-        definition = "Payment transactions awaiting human verification, manual UTR reconciliation, or authorization before unlocking delivery."
-        why_counted = "Records in `payments` table where status is in PENDING, PROCESSING, AUTHORIZED, PAYMENT_PENDING, PAYMENT_PENDING_VERIFICATION, or PAYMENT_REQUESTED."
-        
+        definition = "Genuine customer payment transactions awaiting human verification, manual UTR reconciliation, or authorization before unlocking delivery."
+        why_counted = "Confirmed non-mock records in `payments` table awaiting authorization (excluding simulator runs and test invoices)."
+
+        from app.analytics.truth_engine import classify_payment_provenance
         valid_pay_statuses = [
             "PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING",
             "PAYMENT_PENDING_VERIFICATION", "PAYMENT_REQUESTED"
@@ -3172,9 +3513,14 @@ async def get_kpi_drilldown_details(
                 Business.name.ilike(s)
             )
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        q = q_base.order_by(desc(Payment.id)).offset(offset).limit(limit)
-        rows = (await db.execute(q)).all()
+        all_rows = (await db.execute(q_base.order_by(desc(Payment.id)))).all()
+        filtered_rows = [
+            (pay, b) for pay, b in all_rows
+            if classify_payment_provenance(pay, b) == "REAL_CUSTOMER"
+        ]
+
+        total_records = len(filtered_rows)
+        rows = filtered_rows[offset:offset + limit]
 
         for pay, b in rows:
             b_name = b.name if b else f"Lead #{pay.business_id}"
@@ -3197,8 +3543,9 @@ async def get_kpi_drilldown_details(
     elif kpi_key in ("revenue_collected", "revenue", "revenue-collected"):
         title = "Revenue Collected"
         definition = "Verified and settled revenue collected into operating accounts, strictly confirmed against real banking or payment rail receipts."
-        why_counted = "Records in the `payments` table where status is in COMPLETED, PAID, SETTLED, PAYMENT_CONFIRMED, or VERIFIED_PAYMENT. Never includes estimates, pipeline projections, or dry-run values."
-        
+        why_counted = "Confirmed non-mock records in the `payments` table where status is in COMPLETED, PAID, SETTLED, PAYMENT_CONFIRMED, or VERIFIED_PAYMENT."
+
+        from app.analytics.truth_engine import classify_payment_provenance
         confirmed_statuses = ["COMPLETED", "PAID", "SETTLED", "PAYMENT_CONFIRMED", "VERIFIED_PAYMENT"]
         q_base = select(Payment, Business).outerjoin(Business, Payment.business_id == Business.id).where(
             Payment.status.in_(confirmed_statuses)
@@ -3211,18 +3558,20 @@ async def get_kpi_drilldown_details(
                 Business.name.ilike(s)
             )
 
-        total_records = (await db.execute(select(func.count()).select_from(q_base.subquery()))).scalar() or 0
-        
-        # Calculate sum of collected revenue
-        q_sum = select(func.coalesce(func.sum(Payment.amount), 0.0)).where(Payment.status.in_(confirmed_statuses))
-        sum_rev = float((await db.execute(q_sum)).scalar() or 0.0)
+        all_rows = (await db.execute(q_base.order_by(desc(Payment.id)))).all()
+        filtered_rows = [
+            (pay, b) for pay, b in all_rows
+            if classify_payment_provenance(pay, b) == "REAL_CUSTOMER"
+        ]
+
+        total_records = len(filtered_rows)
+        sum_rev = sum(float(pay.amount or 0.0) for pay, _ in filtered_rows)
         summary = {
             "total_revenue": sum_rev,
             "revenue_label": f"${sum_rev:,.2f}" if sum_rev > 0 else "$0.00"
         }
 
-        q = q_base.order_by(desc(Payment.id)).offset(offset).limit(limit)
-        rows = (await db.execute(q)).all()
+        rows = filtered_rows[offset:offset + limit]
 
         for pay, b in rows:
             b_name = b.name if b else f"Lead #{pay.business_id}"
@@ -3916,12 +4265,23 @@ async def voice_transcript_webhook_unified(request: Request, db: AsyncSession = 
 # --- Replies Management ---
 
 @router.get("/api/replies")
-async def list_replies(db: AsyncSession = Depends(get_db)):
-    q = select(Reply).order_by(desc(Reply.received_at))
+async def list_replies(
+    include_test: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.core.safety_filters import get_synthetic_reply_filter_clauses, is_test_or_synthetic
+    q = select(Reply)
+    if not include_test:
+        q = q.where(*get_synthetic_reply_filter_clauses(Reply))
+    q = q.order_by(desc(Reply.received_at))
     replies = (await db.execute(q)).scalars().all()
     results = []
     for r in replies:
         biz = await db.get(Business, r.business_id)
+        if not include_test and (
+            is_test_or_synthetic(domain=biz.domain if biz else None, email=r.sender_email, name=biz.name if biz else None)
+        ):
+            continue
         results.append({
             "id": r.id,
             "business_id": r.business_id,
@@ -4108,6 +4468,76 @@ async def agent_activity_websocket(
         await activity_broadcaster.unregister(websocket)
     except Exception as e:
         await activity_broadcaster.unregister(websocket)
+
+
+@router.get("/api/agent/events/sse")
+async def agent_events_sse(
+    request: Request,
+    token: Optional[str] = Query(None),
+    max_events: Optional[int] = Query(None, description="Optional maximum events before closing stream")
+):
+    """
+    Live Server-Sent Events (SSE) feed delivering real-time agent activity events
+    to connected dashboards and integration clients over standard HTTP streaming.
+    """
+    import asyncio
+    from fastapi.responses import StreamingResponse
+    from app.agents.activity_broadcaster import activity_broadcaster
+    from app.core.security import verify_session_token_with_role, verify_api_key
+
+    if getattr(settings, "AUTH_ENABLED", False):
+        cookie_token = request.cookies.get("agency_session")
+        auth_header = request.headers.get("authorization", "")
+        header_token = auth_header[7:].strip() if auth_header.startswith("Bearer ") else None
+        target_token = token or cookie_token or header_token
+
+        is_authed = False
+        if target_token:
+            if verify_api_key(target_token) or verify_session_token_with_role(target_token):
+                is_authed = True
+
+        if not is_authed:
+            raise HTTPException(status_code=401, detail="Authentication required for event stream.")
+
+    async def event_generator():
+        q = await activity_broadcaster.register_sse_listener()
+        delivered = 0
+        try:
+            yield ": connected\n\n"
+            delivered += 1
+            if max_events and delivered >= max_events:
+                return
+
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=2.0)
+                    evt_id = event.get("event_id") or event.get("id", "")
+                    evt_type = event.get("event_type", "message")
+                    evt_data = json.dumps(event)
+                    yield f"id: {evt_id}\nevent: {evt_type}\ndata: {evt_data}\n\n"
+                    delivered += 1
+                    if max_events and delivered >= max_events:
+                        break
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+                except (asyncio.CancelledError, GeneratorExit):
+                    break
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
+        finally:
+            await activity_broadcaster.unregister_sse_listener(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @router.get("/api/agent/activity")
@@ -4919,14 +5349,25 @@ async def trigger_project_demo_build(
 # =====================================================================
 
 @router.get("/api/memory/prospects")
-async def list_prospect_memories(limit: int = 50, db: AsyncSession = Depends(get_db)):
+async def list_prospect_memories(
+    include_test: bool = False,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
     """Lists prospects with persistent memory and objection state."""
     from app.database.models import ProspectMemory, Business
-    q = select(ProspectMemory).order_by(desc(ProspectMemory.updated_at)).limit(limit)
+    from app.core.safety_filters import is_test_or_synthetic
+    q = select(ProspectMemory).order_by(desc(ProspectMemory.updated_at)).limit(limit * 2)
     memories = (await db.execute(q)).scalars().all()
     results = []
     for m in memories:
         biz = await db.get(Business, m.business_id)
+        if not include_test and is_test_or_synthetic(
+            domain=m.domain,
+            email=m.contact_email or (biz.public_email if biz else None),
+            name=biz.name if biz else None
+        ):
+            continue
         latest_objection = m.objection_history[-1] if m.objection_history else None
         results.append({
             "business_id": m.business_id,
@@ -4944,6 +5385,8 @@ async def list_prospect_memories(limit: int = 50, db: AsyncSession = Depends(get
             "human_takeover": getattr(biz, "human_takeover", False) if biz else False,
             "updated_at": m.updated_at.isoformat() if m.updated_at else None
         })
+        if len(results) >= limit:
+            break
     return results
 
 
@@ -5551,8 +5994,8 @@ async def submit_onboarding_consultation(
 # ============================================================
 
 class ContactInquiryRequest(BaseModel):
-    name: str
-    email: str
+    name: Optional[str] = ""
+    email: Optional[str] = ""
     company: Optional[str] = ""
     business: Optional[str] = ""
     service_interest: Optional[str] = "AI Automation & System Integration"
@@ -5560,6 +6003,12 @@ class ContactInquiryRequest(BaseModel):
     website: Optional[str] = ""
     problem: Optional[str] = ""
     what_they_want_automated: Optional[str] = ""
+    # Structured customer-facing assessment upgrade
+    capabilities: Optional[List[str]] = Field(default_factory=list)
+    problems: Optional[List[str]] = Field(default_factory=list)
+    description: Optional[str] = ""
+    company_name: Optional[str] = ""
+    work_email: Optional[str] = ""
 
 
 @router.post("/api/contact")
@@ -5569,51 +6018,69 @@ async def submit_contact_inquiry(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Public business contact & demo request endpoint.
-    Persists lead directly into Business SQLite database, records inbound Reply,
+    Public business contact & technical assessment request endpoint.
+    Persists lead directly into Business SQLite database in QUALIFIED_REPLY stage
+    (strictly decoupled from DEMO_REQUESTED), records inbound Reply,
     updates ProspectMemory, and triggers acquisition telemetry.
     """
-    name = (payload.name or "").strip()
-    email = (payload.email or "").strip()
-    company = (payload.company or payload.business or "").strip()
-    service_interest = (payload.service_interest or "AI Automation & System Integration").strip()
-    message = (payload.message or "").strip()
+    email = (payload.work_email or payload.email or "").strip()
+    company = (payload.company_name or payload.company or payload.business or "").strip()
+    name = (payload.name or company or "Prospective Client").strip()
     website = (payload.website or "").strip()
-    problem = (payload.problem or "").strip()
-    what_automated = (payload.what_they_want_automated or "").strip()
+    desc = (payload.description or payload.message or "").strip()
 
-    if not name or not email:
-        raise HTTPException(status_code=400, detail="Name and email are required.")
+    # Normalize capabilities and problems
+    caps = [c.strip() for c in (payload.capabilities or []) if c and c.strip()]
+    if payload.what_they_want_automated and payload.what_they_want_automated.strip() not in caps:
+        caps.append(payload.what_they_want_automated.strip())
+
+    probs = [p.strip() for p in (payload.problems or []) if p and p.strip()]
+    if payload.problem and payload.problem.strip() not in probs:
+        probs.append(payload.problem.strip())
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Work email is required.")
+    if not company:
+        raise HTTPException(status_code=400, detail="Company or business name is required.")
 
     if "@" not in email or "." not in email.split("@")[-1]:
         raise HTTPException(status_code=400, detail="Please enter a valid business email address.")
 
-    combined_notes = message
-    if problem:
-        combined_notes = f"{combined_notes}\nOperational Problem: {problem}".strip()
-    if what_automated:
-        combined_notes = f"{combined_notes}\nWhat To Automate: {what_automated}".strip()
+    service_interest = ", ".join(caps[:3]) if caps else (payload.service_interest or "AI Automation & Custom Software")
+    combined_notes_parts = []
+    if caps:
+        combined_notes_parts.append(f"Selected Capabilities:\n- " + "\n- ".join(caps))
+    if probs:
+        combined_notes_parts.append(f"Problems / Bottlenecks:\n- " + "\n- ".join(probs))
+    if desc:
+        combined_notes_parts.append(f"Process Context:\n{desc}")
+    combined_notes = "\n\n".join(combined_notes_parts) if combined_notes_parts else "Technical Assessment Request"
 
     onboard_req = OnboardingConsultationRequest(
         name=name,
         email=email,
-        company=company or name,
+        company=company,
         website=website,
         industry=service_interest,
         need=service_interest,
-        notes=combined_notes or "Demo and consultation inquiry",
-        current_process=problem or message
+        notes=combined_notes,
+        current_process=desc or ("; ".join(probs) if probs else "Technical Assessment Intake")
     )
 
     result = await submit_onboarding_consultation(payload=onboard_req, request=request, db=db)
     return {
         "success": True,
-        "message": "Thank you for reaching out. We have received your inquiry and our team will get back to you within 24 business hours.",
+        "message": "Thank you for requesting an assessment. Our engineering team will review your business process and respond within 24 business hours.",
         "inquiry": {
             "name": name,
-            "company": company or name,
-            "service_interest": service_interest,
-            "lead_id": result.get("lead_id")
+            "company": company,
+            "email": email,
+            "work_email": email,
+            "website": website,
+            "capabilities": caps,
+            "problems": probs,
+            "lead_id": result.get("lead_id"),
+            "stage": "ASSESSMENT_REQUESTED"
         }
     }
 
@@ -6534,6 +7001,89 @@ async def production_status_endpoint(
             "build_version": latest_handover.build_version
         } if latest_handover else None
     }
+
+
+@router.get("/api/intelligence/opportunity/{business_id}")
+async def get_operator_opportunity_summary(business_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Exposes clean executive operator decision intelligence:
+    WHY THIS LEAD, WHAT IS THE PAIN, WHAT SHOULD WE SELL, WHY THIS OFFER, WHAT SHOULD HAPPEN NEXT.
+    Zero internal chain-of-thought leaked.
+    """
+    from app.database.models import Business, AuditRun
+    from app.intelligence.opportunity_engine import opportunity_engine
+    from app.intelligence.next_best_action import next_best_action_engine
+
+    biz = await db.get(Business, business_id)
+    if not biz:
+        raise HTTPException(status_code=404, detail=f"Business #{business_id} not found")
+
+    audit_stmt = select(AuditRun).where(AuditRun.business_id == business_id).order_by(AuditRun.id.desc())
+    audit = (await db.execute(audit_stmt)).scalars().first()
+
+    audit_dict = {
+        "summary": audit.summary if audit else "",
+        "overall_health_score": audit.overall_health_score if audit else 50.0
+    } if audit else None
+
+    opp = opportunity_engine.generate_opportunity(
+        business={
+            "id": biz.id,
+            "name": biz.name,
+            "domain": biz.domain,
+            "niche": biz.niche,
+            "city": biz.city,
+            "country": biz.country,
+            "phone": biz.phone,
+            "public_email": biz.public_email
+        },
+        audit=audit_dict
+    )
+
+    nba = await next_best_action_engine.determine_next_action(db, business_id)
+
+    cap_name = opp.recommended_capability.get("capability_name", "Automation System")
+    cap_price = opp.recommended_capability.get("target_price_usd", 850.0)
+
+    return {
+        "opportunity_id": opp.opportunity_id,
+        "business_name": biz.name,
+        "domain": biz.domain,
+        "niche": biz.niche,
+        "why_this_lead": (
+            f"Operating in verified commercial niche '{biz.niche}' with verified digital presence. "
+            f"Commercial fit tier: {opp.commercial_fit.get('fit_tier', 'MODERATE_ALIGNMENT')}."
+        ),
+        "what_is_the_pain": opp.pain_points[0] if opp.pain_points else "Manual lead intake and response latency",
+        "what_should_we_sell": f"{cap_name} (${cap_price:,.2f} USD)",
+        "why_this_offer": (
+            f"Directly resolves observed operational friction through automated 24/7 intake "
+            f"and guaranteed turnaround."
+        ),
+        "what_should_happen_next": nba.action.value,
+        "next_action_reasoning": nba.reasoning,
+        "confidence": "HIGH" if opp.confidence >= 0.80 else "MODERATE",
+        "commercial_fit_score": opp.commercial_fit.get("overall_score", 65.0)
+    }
+
+
+@router.get("/api/intelligence/segment-metrics")
+async def get_segment_learning_metrics(
+    country: Optional[str] = None,
+    region: Optional[str] = None,
+    city: Optional[str] = None,
+    niche: Optional[str] = None,
+    offer: Optional[str] = None
+):
+    """
+    Returns empirical segment conversion metrics.
+    Enforces 'NOT ENOUGH DATA' when sample size < 10.
+    """
+    from app.intelligence.learning_loop import learning_loop_engine
+    metrics = learning_loop_engine.compute_segment_metrics(
+        country=country, region=region, city=city, niche=niche, offer=offer
+    )
+    return metrics.model_dump()
 
 
 

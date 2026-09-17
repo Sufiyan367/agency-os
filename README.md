@@ -49,6 +49,7 @@ app/
 │   └── reply_classifier.py # AI reply intent classifier (INTERESTED, MEETING, UNSUB)
 ├── analytics/              # Executive reporting & learning loop
 │   ├── engine.py           # Real-time KPIs, conversion funnels, revenue breakdown
+│   ├── truth_engine.py     # Production Truth Engine (strict provenance filters, canonical zero-divergence counts)
 │   └── feedback_loop.py    # Historical performance optimizer
 ├── delivery/               # Post-sale delivery automation
 │   ├── onboarding.py       # Client intake packet & kickoff schedule
@@ -73,6 +74,7 @@ app/
 3. **Safe by Default (`DRY_RUN=True`)**: Outreach is simulated safely by default. Delivery events are logged without contacting external SMTP mail servers.
 4. **Anti-SSRF Protection**: Prevents attacks against loopback (`127.0.0.1`), private networks (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`), link-local metadata services (`169.254.169.254`), or non-HTTP schemes.
 5. **Deduplication & Idempotency**: Normalizes root domains and prevents duplicate database records across runs.
+6. **Production Truth & Provenance Integrity**: The CEO Command Center and Live Pipeline enforce strict provenance boundaries. Synthetic fixtures, developer simulations, canary pings, and unverified mock payments are deterministically isolated from real commercial outcomes. Zero divergence is maintained between executive KPIs and pipeline funnel stages.
 
 ---
 

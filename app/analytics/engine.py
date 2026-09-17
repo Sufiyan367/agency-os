@@ -14,93 +14,47 @@ class AnalyticsEngine:
     """
 
     async def get_dashboard_metrics(self, session: AsyncSession) -> Dict[str, Any]:
+        from app.analytics.truth_engine import get_canonical_production_truth
+        truth = await get_canonical_production_truth(session)
+
         # 1. Leads Metrics
-        total_leads = (await session.execute(select(func.count(Business.id)))).scalar() or 0
-        verified_leads = (await session.execute(
-            select(func.count(Business.id)).where(Business.verification_status == "VERIFIED")
-        )).scalar() or 0
+        total_leads = truth["real_prospects"]
+        verified_leads = truth["real_verified_leads"]
         audited_leads = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage != PipelineStage.DISCOVERED.value)
+            select(func.count(Business.id)).where(
+                Business.verification_status == "VERIFIED",
+                Business.pipeline_stage != PipelineStage.DISCOVERED.value
+            )
         )).scalar() or 0
-        qualified_leads = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage.in_([
-                PipelineStage.QUALIFIED.value,
-                PipelineStage.OUTREACH_READY.value,
-                PipelineStage.APPROVAL.value,
-                PipelineStage.CONTACTED.value,
-                PipelineStage.REPLIED.value,
-                PipelineStage.QUALIFIED_REPLY.value,
-                PipelineStage.CALL.value,
-                PipelineStage.PROPOSAL.value,
-                PipelineStage.WON.value
-            ]))
-        )).scalar() or 0
+        qualified_leads = truth["real_qualified_leads"]
 
         # 2. Outreach Metrics
         outreach_total = (await session.execute(select(func.count(OutreachMessage.id)))).scalar() or 0
-        outreach_pending = (await session.execute(
-            select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value)
-        )).scalar() or 0
-        outreach_approved = (await session.execute(
-            select(func.count(OutreachMessage.id)).where(OutreachMessage.status.in_([OutreachStatus.APPROVED.value, OutreachStatus.SENT.value]))
-        )).scalar() or 0
-        outreach_sent = (await session.execute(
-            select(func.count(OutreachMessage.id)).where(OutreachMessage.status == OutreachStatus.SENT.value)
-        )).scalar() or 0
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        outreach_sent_today = (await session.execute(
-            select(func.count(OutreachMessage.id)).where(
-                OutreachMessage.status == OutreachStatus.SENT.value,
-                OutreachMessage.sent_at >= today_start
-            )
-        )).scalar() or 0
+        outreach_pending = truth["outreach_awaiting_approval"]
+        outreach_approved = truth["queued_qualified"]
+        outreach_sent = truth["real_external_contacted"]
+        outreach_sent_today = truth["real_external_contacted_today"]
 
         # 3. Replies & Sales Metrics
-        replies_total = (await session.execute(select(func.count(Reply.id)))).scalar() or 0
-        replies_pending = (await session.execute(
-            select(func.count(Reply.id)).where(Reply.is_handled == False)
-        )).scalar() or 0
-        replies_positive = (await session.execute(
-            select(func.count(Reply.id)).where(Reply.classification.in_([
-                ReplyClassification.INTERESTED.value,
-                ReplyClassification.MEETING_REQUEST.value,
-                ReplyClassification.PRICE_REQUEST.value
-            ]))
-        )).scalar() or 0
+        replies_total = truth["real_customer_replies"]
+        replies_pending = truth["real_customer_replies"]
+        replies_positive = truth["real_interested_leads"]
 
-        calls_scheduled = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage.in_([PipelineStage.CALL.value, PipelineStage.PROPOSAL.value, PipelineStage.WON.value]))
-        )).scalar() or 0
-        proposals_sent = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage.in_([PipelineStage.PROPOSAL.value, PipelineStage.WON.value]))
-        )).scalar() or 0
-        deals_won = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.WON.value)
-        )).scalar() or 0
-        deals_lost = (await session.execute(
-            select(func.count(Business.id)).where(Business.pipeline_stage == PipelineStage.LOST.value)
-        )).scalar() or 0
+        calls_scheduled = 0
+        proposals_sent = truth["real_proposals"]
+        deals_won = truth["real_deals"]
+        deals_lost = 0
 
         # 4. Financial & Revenue Metrics
-        won_revenue = (await session.execute(select(func.sum(Customer.contract_amount)))).scalar() or 0.0
+        won_revenue = truth["real_verified_revenue"]
         avg_deal_size = (won_revenue / deals_won) if deals_won > 0 else 0.0
-
-        # Verified Real Revenue (strictly $0.00 unless live payments are active and verified)
+        verified_real_revenue = truth["real_verified_revenue"]
         from app.core.config import settings
         payments_live = (
             getattr(settings, "PAYMENTS_ENABLED", False) is True
             and getattr(settings, "PAYMENT_DRY_RUN", True) is False
             and getattr(settings, "RAZORPAY_MODE", "test").lower() == "live"
         )
-        if payments_live:
-            from app.database.models import Payment
-            real_pay_q = select(func.sum(Payment.amount)).where(
-                Payment.status.in_(["PAID", "COMPLETED"]),
-                Payment.is_mock == False
-            )
-            verified_real_revenue = (await session.execute(real_pay_q)).scalar() or 0.0
-        else:
-            verified_real_revenue = 0.0
 
         # Active pipeline potential value (sum of offers for leads in progress)
         pipeline_val_q = select(func.sum(Offer.recommended_price)).join(Business).where(

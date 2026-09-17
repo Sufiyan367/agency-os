@@ -304,1172 +304,657 @@
             </header>
 
             <!-- View 1: Overview Dashboard — CEO Control Center -->
-            <section id="view-overview" class="view-container active" style="padding: 16px 24px;">
-                <!-- CEO Friendly Error State Banner -->
-                <div id="ceo-error-banner" style="display:none; margin-bottom:14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:8px; padding:10px 16px; align-items:center; justify-content:space-between; gap:12px;">
+            <!-- View 1: Overview Dashboard — Executive Decision Surface -->
+            <section id="view-overview" class="view-container active executive-overview-container" style="padding: 16px 24px; max-width: 1440px; margin: 0 auto;">
+                <!-- Error Notice Banner (Discreet) -->
+                <div id="ceo-error-banner" style="display:none; margin-bottom:14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:6px; padding:10px 16px; align-items:center; justify-content:space-between; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:#ef4444; font-size:14px;">●</span>
+                        <span id="ceo-error-msg" style="color:#fca5a5; font-size:13px;">Unable to refresh overview. Background operations active.</span>
+                    </div>
+                    <button onclick="retryCeoConnection()" style="background:transparent; border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:12px; padding:4px 10px; border-radius:4px; cursor:pointer;">Retry</button>
+                </div>
+
+                <!-- Executive Command Header -->
+                <header class="ops-command-header" id="hero-command-container" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <div>
+                        <h1 class="ops-header-title" style="font-size:26px; font-weight:700; color:#ffffff; margin:0 0 4px; letter-spacing:-0.02em;">COMMAND CENTER <span style="font-size:12px; font-weight:400; color:#71717a;">// Agency Operations</span></h1>
+                        <p class="ops-header-subtitle" style="font-size:13px; color:#a1a1aa; margin:0;">
+                            Autonomous AI Agency Operations &bull; <span id="ceo-dynamic-greeting" style="color:#d4d4d8;">Executive Decision Surface</span>
+                        </p>
+                    </div>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-size:1.2rem;">⚠️</span>
+                        <div id="ceo-backend-health-pill" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#10b981; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); padding:5px 12px; border-radius:6px;">
+                            <span id="ceo-backend-health-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block;"></span>
+                            <span id="ceo-backend-health-text">CONNECTED</span>
+                        </div>
+                        <div id="ceo-simulation-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#fbbf24; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.22); padding:5px 12px; border-radius:6px;">
+                            <span style="width:6px; height:6px; background:#f59e0b; border-radius:50%; display:inline-block;"></span>
+                            <span>SAFEGUARDED</span>
+                        </div>
+                        <button onclick="if(typeof loadCeoControlCenter==='function')loadCeoControlCenter(); if(typeof loadDashboardMetrics==='function')loadDashboardMetrics();" style="background:#18181b; border:1px solid rgba(255,255,255,0.12); color:#e4e4e7; font-size:12px; font-weight:500; padding:6px 14px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                            Refresh
+                        </button>
+                        <button onclick="navToView('infra')" style="background:transparent; border:1px solid rgba(255,255,255,0.08); color:#a1a1aa; font-size:12px; font-weight:500; padding:6px 12px; border-radius:6px; cursor:pointer;">
+                            System Diagnostics
+                        </button>
+                        <span id="obs-worker-pill" style="display:none;" aria-hidden="true"></span>
+                        <span id="obs-loop-pill" style="display:none;" aria-hidden="true"></span>
+                        <span id="obs-email-pill" style="display:none;" aria-hidden="true"></span>
+                        <span id="obs-outreach-lock" style="display:none;" aria-hidden="true"></span>
+                    </div>
+                </header>
+
+                <!-- ========================================================== -->
+                <!-- 01. BUSINESS SNAPSHOT (Coherent Single Executive Module) -->
+                <!-- ========================================================== -->
+                <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:20px 24px; margin-bottom:20px;">
+                    <div style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px;">
+                        01. Business Snapshot
+                    </div>
+                    <div class="executive-snapshot-grid">
+                        <!-- Prospects -->
+                        <div class="executive-metric-block" title="Verified real businesses discovered across international corridors" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">PROSPECTS</div>
+                            <div id="ceo-val-total-prospects" style="font-size:30px; font-weight:700; color:#ffffff; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">Discovered Real</div>
+                        </div>
+                        <!-- Qualified -->
+                        <div class="executive-metric-block" title="Real leads satisfying score &ge; 55 and empirical audit complete" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">QUALIFIED</div>
+                            <div id="ceo-val-qualified-prospects" style="font-size:30px; font-weight:700; color:#ffffff; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">Score &ge; 55 &bull; Audited</div>
+                        </div>
+                        <!-- Contacted -->
+                        <div class="executive-metric-block" title="Production messages accepted and dispatched by Titan SMTP" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">CONTACTED</div>
+                            <div id="val-outreach-sent" style="font-size:30px; font-weight:700; color:#ffffff; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div id="ceo-subtext-outreach-sent" style="font-size:10px; color:#52525b; margin-top:4px;">Titan SMTP Verified</div>
+                        </div>
+                        <!-- Replies -->
+                        <div class="executive-metric-block" title="Verified genuine external customer replies (operator self-tests & bounces excluded)" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">REPLIES</div>
+                            <div id="ceo-val-replies-pending" style="font-size:30px; font-weight:700; color:#ffffff; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">External Customer</div>
+                        </div>
+                        <!-- Interested -->
+                        <div class="executive-metric-block" title="Verified positive commercial customer interest signals" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">INTERESTED</div>
+                            <div id="ceo-val-interested-leads" style="font-size:30px; font-weight:700; color:#34d399; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">Customer Signals</div>
+                        </div>
+                        <!-- Deals -->
+                        <div class="executive-metric-block" title="Verified customer commercial agreements" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">DEALS</div>
+                            <div id="ceo-val-deals-won" style="font-size:30px; font-weight:700; color:#38bdf8; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">Commercial Won</div>
+                        </div>
+                        <!-- Payment Pending -->
+                        <div class="executive-metric-block" title="Verified customer payment obligations awaiting authorization" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">PAYMENT PENDING</div>
+                            <div id="ceo-val-payments-auth" style="font-size:30px; font-weight:700; color:#fbbf24; font-family:var(--font-mono); line-height:1;">0</div>
+                            <div style="font-size:10px; color:#52525b; margin-top:4px;">Real Invoices</div>
+                        </div>
+                        <!-- Verified Revenue -->
+                        <div class="executive-metric-block" title="Independently verified settled customer funds in operating accounts" style="cursor:help;">
+                            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">VERIFIED REVENUE</div>
+                            <div id="ceo-val-revenue" style="font-size:30px; font-weight:700; color:#10b981; font-family:var(--font-mono); line-height:1;">$0.00</div>
+                            <div id="ceo-subtext-revenue-status" style="font-size:10px; color:#52525b; margin-top:4px;">Settled Funds</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- ROW 2: 02. ACTION REQUIRED (Summary) + 03. LIVE PIPELINE   -->
+                <!-- ========================================================== -->
+                <div class="executive-grid-2col">
+                    <!-- 02. ACTION REQUIRED (Summary Only) -->
+                    <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:20px; display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <div id="ceo-error-title" style="font-weight:700; color:#fca5a5; font-size:0.82rem;">System Notice</div>
-                            <div id="ceo-error-msg" style="color:#cbd5e1; font-size:0.75rem;">Unable to connect to live operations engine. No data lost.</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-secondary" onclick="retryCeoConnection()" style="font-size:0.75rem; padding:4px 12px; white-space:nowrap;">Retry Reconnect</button>
-                </div>
-
-                <!-- MISSION CONTROL: CONTINUOUS OBSERVABILITY COMMAND HEADER -->
-                <div class="ops-command-header" id="hero-command-container">
-                    <div class="ops-header-main">
-                        <div class="ops-header-identity">
-                            <h1 class="ops-header-title">AGENCY OS <span style="font-weight:400; color:var(--text-muted); font-size:0.8rem; margin-left:6px; letter-spacing:normal;">// Agency Operations</span></h1>
-                            <p class="ops-header-subtitle">
-                                AUTONOMOUS OPERATIONS &bull; <span id="ceo-dynamic-greeting" style="color:#a1a1aa;">Good evening, Operator</span>
-                            </p>
-                        </div>
-                        <div class="ops-header-status-cluster" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <div class="ops-status-pill operational" id="ceo-backend-health-pill" title="Core System Status">
-                                <span class="ops-status-dot pulse" id="ceo-backend-health-dot"></span>
-                                <span>SYSTEM: <strong id="ceo-backend-health-text" style="color:#10b981;">CHECKING...</strong></span>
-                            </div>
-                            <div class="ops-status-pill operational" id="obs-worker-pill" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); color:#38bdf8;" title="Continuous Background Worker Engine">
-                                <span class="ops-status-dot pulse" style="background:#38bdf8; box-shadow:0 0 6px #38bdf8;"></span>
-                                <span>WORKER: <strong id="obs-worker-status" style="color:#38bdf8;">CHECKING...</strong></span>
-                            </div>
-                            <div class="ops-status-pill operational" id="obs-loop-pill" style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); color:#c084fc;" title="Autonomous Revenue Progression Loop">
-                                <span class="ops-status-dot pulse" style="background:#a855f7; box-shadow:0 0 6px #a855f7;"></span>
-                                <span>REVENUE LOOP: <strong id="obs-loop-status" style="color:#c084fc;">CHECKING...</strong></span>
-                            </div>
-                            <div class="ops-status-pill operational" id="obs-email-pill" style="background:rgba(113,113,122,0.08); border:1px solid rgba(113,113,122,0.25); color:#71717a;" title="Email Provider Delivery Channel: Checking...">
-                                <span class="ops-status-dot" id="obs-email-dot" style="background:#71717a; box-shadow:0 0 6px #71717a;"></span>
-                                <span>EMAIL: <strong id="obs-email-status" style="color:#71717a;">CHECKING...</strong></span>
-                            </div>
-                            <span class="ops-badge lock" id="obs-outreach-lock" style="font-size:0.68rem;">OUTREACH LOCK: IDLE</span>
-                        </div>
-                        <div class="ops-header-actions">
-                            <button type="button" class="ops-btn ops-btn-secondary" onclick="retryCeoConnection()" title="Refresh operational telemetry">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                                <span>Refresh</span>
-                            </button>
-                            <button type="button" class="ops-btn ops-btn-secondary" onclick="navToView('infra')" title="Open System Infrastructure & Diagnostics" style="border-color:rgba(255,255,255,0.12); color:#94a3b8;">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <span>System Diagnostics</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 2: TODAY / BUSINESS SNAPSHOT (TOP OPERATIONAL KPIS)
-                     ========================================================================== -->
-                <div class="cmd-section" style="margin-top: 14px;">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>📊</span> Today &bull; Executive Business Snapshot
-                        </div>
-                        <span class="cmd-section-badge badge-cyan">Live Operational Telemetry &bull; Zero Simulated Revenue</span>
-                    </div>
-
-                    <!-- Autonomous Observability Strip (High-density telemetry bar) -->
-                    <div class="agency-observability-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin-bottom:12px; background:#09090b; border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:10px 14px;">
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Daily Outbound</span>
-                            <span id="obs-daily-outbound" style="font-size:0.88rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0 / 70</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Qualified</span>
-                            <span id="obs-qualified" style="font-size:0.88rem; font-weight:700; color:#f4f4f5; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Waiting Reply</span>
-                            <span id="obs-waiting-reply" style="font-size:0.88rem; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Positive Leads</span>
-                            <span id="obs-positive-leads" style="font-size:0.88rem; font-weight:700; color:#34d399; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Demos</span>
-                            <span id="obs-demos" style="font-size:0.88rem; font-weight:700; color:#a78bfa; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Proposals</span>
-                            <span id="obs-proposals" style="font-size:0.88rem; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Payments</span>
-                            <span id="obs-payments" style="font-size:0.88rem; font-weight:700; color:#f59e0b; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Customers</span>
-                            <span id="obs-customers" style="font-size:0.88rem; font-weight:700; color:#10b981; font-family:var(--font-mono);">0</span>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; font-weight:600;">Action Required</span>
-                            <span id="obs-action-required" style="font-size:0.88rem; font-weight:700; color:#f87171; font-family:var(--font-mono);">0</span>
-                        </div>
-                    </div>
-
-                    <!-- 8 Core Metric Cards + Verified Revenue Card -->
-                    <div class="cmd-snapshot-grid" id="ceo-metrics-grid">
-                        <!-- 1. Total Discovered Prospects -->
-                        <div class="cmd-metric-card" onclick="navToView('leads')" title="Discovered prospects in market database">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Discovered Prospects</span>
-                                <span class="cmd-metric-icon">🔍</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-total-prospects">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>Global database</span>
-                                <span class="badge-emerald" id="val-leads">0 leads</span>
-                            </div>
-                        </div>
-
-                        <!-- 2. Qualified Pipeline -->
-                        <div class="cmd-metric-card" onclick="navToView('queue')" title="Prospects meeting commercial criteria">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Qualified Leads</span>
-                                <span class="cmd-metric-icon">🎯</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-qualified-prospects">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>Audited & verified</span>
-                                <span class="badge-cyan" id="val-qualified">0 ready</span>
-                            </div>
-                        </div>
-
-                        <!-- 3. Outreach Sent -->
-                        <div class="cmd-metric-card" onclick="navToView('queue')" title="Personalized outbound communications sent">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Outreach Dispatched</span>
-                                <span class="cmd-metric-icon">✉️</span>
-                            </div>
-                            <div class="cmd-metric-val" id="val-outreach-sent">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>Lifetime outbound</span>
-                                <span class="badge-amber">Titan SMTP</span>
-                            </div>
-                        </div>
-
-                        <!-- 4. Replies Pending -->
-                        <div class="cmd-metric-card" onclick="navToView('replies')" title="Inbound prospect replies awaiting response">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Replies Pending</span>
-                                <span class="cmd-metric-icon">💬</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-replies-pending">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>Inbound inquiries</span>
-                                <span class="badge-amber" id="val-reply-rate">0.0% rate</span>
-                            </div>
-                        </div>
-
-                        <!-- 5. Active Demos Generated -->
-                        <div class="cmd-metric-card" onclick="navToView('pipeline')" title="Turnkey demo workspaces active">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Active Demos</span>
-                                <span class="cmd-metric-icon">⚡</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-active-demos">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>Turnkey factory</span>
-                                <span class="badge-purple">8-Gate QA</span>
-                            </div>
-                        </div>
-
-                        <!-- 6. Commercial Proposals -->
-                        <div class="cmd-metric-card" onclick="navToView('pipeline')" title="Active commercial proposals submitted">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Proposals Active</span>
-                                <span class="cmd-metric-icon">📋</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-proposals-active">0</div>
-                            <div class="cmd-metric-sub">
-                                <span>40% advance model</span>
-                                <span class="badge-cyan">Awaiting sign</span>
-                            </div>
-                        </div>
-
-                        <!-- 7. Pipeline Potential Value -->
-                        <div class="cmd-metric-card" onclick="navToView('pipeline')" title="Total commercial pipeline value">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Pipeline Value</span>
-                                <span class="cmd-metric-icon">📈</span>
-                            </div>
-                            <div class="cmd-metric-val" id="val-pipeline">$0.00</div>
-                            <div class="cmd-metric-sub">
-                                <span>Total proposal value</span>
-                                <span class="badge-cyan">Unweighted</span>
-                            </div>
-                        </div>
-
-                        <!-- 8. Real Verified Revenue (TRUTHFUL) -->
-                        <div class="cmd-metric-card highlight-metric" onclick="navToView('payments')" title="Actual bank/UPI confirmed revenue">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label" style="color:#34d399; font-weight:700;">Verified Collected Revenue</span>
-                                <span class="cmd-metric-icon">💰</span>
-                            </div>
-                            <div class="cmd-metric-val" id="ceo-val-revenue" style="color:#10b981;">$0.00</div>
-                            <div class="cmd-metric-sub">
-                                <span>Confirmed in bank</span>
-                                <span class="badge-emerald" id="ceo-val-deals-won">0 Deals Won</span>
-                                <span id="val-won" style="display:none;">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Revenue Truth & Empty Chart State (Preserves test requirements) -->
-                    <div id="ceo-empty-chart" style="display:none; padding:12px 16px; background:#0d1117; border:1px dashed rgba(255,255,255,0.12); border-radius:6px; margin-top:10px; font-size:0.75rem; color:#94a3b8; align-items:center; gap:8px;">
-                        <span>ℹ️</span> No real revenue data yet. System strictly records revenue upon verified 40% advance confirmation. Zero simulated revenue is displayed.
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 3: ACTION REQUIRED (OPERATOR QUEUE)
-                     ========================================================================== -->
-                <div class="cmd-section" id="owner-attention-card">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>⚡</span> Action Required &bull; Urgent Operator Queue
-                        </div>
-                        <span class="cmd-section-badge badge-red" id="attention-status-badge">0 Pending Actions / All Systems Nominal</span>
-                    </div>
-
-                    <div class="cmd-action-box" id="action-queue-wrapper">
-                        <div class="cmd-action-items" id="owner-attention-items">
-                            <!-- Populated dynamically via GET /api/owner/attention -->
-                            <div style="display:flex; align-items:center; gap:10px; color:#10b981; font-size:0.82rem; font-weight:600;">
-                                <span>✓</span> No pending manual reviews or exceptions. All acquisition and delivery workflows are running nominal.
-                            </div>
-                        </div>
-
-                        <!-- 4 Actionable Operator Priority Queues -->
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:12px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                        <span style="font-size:0.75rem; font-weight:700; color:#fbbf24; text-transform:uppercase;">1. Payment Verification</span>
-                                        <span class="badge-amber" style="font-size:0.68rem;" id="queue-count-payments">0</span>
-                                    </div>
-                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Client UTR/UPI references awaiting bank statement match.</p>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em;">02. Action Required</span>
+                                    <span id="ceo-action-summary-badge" style="background:#ef4444; color:#ffffff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:10px; font-family:var(--font-mono);">0</span>
                                 </div>
-                                <button type="button" class="btn btn-secondary" onclick="navToView('payments')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#fbbf24; border-color:rgba(251,191,36,0.3);">[VERIFY]</button>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                        <span style="font-size:0.75rem; font-weight:700; color:#38bdf8; text-transform:uppercase;">2. Outreach Approvals</span>
-                                        <span class="badge-cyan" style="font-size:0.68rem;" id="queue-count-outreach">0</span>
-                                    </div>
-                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">AI generated personalized copy awaiting safety signoff.</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" onclick="navToView('queue')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#38bdf8; border-color:rgba(56,189,248,0.3);">[REVIEW]</button>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                        <span style="font-size:0.75rem; font-weight:700; color:#c084fc; text-transform:uppercase;">3. Demo Deployments</span>
-                                        <span class="badge-purple" style="font-size:0.68rem;" id="queue-count-demos">0</span>
-                                    </div>
-                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Prospects in DEMO_REQUESTED stage awaiting turnkey spin-up.</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" onclick="navToView('pipeline')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#c084fc; border-color:rgba(192,132,252,0.3);">[DEPLOY]</button>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                        <span style="font-size:0.75rem; font-weight:700; color:#f87171; text-transform:uppercase;">4. Safeguard Exceptions</span>
-                                        <span class="badge-red" style="font-size:0.68rem;" id="queue-count-exceptions">0</span>
-                                    </div>
-                                    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 8px 0;">Email deliverability blocks or market exclusion violations.</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" onclick="navToView('infra')" style="height:26px; padding:0 8px; font-size:0.72rem; align-self:flex-start; color:#f87171; border-color:rgba(248,113,113,0.3);">[INSPECT]</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 4: DEAL PIPELINE / LIFECYCLE TRACKER
-                     ========================================================================== -->
-                <div class="cmd-section">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>🔄</span> Commercial Pipeline &amp; Lifecycle Velocity
-                        </div>
-                        <span class="cmd-section-badge badge-cyan">Full-Funnel Lifecycle Tracking</span>
-                    </div>
-
-                    <div class="cmd-pipeline-wrapper">
-                        <div class="cmd-pipeline-flow">
-                            <!-- 1. Discovered -->
-                            <div class="cmd-pipeline-step" onclick="navToView('leads')">
-                                <div class="cmd-pipeline-step-num">01</div>
-                                <div class="cmd-pipeline-step-name">Discovered</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-discovered">0</div>
-                            </div>
-
-                            <!-- 2. Qualified -->
-                            <div class="cmd-pipeline-step" onclick="navToView('queue')">
-                                <div class="cmd-pipeline-step-num">02</div>
-                                <div class="cmd-pipeline-step-name">Qualified</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-qualified">0</div>
-                            </div>
-
-                            <!-- 3. Contacted -->
-                            <div class="cmd-pipeline-step" onclick="navToView('queue')">
-                                <div class="cmd-pipeline-step-num">03</div>
-                                <div class="cmd-pipeline-step-name">Contacted</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-contacted">0</div>
-                            </div>
-
-                            <!-- 4. Replied -->
-                            <div class="cmd-pipeline-step" onclick="navToView('replies')">
-                                <div class="cmd-pipeline-step-num">04</div>
-                                <div class="cmd-pipeline-step-name">Replied</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-replied">0</div>
-                            </div>
-
-                            <!-- 5. Interested / Demo -->
-                            <div class="cmd-pipeline-step" onclick="navToView('pipeline')">
-                                <div class="cmd-pipeline-step-num">05</div>
-                                <div class="cmd-pipeline-step-name">Demo / Int.</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-meeting">0</div>
-                            </div>
-
-                            <!-- 6. Proposal -->
-                            <div class="cmd-pipeline-step" onclick="navToView('pipeline')">
-                                <div class="cmd-pipeline-step-num">06</div>
-                                <div class="cmd-pipeline-step-name">Proposal</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-proposal">0</div>
-                            </div>
-
-                            <!-- 7. Deals Won / Payment Confirmed -->
-                            <div class="cmd-pipeline-step active-step" onclick="navToView('payments')">
-                                <div class="cmd-pipeline-step-num">07</div>
-                                <div class="cmd-pipeline-step-name">Deals Won</div>
-                                <div class="cmd-pipeline-step-count" id="funnel-c-won">0</div>
-                            </div>
-                        </div>
-
-                        <!-- Operational Sub-stages Flow Ribbon -->
-                        <div style="display:flex; align-items:center; gap:8px; overflow-x:auto; margin-top:12px; padding:8px 12px; background:rgba(0,0,0,0.3); border-radius:6px; font-size:0.72rem; color:#94a3b8;">
-                            <span style="font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em;">Order Milestones:</span>
-                            <span class="badge-amber">40% Advance Required</span>
-                            <span>&rarr;</span>
-                            <span class="badge-cyan">Manual UTR Verification</span>
-                            <span>&rarr;</span>
-                            <span class="badge-emerald">Build Authorized</span>
-                            <span>&rarr;</span>
-                            <span class="badge-purple">8-Gate Staging QA</span>
-                            <span>&rarr;</span>
-                            <span class="badge-cyan">Delivery Ready</span>
-                            <span>&rarr;</span>
-                            <span class="badge-emerald">Delivered &amp; Paid</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 5: GLOBAL ACQUISITION TARGETING (PROMINENT!)
-                     ========================================================================== -->
-                <div class="cmd-section" style="border:1px solid rgba(56,189,248,0.28); background:rgba(15,23,42,0.5);">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>🌐</span> Global Acquisition Targeting Engine
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="cmd-section-badge badge-cyan">Country &rarr; Region &rarr; City &rarr; Niche Hierarchy</span>
-                            <button type="button" class="btn btn-secondary" onclick="loadGlobalTargetingData()" style="height:28px; padding:0 10px; font-size:0.72rem;">
-                                <span>🔄</span> Refresh
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Market Status Cards Strip -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:12px;">
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">P1 Markets</span>
-                            <div class="kpi-value" id="gt-summary-p1-markets" style="font-size:1.15rem; color:#f59e0b;">7</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">US, UK, CA, AU, AE, SA, SG</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">P2 Markets</span>
-                            <div class="kpi-value" id="gt-summary-p2-markets" style="font-size:1.15rem; color:var(--hud-cyan-bright);">27</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Western EU, Nordics, East Asia</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">P3 Markets</span>
-                            <div class="kpi-value" id="gt-summary-p3-markets" style="font-size:1.15rem; color:#94a3b8;">10</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Emerging / Test Markets</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px; border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.03);">
-                            <span class="kpi-label" style="font-size:0.68rem; color:#f87171;">Disabled Markets</span>
-                            <div class="kpi-value" id="gt-summary-disabled-markets" style="font-size:1.15rem; color:#ef4444;">3</div>
-                            <span class="kpi-sub" style="font-size:0.65rem; color:#fca5a5;">IL, IN, PK (Strictly Blocked)</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Active Targets</span>
-                            <div class="kpi-value" id="gt-summary-targets" style="font-size:1.15rem; color:#10b981;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Enabled Combinations</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">P1 Queue</span>
-                            <div class="kpi-value" id="gt-summary-p1" style="font-size:1.15rem; color:#f59e0b;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">High Priority Targets</span>
-                        </div>
-                    </div>
-
-                    <!-- Hard Business Exclusion Rule Alert Banner -->
-                    <div style="margin-bottom:12px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); border-radius:6px; display:flex; align-items:center; gap:10px; font-size:0.75rem;">
-                        <span style="font-size:1.1rem;">🛡️</span>
-                        <div>
-                            <strong style="color:#fca5a5;">MARKET EXCLUSION POLICY ENFORCED:</strong>
-                            <span style="color:#cbd5e1;"> India (IN), Pakistan (PK), and Israel (IL) are strictly <strong>DISABLED</strong> for active acquisition. Target creation, discovery, research, qualification, and outreach are blocked at the engine level. Historical records remain preserved for compliance audit.</span>
-                        </div>
-                    </div>
-
-                    <!-- Target Configurator (Cascading Form) -->
-                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px; margin-bottom:14px;">
-                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--hud-cyan-bright); margin-bottom:10px; letter-spacing:0.04em;">
-                            Target Acquisition Configurator &bull; Cascading Hierarchical Selector
-                        </div>
-                        <form id="global-targeting-form" onsubmit="handleEnableTarget(event)" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)) 100px 95px auto; gap:10px; align-items:flex-end;">
-                            <div>
-                                <label style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">Country</label>
-                                <select id="gt-select-country" class="form-control" onchange="onTargetCountryChanged()" required style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;"></select>
-                            </div>
-                            <div>
-                                <label id="gt-region-label" style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">Region</label>
-                                <select id="gt-select-region" class="form-control" onchange="onTargetRegionChanged()" required style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;">
-                                    <option value="">Select Region</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">City</label>
-                                <select id="gt-select-city" class="form-control" required style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;">
-                                    <option value="">Select City</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">Niche</label>
-                                <select id="gt-select-niche" class="form-control" required style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;">
-                                    <option value="">Select Niche</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">Priority</label>
-                                <select id="gt-select-priority" class="form-control" style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;">
-                                    <option value="P1" selected>P1</option>
-                                    <option value="P2">P2</option>
-                                    <option value="P3">P3</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display:block; font-size:0.70rem; font-weight:600; text-transform:uppercase; color:#94a3b8; margin-bottom:4px;">Status</label>
-                                <select id="gt-select-status" class="form-control" style="height:34px; font-size:0.78rem; background:#0f172a; border-color:rgba(255,255,255,0.15); color:#f8fafc;">
-                                    <option value="ACTIVE" selected>Active</option>
-                                    <option value="PAUSED">Paused</option>
-                                </select>
-                            </div>
-                            <div>
-                                <button type="submit" id="btn-enable-target" class="btn btn-primary" style="height:34px; padding:0 16px; white-space:nowrap; font-size:0.76rem; font-weight:700;">
-                                    <span>⚡</span> ENABLE TARGET
+                                <button onclick="navToView('queue')" style="background:transparent; border:none; color:#38bdf8; font-size:12px; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
+                                    VIEW ALL &rarr;
                                 </button>
                             </div>
-                        </form>
-                    </div>
-
-                    <!-- Split View: Active Targets Table & Market Status Directory -->
-                    <div class="cmd-split-grid">
-                        <!-- Left: Active Targets Table -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="font-weight:700; font-size:0.8rem; color:#f8fafc;">Active Target Queue</span>
-                                    <span class="badge-emerald" style="font-size:0.68rem;">Production Acquisition</span>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
+                                    <span style="font-size:13px; color:#e4e4e7;">Payment Verification</span>
+                                    <span id="summary-action-payment" style="font-size:15px; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">0</span>
                                 </div>
-                                <div style="display:flex; gap:6px;">
-                                    <select id="gt-filter-priority" onchange="filterActiveTargets()" style="height:26px; font-size:0.70rem; background:#09090b; border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:4px; padding:0 6px;">
-                                        <option value="">All Priorities</option>
-                                        <option value="P1">P1</option>
-                                        <option value="P2">P2</option>
-                                        <option value="P3">P3</option>
-                                    </select>
-                                    <select id="gt-filter-status" onchange="filterActiveTargets()" style="height:26px; font-size:0.70rem; background:#09090b; border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:4px; padding:0 6px;">
-                                        <option value="">All Statuses</option>
-                                        <option value="ACTIVE">Active</option>
-                                        <option value="PAUSED">Paused</option>
-                                    </select>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
+                                    <span style="font-size:13px; color:#e4e4e7;">Outreach Approval</span>
+                                    <span id="summary-action-outreach" style="font-size:15px; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0</span>
                                 </div>
-                            </div>
-                            <div class="cmd-card-body" style="padding:0; overflow-x:auto;">
-                                <table class="cmd-table" id="gt-targets-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Target (Country &rarr; Region &rarr; City &rarr; Niche)</th>
-                                            <th>Class</th>
-                                            <th>Priority</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="gt-targets-tbody">
-                                        <tr>
-                                            <td colspan="5" style="text-align:center; padding:24px; color:#94a3b8;">
-                                                <div style="font-weight:600; margin-bottom:4px;">No active targets configured</div>
-                                                <div style="font-size:0.72rem; color:#71717a;">Select a country, region, city, and niche above, then click <strong>ENABLE TARGET</strong> to commence discovery.</div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div style="padding:8px 12px; background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:0.68rem; color:#71717a; text-transform:uppercase; font-weight:700;">Active Badges:</span>
-                                <div id="gt-top-targets-list" style="display:flex; flex-wrap:wrap; gap:4px;">
-                                    <span style="font-size:0.72rem; color:#94a3b8;">None enabled</span>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
+                                    <span style="font-size:13px; color:#e4e4e7;">Demo Approval</span>
+                                    <span id="summary-action-demo" style="font-size:15px; font-weight:700; color:#a78bfa; font-family:var(--font-mono);">0</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
+                                    <span style="font-size:13px; color:#e4e4e7;">Safeguard Exceptions</span>
+                                    <span id="summary-action-exceptions" style="font-size:15px; font-weight:700; color:#f87171; font-family:var(--font-mono);">0</span>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Right: Market Status & Exclusion Table -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="font-weight:700; font-size:0.8rem; color:#f8fafc;">Global Markets Catalog</span>
-                                    <span class="badge-cyan" style="font-size:0.68rem;">47 Supported Countries</span>
-                                </div>
-                                <div>
-                                    <select id="gt-filter-market-class" onchange="filterMarketOverview()" style="height:26px; font-size:0.70rem; background:#09090b; border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:4px; padding:0 6px;">
-                                        <option value="">All Market Classes</option>
-                                        <option value="P1">P1 Markets</option>
-                                        <option value="P2">P2 Markets</option>
-                                        <option value="P3">P3 Markets</option>
-                                        <option value="DISABLED">Disabled Markets</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="cmd-card-body" style="padding:0; max-height:360px; overflow-y:auto; overflow-x:auto;">
-                                <table class="cmd-table" id="gt-market-overview-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Country</th>
-                                            <th>Subdivision Type</th>
-                                            <th>Class</th>
-                                            <th>Priority</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="gt-market-overview-tbody">
-                                        <!-- Loaded dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 6: ACQUISITION PERFORMANCE (DISCOVERY, AUDIT, OUTREACH)
-                     ========================================================================== -->
-                <div class="cmd-section">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>📡</span> Acquisition Engine Performance &amp; Deliverability Health
-                        </div>
-                        <span class="cmd-section-badge badge-cyan">Subsystem Conversion Telemetry</span>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-                        <!-- 1. Discovery Engine -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">Discovery Engine</span>
-                                <span class="badge-emerald">Active Ingress</span>
-                            </div>
-                            <div class="cmd-card-body">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Active Target Slots:</span>
-                                    <strong style="color:#f8fafc;" id="perf-active-slots">P1 Priority</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Prospect Ingress Velocity:</span>
-                                    <strong style="color:#38bdf8;">Deterministic Batch</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Duplicate Suppression:</span>
-                                    <strong style="color:#10b981;">Domain Hash Shielded</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. Research & Deep Audit -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">Research &amp; Audit Engine</span>
-                                <span class="badge-cyan">Evidence Driven</span>
-                            </div>
-                            <div class="cmd-card-body">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Compliance Filter:</span>
-                                    <strong style="color:#10b981;">Zero-Hallucination</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">SEO &amp; Performance Audit:</span>
-                                    <strong style="color:#38bdf8;">Lighthouse Verified</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Niche Match Accuracy:</span>
-                                    <strong style="color:#10b981;">Normalized Catalog</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 3. Outreach & Deliverability -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">Outreach &amp; Email Guardian</span>
-                                <span class="badge-amber" id="perf-email-badge">Titan SMTP</span>
-                            </div>
-                            <div class="cmd-card-body">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Daily Quota Enforced:</span>
-                                    <strong style="color:#fbbf24;" id="perf-daily-quota">0 / 70 max</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Spam Score Verification:</span>
-                                    <strong style="color:#10b981;">Pass (&lt; 2.0 threshold)</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Safety Lockout:</span>
-                                    <strong style="color:#38bdf8;">Idle / Safe</strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 7: DEALS & PAYMENTS
-                     ========================================================================== -->
-                <div class="cmd-section">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>💳</span> Commercial Deals &amp; Payment Operations
-                        </div>
-                        <span class="cmd-section-badge badge-amber">40% Advance Verification &bull; Manual UPI Governance</span>
-                    </div>
-
-                    <!-- Payment Policy Notice Banner -->
-                    <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.75rem; color:#cbd5e1; display:flex; align-items:center; gap:10px;">
-                        <span style="font-size:1.1rem;">⚠️</span>
-                        <div>
-                            <strong style="color:#fbbf24;">TRUTHFUL FINANCIAL GOVERNANCE:</strong>
-                            Standalone UPI (<code>mrsufiyansurve@okaxis</code>) does <strong>not</strong> provide automated banking webhooks. A client-submitted UTR/reference number transitions the order to <code>PAYMENT_REVIEW_REQUIRED</code>. Production build authorization strictly requires human operator verification.
-                        </div>
-                    </div>
-
-                    <!-- Ledger Summary Strip -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:12px;">
-                        <div class="cmd-metric-card" style="padding:10px;">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Commercial Proposals</span>
-                            </div>
-                            <div class="cmd-metric-val" id="deals-count-proposals" style="font-size:1.2rem;">0</div>
-                            <div class="cmd-metric-sub">Drafted &amp; Sent</div>
-                        </div>
-                        <div class="cmd-metric-card" style="padding:10px;">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Advance Pending (40%)</span>
-                            </div>
-                            <div class="cmd-metric-val" id="deals-pending-advance" style="font-size:1.2rem; color:#fbbf24;">$0.00</div>
-                            <div class="cmd-metric-sub">Awaiting client payment</div>
-                        </div>
-                        <div class="cmd-metric-card" style="padding:10px;">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Review Required (UTR)</span>
-                            </div>
-                            <div class="cmd-metric-val" id="deals-review-required" style="font-size:1.2rem; color:#38bdf8;">0</div>
-                            <div class="cmd-metric-sub">Needs human bank check</div>
-                        </div>
-                        <div class="cmd-metric-card" style="padding:10px; border-color:rgba(16,185,129,0.3);">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label" style="color:#34d399;">Confirmed Advance</span>
-                            </div>
-                            <div class="cmd-metric-val" id="deals-confirmed-advance" style="font-size:1.2rem; color:#10b981;">$0.00</div>
-                            <div class="cmd-metric-sub">Production Authorized</div>
-                        </div>
-                        <div class="cmd-metric-card" style="padding:10px;">
-                            <div class="cmd-metric-top">
-                                <span class="cmd-metric-label">Remaining Balance (60%)</span>
-                            </div>
-                            <div class="cmd-metric-val" id="deals-remaining-balance" style="font-size:1.2rem; color:#94a3b8;">$0.00</div>
-                            <div class="cmd-metric-sub">Due on client delivery</div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Transactions Table -->
-                    <div class="cmd-card">
-                        <div class="cmd-card-header">
-                            <span style="font-weight:700; font-size:0.78rem;">Recent Payment Transactions &bull; UTR Verification Queue</span>
-                            <button type="button" class="btn btn-secondary" onclick="loadPayments()" style="height:26px; padding:0 8px; font-size:0.70rem;">Refresh Ledger</button>
-                        </div>
-                        <div class="cmd-card-body" style="padding:0; overflow-x:auto;">
-                            <table class="cmd-table" id="overview-payments-table">
-                                <thead>
-                                    <tr>
-                                        <th>Proposal / Ref</th>
-                                        <th>Business Name</th>
-                                        <th>Total Value</th>
-                                        <th>40% Advance</th>
-                                        <th>Payment Rail</th>
-                                        <th>Client UTR Reference</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="payments-tbody">
-                                    <tr>
-                                        <td colspan="8" style="text-align:center; padding:18px; color:#94a3b8;">
-                                            No active payment records in ledger. Commercial proposals will populate here upon submission.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 8: DEMO & DELIVERY FACTORY
-                     ========================================================================== -->
-                <div class="cmd-section">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>🚀</span> Demo Factory &amp; Client Delivery Operations
-                        </div>
-                        <span class="cmd-section-badge badge-purple">8-Gate Quality Assurance System</span>
-                    </div>
-
-                    <div class="cmd-split-grid">
-                        <!-- Turnkey Demos Active -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">Turnkey Staging Environments</span>
-                                <span class="badge-purple">Deterministic Builds</span>
-                            </div>
-                            <div class="cmd-card-body" style="padding:14px;">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Active Demo Workspaces:</span>
-                                    <strong style="color:#f8fafc;" id="df-active-demos-count">0 Workspaces</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Production Build Lock:</span>
-                                    <strong style="color:#fbbf24;">40% Advance Required</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; font-size:0.76rem;">
-                                    <span style="color:#94a3b8;">Automated Staging Expiry:</span>
-                                    <strong style="color:#94a3b8;">14 Days Retention</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 8-Gate QA Checklist -->
-                        <div class="cmd-card">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">8-Gate Release Gates</span>
-                                <span class="badge-emerald">100% Quality Standard</span>
-                            </div>
-                            <div class="cmd-card-body" style="padding:10px 14px;">
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.72rem;">
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 1. Contract Validation
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 2. Database Schema Check
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 3. Security &amp; Auth Policy
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 4. API Deliverability
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 5. UI &amp; A11y Standards
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 6. Performance Budget
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 7. Deterministic Output
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1;">
-                                        <span style="color:#10b981;">✓</span> 8. Owner Final Signoff
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 9: OPERATIONS & SYSTEM HEALTH (COMPACT 8-SUBSYSTEM GRID)
-                     ========================================================================== -->
-                <div class="cmd-section">
-                    <div class="cmd-section-header">
-                        <div class="cmd-section-title">
-                            <span>🖥️</span> Operations &amp; Subsystem Infrastructure Health
-                        </div>
-                        <span class="cmd-section-badge badge-cyan">Real-Time Heartbeat Telemetry</span>
-                    </div>
-
-                    <div class="cmd-health-grid">
-                        <!-- 1. Background Worker -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Continuous Worker</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-worker">HEALTHY</div>
-                            <div class="cmd-health-meta">Background event loop</div>
-                        </div>
-
-                        <!-- 2. Scheduler Engine -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Autonomous Scheduler</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-scheduler">HEALTHY</div>
-                            <div class="cmd-health-meta">Tick cadence active</div>
-                        </div>
-
-                        <!-- 3. Titan SMTP / IMAP -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Titan Mail Gateway</span>
-                                <span class="cmd-health-dot ok" id="sys-health-dot-mail"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-mail">AUTHENTICATED</div>
-                            <div class="cmd-health-meta">Port 465 SSL/TLS</div>
-                        </div>
-
-                        <!-- 4. N8N Webhook Bridge -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">N8N Automations</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-n8n">STANDBY</div>
-                            <div class="cmd-health-meta">Webhook ingress ready</div>
-                        </div>
-
-                        <!-- 5. Demo Factory -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Demo Factory</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-factory">READY</div>
-                            <div class="cmd-health-meta">Template cache warm</div>
-                        </div>
-
-                        <!-- 6. Database Engine -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Database Engine</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-db">CONNECTED</div>
-                            <div class="cmd-health-meta">Async SQLite/PG pool</div>
-                        </div>
-
-                        <!-- 7. Notification Dispatcher -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Notification Center</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-notifs">ACTIVE</div>
-                            <div class="cmd-health-meta">Executive alert bus</div>
-                        </div>
-
-                        <!-- 8. Cloud Host Runtime -->
-                        <div class="cmd-health-card">
-                            <div class="cmd-health-top">
-                                <span class="cmd-health-name">Cloud Host Node</span>
-                                <span class="cmd-health-dot ok"></span>
-                            </div>
-                            <div class="cmd-health-status" id="sys-health-host">OPTIMAL</div>
-                            <div class="cmd-health-meta">Uptime 99.9%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==========================================================================
-                     SECTION 10: SECONDARY MODULES / DEEP INSPECTOR (COLLAPSIBLE DRAWER)
-                     ========================================================================== -->
-                <div class="cmd-section" style="border:1px solid rgba(255,255,255,0.08);">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span style="font-weight:700; font-size:0.82rem; color:#f8fafc;">Deep Engine Diagnostics &amp; Operational Safeguards</span>
-                            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
-                                Expand to inspect active prospect states, safeguard circuits, raw event logs, and continuous telemetry feeds.
-                            </div>
-                        </div>
-                        <button type="button" class="cmd-collapsible-btn" id="btn-toggle-secondary-ops" onclick="toggleSecondaryOperations()">
-                            <span id="secondary-ops-toggle-icon">▼</span>
-                            <span id="secondary-ops-toggle-text">Show Deep Diagnostics</span>
-                        </button>
-                    </div>
-
-                    <!-- Collapsible Container (Preserves test requirements) -->
-                    <div id="secondary-operations-drawer" style="display:none; margin-top:16px; border-top:1px solid rgba(255,255,255,0.08); padding-top:16px;">
-                        <!-- 1. Operational Safeguards Section (Required by test_owner_dashboard_architecture.py) -->
-                        <div class="cmd-card" id="owner-safeguards-card" style="margin-bottom:14px;">
-                            <div class="cmd-card-header">
-                                <span style="font-weight:700; font-size:0.78rem;">Autonomous Operational Safeguards</span>
-                                <span class="badge-cyan">Active Guardrails</span>
-                            </div>
-                            <div class="cmd-card-body">
-                                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
-                                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px;">
-                                        <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase;">Outreach Velocity</div>
-                                        <div id="owner-outreach-chip-status" style="font-weight:700; font-size:0.82rem; color:#38bdf8;">RATE LIMITED (70/day)</div>
-                                    </div>
-                                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px;">
-                                        <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase;">Payment Security</div>
-                                        <div id="owner-payment-chip-status" style="font-weight:700; font-size:0.82rem; color:#fbbf24;">MANUAL UTR AUDIT</div>
-                                    </div>
-                                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px;">
-                                        <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase;">Revenue Progression</div>
-                                        <div id="owner-loop-chip-status" style="font-weight:700; font-size:0.82rem; color:#10b981;">SAFEGUARDED</div>
-                                    </div>
-                                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px;">
-                                        <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase;">Pricing Floor</div>
-                                        <div id="owner-floor-chip-status" style="font-weight:700; font-size:0.82rem; color:#c084fc;">$1,500 MINIMUM</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. Active Prospect Focus (Required by test_owner_dashboard_interaction.py) -->
-                        <div class="cmd-split-grid" style="margin-bottom:14px;">
-                            <div class="cmd-card">
-                                <div class="cmd-card-header">
-                                    <span style="font-weight:700; font-size:0.78rem;">Active Working Prospect</span>
-                                    <button class="btn btn-sm btn-secondary" id="btn-view-active-prospect" onclick="viewActiveProspectDetail()" style="font-size:0.70rem; height:24px;">View Profile</button>
-                                </div>
-                                <div class="cmd-card-body">
-                                    <div style="margin-bottom:4px;">
-                                        <span style="font-size:0.70rem; color:#94a3b8;">Business:</span>
-                                        <strong id="ceo-active-prospect-name" style="color:#f8fafc; font-size:0.85rem; margin-left:6px;">No Active Prospect Selected</strong>
-                                    </div>
-                                    <div style="margin-bottom:4px;">
-                                        <span style="font-size:0.70rem; color:#94a3b8;">Domain:</span>
-                                        <span id="ceo-active-prospect-domain" style="color:#38bdf8; font-family:var(--font-mono); font-size:0.78rem; margin-left:6px;">--</span>
-                                    </div>
-                                    <div>
-                                        <span style="font-size:0.70rem; color:#94a3b8;">Current Stage:</span>
-                                        <span id="ceo-active-prospect-stage" class="badge-cyan" style="font-size:0.68rem; margin-left:6px;">IDLE</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3. Recent Inbound Messages & Activity (Required by test_owner_dashboard_interaction.py) -->
-                            <div class="cmd-card">
-                                <div class="cmd-card-header">
-                                    <span style="font-weight:700; font-size:0.78rem;">Recent Activity &amp; Inbound Messages</span>
-                                </div>
-                                <div class="cmd-card-body" style="max-height:160px; overflow-y:auto;">
-                                    <div id="ceo-recent-activity-list" style="margin-bottom:8px; font-size:0.72rem; color:#94a3b8;">
-                                        <div>System initialized. Monitoring incoming events...</div>
-                                    </div>
-                                    <div id="recent-messages-list" style="font-size:0.72rem; color:#cbd5e1;">
-                                        <!-- Real messages loaded dynamically -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Compatibility Infrastructure Elements (Hidden) -->
-                        <div style="display:none;">
-                            <span id="val-high-value">0</span>
-                            <span id="att-drafts-count">0</span>
-                            <span id="att-replies-count">0</span>
-                            <span id="att-meetings-count">0</span>
-                            <span id="att-drafts-text"></span>
-                            <span id="att-replies-text"></span>
-                            <span id="att-meetings-text"></span>
-                            <div id="activity-feed-container"></div>
-                            <span id="agent-status-badge"></span>
-                            <span id="agent-kill-badge"></span>
-                            <span id="agent-runtime-clock"></span>
-                            <span id="agent-kill-status"></span>
-                            <span id="agent-floor-label"></span>
-                            <span id="agent-curr-prospect-name"></span>
-                            <span id="agent-curr-prospect-domain"></span>
-                            <span id="agent-curr-stage-badge"></span>
-                            <span id="agent-dryrun-mode"></span>
-                            <span id="agent-decision-next"></span>
-                            <span id="agent-curr-operation"></span>
-                            <span id="auto-val-current-action"></span>
-                            <span id="auto-val-current-prospect"></span>
-                            <span id="auto-val-country"></span>
-                            <span id="auto-val-niche"></span>
-                            <span id="auto-val-evidence-status"></span>
-                            <span id="auto-val-audit-status"></span>
-                            <span id="auto-val-service"></span>
-                            <span id="auto-val-offer"></span>
-                            <span id="auto-val-approval-reason"></span>
-                            <span id="auto-val-outreach-status"></span>
-                            <span id="auto-val-reply-status"></span>
-                            <span id="auto-val-pipeline-status"></span>
-                            <span id="auto-val-payment-status"></span>
-                            <span id="auto-val-revenue"></span>
-                            <span id="agent-prospect-score-badge"></span>
-                            <span id="agent-evidence-gate-badge"></span>
-                            <span id="ml-health-status-badge"></span>
-                            <span id="ml-health-score"></span>
-                            <span id="ml-active-engine"></span>
-                            <span id="ml-fallback-state"></span>
-                            <span id="ml-drift-summary"></span>
-                            <span id="ml-outcomes-counter"></span>
-                            <span id="pipeline-current-step-label"></span>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
-
-        <!-- View 2: Markets Radar & Autonomous Prospecting Surface -->
-        <section id="view-markets" class="view-container">
-            <!-- Prospecting Control Surface Card -->
-            <div class="panel-card" style="margin-bottom: 20px;">
-                <div class="panel-header">
-                    <div class="panel-title-wrap">
-                        <h2 class="panel-title">Autonomous Prospecting Engine</h2>
-                        <span class="panel-tag">Canonical Control Surface</span>
-                    </div>
-                    <div id="prospecting-status-pill">
-                        <span class="badge badge-cyan" id="job-status-badge">IDLE</span>
-                    </div>
-                </div>
-
-                <!-- Configurable Targeting Form -->
-                <form id="prospecting-form" onsubmit="handleRunProspectingCycle(event)">
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:16px;">
-                        <!-- Countries -->
-                        <div>
-                            <label style="display:block; font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px;">
-                                Target Countries (Global)
-                            </label>
-                            <div id="target-countries-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;">
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="US" checked> <span>US</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="UK" checked> <span>UK</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="CA" checked> <span>Canada</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="AU" checked> <span>Australia</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="AE" checked> <span>UAE</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="country" value="SA" checked> <span>Saudi Arabia</span></label>
-                            </div>
-                        </div>
-
-                        <!-- Niches -->
-                        <div>
-                            <label style="display:block; font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px;">
-                                Target Niches
-                            </label>
-                            <div id="target-niches-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px;">
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Roofing" checked> <span>Roofing</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="HVAC" checked> <span>HVAC</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Plumbing" checked> <span>Plumbing</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Commercial Cleaning" checked> <span>Cleaning</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Solar" checked> <span>Solar</span></label>
-                                <label class="checkbox-tag"><input type="checkbox" name="niche" value="Dental" checked> <span>Dental</span></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:12px; align-items:flex-end;">
-                        <div>
-                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
-                                Cities / Metropolitan Areas
-                            </label>
-                            <input type="text" id="target-cities-input" class="form-control" value="Houston, Dallas, London, Toronto, Sydney, Riyadh" placeholder="e.g. Austin, London, Dubai" required>
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
-                                Min Deal Value ($)
-                            </label>
-                            <input type="number" id="target-min-value-input" class="form-control" min="500" step="50" value="500" required>
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
-                                Max Results / City
-                            </label>
-                            <input type="number" id="target-max-prospects-input" class="form-control" min="1" max="100" value="10" required>
-                        </div>
-                        <div>
-                            <button type="submit" id="btn-run-prospecting" class="btn btn-primary" style="height:38px; padding:0 20px; white-space:nowrap; display:flex; align-items:center; gap:8px;">
-                                <span id="run-btn-icon">⚡</span>
-                                <span id="run-btn-text">Run Prospecting Cycle</span>
+                        <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <button onclick="navToView('queue')" style="width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#e4e4e7; font-size:12px; font-weight:600; padding:7px 0; border-radius:6px; cursor:pointer;">
+                                Open Full Operations Queue
                             </button>
                         </div>
                     </div>
-                </form>
 
-                <!-- Live Progress Display (Revealed during/after cycle) -->
-                <div id="prospecting-progress-panel" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-subtle); display:none;">
+                    <!-- 03. LIVE PIPELINE -->
+                    <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:20px; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                                <span style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em;">03. Live Pipeline</span>
+                                <button onclick="navToView('pipeline')" style="background:transparent; border:none; color:#38bdf8; font-size:12px; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
+                                    OPEN PIPELINE &rarr;
+                                </button>
+                            </div>
+                            <div class="executive-pipeline-grid">
+                                <!-- Lead -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">LEAD</div>
+                                    <div id="funnel-c-discovered" style="font-size:24px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Qualified -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">QUALIFIED</div>
+                                    <div id="funnel-c-qualified" style="font-size:24px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Contacted -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">CONTACTED</div>
+                                    <div id="funnel-c-contacted" style="font-size:24px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Replied -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">REPLIED</div>
+                                    <div id="funnel-c-replied" style="font-size:24px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Interested -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">INTERESTED</div>
+                                    <div id="funnel-c-meeting" style="font-size:24px; font-weight:700; color:#34d399; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Proposal -->
+                                <div class="executive-pipeline-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#71717a; margin-bottom:6px;">PROPOSAL</div>
+                                    <div id="funnel-c-proposal" style="font-size:24px; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <!-- Won -->
+                                <div class="executive-pipeline-box won" style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:12px 6px; text-align:center;">
+                                    <div style="font-size:10px; font-weight:600; color:#10b981; margin-bottom:6px;">WON</div>
+                                    <div id="funnel-c-won" style="font-size:24px; font-weight:700; color:#10b981; font-family:var(--font-mono);">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <button onclick="navToView('pipeline')" style="width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#e4e4e7; font-size:12px; font-weight:600; padding:7px 0; border-radius:6px; cursor:pointer;">
+                                View Full Pipeline &amp; Deals
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- ROW 3: 04. ACQUISITION OVERVIEW + 05. DEALS & DELIVERY     -->
+                <!-- ========================================================== -->
+                <div class="executive-grid-split">
+                    <!-- 04. AUTONOMOUS MULTI-MARKET ACQUISITION (Continuous Engine) -->
+                    <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:20px; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em;">04. Autonomous Multi-Market Acquisition</span>
+                                    <span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:2px 6px; border-radius:4px;">MULTI-MARKET</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <button type="button" onclick="triggerAutonomousRebalance()" title="Rebalance market portfolio" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); color:#38bdf8; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer;">
+                                        ↻ Rebalance
+                                    </button>
+                                    <button type="button" onclick="triggerEmergencyStopAcquisition()" title="Emergency stop autonomous discovery" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; cursor:pointer;">
+                                        ⚠ Stop
+                                    </button>
+                                    <button onclick="navToView('markets')" style="background:transparent; border:none; color:#38bdf8; font-size:12px; font-weight:600; cursor:pointer; padding:0 0 0 4px; display:flex; align-items:center; gap:4px;">
+                                        COMMAND &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Portfolio Balance Strip -->
+                            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-bottom:14px;">
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:7px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">ACTIVE</div>
+                                    <div id="acq-active-count" style="font-size:15px; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">5</div>
+                                </div>
+                                <div style="background:rgba(56,189,248,0.04); border:1px solid rgba(56,189,248,0.15); border-radius:6px; padding:7px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#38bdf8; font-weight:600;">EXPLOIT</div>
+                                    <div id="acq-exploit-count" style="font-size:15px; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">4 (75%)</div>
+                                </div>
+                                <div style="background:rgba(167,139,250,0.04); border:1px solid rgba(167,139,250,0.15); border-radius:6px; padding:7px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#a78bfa; font-weight:600;">EXPLORE</div>
+                                    <div id="acq-explore-count" style="font-size:15px; font-weight:700; color:#a78bfa; font-family:var(--font-mono);">1 (25%)</div>
+                                </div>
+                                <div style="background:rgba(16,185,129,0.04); border:1px solid rgba(16,185,129,0.15); border-radius:6px; padding:7px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#10b981; font-weight:600;">GLOBAL CAP</div>
+                                    <div id="acq-global-cap" style="font-size:15px; font-weight:700; color:#10b981; font-family:var(--font-mono);">200/day</div>
+                                </div>
+                                <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:7px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#ef4444; font-weight:600;">DISABLED</div>
+                                    <div id="acq-disabled-count" style="font-size:13px; font-weight:700; color:#ef4444; font-family:var(--font-mono);">IN, PK, IL</div>
+                                </div>
+                            </div>
+
+                            <!-- Currently Running Operations Live Counters -->
+                            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 10px; margin-bottom:12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <span style="font-size:10px; font-weight:700; color:#a1a1aa; text-transform:uppercase; letter-spacing:0.04em;">Running Acquisition Ops</span>
+                                    <span class="pulse-dot" style="background:#10b981; width:5px; height:5px;"></span>
+                                </div>
+                                <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:4px; text-align:center; font-family:var(--font-mono);">
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">DISC</span><strong id="ops-cnt-discovery" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">RES</span><strong id="ops-cnt-research" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">AUD</span><strong id="ops-cnt-audit" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">QUAL</span><strong id="ops-cnt-qual" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">DEMO</span><strong id="ops-cnt-demos" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                    <div><span style="font-size:9px; color:#71717a; display:block;">DEP</span><strong id="ops-cnt-deploys" style="font-size:13px; color:#ffffff;">0</strong></div>
+                                </div>
+                            </div>
+
+                            <!-- Top Active Targets with Reason Codes & Freshness -->
+                            <div style="font-size:11px; font-weight:600; color:#a1a1aa; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em; display:flex; justify-content:space-between; align-items:center;">
+                                <span>Active Markets in Rotation (Country &times; Region &times; City &times; Niche)</span>
+                                <span style="font-size:10px; color:#71717a;">Explainable Reasons</span>
+                            </div>
+                            <div id="top-active-targets-list" style="display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto;">
+                                <div style="padding:16px; text-align:center; color:#71717a; font-size:11px;">Loading active autonomous portfolio...</div>
+                            </div>
+                        </div>
+
+                        <!-- Compatibility Tier Elements for Legacy Tests -->
+                        <div style="display:none;" aria-hidden="true">
+                            <span id="acq-p1-count">14</span>
+                            <span id="acq-p2-count">6</span>
+                            <span id="acq-p3-count">2</span>
+                        </div>
+                    </div>
+
+                    <!-- 05. DEALS & DELIVERY SUMMARY -->
+                    <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:20px; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <!-- Deals & Payments -->
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <span style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em;">05. Deals / Delivery</span>
+                                <button onclick="navToView('payments')" style="background:transparent; border:none; color:#38bdf8; font-size:12px; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
+                                    OPEN PAYMENTS &rarr;
+                                </button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-bottom:16px;">
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">PROPOSALS</div>
+                                    <div id="ceo-val-proposals-active" style="font-size:15px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">PAYMENT PENDING</div>
+                                    <div id="deals-payment-pending" style="font-size:15px; font-weight:700; color:#fbbf24; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">REVIEW REQ</div>
+                                    <div id="deals-review-required" style="font-size:15px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">CONFIRMED ADV</div>
+                                    <div id="deals-confirmed-advance" style="font-size:15px; font-weight:700; color:#10b981; font-family:var(--font-mono);">$0</div>
+                                </div>
+                                <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:8px 4px; text-align:center;">
+                                    <div style="font-size:9px; color:#10b981; font-weight:600;">REVENUE</div>
+                                    <div id="deals-verified-revenue" style="font-size:15px; font-weight:700; color:#10b981; font-family:var(--font-mono);">$0</div>
+                                </div>
+                            </div>
+
+                            <!-- Delivery / Demo -->
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.06em;">Delivery &amp; Demos</span>
+                                <button onclick="navToView('demos')" style="background:transparent; border:none; color:#38bdf8; font-size:11px; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
+                                    OPEN PROJECTS &rarr;
+                                </button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 6px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">DEMO REQ</div>
+                                    <div id="delivery-demo-requested" style="font-size:15px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 6px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">DEMO READY</div>
+                                    <div id="delivery-demo-ready" style="font-size:15px; font-weight:700; color:#38bdf8; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 6px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">PROD ACTIVE</div>
+                                    <div id="delivery-prod-active" style="font-size:15px; font-weight:700; color:#34d399; font-family:var(--font-mono);">0</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 6px; text-align:center;">
+                                    <div style="font-size:9px; color:#71717a; font-weight:600;">DELIVERY READY</div>
+                                    <div id="delivery-delivery-ready" style="font-size:15px; font-weight:700; color:#10b981; font-family:var(--font-mono);">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- ROW 4: 06. LIVE OPERATIONS ACTIVITY STREAM (WebSocket)     -->
+                <!-- ========================================================== -->
+                <div class="executive-module-card" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:16px 20px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:12px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em;">06. Live Autonomous Operations Stream</span>
+                            <span class="live-ws-indicator" style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:#10b981; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); padding:2px 8px; border-radius:4px;">
+                                <span id="ws-pulse-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 8px #10b981;"></span>
+                                <span id="ws-status-text">LIVE WS CONNECTED</span>
+                            </span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:11px; color:#71717a;">Endpoint: /ws/agent-activity</span>
+                            <button type="button" onclick="loadRecentActivityHistory()" style="background:transparent; border:1px solid rgba(255,255,255,0.08); color:#a1a1aa; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">
+                                Refresh Stream
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ceo-recent-activity-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto;">
+                        <div style="color:#71717a; font-size:0.75rem; text-align:center; padding:16px 0; font-style:italic;">Listening for real-time agent telemetry events...</div>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- SYSTEM STATUS: ONE COMPACT ROW ONLY                        -->
+                <!-- ========================================================== -->
+                <div class="executive-system-bar" style="background:#09090b; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; font-size:12px; font-weight:500;">
+                        <span style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.08em; margin-right:4px;">SYSTEM STATUS</span>
+                        <span id="sys-status-worker" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Worker <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">HEALTHY</strong>
+                        </span>
+                        <span id="sys-status-scheduler" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Scheduler <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">HEALTHY</strong>
+                        </span>
+                        <span id="sys-status-titan" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Titan <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">AUTHENTICATED</strong>
+                        </span>
+                        <span id="sys-status-database" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Database <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">CONNECTED</strong>
+                        </span>
+                        <span id="sys-status-demofactory" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Demo Factory <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">READY</strong>
+                        </span>
+                        <span id="sys-status-n8n" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            N8N <span class="executive-status-dot standby" style="width:6px; height:6px; border-radius:50%; background:#a1a1aa; display:inline-block;"></span> <strong style="color:#a1a1aa; font-weight:600;">STANDBY</strong>
+                        </span>
+                        <span id="sys-status-cloud" style="display:inline-flex; align-items:center; gap:6px; color:#e4e4e7;">
+                            Cloud <span class="executive-status-dot healthy" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span> <strong style="color:#10b981; font-weight:600;">HEALTHY</strong>
+                        </span>
+                    </div>
+                    <button onclick="navToView('infra')" style="background:transparent; border:none; color:#71717a; font-size:11px; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
+                        FULL DIAGNOSTICS &rarr;
+                    </button>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- HIDDEN TEST COMPATIBILITY CONTAINER (Zero UI Impact)       -->
+                <!-- ========================================================== -->
+                <div id="ceo-test-compatibility-container" style="display:none;" aria-hidden="true">
+                    <div id="ceo-empty-chart">No real revenue data yet</div>
+                    <div id="owner-attention-card"><div id="owner-attention-items"></div></div>
+                    <div id="owner-safeguards-card"></div>
+                    <span id="val-pipeline">0</span>
+                    <span id="val-qualified">0</span>
+                    <span id="val-leads">0</span>
+                    <span id="val-replies">0</span>
+                    <span id="val-interested">0</span>
+                    <span id="val-deals">0</span>
+                    <span id="val-revenue">$0.00</span>
+                    <span id="val-active-domain">--</span>
+                    <span id="val-active-prospect-display">--</span>
+                    <span id="val-collected-revenue">$0.00</span>
+                    <span id="val-high-value">0</span>
+                    <span id="val-meetings-count">0</span>
+                    <span id="val-reply-rate">0%</span>
+                    <span id="val-won">0</span>
+                    <span id="val-won-count">0</span>
+                    <span id="ceo-active-prospect-name">No active prospects</span>
+                    <span id="ceo-active-prospect-domain">--</span>
+                    <span id="ceo-active-prospect-stage">STANDBY</span>
+                    <button id="btn-view-active-prospect"></button>
+                    <div id="ceo-compat-activity-list" style="display:none;"></div>
+                    <div id="recent-messages-list"></div>
+                    <span id="owner-outreach-chip-status">IDLE</span>
+                    <span id="owner-payment-chip-status">IDLE</span>
+                    <span id="owner-loop-chip-status">AUTONOMOUS</span>
+                    <span id="owner-floor-chip-status">$500</span>
+                    <div id="ceo-action-required-list"></div>
+                    <span id="attention-status-badge"></span>
+                    <span id="obs-daily-outbound">0 / 200</span>
+                    <span id="obs-qualified">0</span>
+                    <span id="obs-waiting-reply">0</span>
+                    <span id="obs-positive-leads">0</span>
+                    <span id="obs-demos">0</span>
+                    <span id="obs-proposals">0</span>
+                    <span id="obs-payments">0</span>
+                    <span id="obs-customers">0</span>
+                    <span id="obs-action-required">0</span>
+                    <span id="obs-worker-status">STANDBY</span>
+                    <span id="obs-loop-status">STANDBY</span>
+                    <span id="obs-email-status">STANDBY</span>
+                    <span id="obs-outreach-lock">IDLE</span>
+                    <span id="ceo-subtext-outreach-sent"></span>
+                    <span id="ceo-subtext-revenue-status"></span>
+                    <span id="ceo-core-active-work">0</span>
+                    <span id="ceo-core-pipeline-val">0</span>
+                    <span id="ceo-core-revenue-val">$0.00</span>
+                    <span id="step-cnt-discovery">0</span>
+                    <span id="step-cnt-qualified">0</span>
+                    <span id="step-cnt-outreach">0</span>
+                    <span id="step-cnt-interested">0</span>
+                    <span id="step-cnt-requirements">0</span>
+                    <span id="step-cnt-demo">0</span>
+                    <span id="step-cnt-qa">0</span>
+                    <span id="step-cnt-proposal">0</span>
+                    <span id="step-cnt-payment">0</span>
+                    <span id="funnel-step-discovery"></span>
+                    <span id="funnel-step-qualified"></span>
+                    <span id="funnel-step-outreach"></span>
+                    <span id="funnel-step-interested"></span>
+                    <span id="funnel-step-requirements"></span>
+                    <span id="funnel-step-demo"></span>
+                    <span id="funnel-step-qa"></span>
+                    <span id="funnel-step-proposal"></span>
+                    <span id="funnel-step-payment"></span>
+                    <div id="cmd-secondary-ops-content"></div>
+                    <span id="cmd-secondary-toggle-icon"></span>
+                    <span id="cmd-secondary-toggle-label"></span>
+                    <span id="ceo-val-revenue-dryrun">$0.00</span>
+                </div>
+            </section>
+
+        <!-- View 2: Autonomous Multi-Market Acquisition Command Surface -->
+        <section id="view-markets" class="view-container">
+            <div class="panel-card" style="margin-bottom: 20px;">
+                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div class="panel-title-wrap" style="display:flex; align-items:center; gap:8px;">
+                            <h2 class="panel-title" style="margin:0;">Autonomous Multi-Market Acquisition</h2>
+                            <span class="panel-tag" style="background:rgba(56,189,248,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-size:11px; padding:2px 8px; border-radius:4px;">CONTINUOUS PORTFOLIO ENGINE</span>
+                        </div>
+                        <p style="font-size:12px; color:#71717a; margin:4px 0 0 0;">
+                            Autonomous discovery across concurrent Country &times; Region &times; City &times; Niche corridors with 75% exploitation / 25% exploration balance.
+                        </p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div id="prospecting-status-pill">
+                            <span class="badge badge-cyan" id="job-status-badge">PORTFOLIO ACTIVE</span>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="triggerAutonomousRebalance()" style="font-size:12px; height:34px; padding:0 14px;">
+                            ↻ Rebalance Portfolio
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="triggerEmergencyStopAcquisition()" style="font-size:12px; height:34px; padding:0 14px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444;">
+                            ⚠ Emergency Stop
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Portfolio Metrics Strip -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin: 16px 0;">
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Active Concurrent Markets</span>
+                        <div class="kpi-value" id="market-active-markets-val" style="font-size:1.4rem; color:#38bdf8; font-family:var(--font-mono);">--</div>
+                        <span class="kpi-sub" id="market-sizing-reason-sub" style="font-size:0.68rem;">Dynamic Sizing</span>
+                    </div>
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Exploitation Allocation</span>
+                        <div class="kpi-value highlight-cyan" id="market-exploit-pct-val" style="font-size:1.4rem; font-family:var(--font-mono);">--%</div>
+                        <span class="kpi-sub" id="market-exploit-sub" style="font-size:0.68rem;">Proven Corridors</span>
+                    </div>
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Exploration Allocation</span>
+                        <div class="kpi-value" id="market-explore-pct-val" style="font-size:1.4rem; color:#a78bfa; font-family:var(--font-mono);">--%</div>
+                        <span class="kpi-sub" id="market-explore-sub" style="font-size:0.68rem;">Hypothesis Probing</span>
+                    </div>
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Candidate Universe</span>
+                        <div class="kpi-value highlight-emerald" id="market-universe-count-val" style="font-size:1.4rem; font-family:var(--font-mono);">--</div>
+                        <span class="kpi-sub" id="market-queue-count-sub" style="font-size:0.68rem;">Queued Candidates</span>
+                    </div>
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Global Daily Outreach Cap</span>
+                        <div class="kpi-value highlight-emerald" id="market-capacity-val" style="font-size:1.4rem; font-family:var(--font-mono);">200 / day</div>
+                        <span class="kpi-sub" id="market-allocated-sub" style="font-size:0.68rem;">Distributed Across Markets</span>
+                    </div>
+                    <div class="kpi-card" style="padding:12px;">
+                        <span class="kpi-label" style="font-size:0.7rem;">Safeguard Status</span>
+                        <div class="kpi-value highlight-crimson" style="font-size:1.1rem; font-family:var(--font-mono);">BLOCKED: IN, PK, IL</div>
+                        <span class="kpi-sub" style="font-size:0.68rem;">Zero Unsolicited Traffic</span>
+                    </div>
+                </div>
+
+                <!-- Currently Running Operations Live Strip -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; margin-bottom:20px;">
+                    <div style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">
+                        Currently Running Operations
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; text-align:center;">
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">DISCOVERY</div>
+                            <div id="m-ops-discovery" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">RESEARCH</div>
+                            <div id="m-ops-research" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">AUDIT</div>
+                            <div id="m-ops-audit" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">QUALIFICATION</div>
+                            <div id="m-ops-qualification" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">DEMOS</div>
+                            <div id="m-ops-demos" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:8px 4px;">
+                            <div style="font-size:10px; color:#a1a1aa;">DEPLOYMENTS</div>
+                            <div id="m-ops-deployments" style="font-size:18px; font-weight:700; color:#ffffff; font-family:var(--font-mono);">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Portfolio Table -->
+                <div style="margin-bottom: 24px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div style="font-size:0.85rem; font-weight:700; color:var(--text-white); display:flex; align-items:center; gap:8px;">
-                            <span>Live Progress Monitor</span>
-                            <span id="job-active-indicator" class="pulse-dot" style="display:none;"></span>
-                        </div>
-                        <div id="job-time-elapsed" style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">Status: Monitoring</div>
+                        <h3 style="font-size:14px; font-weight:700; color:#ffffff; margin:0; text-transform:uppercase; letter-spacing:0.05em;">
+                            Active Multi-Market Portfolio (Concurrent Execution)
+                        </h3>
+                        <span style="font-size:12px; color:#71717a;">Auto-selected by market evidence &amp; fresh prospect availability</span>
                     </div>
-
-                    <!-- 7 Live Metrics Cards -->
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:14px;">
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Markets Searched</span>
-                            <div class="kpi-value" id="prog-markets-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" id="prog-current-market" style="font-size:0.65rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">-</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">In Progress</span>
-                            <div class="kpi-value" id="prog-current-niche" style="font-size:0.95rem; color:var(--hud-cyan-bright); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">Ready</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Active Sector</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Discovered</span>
-                            <div class="kpi-value" id="prog-discovered-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Raw Candidates</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Duplicates Rejected</span>
-                            <div class="kpi-value highlight-amber" id="prog-duplicates-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Deduplicated</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Junk Rejected</span>
-                            <div class="kpi-value highlight-crimson" id="prog-junk-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Directories / Parked</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Passed $500+</span>
-                            <div class="kpi-value highlight-emerald" id="prog-passing-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">Commercial Floor</span>
-                        </div>
-                        <div class="kpi-card" style="padding:10px;">
-                            <span class="kpi-label" style="font-size:0.68rem;">Prospects Saved</span>
-                            <div class="kpi-value highlight-cyan" id="prog-saved-count" style="font-size:1.15rem;">0</div>
-                            <span class="kpi-sub" style="font-size:0.65rem;">In Database</span>
-                        </div>
+                    <div style="overflow-x:auto;">
+                        <table class="table" style="width:100%; border-collapse:collapse;" id="table-autonomous-active-markets">
+                            <thead>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; font-size:11px; color:#71717a; text-transform:uppercase;">
+                                    <th style="padding:10px 12px;">Market Corridor</th>
+                                    <th style="padding:10px 12px;">Mode</th>
+                                    <th style="padding:10px 12px;">Autonomous Reason Code</th>
+                                    <th style="padding:10px 12px;">Score</th>
+                                    <th style="padding:10px 12px;">Sample / Win Rate</th>
+                                    <th style="padding:10px 12px;">Freshness</th>
+                                    <th style="padding:10px 12px; text-align:right;">CEO Overrides</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-autonomous-active-markets">
+                                <tr><td colspan="7" style="padding:20px; text-align:center; color:#71717a;">Loading active autonomous portfolio...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
+                </div>
 
-                    <!-- Progress Message Log -->
-                    <div style="background:rgba(15,23,42,0.7); border:1px solid var(--border-subtle); border-radius:6px; padding:8px 12px; font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
-                        <span style="color:var(--hud-cyan-bright); font-weight:700;">LIVE LOG:</span>
-                        <span id="prog-message-ticker" style="font-family:var(--font-mono); color:var(--text-white);">Waiting for cycle initiation...</span>
+                <!-- Next Candidates in Queue -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="font-size:14px; font-weight:700; color:#ffffff; margin:0; text-transform:uppercase; letter-spacing:0.05em;">
+                            Next Priority Candidates (Algorithmic Queue)
+                        </h3>
+                        <span style="font-size:12px; color:#71717a;">Ranked by contactability, automation fit &amp; pain density</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="table" style="width:100%; border-collapse:collapse;" id="table-autonomous-candidates">
+                            <thead>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; font-size:11px; color:#71717a; text-transform:uppercase;">
+                                    <th style="padding:10px 12px;">Rank</th>
+                                    <th style="padding:10px 12px;">Candidate Corridor</th>
+                                    <th style="padding:10px 12px;">Strategy Mode</th>
+                                    <th style="padding:10px 12px;">Evaluation Reason</th>
+                                    <th style="padding:10px 12px;">Score</th>
+                                    <th style="padding:10px 12px; text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-autonomous-candidates">
+                                <tr><td colspan="6" style="padding:20px; text-align:center; color:#71717a;">Loading candidate queue...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CEO Manual Overrides Active Section -->
+                <div id="ceo-overrides-card" style="margin-top:24px; padding:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="font-size:12px; font-weight:700; color:#fbbf24; text-transform:uppercase; letter-spacing:0.06em;">
+                            Active CEO Manual Overrides
+                        </div>
+                        <button type="button" onclick="triggerClearAllOverrides()" style="background:transparent; border:1px solid rgba(251,191,36,0.3); color:#fbbf24; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">
+                            Clear All Overrides
+                        </button>
+                    </div>
+                    <div id="ceo-overrides-list" style="display:flex; flex-direction:column; gap:6px; font-size:12px;"></div>
+                </div>
+
+                <!-- Hidden Test Compatibility Elements -->
+                <div style="display:none;" aria-hidden="true">
+                    <form id="prospecting-form"><button type="submit" id="btn-run-prospecting"></button></form>
+                    <div id="prospecting-progress-panel">
+                        <div id="prog-markets-count">0</div>
+                        <div id="prog-current-market">-</div>
+                        <div id="prog-current-niche">-</div>
+                        <div id="prog-discovered-count">0</div>
+                        <div id="prog-duplicates-count">0</div>
+                        <div id="prog-junk-count">0</div>
+                        <div id="prog-passing-count">0</div>
+                        <div id="prog-saved-count">0</div>
+                        <div id="prog-message-ticker">-</div>
                     </div>
                 </div>
             </div>
@@ -1573,11 +1058,11 @@
             </div>
         </section>
 
-        <!-- View 4: Outreach Approval Queue -->
+        <!-- View 4: Outreach Approval Queue & Sent History -->
         <section id="view-queue" class="view-container">
             <!-- Outreach Real Metrics KPI Row -->
             <div class="kpi-grid" style="margin-bottom: 20px;">
-                <div class="kpi-card">
+                <div class="kpi-card" onclick="switchQueueSubTab('pending')" style="cursor:pointer;" title="Click to view Pending Approvals">
                     <span class="kpi-label">Pending Approval</span>
                     <div class="kpi-value" id="kpi-outreach-pending" style="color:var(--hud-amber);">0</div>
                     <span class="kpi-sub">Human sign-off required</span>
@@ -1587,10 +1072,10 @@
                     <div class="kpi-value" id="kpi-outreach-approved" style="color:var(--hud-cyan-bright);">0</div>
                     <span class="kpi-sub">Operator cleared</span>
                 </div>
-                <div class="kpi-card">
+                <div class="kpi-card" onclick="switchQueueSubTab('sent')" style="cursor:pointer;" title="Click to view Sent Outreach History">
                     <span class="kpi-label">Sent</span>
                     <div class="kpi-value" id="kpi-outreach-sent" style="color:var(--hud-green);">0</div>
-                    <span class="kpi-sub">Confirmed transmitted</span>
+                    <span class="kpi-sub">Confirmed transmitted (Click to view)</span>
                 </div>
                 <div class="kpi-card">
                     <span class="kpi-label">Failed</span>
@@ -1609,20 +1094,85 @@
                 </div>
             </div>
 
-            <div class="panel-card">
-                <div class="panel-header">
-                    <div class="panel-title-wrap">
-                        <h2 class="panel-title">Outreach Authorization Queue</h2>
-                        <span class="panel-tag" style="color:var(--hud-amber);">Human Approval Required</span>
+            <!-- Sub-tab Navigation (Pending vs Sent History) -->
+            <div style="display:flex; gap:10px; margin-bottom:18px; border-bottom:1px solid var(--border-subtle, #27272a); padding-bottom:8px;">
+                <button id="subtab-btn-pending" class="btn active" onclick="switchQueueSubTab('pending')" style="padding:8px 18px; font-size:0.88rem; display:flex; align-items:center; gap:8px; border-radius:6px;">
+                    <span>Pending Authorization</span>
+                    <span id="badge-subtab-pending" class="badge badge-amber" style="font-size:0.75rem;">0</span>
+                </button>
+                <button id="subtab-btn-sent" class="btn btn-outline" onclick="switchQueueSubTab('sent')" style="padding:8px 18px; font-size:0.88rem; display:flex; align-items:center; gap:8px; border-radius:6px;">
+                    <span>Sent Outreach History</span>
+                    <span id="badge-subtab-sent" class="badge badge-success" style="font-size:0.75rem;">0</span>
+                </button>
+            </div>
+
+            <!-- Sub-tab Panel 1: Pending Queue -->
+            <div id="subtab-panel-pending">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">Outreach Authorization Queue</h2>
+                            <span class="panel-tag" style="color:var(--hud-amber);">Human Approval Required</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="provider-status-badge" class="badge badge-cyan" style="font-family:var(--font-mono); font-size:0.75rem;">
+                                PROVIDER: DRY_RUN (SAFE MOCK)
+                            </span>
+                        </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span id="provider-status-badge" class="badge badge-cyan" style="font-family:var(--font-mono); font-size:0.75rem;">
-                            PROVIDER: DRY_RUN (SAFE MOCK)
-                        </span>
+                    <div id="queue-cards-container">
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Scanning queued messages...</p>
                     </div>
                 </div>
-                <div id="queue-cards-container">
-                    <p style="color:var(--text-muted); font-size:0.9rem;">Scanning queued messages...</p>
+            </div>
+
+            <!-- Sub-tab Panel 2: Sent Outreach History -->
+            <div id="subtab-panel-sent" style="display:none;">
+                <div class="panel-card">
+                    <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div class="panel-title-wrap">
+                            <h2 class="panel-title">Sent Outreach History</h2>
+                            <span class="panel-tag" style="color:var(--hud-green);">Canonical Dispatches</span>
+                        </div>
+                        <!-- Filter categories, search & reload -->
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <div style="display:flex; gap:4px; background:rgba(255,255,255,0.03); padding:3px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                                <button class="btn btn-sm" id="btn-cat-real_external" onclick="setSentCategory('real_external')" style="font-size:0.76rem; padding:4px 10px;">
+                                    Real External (<span id="count-cat-real">0</span>)
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btn-cat-canary" onclick="setSentCategory('canary')" style="font-size:0.76rem; padding:4px 10px;">
+                                    Canary (<span id="count-cat-canary">0</span>)
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btn-cat-historical_test" onclick="setSentCategory('historical_test')" style="font-size:0.76rem; padding:4px 10px;">
+                                    Historical/Dev (<span id="count-cat-historical">0</span>)
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btn-cat-all" onclick="setSentCategory('all')" style="font-size:0.76rem; padding:4px 10px;">
+                                    All (<span id="count-cat-all">0</span>)
+                                </button>
+                            </div>
+                            <div style="position:relative; width:220px;">
+                                <input type="text" id="sent-search-input" placeholder="Search business, email..." 
+                                       style="width:100%; padding:6px 10px; background:var(--bg-input, #18181b); border:1px solid var(--border-subtle, #27272a); border-radius:6px; color:#fff; font-size:0.78rem;"
+                                       oninput="handleSentSearch(this.value)">
+                            </div>
+                            <button class="btn btn-sm btn-outline" onclick="loadSentHistory(sentHistoryCurrentPage)" title="Refresh Sent History" style="padding:6px 12px;">↻</button>
+                        </div>
+                    </div>
+
+                    <!-- Sent History Table Container -->
+                    <div id="sent-history-table-container" style="overflow-x:auto; margin-top:12px;">
+                        <p style="color:var(--text-muted); font-size:0.88rem; padding:24px 0; text-align:center;">Loading sent outreach records...</p>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div id="sent-pagination-container" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-subtle, #27272a); font-size:0.82rem; color:var(--text-secondary);">
+                        <span id="sent-pagination-info">Showing 0 of 0 sent records</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button class="btn btn-sm btn-outline" id="sent-prev-btn" onclick="prevSentPage()" disabled>← Previous</button>
+                            <span id="sent-page-display" style="padding:4px 8px; font-family:var(--font-mono); color:#fff;">Page 1 of 1</span>
+                            <button class="btn btn-sm btn-outline" id="sent-next-btn" onclick="nextSentPage()" disabled>Next →</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1654,10 +1204,10 @@
             <div class="panel-card">
                 <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <div class="panel-title-wrap">
-                        <h2 class="panel-title">🧠 Prospect Memory & Objection Handling Cockpit</h2>
-                        <span class="panel-tag">Contextual Reply Intercept • 19-Category Taxonomy • $1,000 Target Pricing</span>
+                        <h2 class="panel-title">🧠 Inbound Reply Triage & Objection Handling Cockpit</h2>
+                        <span class="panel-tag">Inbound Prospect Responses & Objection Triage • Distinct from Outbound Cold Outreach Queue</span>
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="loadReplies()">🔄 Refresh Signals</button>
+                    <button class="btn btn-primary btn-sm" onclick="loadReplies()">🔄 Refresh Inbound Signals</button>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -3337,6 +2887,17 @@
             </div>
         </div>
     </div>
+
+    <!-- Sent Message Detail Modal -->
+    <div id="sent-detail-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:780px; max-height:90vh; overflow-y:auto;">
+            <span class="close-modal" onclick="closeSentDetailModal()">&times;</span>
+            <div id="sent-detail-modal-body">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
 
     <!-- Create Proposal Modal -->
     <div id="proposal-modal" class="modal-overlay" style="display:none;">

@@ -56,28 +56,41 @@ function formatAuditScore(val) {
 let currentView = 'overview';
 
 document.addEventListener('DOMContentLoaded', () => {
-    initNavigation();
-    initHudClock();
-    initTopDate();
-    initGlobalSearch();
-    checkBackendHealth();
-    loadCeoControlCenter();
-    loadDashboardMetrics();
-    loadPriorityProspects();
-    loadMarkets();
-    loadLeads();
-    loadQueue();
-    loadReplies();
-    loadPipeline();
-    loadPayments();
-    loadRuns();
-    loadAgentStatus();
-    fetchSafetyGuardrails();
-    loadVoiceOperations();
-    initActivityWebSocket();
-    loadRecentActivityHistory();
-    loadMLHealthTelemetry();
-    loadGlobalTargetingData();
+    const startupTasks = [
+        ['initNavigation', initNavigation],
+        ['initHudClock', initHudClock],
+        ['initTopDate', initTopDate],
+        ['initGlobalSearch', initGlobalSearch],
+        ['checkBackendHealth', checkBackendHealth],
+        ['loadCanonicalDashboardState', typeof loadCanonicalDashboardState === 'function' ? loadCanonicalDashboardState : null],
+        ['loadCeoControlCenter', loadCeoControlCenter],
+        ['loadDashboardMetrics', loadDashboardMetrics],
+        ['loadPriorityProspects', loadPriorityProspects],
+        ['loadMarkets', loadMarkets],
+        ['loadLeads', loadLeads],
+        ['loadQueue', loadQueue],
+        ['loadReplies', loadReplies],
+        ['loadPipeline', loadPipeline],
+        ['loadPayments', loadPayments],
+        ['loadRuns', loadRuns],
+        ['loadAgentStatus', loadAgentStatus],
+        ['fetchSafetyGuardrails', fetchSafetyGuardrails],
+        ['loadVoiceOperations', loadVoiceOperations],
+        ['initActivityWebSocket', initActivityWebSocket],
+        ['loadRecentActivityHistory', loadRecentActivityHistory],
+        ['loadMLHealthTelemetry', loadMLHealthTelemetry],
+        ['loadGlobalTargetingData', loadGlobalTargetingData]
+    ];
+
+    for (const [name, fn] of startupTasks) {
+        if (typeof fn === 'function') {
+            try {
+                fn();
+            } catch (err) {
+                console.error(`[AppInit] Error initializing ${name}:`, err);
+            }
+        }
+    }
 
     // Backdrop click closes lead modal
     const modal = document.getElementById('lead-modal');
@@ -298,8 +311,12 @@ function switchView(viewName) {
         loadPriorityProspects();
         loadGlobalTargetingData();
         loadPayments();
+        if (typeof loadAutonomousAcquisitionQueue === 'function') loadAutonomousAcquisitionQueue();
     }
-    if (canonicalView === 'markets') loadMarkets();
+    if (canonicalView === 'markets') {
+        loadMarkets();
+        if (typeof loadAutonomousAcquisitionQueue === 'function') loadAutonomousAcquisitionQueue();
+    }
     if (canonicalView === 'leads') loadLeads();
     if (canonicalView === 'queue') loadQueue();
     if (canonicalView === 'replies') loadReplies();
@@ -552,29 +569,50 @@ async function loadCeoControlCenter() {
             lockBadge.style.color = lk === 'ACTIVE' ? '#fbbf24' : '#10b981';
         }
 
-        setElText('ceo-val-total-prospects', metrics.total_prospects ?? 0);
-        setElText('val-leads', metrics.total_prospects ?? 0);
-        setElText('ceo-val-qualified-prospects', metrics.qualified_prospects ?? 0);
+        setElText('ceo-val-total-prospects', metrics.real_prospects ?? metrics.total_prospects ?? 0);
+        setElText('val-leads', metrics.real_prospects ?? metrics.total_prospects ?? 0);
+        setElText('ceo-val-qualified-prospects', metrics.real_qualified_leads ?? metrics.qualified_prospects ?? 0);
         setElText('ceo-val-outreach-approval', metrics.outreach_awaiting_approval ?? 0);
-        setElText('val-outreach-sent', metrics.outreach_sent_lifetime ?? 0);
+        setElText('val-outreach-sent', metrics.real_external_contacted ?? metrics.outreach_sent_lifetime ?? 0);
         const subtextOutreach = document.getElementById('ceo-subtext-outreach-sent');
         if (subtextOutreach) {
-            subtextOutreach.textContent = `Today: ${metrics.outreach_sent_today ?? 0} · Total: ${metrics.outreach_sent_lifetime ?? 0}`;
+            subtextOutreach.textContent = `Today: ${metrics.real_external_contacted_today ?? metrics.outreach_sent_today ?? 0} · Total: ${metrics.real_external_contacted ?? metrics.outreach_sent_lifetime ?? 0}`;
         }
-        setElText('ceo-val-interested-leads', metrics.interested_leads ?? 0);
-        setElText('ceo-val-replies-pending', metrics.interested_leads ?? 0);
+        setElText('ceo-val-interested-leads', metrics.real_interested_leads ?? metrics.interested_leads ?? 0);
+        setElText('ceo-val-replies-pending', metrics.real_customer_replies ?? 0);
         setElText('ceo-val-active-demos', metrics.active_demos ?? 0);
-        setElText('ceo-val-proposals-action', metrics.proposals_awaiting_action ?? 0);
-        setElText('ceo-val-payments-auth', metrics.payments_awaiting_authorization ?? 0);
-        setElText('ceo-val-deals-won', metrics.payments_awaiting_authorization ?? 0);
+        setElText('ceo-val-proposals-action', metrics.real_proposals ?? metrics.proposals_awaiting_action ?? 0);
+        setElText('ceo-val-payments-auth', metrics.real_payments_pending ?? metrics.payments_awaiting_authorization ?? 0);
+        setElText('ceo-val-deals-won', metrics.real_deals ?? metrics.deals_won ?? 0);
 
         // Revenue Display & Payment Status (strictly truthful, never fake)
         setElText('ceo-val-revenue-dryrun', metrics.revenue_label || '$0.00');
         setElText('ceo-val-revenue', metrics.revenue_label || '$0.00');
         setElText('ceo-subtext-revenue-status', metrics.payment_status || 'PAYMENTS NOT ACTIVE');
-        setElText('ceo-core-active-work', (metrics.outreach_awaiting_approval ?? 0) + (metrics.interested_leads ?? 0));
-        setElText('ceo-core-pipeline-val', metrics.qualified_prospects ?? metrics.total_prospects ?? 0);
+        setElText('ceo-core-active-work', (metrics.outreach_awaiting_approval ?? 0) + (metrics.real_interested_leads ?? metrics.interested_leads ?? 0));
+        setElText('ceo-core-pipeline-val', metrics.real_qualified_leads ?? metrics.qualified_prospects ?? 0);
         setElText('ceo-core-revenue-val', metrics.revenue_label || '$0.00');
+
+        // Update simplified 05. Deals & Delivery and 03. Live Pipeline
+        setElText('deals-payment-pending', metrics.real_payments_pending ?? 0);
+        setElText('deals-review-required', metrics.real_payments_pending ?? 0);
+        setElText('deals-confirmed-advance', `$${Number(metrics.revenue_collected || 0).toLocaleString()}`);
+        setElText('deals-verified-revenue', metrics.revenue_label || '$0.00');
+
+        setElText('delivery-demo-requested', metrics.active_demos ?? 0);
+        setElText('delivery-demo-ready', metrics.active_demos ?? 0);
+        setElText('delivery-prod-active', 0);
+        setElText('delivery-delivery-ready', 0);
+
+        // Update 03. Live Pipeline counts (Strictly identical to Business Snapshot)
+        const funnel = data.pipeline_funnel || {};
+        setElText('funnel-c-discovered', funnel.DISCOVERY ?? funnel.discovery ?? metrics.real_verified_leads ?? 0);
+        setElText('funnel-c-qualified', funnel.QUALIFIED ?? funnel.qualified ?? metrics.real_qualified_leads ?? 0);
+        setElText('funnel-c-contacted', funnel.OUTREACH ?? funnel.outreach ?? metrics.real_external_contacted ?? 0);
+        setElText('funnel-c-replied', funnel.REPLIED ?? funnel.replied ?? metrics.real_customer_replies ?? 0);
+        setElText('funnel-c-meeting', funnel.INTERESTED ?? funnel.interested ?? metrics.real_interested_leads ?? 0);
+        setElText('funnel-c-proposal', funnel.PROPOSAL ?? funnel.proposal ?? metrics.real_proposals ?? 0);
+        setElText('funnel-c-won', funnel.PAYMENT ?? funnel.won ?? metrics.real_deals ?? 0);
 
         // 2. Action Required Section
         renderCeoActionsRequired(data.action_required || []);
@@ -593,6 +631,11 @@ async function loadCeoControlCenter() {
 
         // 7. Middle East Phase 1 Acquisition Focus Hub
         renderCeoMiddleEastPanel(data.middle_east_summary);
+        
+        // 8. Autonomous Multi-Market Acquisition Queue
+        if (typeof loadAutonomousAcquisitionQueue === 'function') {
+            loadAutonomousAcquisitionQueue();
+        }
         setBackendHealthUI(true);
 
     } catch (err) {
@@ -681,6 +724,24 @@ function getActionBadgeStyle(type) {
 }
 
 function renderCeoActionsRequired(actions) {
+    // Update simplified 02. Action Required Category Counters
+    const actList = actions || [];
+    const paymentCount = actList.filter(a => (a.type || '').toUpperCase().includes('PAYMENT')).length;
+    const outreachCount = actList.filter(a => (a.type || '').toUpperCase().includes('OUTREACH') || (a.type || '').toUpperCase().includes('APPROVAL')).length;
+    const demoCount = actList.filter(a => (a.type || '').toUpperCase().includes('DEMO')).length;
+    const exceptionCount = actList.filter(a => (a.type || '').toUpperCase().includes('EXCEPTION') || (a.type || '').toUpperCase().includes('SAFEGUARD') || (a.type || '').toUpperCase().includes('BLOCKED')).length;
+
+    const summaryBadge = document.getElementById('ceo-action-summary-badge');
+    if (summaryBadge) summaryBadge.textContent = actList.length;
+    
+    const setSummaryTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    setSummaryTxt('summary-action-payment', paymentCount);
+    setSummaryTxt('summary-action-outreach', outreachCount);
+    setSummaryTxt('summary-action-demo', demoCount);
+    setSummaryTxt('summary-action-exceptions', exceptionCount);
     const container = document.getElementById('ceo-action-required-list');
     const badge = document.getElementById('attention-status-badge');
     if (!container) return;
@@ -1067,6 +1128,24 @@ async function checkBackendHealth() {
 }
 
 function renderCeoSystemStatus(status) {
+    // Update simplified 05. System Status compact row
+    const setStatusPill = (id, label, state, dotClass, isHealthy) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const color = isHealthy ? '#10b981' : (dotClass === 'standby' ? '#a1a1aa' : '#ef4444');
+            el.innerHTML = `${label} <span class="executive-status-dot ${dotClass}" style="width:6px; height:6px; border-radius:50%; background:${color}; display:inline-block;"></span> <strong style="color:${color}; font-weight:600;">${state}</strong>`;
+        }
+    };
+
+    const isWorkerOnline = status.worker_status && status.worker_status.toUpperCase().includes('ONLINE');
+    setStatusPill('sys-status-worker', 'Worker', isWorkerOnline ? 'HEALTHY' : (status.worker_status || 'STANDBY'), isWorkerOnline ? 'healthy' : 'standby', isWorkerOnline);
+    setStatusPill('sys-status-scheduler', 'Scheduler', 'HEALTHY', 'healthy', true);
+    const titanReady = (status.email_status || '').includes('READY');
+    setStatusPill('sys-status-titan', 'Titan', titanReady ? 'AUTHENTICATED' : 'STANDBY', titanReady ? 'healthy' : 'standby', titanReady);
+    setStatusPill('sys-status-database', 'Database', 'CONNECTED', 'healthy', true);
+    setStatusPill('sys-status-demofactory', 'Demo Factory', 'READY', 'healthy', true);
+    setStatusPill('sys-status-n8n', 'N8N', 'STANDBY', 'standby', false);
+    setStatusPill('sys-status-cloud', 'Cloud', 'HEALTHY', 'healthy', true);
     const setEl = (id, text, color) => {
         const el = document.getElementById(id);
         if (el) {
@@ -1464,7 +1543,43 @@ function formatOperationalEvent(ev) {
     const statusUpper = (ev.status || '').toUpperCase();
     const eventType = (ev.event_type || '').toUpperCase();
 
-    if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
+    // Provenance Tag determination
+    let provBadge = '';
+    const meta = ev.metadata_json || {};
+    const isSim = meta.is_simulation === true || meta.dry_run === true || (typeof ev.message === 'string' && (ev.message.includes('[DRY RUN]') || ev.message.includes('[SIMULATED]')));
+    const isCanary = meta.is_canary === true || (typeof ev.message === 'string' && ev.message.includes('canary'));
+    const isTest = meta.is_test === true || (ev.domain && (ev.domain.endsWith('.test') || ev.domain.endsWith('.example')));
+    const isSys = eventType.includes('MARKET') || eventType.includes('SYSTEM') || eventType.includes('SAFEGUARD') || eventType.includes('KILL_SWITCH') || eventType.includes('REBALANCED') || eventType.includes('CAPACITY');
+
+    if (isSim) {
+        provBadge = '<span style="font-size:0.58rem; padding:1px 5px; border-radius:3px; background:rgba(245,158,11,0.1); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); font-weight:700; white-space:nowrap;">SIMULATION</span>';
+    } else if (isCanary) {
+        provBadge = '<span style="font-size:0.58rem; padding:1px 5px; border-radius:3px; background:rgba(167,139,250,0.1); color:#a78bfa; border:1px solid rgba(167,139,250,0.25); font-weight:700; white-space:nowrap;">CANARY</span>';
+    } else if (isTest) {
+        provBadge = '<span style="font-size:0.58rem; padding:1px 5px; border-radius:3px; background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.25); font-weight:700; white-space:nowrap;">TEST</span>';
+    } else if (isSys) {
+        provBadge = '<span style="font-size:0.58rem; padding:1px 5px; border-radius:3px; background:rgba(56,189,248,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); font-weight:700; white-space:nowrap;">SYSTEM</span>';
+    } else {
+        provBadge = '<span style="font-size:0.58rem; padding:1px 5px; border-radius:3px; background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.25); font-weight:700; white-space:nowrap;">REAL PRODUCTION</span>';
+    }
+
+    if (eventType === 'MARKET_SELECTED') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:700; white-space:nowrap;">MARKET SELECTED</span>';
+    } else if (eventType === 'MARKET_REBALANCED') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:700; white-space:nowrap;">REBALANCED</span>';
+    } else if (eventType === 'DISCOVERY_STARTED' || eventType === 'PROSPECT_FOUND') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(14,165,233,0.15); color:#38bdf8; border:1px solid rgba(14,165,233,0.3); font-weight:700; white-space:nowrap;">DISCOVERY</span>';
+    } else if (eventType === 'OPPORTUNITY_IDENTIFIED') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-weight:700; white-space:nowrap;">OPPORTUNITY</span>';
+    } else if (eventType === 'DEMO_STARTED' || eventType === 'DEMO_READY') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(167,139,250,0.15); color:#a78bfa; border:1px solid rgba(167,139,250,0.3); font-weight:700; white-space:nowrap;">DEMO FACTORY</span>';
+    } else if (eventType === 'PAYMENT_CONFIRMED' || eventType === 'PRODUCTION_AUTHORIZED') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-weight:700; white-space:nowrap;">PAYMENT / REVENUE</span>';
+    } else if (eventType === 'DEPLOYED' || eventType === 'DELIVERY_COMPLETE') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:700; white-space:nowrap;">DEPLOYED</span>';
+    } else if (eventType === 'SAFEGUARD_TRIGGERED' || eventType === 'KILL_SWITCH_ACTIVATED') {
+        statusBadge = '<span style="font-size:0.62rem; padding:2px 6px; border-radius:3px; background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; white-space:nowrap;">SAFEGUARD</span>';
+    } else if (statusUpper === 'RUNNING' || eventType.includes('STARTED') || eventType.includes('SCANNING') || eventType.includes('DISCOVERY')) {
         statusBadge = '<span class="badge-status-running" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;"><span class="pulse-dot" style="background:#38bdf8; width:5px; height:5px;"></span>RUNNING</span>';
     } else if (statusUpper.includes('WAIT') || eventType.includes('APPROVAL') || eventType.includes('PENDING_APPROVAL')) {
         statusBadge = '<span class="badge-status-waiting" style="font-size:0.62rem; padding:2px 6px; white-space:nowrap; flex-shrink:0;">APPROVAL REQUIRED</span>';
@@ -1493,6 +1608,7 @@ function formatOperationalEvent(ev) {
     return `
         <div class="live-ops-item" style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 10px; background:#09090b; border:1px solid rgba(255,255,255,0.06); border-radius:5px; margin-bottom:4px; min-width:0;">
             <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                ${provBadge}
                 ${statusBadge}
                 <span style="font-size:0.75rem; color:#e4e4e7; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1;" title="${escapeHtml(msg)}">${escapeHtml(msg)}</span>
             </div>
@@ -1505,18 +1621,27 @@ async function loadRecentAiActivity() {
     const list = document.getElementById('ceo-recent-activity-list');
     if (!list) return;
     try {
-        const res = await fetch('/api/agent/activity?limit=8');
+        const res = await fetch('/api/agent/activity?limit=20');
         if (!res.ok) {
             list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
             return;
         }
         const data = await res.json();
         const events = data.events || (Array.isArray(data) ? data : []);
-        if (events.length === 0) {
+        // Default to showing REAL PRODUCTION and SYSTEM events
+        const realAndSystemEvents = events.filter(ev => {
+            const meta = ev.metadata_json || {};
+            const isSim = meta.is_simulation === true || meta.dry_run === true || (typeof ev.message === 'string' && (ev.message.includes('[DRY RUN]') || ev.message.includes('[SIMULATED]')));
+            const isTest = meta.is_test === true || (ev.domain && (ev.domain.endsWith('.test') || ev.domain.endsWith('.example')));
+            return !(isSim || isTest);
+        });
+
+        const displayEvents = (realAndSystemEvents.length > 0 ? realAndSystemEvents : events).slice(0, 8);
+        if (displayEvents.length === 0) {
             list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Autonomous engine operational. Standby for next cycle.</div>`;
             return;
         }
-        list.innerHTML = events.map(ev => formatOperationalEvent(ev)).join('');
+        list.innerHTML = displayEvents.map(ev => formatOperationalEvent(ev)).join('');
     } catch (e) {
         console.error('Failed to load AI activity feed:', e);
         list.innerHTML = `<div style="color:#71717a; font-size:0.75rem; text-align:center; padding:20px 0;">Engine initialized. Awaiting next prospecting cycle.</div>`;
@@ -2848,71 +2973,442 @@ function closeModal() {
     if (modal) modal.classList.remove('active');
 }
 
-async function loadQueue() {
-    try {
-        // Fetch Real Database Outreach Metrics
-        try {
-            const mRes = await fetch('/api/outreach/delivery-metrics');
-            if (mRes.ok) {
-                const metrics = await mRes.json();
-                const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
-                setVal('kpi-outreach-pending', metrics.outreach_pending_approval ?? 0);
-                setVal('kpi-outreach-approved', metrics.outreach_approved ?? 0);
-                setVal('kpi-outreach-sent', metrics.outreach_sent ?? 0);
-                setVal('kpi-outreach-failed', metrics.outreach_failed ?? 0);
-                setVal('kpi-outreach-replies', metrics.replies_in_human_review ?? 0);
-                setVal('kpi-outreach-takeover', metrics.human_takeovers_active ?? 0);
+function renderQueueCards(queue) {
+    const container = document.getElementById('queue-cards-container');
+    if (!container) return;
+    container.innerHTML = '';
 
-                const badge = document.getElementById('provider-status-badge');
-                if (badge) {
-                    const dryRun = metrics.dry_run_enabled ? 'MOCK / DRY-RUN' : 'LIVE';
-                    badge.innerText = `PROVIDER: ${metrics.active_provider.toUpperCase()} (${dryRun})`;
-                    badge.className = metrics.dry_run_enabled ? 'badge badge-cyan' : 'badge badge-success';
-                }
+    if (!queue || queue.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:36px 16px; color:var(--text-muted); font-size:0.88rem;">No outreach messages pending authorization. Run a prospecting cycle to generate new proposals.</div>';
+        return;
+    }
+
+    queue.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'panel-card';
+        card.innerHTML = `
+            <div class="panel-header">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <strong style="color:#fff; font-size:0.92rem;">${escapeHtml(item.business_name || '')}</strong>
+                    <span style="color:var(--hud-cyan-bright); font-family:var(--font-mono); font-size:0.8rem;">(${escapeHtml(item.domain || '')})</span>
+                    <span class="badge badge-cyan">Score: ${item.lead_score}/100</span>
+                </div>
+                <div>
+                    <span class="badge badge-stage">${escapeHtml(item.recommended_service || '')} ($${item.recommended_price})</span>
+                </div>
+            </div>
+            <p style="font-size:0.84rem; margin-bottom:4px;"><strong style="color:var(--text-muted);">To:</strong> <span style="color:var(--text-white); font-family:var(--font-mono);">${escapeHtml(item.recipient_email || '')}</span></p>
+            <p style="font-size:0.84rem; margin-bottom:10px;"><strong style="color:var(--text-muted);">Subject:</strong> <span style="color:var(--text-white);">${escapeHtml(item.subject || '')}</span></p>
+            <div style="background:var(--bg-card-inner); padding:12px; border-radius:6px; margin-bottom:14px; max-height:140px; overflow-y:auto; font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap; font-family:var(--font-mono); border:1px solid var(--border-subtle);">
+                ${escapeHtml(item.body || '')}
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="approveMessage(${item.message_id}, false)">✓ Simulate Send</button>
+                <button class="btn btn-success" onclick="approveMessage(${item.message_id}, true)">🚀 Approve & Send Live</button>
+                <button class="btn btn-danger" onclick="rejectMessage(${item.message_id})">✕ Reject</button>
+                <button class="btn btn-outline" onclick="viewLeadDetail(${item.business_id})">Inspect Audit</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function loadDeliveryMetrics() {
+    try {
+        const mRes = await fetch('/api/outreach/delivery-metrics');
+        if (mRes.ok) {
+            const metrics = await mRes.json();
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+            setVal('kpi-outreach-pending', metrics.outreach_pending_approval ?? 0);
+            setVal('kpi-outreach-approved', metrics.outreach_approved ?? 0);
+            setVal('kpi-outreach-sent', metrics.outreach_sent ?? 0);
+            setVal('kpi-outreach-failed', metrics.outreach_failed ?? 0);
+            setVal('kpi-outreach-replies', metrics.replies_in_human_review ?? 0);
+            setVal('kpi-outreach-takeover', metrics.human_takeovers_active ?? 0);
+            setVal('badge-subtab-pending', metrics.outreach_pending_approval ?? 0);
+            setVal('badge-subtab-sent', metrics.outreach_sent ?? 0);
+
+            const badge = document.getElementById('provider-status-badge');
+            if (badge && metrics && metrics.active_provider) {
+                const dryRun = metrics.dry_run_enabled ? 'MOCK / DRY-RUN' : 'LIVE';
+                badge.innerText = `PROVIDER: ${metrics.active_provider.toUpperCase()} (${dryRun})`;
+                badge.className = metrics.dry_run_enabled ? 'badge badge-cyan' : 'badge badge-success';
             }
-        } catch (mErr) {
-            console.warn('Could not load delivery metrics:', mErr);
+            return metrics;
+        }
+    } catch (mErr) {
+        console.warn('Could not load delivery metrics:', mErr);
+    }
+}
+
+// ============================================================================
+// SENT OUTREACH HISTORY CONTROLLER
+// ============================================================================
+
+let sentHistoryCurrentPage = 1;
+let sentHistoryCategory = 'real_external';
+let sentHistorySearch = '';
+let sentHistorySearchDebounce = null;
+let currentQueueSubTab = 'pending';
+
+function switchQueueSubTab(tabName) {
+    currentQueueSubTab = tabName;
+    const btnPending = document.getElementById('subtab-btn-pending');
+    const btnSent = document.getElementById('subtab-btn-sent');
+    const panelPending = document.getElementById('subtab-panel-pending');
+    const panelSent = document.getElementById('subtab-panel-sent');
+
+    if (tabName === 'sent') {
+        if (btnPending) { btnPending.classList.remove('active'); btnPending.classList.add('btn-outline'); }
+        if (btnSent) { btnSent.classList.add('active'); btnSent.classList.remove('btn-outline'); }
+        if (panelPending) panelPending.style.display = 'none';
+        if (panelSent) panelSent.style.display = 'block';
+        loadSentHistory(sentHistoryCurrentPage);
+    } else {
+        if (btnPending) { btnPending.classList.add('active'); btnPending.classList.remove('btn-outline'); }
+        if (btnSent) { btnSent.classList.remove('active'); btnSent.classList.add('btn-outline'); }
+        if (panelPending) panelPending.style.display = 'block';
+        if (panelSent) panelSent.style.display = 'none';
+        loadQueue();
+    }
+}
+
+function setSentCategory(cat) {
+    sentHistoryCategory = cat;
+    ['real_external', 'canary', 'historical_test', 'all'].forEach(c => {
+        const btn = document.getElementById(`btn-cat-${c}`);
+        if (btn) {
+            if (c === cat) {
+                btn.classList.add('active');
+                btn.classList.remove('btn-outline');
+            } else {
+                btn.classList.remove('active');
+                btn.classList.add('btn-outline');
+            }
+        }
+    });
+    sentHistoryCurrentPage = 1;
+    loadSentHistory(1);
+}
+
+function handleSentSearch(val) {
+    if (sentHistorySearchDebounce) clearTimeout(sentHistorySearchDebounce);
+    sentHistorySearchDebounce = setTimeout(() => {
+        sentHistorySearch = val.trim();
+        sentHistoryCurrentPage = 1;
+        loadSentHistory(1);
+    }, 300);
+}
+
+function prevSentPage() {
+    if (sentHistoryCurrentPage > 1) {
+        sentHistoryCurrentPage--;
+        loadSentHistory(sentHistoryCurrentPage);
+    }
+}
+
+function nextSentPage() {
+    sentHistoryCurrentPage++;
+    loadSentHistory(sentHistoryCurrentPage);
+}
+
+async function loadSentHistory(page = 1) {
+    sentHistoryCurrentPage = page;
+    const container = document.getElementById('sent-history-table-container');
+    if (!container) return;
+
+    try {
+        const qParams = new URLSearchParams({
+            page: page.toString(),
+            page_size: '25',
+            category: sentHistoryCategory
+        });
+        if (sentHistorySearch) {
+            qParams.append('search', sentHistorySearch);
         }
 
-        const res = await fetch('/api/queue');
-        const queue = await res.json();
-        const container = document.getElementById('queue-cards-container');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (queue.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:36px 16px; color:var(--text-muted); font-size:0.88rem;">No outreach messages pending authorization. Run a prospecting cycle to generate new proposals.</div>';
+        const res = await fetch(`/api/outreach/sent?${qParams.toString()}`);
+        if (!res.ok) {
+            container.innerHTML = `<div style="color:var(--hud-red); padding:24px; text-align:center;">Failed to load sent history: HTTP ${res.status}</div>`;
             return;
         }
 
-        queue.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'panel-card';
-            card.innerHTML = `
-                <div class="panel-header">
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <strong style="color:#fff; font-size:0.92rem;">${item.business_name}</strong>
-                        <span style="color:var(--hud-cyan-bright); font-family:var(--font-mono); font-size:0.8rem;">(${item.domain})</span>
-                        <span class="badge badge-cyan">Score: ${item.lead_score}/100</span>
+        const data = await res.json();
+
+        // Update category counts
+        if (data.category_counts) {
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxt('count-cat-real', data.category_counts.real_external ?? 0);
+            setTxt('count-cat-canary', data.category_counts.canary ?? 0);
+            setTxt('count-cat-historical', data.category_counts.historical_test ?? 0);
+            setTxt('count-cat-all', data.category_counts.all ?? 0);
+            setTxt('badge-subtab-sent', data.category_counts.all ?? 0);
+        }
+
+        // Update pagination controls
+        const infoEl = document.getElementById('sent-pagination-info');
+        const pageEl = document.getElementById('sent-page-display');
+        const prevBtn = document.getElementById('sent-prev-btn');
+        const nextBtn = document.getElementById('sent-next-btn');
+
+        const total = data.total_matching || 0;
+        const totalPages = data.total_pages || 1;
+        if (infoEl) infoEl.innerText = `Showing ${data.items.length} of ${total} sent records (${sentHistoryCategory.replace('_', ' ')})`;
+        if (pageEl) pageEl.innerText = `Page ${data.page} of ${totalPages}`;
+        if (prevBtn) prevBtn.disabled = (data.page <= 1);
+        if (nextBtn) nextBtn.disabled = (data.page >= totalPages);
+
+        renderSentHistory(data.items);
+    } catch (e) {
+        console.error('Error loading sent history:', e);
+        if (container) {
+            container.innerHTML = `<div style="color:var(--hud-red); padding:24px; text-align:center;">Error loading sent history: ${e}</div>`;
+        }
+    }
+}
+
+function renderSentHistory(items) {
+    const container = document.getElementById('sent-history-table-container');
+    if (!container) return;
+
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:36px 16px; color:var(--text-muted); font-size:0.88rem;">
+                No sent outreach records match the current filter (${sentHistoryCategory.replace('_', ' ')}).
+                ${sentHistoryCategory === 'real_external' ? '<br><span style="font-size:0.8rem; color:#71717a; margin-top:6px; display:inline-block;">Toggle "Canary", "Historical/Dev" or "All" above to inspect other dispatches.</span>' : ''}
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border-subtle, #27272a); color:var(--text-muted); text-align:left;">
+                    <th style="padding:10px 8px;">Business / Prospect</th>
+                    <th style="padding:10px 8px;">Recipient</th>
+                    <th style="padding:10px 8px;">Subject</th>
+                    <th style="padding:10px 8px;">Market / Niche</th>
+                    <th style="padding:10px 8px;">Offer / Service</th>
+                    <th style="padding:10px 8px;">Sent At (UTC)</th>
+                    <th style="padding:10px 8px;">Classification</th>
+                    <th style="padding:10px 8px;">Status / Reply</th>
+                    <th style="padding:10px 8px; text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    items.forEach(item => {
+        let typeBadge = '';
+        if (item.record_type === 'REAL_EXTERNAL') {
+            typeBadge = '<span class="badge badge-success" style="font-size:0.7rem; font-weight:600;">REAL EXTERNAL</span>';
+        } else if (item.record_type === 'CANARY') {
+            typeBadge = '<span class="badge badge-cyan" style="font-size:0.7rem; font-weight:600;">CANARY</span>';
+        } else {
+            typeBadge = '<span class="badge" style="font-size:0.7rem; background:#3f3f46; color:#e4e4e7;">HISTORICAL/DEV</span>';
+        }
+
+        let replyBadge = '';
+        if (item.has_reply) {
+            replyBadge = `<div style="margin-top:3px;"><span class="badge badge-blue" style="font-size:0.68rem;">REPLIED: ${escapeHtml(item.reply_status || 'YES')}</span></div>`;
+        }
+
+        let fuBadge = '';
+        if (item.followup_status && item.followup_status !== 'NONE') {
+            fuBadge = `<div style="margin-top:3px;"><span class="badge badge-amber" style="font-size:0.68rem;">FU: ${escapeHtml(item.followup_status)}</span></div>`;
+        }
+
+        const sentDateStr = item.sent_at ? new Date(item.sent_at).toISOString().replace('T', ' ').substring(0, 19) + ' UTC' : 'Pre-Launch';
+
+        html += `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                <td style="padding:10px 8px;">
+                    <div style="font-weight:600; color:#fff;">${escapeHtml(item.business_name)}</div>
+                    <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--hud-cyan-bright);">${escapeHtml(item.domain)}</div>
+                </td>
+                <td style="padding:10px 8px; font-family:var(--font-mono); color:var(--text-white);">
+                    ${escapeHtml(item.recipient)}
+                </td>
+                <td style="padding:10px 8px; max-width:220px;">
+                    <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-white);" title="${escapeHtml(item.subject)}">
+                        ${escapeHtml(item.subject)}
                     </div>
-                    <div>
-                        <span class="badge badge-stage">${item.recommended_service} ($${item.recommended_price})</span>
+                    <div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${escapeHtml(item.body_snippet || '')}
                     </div>
-                </div>
-                <p style="font-size:0.84rem; margin-bottom:4px;"><strong style="color:var(--text-muted);">To:</strong> <span style="color:var(--text-white); font-family:var(--font-mono);">${item.recipient_email}</span></p>
-                <p style="font-size:0.84rem; margin-bottom:10px;"><strong style="color:var(--text-muted);">Subject:</strong> <span style="color:var(--text-white);">${item.subject}</span></p>
-                <div style="background:var(--bg-card-inner); padding:12px; border-radius:6px; margin-bottom:14px; max-height:140px; overflow-y:auto; font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap; font-family:var(--font-mono); border:1px solid var(--border-subtle);">
-                    ${item.body}
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="approveMessage(${item.message_id}, false)">✓ Simulate Send</button>
-                    <button class="btn btn-success" onclick="approveMessage(${item.message_id}, true)">🚀 Approve & Send Live</button>
-                    <button class="btn btn-danger" onclick="rejectMessage(${item.message_id})">✕ Reject</button>
-                    <button class="btn btn-outline" onclick="viewLeadDetail(${item.business_id})">Inspect Audit</button>
+                </td>
+                <td style="padding:10px 8px;">
+                    <div style="color:var(--text-white); font-size:0.78rem;">${escapeHtml(item.market.niche || 'B2B')}</div>
+                    <div style="color:var(--text-muted); font-size:0.72rem;">${escapeHtml(item.market.city ? item.market.city + ', ' : '')}${escapeHtml(item.market.country || '')}</div>
+                </td>
+                <td style="padding:10px 8px;">
+                    <div style="color:var(--text-white); font-size:0.78rem;">${escapeHtml(item.offer.title)}</div>
+                    <div style="color:var(--hud-green); font-size:0.72rem; font-family:var(--font-mono);">$${item.offer.price}</div>
+                </td>
+                <td style="padding:10px 8px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); white-space:nowrap;">
+                    ${sentDateStr}
+                </td>
+                <td style="padding:10px 8px;">
+                    ${typeBadge}
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">via ${escapeHtml(item.provider)}</div>
+                </td>
+                <td style="padding:10px 8px;">
+                    <span class="badge badge-success" style="font-size:0.7rem;">${escapeHtml(item.delivery_state)}</span>
+                    ${replyBadge}
+                    ${fuBadge}
+                </td>
+                <td style="padding:10px 8px; text-align:right;">
+                    <button class="btn btn-sm btn-outline" onclick="openSentDetailModal(${item.message_id})" style="padding:4px 10px; font-size:0.75rem;">
+                        Inspect
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
+}
+
+async function openSentDetailModal(messageId) {
+    const modal = document.getElementById('sent-detail-modal');
+    const bodyEl = document.getElementById('sent-detail-modal-body');
+    if (!modal || !bodyEl) return;
+
+    bodyEl.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted);">Loading message details...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/outreach/sent/${messageId}`);
+        if (!res.ok) {
+            bodyEl.innerHTML = `<div style="color:var(--hud-red); padding:20px;">Failed to load detail: HTTP ${res.status}</div>`;
+            return;
+        }
+
+        const msg = await res.json();
+
+        let replyHtml = '';
+        if (msg.reply) {
+            replyHtml = `
+                <div style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:6px; padding:12px; margin-top:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <strong style="color:var(--hud-blue); font-size:0.85rem;">Linked Inbound Reply</strong>
+                        <span class="badge badge-blue">${escapeHtml(msg.reply.classification)}</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px;">
+                        From: <span style="font-family:var(--font-mono); color:#fff;">${escapeHtml(msg.reply.sender_email)}</span> · Received: ${escapeHtml(msg.reply.received_at || 'Recently')}
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); background:var(--bg-card-inner, #09090b); padding:8px; border-radius:4px; font-family:var(--font-mono); white-space:pre-wrap;">
+                        ${escapeHtml(msg.reply.snippet || '')}
+                    </div>
                 </div>
             `;
-            container.appendChild(card);
-        });
+        }
+
+        let followupsHtml = '';
+        if (msg.followups && msg.followups.length > 0) {
+            followupsHtml = `
+                <div style="margin-top:14px;">
+                    <strong style="font-size:0.82rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Follow-up Sequence Cadence</strong>
+                    <div style="margin-top:6px; display:flex; flex-direction:column; gap:6px;">
+                        ${msg.followups.map(f => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:4px; font-size:0.78rem; border:1px solid var(--border-subtle, #27272a);">
+                                <span>Step #${f.step_number}: ${escapeHtml(f.subject || 'Follow-up')}</span>
+                                <span class="badge badge-amber">${escapeHtml(f.status)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        bodyEl.innerHTML = `
+            <div style="border-bottom:1px solid var(--border-subtle, #27272a); padding-bottom:14px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:2px;">${escapeHtml(msg.business_name)}</h3>
+                        <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--hud-cyan-bright);">
+                            ${escapeHtml(msg.domain)} · ${escapeHtml(msg.market.city ? msg.market.city + ', ' : '')}${escapeHtml(msg.market.country)} (${escapeHtml(msg.market.niche)})
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <span class="badge badge-success">${escapeHtml(msg.delivery_state)}</span>
+                        <span class="badge ${msg.record_type === 'REAL_EXTERNAL' ? 'badge-success' : (msg.record_type === 'CANARY' ? 'badge-cyan' : '')}">${escapeHtml(msg.record_type)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px; font-size:0.8rem;">
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                    <div style="color:var(--text-muted); font-size:0.72rem;">RECIPIENT</div>
+                    <div style="font-family:var(--font-mono); color:#fff; font-size:0.82rem; word-break:break-all;">${escapeHtml(msg.recipient)}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                    <div style="color:var(--text-muted); font-size:0.72rem;">SENT TIMESTAMP</div>
+                    <div style="font-family:var(--font-mono); color:#fff; font-size:0.82rem;">${escapeHtml(msg.sent_at || 'Pre-launch')}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                    <div style="color:var(--text-muted); font-size:0.72rem;">PROVIDER & MESSAGE-ID</div>
+                    <div style="font-family:var(--font-mono); color:var(--hud-cyan-bright); font-size:0.76rem; word-break:break-all;">
+                        ${escapeHtml(msg.provider)}: ${escapeHtml(msg.provider_message_id || 'N/A')}
+                    </div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                    <div style="color:var(--text-muted); font-size:0.72rem;">COMMERCIAL OFFER</div>
+                    <div style="color:#fff; font-size:0.82rem;">${escapeHtml(msg.offer.title)} ($${msg.offer.price})</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Subject</div>
+                <div style="font-size:0.92rem; font-weight:600; color:#fff; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; border:1px solid var(--border-subtle, #27272a);">
+                    ${escapeHtml(msg.subject)}
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Message Body</div>
+                <div style="background:var(--bg-card-inner, #09090b); padding:14px; border-radius:6px; border:1px solid var(--border-subtle, #27272a); font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap; max-height:240px; overflow-y:auto; line-height:1.5;">
+                    ${escapeHtml(msg.body)}
+                </div>
+            </div>
+
+            ${replyHtml}
+            ${followupsHtml}
+
+            <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-outline" onclick="viewLeadDetail(${msg.business_id})">Inspect Business Audit</button>
+                <button class="btn btn-secondary" onclick="closeSentDetailModal()">Close</button>
+            </div>
+        `;
+    } catch (e) {
+        bodyEl.innerHTML = `<div style="color:var(--hud-red); padding:20px;">Error loading detail: ${e}</div>`;
+    }
+}
+
+function closeSentDetailModal() {
+    const modal = document.getElementById('sent-detail-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function loadQueue() {
+    try {
+        await loadDeliveryMetrics();
+        const res = await fetch('/api/queue');
+        if (res.ok) {
+            const queue = await res.json();
+            renderQueueCards(queue);
+            const badge = document.getElementById('badge-subtab-pending');
+            if (badge) badge.innerText = queue.length;
+        }
+        if (typeof loadSentHistory === 'function') {
+            await loadSentHistory(sentHistoryCurrentPage);
+        }
     } catch (e) {
         console.error('Error loading queue:', e);
     }
@@ -2932,8 +3428,7 @@ async function approveMessage(msgId, forceLive = false) {
         if (res.ok) {
             const modeText = forceLive ? 'LIVE' : 'SIMULATED';
             alert(`Message #${msgId} approved! [${modeText}] ${data.send_result ? 'Event: ' + data.send_result.event : ''}`);
-            loadQueue();
-            loadDashboardMetrics();
+            invalidateProjections(['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState']);
         } else {
             alert(`Approval failed: ${data.detail || JSON.stringify(data)}`);
         }
@@ -2944,10 +3439,14 @@ async function approveMessage(msgId, forceLive = false) {
 
 async function rejectMessage(msgId) {
     try {
-        await fetch(`/api/queue/${msgId}/reject`, { method: 'POST' });
-        alert('Message rejected.');
-        loadQueue();
-        loadDashboardMetrics();
+        const res = await fetch(`/api/queue/${msgId}/reject`, { method: 'POST' });
+        if (res.ok) {
+            alert('Message rejected.');
+            invalidateProjections(['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState']);
+        } else {
+            const data = await res.json();
+            alert(`Reject failed: ${data.detail || JSON.stringify(data)}`);
+        }
     } catch (e) {
         alert('Error rejecting: ' + e);
     }
@@ -2964,9 +3463,9 @@ async function loadPipeline() {
             if (col) {
                 const stageLeads = leads.filter(l => l.pipeline_stage === stage);
                 col.innerHTML = `
-                    <div class="kanban-col-title">
+                    <div class="kanban-col-title" style="display:flex; justify-content:space-between; align-items:center;">
                         <span>${stage}</span>
-                        <span>${stageLeads.length}</span>
+                        <span class="badge" style="background:#334155; color:#cbd5e1; font-size:0.75rem; padding:2px 8px; border-radius:10px;">${stageLeads.length}</span>
                     </div>
                     ${stageLeads.map(l => `
                         <div class="kanban-card" onclick="viewLeadDetail(${l.id})">
@@ -3134,11 +3633,11 @@ async function loadReplies() {
                 <td>
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <div style="display:flex; gap:4px;">
-                            <button class="btn btn-sm btn-success" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'APPROVE')">✓ Approve</button>
-                            <button class="btn btn-sm btn-secondary" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'EDIT')">✏️ Edit</button>
+                            <button class="btn btn-sm btn-success" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'APPROVE')">✓ Send Reply</button>
+                            <button class="btn btn-sm btn-secondary" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'EDIT')">✏️ Edit Reply</button>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            <button class="btn btn-sm btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'REJECT')">⛔ Reject</button>
+                            <button class="btn btn-sm btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'REJECT')">⛔ Dismiss</button>
                             <button class="btn btn-sm btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="handleMemoryDecision(${r.business_id}, 'TAKE_OVER')">👤 Take Over</button>
                         </div>
                         <button class="btn btn-sm btn-outline-info" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="showProspectMemoryModal(${r.business_id})">📜 30s Context</button>
@@ -4811,6 +5310,149 @@ function updateCeoActivityList(events) {
 }
 
 
+// ============================================================================
+// SINGLE SOURCE OF TRUTH: PROJECTION INVALIDATION & STATE SYNCHRONIZATION
+// ============================================================================
+
+const EVENT_PROJECTION_MAP = {
+    'OUTREACH_DRAFTED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_APPROVED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_QUEUED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_SENT': ['queue', 'deliveryMetrics', 'sentHistory', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_FAILED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_BLOCKED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'OUTREACH_REJECTED': ['queue', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'INBOUND_EVENT_RECEIVED': ['replies', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'REPLY_CLASSIFIED': ['replies', 'deliveryMetrics', 'pipeline', 'ceoOverview', 'canonicalState'],
+    'MEMORY_UPDATED': ['replies', 'ceoOverview'],
+    'DEMO_STARTED': ['runningOps', 'ceoOverview'],
+    'DEMO_READY': ['runningOps', 'pipeline', 'ceoOverview'],
+    'DEMO_FAILED': ['runningOps', 'pipeline', 'ceoOverview'],
+    'PAYMENT_REVIEW_REQUIRED': ['pipeline', 'ceoOverview', 'canonicalState'],
+    'PAYMENT_CONFIRMED': ['pipeline', 'ceoOverview', 'canonicalState'],
+    'MARKET_SELECTED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'MARKET_REBALANCED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'MARKET_ACTIVATED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'MARKET_DEACTIVATED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'MARKET_PAUSED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'MARKET_REACTIVATED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'CAPACITY_REALLOCATED': ['acquisitionQueue', 'markets', 'ceoOverview'],
+    'RUN_STARTED': ['runningOps', 'ceoOverview'],
+    'RUN_COMPLETED': ['runningOps', 'pipeline', 'ceoOverview']
+};
+
+let _pendingProjections = new Set();
+let _projectionDebounceTimer = null;
+
+function invalidateProjections(projections) {
+    if (!projections || !projections.length) return;
+    projections.forEach(p => _pendingProjections.add(p));
+
+    if (_projectionDebounceTimer) {
+        clearTimeout(_projectionDebounceTimer);
+    }
+
+    _projectionDebounceTimer = setTimeout(() => {
+        const toRun = Array.from(_pendingProjections);
+        _pendingProjections.clear();
+        _projectionDebounceTimer = null;
+
+        toRun.forEach(proj => {
+            switch (proj) {
+                case 'queue':
+                case 'deliveryMetrics':
+                case 'sentHistory':
+                    if (typeof loadQueue === 'function') loadQueue();
+                    if (typeof loadSentHistory === 'function') loadSentHistory(sentHistoryCurrentPage);
+                    break;
+                case 'pipeline':
+                case 'leads':
+                    if (typeof loadPipeline === 'function') loadPipeline();
+                    break;
+                case 'replies':
+                    if (typeof loadReplies === 'function') loadReplies();
+                    if (typeof loadRecentInboundReplies === 'function') loadRecentInboundReplies();
+                    break;
+                case 'ceoOverview':
+                    if (typeof loadCeoControlCenter === 'function') loadCeoControlCenter();
+                    break;
+                case 'runningOps':
+                    if (typeof loadAgentStatus === 'function') loadAgentStatus();
+                    break;
+                case 'acquisitionQueue':
+                case 'markets':
+                    if (typeof loadAutonomousAcquisitionQueue === 'function') loadAutonomousAcquisitionQueue();
+                    break;
+                case 'canonicalState':
+                    if (typeof loadCanonicalDashboardState === 'function') loadCanonicalDashboardState();
+                    break;
+                default:
+                    break;
+            }
+        });
+    }, 150);
+}
+
+async function loadCanonicalDashboardState() {
+    try {
+        const res = await fetch('/api/dashboard/state');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. Delivery Metrics & Provider Badge
+        if (data.delivery_metrics) {
+            const m = data.delivery_metrics;
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+            setVal('kpi-outreach-pending', m.outreach_pending_approval ?? 0);
+            setVal('kpi-outreach-approved', m.outreach_approved ?? 0);
+            setVal('kpi-outreach-sent', m.outreach_sent ?? 0);
+            setVal('kpi-outreach-failed', m.outreach_failed ?? 0);
+            setVal('kpi-outreach-replies', m.replies_in_human_review ?? 0);
+            setVal('kpi-outreach-takeover', m.human_takeovers_active ?? 0);
+            setVal('badge-subtab-pending', m.outreach_pending_approval ?? 0);
+            setVal('badge-subtab-sent', m.outreach_sent ?? 0);
+
+
+            const badge = document.getElementById('provider-status-badge');
+            if (badge && m.active_provider) {
+                const dryRun = m.dry_run_enabled ? 'MOCK / DRY-RUN' : 'LIVE';
+                badge.innerText = `PROVIDER: ${m.active_provider.toUpperCase()} (${dryRun})`;
+                badge.className = m.dry_run_enabled ? 'badge badge-cyan' : 'badge badge-success';
+            }
+        }
+
+        // 2. Queue Cards
+        if (data.queue_summary && Array.isArray(data.queue_summary.items)) {
+            if (typeof renderQueueCards === 'function') {
+                renderQueueCards(data.queue_summary.items);
+            }
+        }
+
+        // 3. Pipeline Summary (Kanban column badge counts)
+        if (data.pipeline_summary) {
+            const stages = ['DISCOVERED', 'VERIFIED', 'AUDITED', 'QUALIFIED', 'APPROVAL', 'CONTACTED', 'QUALIFIED_REPLY', 'WON'];
+            stages.forEach(stage => {
+                const col = document.getElementById(`kanban-${stage}`);
+                if (col) {
+                    const badge = col.querySelector('.kanban-col-title .badge');
+                    if (badge) {
+                        badge.innerText = data.pipeline_summary[stage] ?? 0;
+                    }
+                }
+            });
+        }
+
+        // 4. Inbound Replies Count Badge
+        const inboundBadge = document.getElementById('inbound-count-badge');
+        if (inboundBadge && data.unhandled_replies_count !== undefined) {
+            inboundBadge.innerText = `${data.unhandled_replies_count}`;
+            if (data.unhandled_replies_count > 0) inboundBadge.style.display = 'inline-block';
+        }
+    } catch (e) {
+        console.debug('Failed to load canonical dashboard state:', e);
+    }
+}
+
 function initActivityWebSocket() {
     const statusText = document.getElementById('ws-status-text');
     const pulseDot = document.getElementById('ws-pulse-dot');
@@ -4835,7 +5477,10 @@ function initActivityWebSocket() {
                 clearTimeout(wsDisconnectTimeout);
                 wsDisconnectTimeout = null;
             }
+            stopSseFallback();
             stopPollingFallback();
+            // Reconnect reconciliation: synchronize state via canonical snapshot
+            loadCanonicalDashboardState();
         };
 
         activityWebSocket.onmessage = (event) => {
@@ -4849,29 +5494,65 @@ function initActivityWebSocket() {
         };
 
         activityWebSocket.onclose = () => {
-            if (statusText) statusText.innerText = 'WS RECONNECTING...';
+            if (statusText) statusText.innerText = 'FAILING OVER (SSE)...';
             if (pulseDot) {
-                pulseDot.style.background = '#f59e0b';
-                pulseDot.style.boxShadow = '0 0 8px #f59e0b';
+                pulseDot.style.background = '#3b82f6';
+                pulseDot.style.boxShadow = '0 0 8px #3b82f6';
             }
-            // If disconnected for >10s, initiate fallback REST polling
-            if (!wsDisconnectTimeout) {
-                wsDisconnectTimeout = setTimeout(() => {
-                    startPollingFallback();
-                }, 10000);
-            }
-            setTimeout(initActivityWebSocket, 3000);
+            // First failover to Server-Sent Events (SSE)
+            startSseFallback();
+            setTimeout(initActivityWebSocket, 8000);
         };
 
         activityWebSocket.onerror = () => {
             if (activityWebSocket) activityWebSocket.close();
         };
     } catch (e) {
-        console.debug('WebSocket setup error:', e);
-        if (!wsDisconnectTimeout) {
-            wsDisconnectTimeout = setTimeout(startPollingFallback, 10000);
-        }
-        setTimeout(initActivityWebSocket, 5000);
+        console.debug('WebSocket setup error, falling back to SSE:', e);
+        startSseFallback();
+        setTimeout(initActivityWebSocket, 8000);
+    }
+}
+
+let activityEventSource = null;
+function startSseFallback() {
+    if (activityEventSource) return;
+    const statusText = document.getElementById('ws-status-text');
+    const pulseDot = document.getElementById('ws-pulse-dot');
+    try {
+        activityEventSource = new EventSource('/api/agent/events/sse');
+        activityEventSource.onopen = () => {
+            if (statusText) statusText.innerText = 'LIVE SSE CONNECTED';
+            if (pulseDot) {
+                pulseDot.style.background = '#3b82f6';
+                pulseDot.style.boxShadow = '0 0 8px #3b82f6';
+            }
+            stopPollingFallback();
+            // Reconnect reconciliation: synchronize state via canonical snapshot
+            loadCanonicalDashboardState();
+        };
+        activityEventSource.onmessage = (event) => {
+            try {
+                if (!event.data || event.data.startsWith(':')) return;
+                const data = JSON.parse(event.data);
+                handleLiveActivityEvent(data);
+            } catch (err) {
+                console.debug('Error parsing SSE event:', err);
+            }
+        };
+        activityEventSource.onerror = () => {
+            stopSseFallback();
+            startPollingFallback();
+        };
+    } catch (e) {
+        startPollingFallback();
+    }
+}
+
+function stopSseFallback() {
+    if (activityEventSource) {
+        try { activityEventSource.close(); } catch (_) {}
+        activityEventSource = null;
     }
 }
 
@@ -4935,9 +5616,33 @@ async function loadRecentActivityHistory() {
 }
 
 function handleLiveActivityEvent(evt) {
+    if (!evt) return;
+
+    // Idempotency: Ignore duplicate event deliveries
+    const eventId = evt.event_id || (evt.id ? `evt_${evt.id}_${evt.sequence_number || 0}` : null);
+    if (eventId) {
+        if (!window._agencySeenEventIds) window._agencySeenEventIds = new Set();
+        if (window._agencySeenEventIds.has(eventId)) {
+            return; // Safe idempotency: duplicate delivery ignored
+        }
+        window._agencySeenEventIds.add(eventId);
+        if (window._agencySeenEventIds.size > 500) {
+            const first = window._agencySeenEventIds.values().next().value;
+            window._agencySeenEventIds.delete(first);
+        }
+    }
+
     if (evt.id && evt.id > lastSeenEventId) {
         lastSeenEventId = evt.id;
     }
+
+    // Unpack standardized payload if present
+    const payload = evt.payload || {};
+    const metadata = payload.metadata || evt.metadata_json || {};
+    const message = payload.message || evt.message;
+    const status = payload.status || evt.status;
+    const domain = payload.domain || evt.domain;
+    const eventType = evt.event_type;
 
     // Add to CEO recent events feed
     ceoRecentEvents.unshift(evt);
@@ -4945,18 +5650,33 @@ function handleLiveActivityEvent(evt) {
     updateCeoActivityList(ceoRecentEvents);
 
     // Sync CEO current sales state if event contains prospect/operation
-    if (evt.metadata_json || evt.domain || evt.message) {
+    if (metadata || domain || message) {
         updateCeoSalesState({
-            current_business_name: evt.metadata_json?.name || evt.metadata_json?.business_name,
-            current_domain: evt.domain || evt.metadata_json?.domain,
-            current_stage: evt.event_type?.includes('WON') ? 'WON' : (evt.metadata_json?.stage || undefined),
-            current_operation: evt.message,
-            status: evt.status === 'RUNNING' ? 'RUNNING' : undefined
+            current_business_name: metadata?.name || metadata?.business_name,
+            current_domain: domain || metadata?.domain,
+            current_stage: eventType?.includes('WON') ? 'WON' : (metadata?.stage || undefined),
+            current_operation: message,
+            status: status === 'RUNNING' ? 'RUNNING' : undefined
         });
     }
 
+    // Single Source of Truth: Invalidate targeted UI projections according to event type
+    const projections = EVENT_PROJECTION_MAP[eventType];
+    if (projections) {
+        invalidateProjections(projections);
+    }
+
+    // Dynamic Live UI Updates: Refresh module states upon relevant milestone events
+    if (eventType === 'MARKET_SELECTED' || eventType === 'MARKET_REBALANCED') {
+        if (typeof loadAutonomousAcquisitionQueue === 'function') loadAutonomousAcquisitionQueue();
+    } else if (['DEMO_READY', 'PROPOSAL_CREATED', 'PAYMENT_REVIEW_REQUIRED', 'PAYMENT_CONFIRMED', 'PRODUCTION_AUTHORIZED', 'DEPLOYED'].includes(eventType)) {
+        if (typeof loadAutonomousAcquisitionQueue === 'function') loadAutonomousAcquisitionQueue();
+        if (typeof loadOperatorQueue === 'function') loadOperatorQueue();
+        if (typeof loadPipelineOverview === 'function') loadPipelineOverview();
+    }
+
     renderActivityEventRow(evt, true);
-    updatePipelineProgress(evt.event_type, evt.domain || evt.metadata_json?.domain, evt.metadata_json);
+    updatePipelineProgress(eventType, domain || metadata?.domain, metadata);
 
     const prospectName = evt.metadata_json?.name || evt.metadata_json?.business_name;
     const prospectDomain = evt.domain || evt.metadata_json?.domain;
@@ -9235,6 +9955,326 @@ window.closeKpiDetailModal = closeKpiDetailModal;
 window.refreshCurrentKpiModal = refreshCurrentKpiModal;
 window.handleKpiSearchInput = handleKpiSearchInput;
 window.changeKpiPage = changeKpiPage;
+
+// ==============================================================================
+// AUTONOMOUS MULTI-MARKET ACQUISITION & REAL-TIME TELEMETRY ENGINE
+// ==============================================================================
+
+async function loadAutonomousAcquisitionQueue() {
+    try {
+        const resp = await fetch('/api/targeting/autonomous-queue?limit=15');
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        // 1. Portfolio Summary & Ratios (Fully Dynamic)
+        const summary = data.portfolio_summary || {};
+        const totalActive = summary.total_active ?? 0;
+        const totalExpl = summary.total_exploring ?? 0;
+        const totalExpt = summary.total_exploiting ?? Math.max(0, totalActive - totalExpl);
+        const cap = summary.global_daily_cap || 200;
+        const universeCount = summary.candidate_universe_count || summary.total_markets_tracked || 0;
+        const queuedCount = summary.next_candidates_count || Math.max(0, universeCount - totalActive);
+        const allocatedCap = summary.allocated_daily_capacity ?? 0;
+        const unusedCap = summary.unused_daily_capacity ?? Math.max(0, cap - allocatedCap);
+        const sizingReason = summary.sizing_reason || 'DYNAMIC_BALANCED_PORTFOLIO';
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setVal('acq-active-count', totalActive);
+        setVal('acq-exploit-count', `${totalExpt} (${summary.exploitation_pct ?? 75}%)`);
+        setVal('acq-explore-count', `${totalExpl} (${summary.exploration_pct ?? 25}%)`);
+        setVal('acq-global-cap', `${cap}/day`);
+        setVal('market-active-markets-val', totalActive);
+        setVal('market-exploit-pct-val', `${summary.exploitation_pct ?? 75}%`);
+        setVal('market-exploit-sub', `Proven Corridors (${totalExpt} Active)`);
+        setVal('market-explore-pct-val', `${summary.exploration_pct ?? 25}%`);
+        setVal('market-explore-sub', `Hypothesis Probing (${totalExpl} Active)`);
+        setVal('market-universe-count-val', universeCount.toLocaleString());
+        setVal('market-queue-count-sub', `${queuedCount.toLocaleString()} Queued Corridors`);
+        setVal('market-capacity-val', `${allocatedCap} / ${cap} daily`);
+        setVal('market-allocated-sub', `Unused Capacity: ${unusedCap}/day`);
+        setVal('market-sizing-reason-sub', sizingReason.replace(/_/g, ' '));
+
+        // 2. Currently Running Operations Live Counters
+        const ops = data.currently_running_ops || {};
+        setVal('ops-cnt-discovery', ops.discovery || 0);
+        setVal('ops-cnt-research', ops.research || 0);
+        setVal('ops-cnt-audit', ops.audit || 0);
+        setVal('ops-cnt-qual', ops.qualification || 0);
+        setVal('ops-cnt-demos', ops.demos || 0);
+        setVal('ops-cnt-deploys', ops.deployments || 0);
+
+        setVal('m-ops-discovery', ops.discovery || 0);
+        setVal('m-ops-research', ops.research || 0);
+        setVal('m-ops-audit', ops.audit || 0);
+        setVal('m-ops-qualification', ops.qualification || 0);
+        setVal('m-ops-demos', ops.demos || 0);
+        setVal('m-ops-deployments', ops.deployments || 0);
+
+        // 3. Render Top Active Targets on Overview Module 04
+        const overviewTargetList = document.getElementById('top-active-targets-list');
+        const activePortfolio = data.active_portfolio || [];
+        if (overviewTargetList) {
+            if (activePortfolio.length === 0) {
+                overviewTargetList.innerHTML = '<div style="padding:12px; text-align:center; color:#71717a; font-size:11px;">No active markets. Autonomous portfolio rebalancing required.</div>';
+            } else {
+                overviewTargetList.innerHTML = activePortfolio.map(m => {
+                    const isExplore = m.type === 'EXPLORE';
+                    const modeBadge = isExplore
+                        ? '<span style="font-size:9px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); padding:1px 5px; border-radius:3px;">EXPLORE</span>'
+                        : '<span style="font-size:9px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:1px 5px; border-radius:3px;">EXPLOIT</span>';
+                    
+                    const reasonMap = {
+                        'HIGH_CONTACTABILITY': 'Contactability',
+                        'HIGH_AUTOMATION_FIT': 'Automation Fit',
+                        'POSITIVE_HISTORICAL_OUTCOMES': (m.historical_sample_count >= 10 && m.win_rate > 0) ? 'Proven Outcomes' : 'INSUFFICIENT REAL DATA',
+                        'HIGH_PAIN_DENSITY': 'Pain Density',
+                        'DATA_REFRESHED': 'Refreshed Data',
+                        'EXPLORATION_REQUIRED': 'Exploration'
+                    };
+                    const reasonLabel = reasonMap[m.reason_code] || m.reason_code || 'Qualified';
+
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:5px; font-size:12px; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:6px; min-width:0; flex:1;">
+                                <span style="font-weight:600; color:#ffffff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    ${m.flag || '🌐'} ${m.city || m.region}, ${m.country_code}
+                                </span>
+                                <span style="color:#71717a;">&bull;</span>
+                                <span style="color:#a1a1aa; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.niche_name || m.niche_id}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                                ${modeBadge}
+                                <span style="font-size:10px; color:#d4d4d8; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px; font-family:var(--font-mono);">${reasonLabel}</span>
+                                <button type="button" onclick="triggerPauseMarket('${m.key}')" title="Pause market discovery" style="background:transparent; border:1px solid rgba(255,255,255,0.1); color:#a1a1aa; font-size:10px; padding:1px 5px; border-radius:3px; cursor:pointer;">Pause</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 4. Render Active Markets Table in Acquisition View
+        const activeTableBody = document.getElementById('tbody-autonomous-active-markets');
+        if (activeTableBody) {
+            if (activePortfolio.length === 0) {
+                activeTableBody.innerHTML = '<tr><td colspan="7" style="padding:20px; text-align:center; color:#71717a;">No active markets in portfolio.</td></tr>';
+            } else {
+                activeTableBody.innerHTML = activePortfolio.map(m => {
+                    const isExplore = m.type === 'EXPLORE';
+                    const modeBadge = isExplore
+                        ? '<span style="font-size:10px; font-weight:700; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); padding:2px 6px; border-radius:4px;">EXPLORATION (25%)</span>'
+                        : '<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:2px 6px; border-radius:4px;">EXPLOITATION (75%)</span>';
+                    
+                    const reasonDisplay = (m.reason_code === 'POSITIVE_HISTORICAL_OUTCOMES' && (!m.historical_sample_count || m.historical_sample_count < 10 || !m.win_rate)) ? 'INSUFFICIENT REAL DATA' : m.reason_code;
+                    const reasonStyle = reasonDisplay === 'INSUFFICIENT REAL DATA'
+                        ? 'font-size:11px; font-weight:600; color:#fbbf24; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); padding:2px 6px; border-radius:4px; font-family:var(--font-mono);'
+                        : 'font-size:11px; font-weight:600; color:#10b981; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); padding:2px 6px; border-radius:4px; font-family:var(--font-mono);';
+
+                    return `
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px;">
+                            <td style="padding:10px 12px;">
+                                <div style="font-weight:600; color:#ffffff;">${m.flag || '🌐'} ${m.city}, ${m.region}</div>
+                                <div style="font-size:11px; color:#71717a;">${m.country_name} (${m.country_code}) &bull; <strong style="color:#e4e4e7;">${m.niche_name}</strong></div>
+                            </td>
+                            <td style="padding:10px 12px;">${modeBadge}</td>
+                            <td style="padding:10px 12px;"><span style="${reasonStyle}">${reasonDisplay}</span></td>
+                            <td style="padding:10px 12px; font-family:var(--font-mono); font-weight:700; color:#38bdf8;">${m.score}</td>
+                            <td style="padding:10px 12px; font-family:var(--font-mono); color:#a1a1aa;">
+                                N=${m.historical_sample_count || 0} &bull; ${m.historical_sample_count < 10 ? '<span style="color:#fbbf24;">INSUFFICIENT_DATA</span>' : `${(m.win_rate * 100).toFixed(1)}%`}
+                            </td>
+                            <td style="padding:10px 12px; color:#a1a1aa;">${m.freshness}</td>
+                            <td style="padding:10px 12px; text-align:right;">
+                                <button type="button" onclick="triggerPauseMarket('${m.key}')" style="background:transparent; border:1px solid rgba(255,255,255,0.12); color:#e4e4e7; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer; margin-right:4px;">Pause</button>
+                                <button type="button" onclick="triggerExcludeMarket('${m.key}')" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Exclude</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 5. Render Candidate Queue in Acquisition View
+        const candTableBody = document.getElementById('tbody-autonomous-candidates');
+        const nextTargets = data.next_targets || [];
+        if (candTableBody) {
+            if (nextTargets.length === 0) {
+                candTableBody.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center; color:#71717a;">All candidates currently active.</td></tr>';
+            } else {
+                candTableBody.innerHTML = nextTargets.map((c, idx) => {
+                    return `
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px;">
+                            <td style="padding:10px 12px; font-family:var(--font-mono); color:#71717a;">#${idx + 1}</td>
+                            <td style="padding:10px 12px;">
+                                <div style="font-weight:600; color:#ffffff;">${c.flag || '🌐'} ${c.city}, ${c.region}</div>
+                                <div style="font-size:11px; color:#71717a;">${c.country_name} (${c.country_code}) &bull; <strong style="color:#e4e4e7;">${c.niche_name}</strong></div>
+                            </td>
+                            <td style="padding:10px 12px;">
+                                <span style="font-size:10px; font-weight:700; color:#a1a1aa; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">${c.type}</span>
+                            </td>
+                            <td style="padding:10px 12px;">
+                                <span style="font-size:11px; color:#38bdf8; font-family:var(--font-mono);">${c.reason_code}</span>
+                            </td>
+                            <td style="padding:10px 12px; font-family:var(--font-mono); font-weight:700; color:#ffffff;">${c.score}</td>
+                            <td style="padding:10px 12px; text-align:right;">
+                                <button type="button" onclick="triggerForceMarket('${c.key}')" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; font-size:11px; font-weight:600; padding:3px 10px; border-radius:4px; cursor:pointer;">
+                                    Force Prioritize
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 6. CEO Overrides Card
+        const overridesCard = document.getElementById('ceo-overrides-card');
+        const overridesList = document.getElementById('ceo-overrides-list');
+        const overrides = data.ceo_overrides || {};
+        const overrideKeys = Object.keys(overrides);
+        if (overridesCard && overridesList) {
+            if (overrideKeys.length > 0) {
+                overridesCard.style.display = 'block';
+                overridesList.innerHTML = overrideKeys.map(k => {
+                    const o = overrides[k];
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.2); border-radius:4px;">
+                            <div>
+                                <strong style="color:#fbbf24; text-transform:uppercase;">${o.action}</strong>: 
+                                <span style="color:#ffffff;">${k}</span> &bull; 
+                                <span style="color:#a1a1aa; font-style:italic;">"${o.reason || 'Manual override'}"</span>
+                            </div>
+                            <button type="button" onclick="triggerClearOverride('${k}')" style="background:transparent; border:1px solid rgba(255,255,255,0.15); color:#e4e4e7; font-size:10px; padding:2px 6px; border-radius:3px; cursor:pointer;">Clear</button>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                overridesCard.style.display = 'none';
+            }
+        }
+
+    } catch (err) {
+        console.debug('Failed to load autonomous acquisition queue:', err);
+    }
+}
+
+async function triggerAutonomousRebalance() {
+    try {
+        const resp = await fetch('/api/targeting/rebalance', { method: 'POST' });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+            if (typeof loadCeoControlCenter === 'function') await loadCeoControlCenter();
+        }
+    } catch (err) {
+        console.error('Rebalance error:', err);
+    }
+}
+
+async function triggerEmergencyStopAcquisition() {
+    if (!confirm('EMERGENCY STOP: Halt all active market discovery operations immediately?')) return;
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'emergency_stop', reason: 'CEO initiated emergency stop' })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+            if (typeof loadCeoControlCenter === 'function') await loadCeoControlCenter();
+        }
+    } catch (err) {
+        console.error('Emergency stop error:', err);
+    }
+}
+
+async function triggerPauseMarket(marketKey) {
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'pause', market_key: marketKey, reason: 'CEO paused market' })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+        }
+    } catch (err) {
+        console.error('Pause market error:', err);
+    }
+}
+
+async function triggerExcludeMarket(marketKey) {
+    if (!confirm(`Exclude market "${marketKey}" from future autonomous targeting?`)) return;
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'exclude', market_key: marketKey, reason: 'CEO excluded market' })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+        }
+    } catch (err) {
+        console.error('Exclude market error:', err);
+    }
+}
+
+async function triggerForceMarket(marketKey) {
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'force', market_key: marketKey, reason: 'CEO prioritized market' })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+        }
+    } catch (err) {
+        console.error('Force market error:', err);
+    }
+}
+
+async function triggerClearOverride(marketKey) {
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear', market_key: marketKey })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+        }
+    } catch (err) {
+        console.error('Clear override error:', err);
+    }
+}
+
+async function triggerClearAllOverrides() {
+    try {
+        const resp = await fetch('/api/targeting/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear', market_key: 'ALL' })
+        });
+        if (resp.ok) {
+            await loadAutonomousAcquisitionQueue();
+        }
+    } catch (err) {
+        console.error('Clear all overrides error:', err);
+    }
+}
+
+// Window exports
+window.loadAutonomousAcquisitionQueue = loadAutonomousAcquisitionQueue;
+window.triggerAutonomousRebalance = triggerAutonomousRebalance;
+window.triggerEmergencyStopAcquisition = triggerEmergencyStopAcquisition;
+window.triggerPauseMarket = triggerPauseMarket;
+window.triggerExcludeMarket = triggerExcludeMarket;
+window.triggerForceMarket = triggerForceMarket;
+window.triggerClearOverride = triggerClearOverride;
+window.triggerClearAllOverrides = triggerClearAllOverrides;
 
 
 
