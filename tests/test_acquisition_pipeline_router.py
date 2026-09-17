@@ -207,7 +207,7 @@ async def test_mock_reply_ingestion_and_state_advancement():
 
         # Refresh business stage
         await session.refresh(biz)
-        assert biz.pipeline_stage in (PipelineStage.QUALIFIED_REPLY.value, PipelineStage.PROPOSAL.value, PipelineStage.DEMO.value)
+        assert biz.pipeline_stage in (PipelineStage.QUALIFIED_REPLY.value, PipelineStage.PROPOSAL.value, PipelineStage.DEMO_REQUESTED.value)
 
 
 @pytest.mark.asyncio
