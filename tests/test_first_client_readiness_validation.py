@@ -152,8 +152,8 @@ async def test_hard_one_real_email_limit_enforcement():
         settings.RESEND_API_KEY = "re_test_mock_dummy_key"
 
         from unittest.mock import patch
-        from app.campaigns.models import RolloutConfig, RolloutLevelDTO
-        canary_rollout = RolloutConfig(
+        from app.campaigns.models import RolloutConfigDTO, RolloutLevelDTO
+        canary_rollout = RolloutConfigDTO(
             current_level=1,
             current_level_name="Canary Test",
             daily_max_real_emails=1,
