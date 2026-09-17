@@ -2574,38 +2574,41 @@ async def get_ceo_control_center_overview(
         "n8n_orchestration": n8n_orchestrator.get_orchestration_status()
     }
 
-    # --- 2. Action Required (Executive Action Feed) ---
+    # --- 2. Action Required (Money-First Executive Action Feed) ---
     actions_required = []
 
-    # A. Outreach awaiting approval
-    pending_msgs = (await db.execute(
-        select(OutreachMessage).where(
-            OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value
-        ).order_by(desc(OutreachMessage.created_at)).limit(5)
+    # Priority 1: Payment authorization & verification (Direct Money Inflow)
+    pending_payments = (await db.execute(
+        select(Payment).where(
+            Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"])
+        ).order_by(desc(Payment.created_at)).limit(5)
     )).scalars().all()
-    for msg in pending_msgs:
-        b = await db.get(Business, msg.business_id) if msg.business_id else None
-        b_name = b.name or b.domain if b else f"Lead #{msg.business_id}"
+    for pay in pending_payments:
+        b = await db.get(Business, pay.business_id) if pay.business_id else None
+        if not b:
+            continue
+        b_name = b.name or b.domain or f"Lead #{pay.business_id}"
         actions_required.append({
-            "id": f"outreach_{msg.id}",
-            "type": "OUTREACH_APPROVAL",
-            "severity": "WARNING",
-            "title": f"Outreach pending approval: {b_name}",
-            "description": f"Subject: {msg.subject or 'Commercial Consultation'} — requires human sign-off before dispatch.",
-            "entity_id": msg.id,
-            "item_id": msg.id,
-            "business_id": msg.business_id,
-            "lead_id": msg.business_id,
+            "id": f"payment_{pay.id}",
+            "type": "PAYMENT_VERIFICATION",
+            "severity": "CRITICAL" if float(pay.amount or 0.0) >= 500 else "WARNING",
+            "title": f"Payment Verification: {b_name} (${float(pay.amount or 0.0):,.2f})",
+            "description": f"Google Pay / UPI Inward Remittance (Ref: {pay.reference_id}) — Awaiting human operator confirmation.",
+            "entity_id": pay.id,
+            "item_id": pay.id,
+            "payment_id": pay.id,
+            "reference_id": pay.reference_id,
+            "business_id": pay.business_id,
+            "lead_id": pay.business_id,
             "business_name": b_name,
             "company": b_name,
             "actions": [
-                {"label": "Approve", "action": "approve_outreach", "style": "primary"},
-                {"label": "Reject", "action": "reject_outreach", "style": "danger"},
-                {"label": "Review", "action": "view_lead", "style": "secondary"}
+                {"label": "Confirm Payment", "action": "confirm_payment", "style": "emerald"},
+                {"label": "View Instructions", "action": "view_payment_instructions", "style": "secondary"}
             ]
         })
 
-    # B. Interested leads needing review
+    # Priority 2: Inbound customer replies needing immediate response
     pending_replies = (await db.execute(
         select(Reply).where(
             Reply.is_handled == False,
@@ -2635,6 +2638,35 @@ async def get_ceo_control_center_overview(
                 {"label": "Review Lead", "action": "view_lead", "style": "primary"}
             ]
         })
+
+    # Priority 3: Outreach awaiting CEO approval gate
+    pending_msgs = (await db.execute(
+        select(OutreachMessage).where(
+            OutreachMessage.status == OutreachStatus.PENDING_APPROVAL.value
+        ).order_by(desc(OutreachMessage.created_at)).limit(5)
+    )).scalars().all()
+    for msg in pending_msgs:
+        b = await db.get(Business, msg.business_id) if msg.business_id else None
+        b_name = b.name or b.domain if b else f"Lead #{msg.business_id}"
+        actions_required.append({
+            "id": f"outreach_{msg.id}",
+            "type": "OUTREACH_APPROVAL",
+            "severity": "WARNING",
+            "title": f"Outreach pending approval: {b_name}",
+            "description": f"Subject: {msg.subject or 'Commercial Consultation'} — requires human sign-off before dispatch.",
+            "entity_id": msg.id,
+            "item_id": msg.id,
+            "business_id": msg.business_id,
+            "lead_id": msg.business_id,
+            "business_name": b_name,
+            "company": b_name,
+            "actions": [
+                {"label": "Approve", "action": "approve_outreach", "style": "primary"},
+                {"label": "Reject", "action": "reject_outreach", "style": "danger"},
+                {"label": "Review", "action": "view_lead", "style": "secondary"}
+            ]
+        })
+
 
     # C. Turnkey Demos ready for review (Active prospects requiring operator review)
     latest_demos = (await db.execute(
@@ -2705,36 +2737,6 @@ async def get_ceo_control_center_overview(
             ]
         })
 
-    # E. Payment authorization & verification
-    pending_payments = (await db.execute(
-        select(Payment).where(
-            Payment.status.in_(["PENDING", "PROCESSING", "AUTHORIZED", "PAYMENT_PENDING", "PAYMENT_REQUESTED", "PAYMENT_PENDING_VERIFICATION"])
-        ).order_by(desc(Payment.created_at)).limit(5)
-    )).scalars().all()
-    for pay in pending_payments:
-        b = await db.get(Business, pay.business_id) if pay.business_id else None
-        if not b:
-            continue
-        b_name = b.name or b.domain or f"Lead #{pay.business_id}"
-        actions_required.append({
-            "id": f"payment_{pay.id}",
-            "type": "PAYMENT_VERIFICATION",
-            "severity": "WARNING",
-            "title": f"Payment Verification: {b_name} (${float(pay.amount or 0.0):,.2f})",
-            "description": f"Google Pay / UPI Inward Remittance (Ref: {pay.reference_id}) — Awaiting human operator confirmation.",
-            "entity_id": pay.id,
-            "item_id": pay.id,
-            "payment_id": pay.id,
-            "reference_id": pay.reference_id,
-            "business_id": pay.business_id,
-            "lead_id": pay.business_id,
-            "business_name": b_name,
-            "company": b_name,
-            "actions": [
-                {"label": "Confirm Payment", "action": "confirm_payment", "style": "emerald"},
-                {"label": "View Instructions", "action": "view_payment_instructions", "style": "secondary"}
-            ]
-        })
 
     # F. High-impact support remediation approvals
     pending_tickets = (await db.execute(

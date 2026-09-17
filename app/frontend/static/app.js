@@ -1964,24 +1964,32 @@ async function loadPriorityProspects() {
             updateTopCountriesAndServices(leads);
         }
 
-        // Filter and sort for highest-value prospects
+        // Filter and sort for highest-value prospects:
+        // STRICT INVARIANT: REAL + VERIFIED + AUDITED + QUALIFIED (Score >= 55)
         const priorityLeads = leads
-            .sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0))
+            .filter(l => {
+                const isReal = !l.is_synthetic && !l.is_test;
+                const isVerified = Boolean(l.is_verified || l.verified_at);
+                const isAudited = Boolean(l.audit_completed || l.has_full_audit || l.technical_audit);
+                const score = Number(l.qualification_score ?? l.lead_score ?? 0);
+                return isReal && isVerified && isAudited && score >= 55;
+            })
+            .sort((a, b) => (Number(b.qualification_score ?? b.lead_score ?? 0)) - (Number(a.qualification_score ?? a.lead_score ?? 0)))
             .slice(0, 6);
 
         if (priorityLeads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">No priority prospects found. Run a prospecting cycle to populate.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:28px 16px; color:#a1a1aa; font-size:13px;"><div style="font-weight:600; color:#e4e4e7; margin-bottom:4px;">0 Qualified Opportunities Currently In Queue</div><div style="font-size:11px; color:#71717a;">Production invariant active: Requires REAL + VERIFIED + AUDITED + QUALIFIED (Score &ge; 55). ZERO IS VALID. Run Autonomous Discovery to acquire new verified prospects.</div></td></tr>';
             return;
         }
 
         priorityLeads.forEach(l => {
             const tr = document.createElement('tr');
-            const score = l.lead_score || 75;
+            const score = Number(l.qualification_score ?? l.lead_score ?? 0);
             const oppScore = Math.min(100, Math.round(score * 0.95 + 5));
-            const estValue = score >= 85 ? '$2,500 - $5,000' : (score >= 75 ? '$1,000 - $2,500' : '$500 - $1,000');
+            const estValue = score >= 85 ? '$2,500 - $5,000' : (score >= 75 ? '$1,000 - $2,500' : (score >= 55 ? '$500 - $1,000' : '$0'));
             
             // Badge selector
-            let statusBadge = '<span class="badge badge-cyan">PRIORITY</span>';
+            let statusBadge = '<span class="badge badge-cyan">QUALIFIED</span>';
             let nextAction = 'Review Draft';
             if (l.pipeline_stage === 'CONTACTED') {
                 statusBadge = '<span class="badge badge-emerald">CONTACTED</span>';
@@ -1996,11 +2004,11 @@ async function loadPriorityProspects() {
 
             tr.innerHTML = `
                 <td>
-                    <div class="prospect-name">${l.name}</div>
-                    <div class="prospect-sub">${l.domain} • ${l.city || 'Austin, TX'}</div>
+                    <div class="prospect-name">${escapeHtml(l.name || l.domain)}</div>
+                    <div class="prospect-sub">${escapeHtml(l.domain)} • ${escapeHtml(l.city || 'Austin, TX')}</div>
                 </td>
-                <td>${l.country || 'US'}</td>
-                <td>${l.niche || 'HVAC'}</td>
+                <td>${escapeHtml(l.country || 'US')}</td>
+                <td>${escapeHtml(l.niche || 'HVAC')}</td>
                 <td><strong style="color:var(--hud-cyan-bright);">${score}/100</strong></td>
                 <td><strong>${oppScore}/100</strong></td>
                 <td style="color:#facc15; font-weight:600;">${estValue}</td>

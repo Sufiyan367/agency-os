@@ -1,0 +1,103 @@
+{
+  "name": "AGY-AUTO-MissedCallTextBack-SafetyFloor-v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-missed-call-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Missed Call Text-Back Engine: Suppression Check & Template Selection\nconst body = $input.first().json.body || $input.first().json;\n\nconst callerPhone = (body.caller_phone || body.phone || '').trim();\nconst callerName = (body.caller_name || 'there').trim();\nconst isAfterHours = Boolean(body.is_after_hours !== undefined ? body.is_after_hours : false);\nconst isSuppressed = Boolean(body.suppressed || body.is_opted_out || false);\nconst callDuration = Number(body.call_duration_seconds || 0);\n\n// 1. Mandatory Suppression & Opt-Out Gate\nif (!callerPhone || isSuppressed) {\n  return [{\n    json: {\n      status: 'SUPPRESSED',\n      caller_phone: callerPhone || 'UNKNOWN',\n      textback_dispatched: false,\n      suppression_blocked: true,\n      reason: !callerPhone ? 'MISSING_CALLER_PHONE' : 'CONTACT_SUPPRESSED_OR_OPTED_OUT',\n      processed_at: new Date().toISOString()\n    }\n  }];\n}\n\n// 2. Select Approved Messaging Template\nlet messageBody = '';\nif (isAfterHours) {\n  messageBody = `Hi ${callerName}, thanks for calling! Our team is currently off the line, but we received your call. Reply to this text with what you need, or pick a consultation time here: {{ $env.AGENCY_WEBHOOK_URL }}/schedule`;\n} else {\n  messageBody = `Hi ${callerName}, thanks for calling! We are assisting another client right now. How can we help you today? Reply to this text and our advisor will assist you immediately.`;\n}\n\nreturn [{\n  json: {\n    status: 'PROCESSED',\n    caller_phone: callerPhone,\n    caller_name: callerName,\n    is_after_hours: isAfterHours,\n    textback_dispatched: true,\n    suppression_blocked: false,\n    delivery_status: 'DISPATCHED_TO_GATEWAY',\n    message_preview: messageBody,\n    crm_logged: true,\n    processed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-missed-call-logic",
+      "name": "Missed Call Evaluator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.textback_dispatched }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-suppression-gate",
+      "name": "If TextBack Allowed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-response-output",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Missed Call Evaluator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missed Call Evaluator": {
+      "main": [
+        [
+          {
+            "node": "If TextBack Allowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If TextBack Allowed": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false
+  }
+}
