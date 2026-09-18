@@ -418,6 +418,16 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 if clean_e and not any(ext in clean_e.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org", "domain.com", "bootstrap", "wordpress"]):
                     valid_emails.append(clean_e)
 
+            # High-confidence extraction from mailto: links on homepage
+            for a in soup.find_all("a", href=True):
+                href = a.get("href", "").strip()
+                if href.lower().startswith("mailto:"):
+                    raw_em = href[7:].split("?")[0].strip()
+                    clean_em = sanitize_scraped_email(raw_em)
+                    if clean_em and not any(ext in clean_em.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"]):
+                        if clean_em not in valid_emails:
+                            valid_emails.insert(0, clean_em)
+
             # Check for express negative disclaimer on homepage
             has_hp_disclaimer, matched_hp = detect_negative_disclaimer(resp.text)
             if has_hp_disclaimer:
@@ -429,35 +439,51 @@ class RealWebDiscoveryAdapter(BaseLeadDiscoveryAdapter):
                 phones = PHONE_REGEX.findall(resp.text)
                 phone = phones[0] if phones else None
 
-            contact_page_url = None
+            from urllib.parse import urljoin
+            contact_page_candidates = []
             for link in soup.find_all("a", href=True):
-                href = link.get("href", "")
-                if any(kw in href.lower() for kw in ["/contact", "/about", "/reach", "/get-in-touch"]):
-                    if href.startswith("http"):
-                        contact_page_url = href
-                    else:
-                        contact_page_url = f"https://{domain}/{href.lstrip('/')}"
-                    break
+                href = link.get("href", "").strip()
+                href_lower = href.lower()
+                if any(kw in href_lower for kw in ["contact", "contact-us", "about", "about-us", "reach", "get-in-touch"]):
+                    full_url = urljoin(f"https://{domain}", href)
+                    if full_url not in contact_page_candidates:
+                        contact_page_candidates.append(full_url)
 
+            contact_page_url = contact_page_candidates[0] if contact_page_candidates else None
             has_cp_disclaimer = False
-            if contact_page_url and not valid_emails and not has_hp_disclaimer:
-                try:
-                    c_resp = await client.get(contact_page_url, headers=headers, timeout=4.0)
-                    if c_resp.status_code == 200:
-                        has_cp_disclaimer, matched_cp = detect_negative_disclaimer(c_resp.text)
-                        if has_cp_disclaimer:
-                            logger.info(f"[LeadDiscovery] Prohibited contact disclaimer on contact page for {domain}: '{matched_cp}'. Suppressing harvested emails.")
-                        else:
+
+            if not valid_emails and not has_hp_disclaimer:
+                urls_to_try = contact_page_candidates[:2] if contact_page_candidates else [f"https://{domain}/contact", f"https://{domain}/contact-us"]
+                for c_url in urls_to_try:
+                    try:
+                        c_resp = await client.get(c_url, headers=headers, timeout=4.0)
+                        if c_resp.status_code == 200:
+                            contact_page_url = c_url
+                            has_cp_disclaimer, matched_cp = detect_negative_disclaimer(c_resp.text)
+                            if has_cp_disclaimer:
+                                logger.info(f"[LeadDiscovery] Prohibited contact disclaimer on contact page for {domain}: '{matched_cp}'. Suppressing harvested emails.")
+                                break
+                            c_soup = BeautifulSoup(c_resp.text, "html.parser")
+                            # Extract mailto links from contact page
+                            for ca in c_soup.find_all("a", href=True):
+                                chref = ca.get("href", "").strip()
+                                if chref.lower().startswith("mailto:"):
+                                    craw_em = chref[7:].split("?")[0].strip()
+                                    cclean_em = sanitize_scraped_email(craw_em)
+                                    if cclean_em and not any(ext in cclean_em.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"]):
+                                        if cclean_em not in valid_emails:
+                                            valid_emails.append(cclean_em)
+                            # Extract regex emails from contact page
                             c_emails = set(EMAIL_REGEX.findall(c_resp.text))
-                            valid_c_emails = []
                             for raw_ce in c_emails:
                                 clean_ce = sanitize_scraped_email(raw_ce)
                                 if clean_ce and not any(ext in clean_ce.lower() for ext in [".png", ".jpg", ".webp", "wixpress", "sentry", "example.com", "schema.org"]):
-                                    valid_c_emails.append(clean_ce)
-                            if valid_c_emails:
-                                valid_emails = valid_c_emails
-                except Exception:
-                    pass
+                                    if clean_ce not in valid_emails:
+                                        valid_emails.append(clean_ce)
+                            if valid_emails:
+                                break
+                    except Exception:
+                        pass
 
             candidate_email = candidate.get("email") if not (has_hp_disclaimer or has_cp_disclaimer) else None
             chosen_email = valid_emails[0] if valid_emails else candidate_email

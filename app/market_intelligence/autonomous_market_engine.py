@@ -577,12 +577,15 @@ class AutonomousMarketIntelligenceEngine:
         won_deals = outcomes.get("won_deals", 0)
         verified_rev = outcomes.get("verified_revenue", 0.0)
 
-        # 1. Country priority & purchasing power (up to 30 pts)
-        p_weight = {"P1": 30.0, "P2": 20.0, "P3": 12.0}.get(c_def.country_priority, 12.0)
+        # 1. Country priority & purchasing power (Tier 1 US/UK/CA/AU get 30.0 pts)
+        from app.acquisition.targeting_catalog import TIER_1_COUNTRIES, TIER_1_NICHES
+        is_tier_1_country = country_code.upper() in TIER_1_COUNTRIES
+        p_weight = 30.0 if is_tier_1_country else ({"P1": 25.0, "P2": 18.0, "P3": 10.0}.get(c_def.country_priority, 10.0))
 
         # 2. Service value / deal size weighting (Money-First, up to 35 pts)
-        # Scaled against a $3,000 reference high-ticket deal value
-        service_val_norm = min(35.0, (n_def.min_estimated_service_value / 2500.0) * 35.0)
+        service_val_norm = min(35.0, (n_def.min_estimated_service_value / 2500.0) * 30.0)
+        # High-ticket appointment/call-driven ICP alignment bonus (5 pts)
+        niche_bonus = 5.0 if niche_id.upper() in TIER_1_NICHES else 0.0
 
         # 3. Contactability factor (up to 20 pts)
         contact_norm = contactability * 20.0
@@ -596,7 +599,7 @@ class AutonomousMarketIntelligenceEngine:
         if sample >= 10:
             outcome_bonus = min(20.0, (positive_replies / sample) * 40.0 + (won_deals * 5.0) + min(10.0, verified_rev / 500.0))
 
-        raw_score = p_weight + service_val_norm + contact_norm + supply_norm + outcome_bonus
+        raw_score = p_weight + service_val_norm + niche_bonus + contact_norm + supply_norm + outcome_bonus
         score = round(max(20.0, min(98.0, raw_score)), 1)
 
         reasons = []

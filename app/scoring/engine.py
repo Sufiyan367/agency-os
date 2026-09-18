@@ -60,27 +60,38 @@ class LeadScoringEngine:
         call_value_potential = min(100.0, (niche.avg_deal_size / 1500.0) * 70.0 + (call_driven_score * 0.3))
         after_hours_demand = 85.0 if after_hours_gap else (60.0 if has_hours else 40.0)
 
-        # Priority boost for call-driven ICP businesses
-        icp_bonus = 12.0 if is_call_icp else 0.0
+        # Clean 0-100 ICP fit score based on high-ticket service appointment/call dependency
+        icp_score = 75.0 if is_call_icp else 35.0
         if call_driven_score >= 60.0:
-            icp_bonus += 8.0
+            icp_score = min(100.0, icp_score + 25.0)
 
-        # Weighted composite score
-        raw_score = (
-            (website_weakness * settings.WEIGHT_WEBSITE_WEAKNESS) +
-            (seo_opp * settings.WEIGHT_SEO_OPPORTUNITY) +
-            (a11y_opp * settings.WEIGHT_A11Y_OPPORTUNITY) +
-            (perf_opp * settings.WEIGHT_PERFORMANCE_OPPORTUNITY) +
-            (ux_opp * settings.WEIGHT_CONVERSION_OPPORTUNITY) +
-            (ability_to_pay * settings.WEIGHT_ABILITY_TO_PAY) +
-            (icp_bonus * 0.20)
+        # Weighted composite commercial opportunity score (strictly 0.0 - 100.0)
+        # Separated from contactability: A missing email does not make a commercially viable prospect look bad.
+        # Weights sum strictly to 1.00:
+        # - UX & Conversion Opportunity (25%): Core turnaround deliverable (inquiry friction, booking dropoff)
+        # - PageSpeed & Core Web Vitals (20%): Measurable performance acceleration deliverable
+        # - Local SEO & Visibility (20%): Search schema, metadata, and local capture deliverable
+        # - Commercial Ability to Pay (20%): GDP per capita + average deal value ($500+ floor affordability)
+        # - ICP Vertical Fit (10%): High-ticket appointment-driven commercial service fit
+        # - Accessibility Deficit (5%): Compliance risk and basic usability hygiene
+        w_conv = getattr(settings, "WEIGHT_CONVERSION_OPPORTUNITY", 0.25)
+        w_perf = getattr(settings, "WEIGHT_PERFORMANCE_OPPORTUNITY", 0.20)
+        w_seo = getattr(settings, "WEIGHT_SEO_OPPORTUNITY", 0.20)
+        w_pay = getattr(settings, "WEIGHT_ABILITY_TO_PAY", 0.20)
+        w_icp = getattr(settings, "WEIGHT_ICP_FIT", 0.10)
+        w_a11y = getattr(settings, "WEIGHT_A11Y_OPPORTUNITY", 0.05)
+
+        commercial_score = (
+            (ux_opp * w_conv) +
+            (perf_opp * w_perf) +
+            (seo_opp * w_seo) +
+            (ability_to_pay * w_pay) +
+            (icp_score * w_icp) +
+            (a11y_opp * w_a11y)
         )
+        final_score = round(min(100.0, max(0.0, commercial_score)), 1)
 
-        # Apply contactability multiplier (if completely unreachable, cap priority)
-        contact_multiplier = 0.6 + (contactability / 100.0) * 0.4
-        final_score = round(min(100.0, max(0.0, raw_score * contact_multiplier)), 1)
-
-        # Priority categorization
+        # Priority categorization based on commercial opportunity
         if final_score >= 85.0:
             priority = LeadPriority.A.value
         elif final_score >= 70.0:
@@ -97,8 +108,8 @@ class LeadScoringEngine:
             "performance_opp": round(perf_opp, 1),
             "ux_conversion_opp": round(ux_opp, 1),
             "ability_to_pay": round(ability_to_pay, 1),
+            "icp_fit": round(icp_score, 1),
             "contactability": round(contactability, 1),
-            "contact_multiplier": round(contact_multiplier, 2),
             "call_opportunity": {
                 "call_driven_score": round(call_driven_score, 1),
                 "call_value_potential": round(call_value_potential, 1),
@@ -227,24 +238,45 @@ class LeadScoringEngine:
             lead_score.scoring_breakdown = breakdown
             lead_score.rationale = rationale
 
-        # If qualified (score >= 55), transition pipeline stage; otherwise explicitly DISQUALIFY
+        # Decouple commercial score from contactability routing:
+        # Leads scoring >= 55.0 with verified public email are routed to QUALIFIED (ready for outreach drafting).
+        # Leads scoring >= 55.0 without verified email are routed to RESEARCH_REQUIRED (enrichment queue, not rejected).
+        # Leads scoring < 55.0 are commercially disqualified to REJECTED.
         old_stage = business.pipeline_stage
+        has_verified_email = bool(business.public_email and str(business.email_status).lower() in ("verified", "valid", "deliverable"))
+
         if total_score >= 55.0:
-            business.pipeline_stage = PipelineStage.QUALIFIED.value
-            event = PipelineEvent(
-                business_id=business.id,
-                from_stage=old_stage,
-                to_stage=PipelineStage.QUALIFIED.value,
-                deal_value=niche.avg_deal_size,
-                note=f"Lead qualified with score {total_score}/100 (Priority {priority})."
-            )
-            session.add(event)
+            if has_verified_email:
+                new_stage = PipelineStage.QUALIFIED.value
+                business.pipeline_stage = new_stage
+                business.research_status = "QUALIFIED"
+                event = PipelineEvent(
+                    business_id=business.id,
+                    from_stage=old_stage,
+                    to_stage=new_stage,
+                    deal_value=niche.avg_deal_size,
+                    note=f"Lead qualified with score {total_score}/100 (Priority {priority}) with verified contact ({business.public_email})."
+                )
+                session.add(event)
+            else:
+                new_stage = PipelineStage.RESEARCH_REQUIRED.value
+                business.pipeline_stage = new_stage
+                business.research_status = "RESEARCH_REQUIRED"
+                event = PipelineEvent(
+                    business_id=business.id,
+                    from_stage=old_stage,
+                    to_stage=new_stage,
+                    deal_value=niche.avg_deal_size,
+                    note=f"Lead commercially qualified ({total_score}/100, Priority {priority}) but held in RESEARCH_REQUIRED awaiting contact enrichment."
+                )
+                session.add(event)
         else:
-            business.pipeline_stage = PipelineStage.REJECTED.value
+            new_stage = PipelineStage.REJECTED.value
+            business.pipeline_stage = new_stage
             event = PipelineEvent(
                 business_id=business.id,
                 from_stage=old_stage,
-                to_stage=PipelineStage.REJECTED.value,
+                to_stage=new_stage,
                 deal_value=0.0,
                 note=f"Lead disqualified: Score {total_score}/100 below 55.0 qualification floor or research insufficient."
             )

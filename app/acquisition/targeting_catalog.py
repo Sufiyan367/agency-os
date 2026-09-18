@@ -402,10 +402,18 @@ class CountryDefinition(BaseModel):
 
 DISABLED_MARKETS: Set[str] = {"IL", "IN", "PK"}
 
-P1_COUNTRIES: Set[str] = {"US", "CA", "UK", "AU", "AE", "SA", "SG"}
+# Tier 1 high-priority markets for commercial turnaround acquisition
+TIER_1_COUNTRIES: Set[str] = {"US", "UK", "CA", "AU"}
+P1_COUNTRIES: Set[str] = {"US", "UK", "CA", "AU"}
+
+# High-ticket appointment/call-driven service niches aligning with existing templates
+TIER_1_NICHES: Set[str] = {
+    "HVAC", "ROOFING", "DENTAL", "MEDICAL_CLINICS", "LEGAL_SERVICES",
+    "PLUMBING", "ELECTRICAL"
+}
 
 P2_COUNTRIES: Set[str] = {
-    "NZ", "IE", "DE", "NL", "CH", "FR", "QA", "KW", "BH", "OM",
+    "AE", "SA", "SG", "NZ", "IE", "DE", "NL", "CH", "FR", "QA", "KW", "BH", "OM",
     "JP", "KR", "TW", "AT", "BE", "DK", "SE", "NO", "FI", "LU",
     "IS", "PL", "PT", "HK", "ES", "IT", "CZ"
 }

@@ -502,6 +502,8 @@ class PersistentAgencyWorker:
             select(Business.id)
             .where(
                 Business.pipeline_stage == PipelineStage.QUALIFIED.value,
+                Business.public_email.isnot(None),
+                Business.public_email != "",
                 ~Business.outreach_messages.any()
             )
             .order_by(Business.created_at.asc())
@@ -527,16 +529,27 @@ class PersistentAgencyWorker:
                 try:
                     failed_biz = await session.get(Business, biz_id)
                     if failed_biz:
-                        failed_biz.pipeline_stage = PipelineStage.REJECTED.value
-                        session.add(PipelineEvent(
-                            business_id=failed_biz.id,
-                            from_stage=failed_biz.pipeline_stage,
-                            to_stage=PipelineStage.REJECTED.value,
-                            note=f"Outreach drafting failed: {str(e)[:200]}"
-                        ))
+                        err_str = str(e).lower()
+                        if any(k in err_str for k in ("email", "recipient", "contact")):
+                            failed_biz.pipeline_stage = PipelineStage.RESEARCH_REQUIRED.value
+                            failed_biz.research_status = "RESEARCH_REQUIRED"
+                            session.add(PipelineEvent(
+                                business_id=failed_biz.id,
+                                from_stage=PipelineStage.QUALIFIED.value,
+                                to_stage=PipelineStage.RESEARCH_REQUIRED.value,
+                                note=f"Outreach drafting held: Contact enrichment required ({str(e)[:150]})"
+                            ))
+                        else:
+                            failed_biz.pipeline_stage = PipelineStage.REJECTED.value
+                            session.add(PipelineEvent(
+                                business_id=failed_biz.id,
+                                from_stage=failed_biz.pipeline_stage,
+                                to_stage=PipelineStage.REJECTED.value,
+                                note=f"Outreach drafting failed: {str(e)[:200]}"
+                            ))
                         await session.commit()
                 except Exception as rec_err:
-                    logger.error(f"[PersistentWorker:Draft] Could not record rejection for #{biz_id}: {rec_err}")
+                    logger.error(f"[PersistentWorker:Draft] Could not record status update for #{biz_id}: {rec_err}")
                     await session.rollback()
         return drafted_count
 

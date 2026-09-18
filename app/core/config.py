@@ -229,12 +229,13 @@ class Settings(BaseSettings):
     WORKER_CYCLE_INTERVAL_MINUTES: int = 30
 
     # Lead Scoring Weights (must sum to 1.0)
-    WEIGHT_WEBSITE_WEAKNESS: float = 0.25
+    WEIGHT_CONVERSION_OPPORTUNITY: float = 0.25
+    WEIGHT_PERFORMANCE_OPPORTUNITY: float = 0.20
     WEIGHT_SEO_OPPORTUNITY: float = 0.20
-    WEIGHT_A11Y_OPPORTUNITY: float = 0.15
-    WEIGHT_PERFORMANCE_OPPORTUNITY: float = 0.15
-    WEIGHT_CONVERSION_OPPORTUNITY: float = 0.15
-    WEIGHT_ABILITY_TO_PAY: float = 0.10
+    WEIGHT_ABILITY_TO_PAY: float = 0.20
+    WEIGHT_ICP_FIT: float = 0.10
+    WEIGHT_A11Y_OPPORTUNITY: float = 0.05
+    WEIGHT_WEBSITE_WEAKNESS: float = 0.00
 
     # Market Opportunity Weights
     WEIGHT_MKT_NEED: float = 1.0

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
+  <title>Agency OS — AI Systems That Automate Your Business</title>
+
+  <!-- SEO & Canonical Metadata -->
+  <meta name="description" content="From lead generation and follow-up to custom software and AI workflows, we build systems that reduce repetitive manual work.">
+  <meta name="keywords" content="AI Automation, Custom Software, Workflow Automation, n8n Automation, AI Agents, Lead Qualification, AI Receptionist, Business Process Automation">
+  <meta name="author" content="Agency OS">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#070707">
+  <link rel="canonical" href="https://automatedagencyos.tech/">
+
+  <!-- OpenGraph Metadata -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Agency OS — AI Systems That Automate Your Business">
+  <meta property="og:description" content="From lead generation and follow-up to custom software and AI workflows, we build systems that reduce repetitive manual work.">
+  <meta property="og:url" content="https://automatedagencyos.tech/">
+  <meta property="og:site_name" content="Agency OS">
+  <meta property="og:image" content="https://automatedagencyos.tech/assets/logo.webp">
+
+  <!-- Twitter Metadata -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agency OS — AI Systems That Automate Your Business">
+  <meta name="twitter:description" content="From lead generation and follow-up to custom software and AI workflows, we build systems that reduce repetitive manual work.">
+  <meta name="twitter:image" content="https://automatedagencyos.tech/assets/logo.webp">
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Agency OS",
+    "headline": "AI systems that automate your business.",
+    "description": "From lead generation and follow-up to custom software and AI workflows, we build systems that reduce repetitive manual work.",
+    "url": "https://automatedagencyos.tech/",
+    "email": "hello@automatedagencyos.tech",
+    "priceRange": "$500 - $3500+",
+    "areaServed": "Global"
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Display Font: BubbledotICG-FinePos -->
+  <link
+    href="https://db.onlinewebfonts.com/c/8cb707a9b8a73f8a7403336b861c3074?family=BubbledotICG-FinePos"
+    rel="stylesheet"
+  />
+
+  <!-- Landing Styles -->
+  <link rel="stylesheet" href="/static/landing.css?v=20260916_restored">
+</head>
+<body>
+
+  <!-- Clean Obsidian Canvas Background with WebGL Hero Shader Layer -->
+  <div class="bg" aria-hidden="true">
+    <canvas id="heroShaderCanvas" class="hero-shader-canvas"></canvas>
+    <div class="hero-fluted-glass-layer"></div>
+    <div class="hero-film-grain-layer"></div>
+    <div class="bg-scrim"></div>
+  </div>
+
+  <!-- Persistent Floating Pill Navigation Header -->
+  <header class="site-header-container" id="siteHeaderContainer">
+    <div class="site-header">
+      <!-- Logo Container -->
+      <a href="#home" class="logo-button" aria-label="Agency OS Home">
+        <img src="/assets/logo.webp" alt="AGENCY OS Logo" width="36" height="36">
+        <div class="brand-text-block">
+          <span class="brand-text">AGENCY OS</span>
+          <span class="brand-subtext">AI Systems &amp; Automation</span>
+        </div>
+      </a>
+
+      <!-- Desktop Minimal 5-Link Navigation -->
+      <nav class="nav-pill" aria-label="Main Navigation">
+        <a href="#solutions" class="nav-link">Solutions</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#demos" class="nav-link">Demos</a>
+        <a href="#automation" class="nav-link">Automation</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </nav>
+
+      <!-- Desktop Action Cluster -->
+      <div class="nav-actions">
+        <a href="/login" class="nav-login-link" title="Operator Sign In">Sign In</a>
+        <button type="button" class="nav-cta-btn" data-action="open-consultation-modal">Get Your Automation Built</button>
+      </div>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="burger-btn" id="burgerBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">
+        <span class="burger-bar"></span>
+        <span class="burger-bar"></span>
+        <span class="burger-bar"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Overlay and Menu Sheet -->
+    <div class="mobile-overlay" id="mobileOverlay" hidden></div>
+    <div class="mobile-menu-sheet" id="mobileMenu" hidden>
+      <div class="mobile-menu-inner">
+        <div class="mobile-brand-row">
+          <span class="brand-text">AGENCY OS</span>
+          <span class="brand-subtext">AI Systems &amp; Automation</span>
+        </div>
+        <nav class="mobile-nav-links" aria-label="Mobile Navigation">
+          <a href="#home" class="mobile-menu-link active">Home</a>
+          <a href="#solutions" class="mobile-menu-link">Solutions</a>
+          <a href="#use-cases" class="mobile-menu-link">Use Cases</a>
+          <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+          <a href="#demos" class="mobile-menu-link">Demos</a>
+          <a href="#automation" class="mobile-menu-link">Workflow Automation</a>
+          <a href="#who-we-help" class="mobile-menu-link">Who We Help</a>
+          <a href="#proof" class="mobile-menu-link">Proof</a>
+          <a href="#contact" class="mobile-menu-link">Contact</a>
+          <a href="/login" class="mobile-menu-link" style="color: #38bdf8;">Operator Dashboard &rarr;</a>
+        </nav>
+        <button type="button" class="mobile-cta-btn" data-action="open-consultation-modal">Get Your Automation Built</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="page-content" id="mainContent">
+
+    <!-- ====================================================================
+         SECTION 1: HERO
+         ==================================================================== -->
+    <section id="home" class="hero-section" aria-label="Hero Overview">
+      <div class="hero-inner">
+
+        <!-- Category / Eyebrow Badge -->
+        <div class="hero-eyebrow anim" style="--d: 0.12s" aria-label="Commercial Focus">
+          <span class="hero-eyebrow-dot"></span>
+          <span>AI AUTOMATION &amp; CUSTOM SOFTWARE</span>
+        </div>
+
+        <!-- Primary Value Proposition Headline -->
+        <h1 class="headline anim" style="--d: 0.22s">
+          <span class="headline-line">AI systems that</span>
+          <span class="headline-line">automate your business.</span>
+        </h1>
+
+        <!-- Supporting Value Copy -->
+        <p class="subhead anim" style="--d: 0.32s">
+          We build AI-powered automation, custom software, and business workflows that reduce repetitive manual work.
+        </p>
+
+        <!-- Primary Call to Action -->
+        <div class="hero-cta-wrap anim" style="--d: 0.42s">
+          <button type="button" class="cta-pill-button" data-action="open-consultation-modal">
+            <span class="cta-text-wrapper">
+              <span class="cta-primary-text">Get Your Automation Built</span>
+              <span class="cta-secondary-text">Reduce Manual Overhead</span>
+            </span>
+            <span class="cta-arrow-circle" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            </span>
+          </button>
+
+          <a href="#demos" class="secondary-cta-link">
+            <span>See a Working Demo</span>
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </a>
+        </div>
+
+        <!-- Secondary Trust / Status Element -->
+        <div class="hero-status-strip anim" style="--d: 0.52s">
+          <div class="status-indicator">
+            <span class="status-pulse-dot"></span>
+            <span class="status-text">Production Systems</span>
+          </div>
+          <span class="status-divider">&bull;</span>
+          <span class="status-detail">Custom Software</span>
+          <span class="status-divider">&bull;</span>
+          <span class="status-detail">Connected Workflows</span>
+          <span class="status-divider">&bull;</span>
+          <span class="status-detail">Ongoing Management</span>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 2: WHAT WE BUILD (#solutions)
+         ==================================================================== -->
+    <section id="solutions" class="section-container" aria-label="What We Build">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">01</span>
+            <span class="badge-title">WHAT WE BUILD</span>
+          </div>
+          <h2 class="section-headline">
+            Built around the work your business actually needs automated.
+          </h2>
+          <p class="section-subheadline">
+            We eliminate repetitive manual tasks by creating custom software and automated workflows tailored to your exact business requirements.
+          </p>
+        </div>
+
+        <!-- 5 Commercial Offering Cards -->
+        <div class="editorial-panels-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+          
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">AUTOMATION</span>
+              <span class="card-index">01</span>
+            </div>
+            <h3 class="card-title">AI Business Automation</h3>
+            <p class="card-summary">
+              Automate repetitive business operations such as lead capture, qualification, CRM updates, follow-ups, appointment scheduling, customer support, onboarding, and reporting.
+            </p>
+            <div class="card-footer-action">
+              <span class="card-action-text">Eliminate Routine Tasks</span>
+              <span class="card-action-arrow">&rarr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">SOFTWARE</span>
+              <span class="card-index">02</span>
+            </div>
+            <h3 class="card-title">Custom Software</h3>
+            <p class="card-summary">
+              Build software around the customer's actual process — high-converting lead generation websites, booking systems, quote calculators, customer portals, and internal dashboards.
+            </p>
+            <div class="card-footer-action">
+              <span class="card-action-text">Built For Your Process</span>
+              <span class="card-action-arrow">&rarr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">AI AGENTS</span>
+              <span class="card-index">03</span>
+            </div>
+            <h3 class="card-title">AI Agents</h3>
+            <p class="card-summary">
+              Deploy AI for research, support, qualification, and operational workflows — 24/7 intelligent inquiry triage, conversational booking, and automated operational handoffs.
+            </p>
+            <div class="card-footer-action">
+              <span class="card-action-text">24/7 Intelligent Execution</span>
+              <span class="card-action-arrow">&rarr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">INTEGRATION</span>
+              <span class="card-index">04</span>
+            </div>
+            <h3 class="card-title">Workflow Automation</h3>
+            <p class="card-summary">
+              Connect business tools and automate handoffs between CRM, email, web forms, notifications, and databases into a single cohesive operating system.
+            </p>
+            <div class="card-footer-action">
+              <span class="card-action-text">Connect Disconnected Tools</span>
+              <span class="card-action-arrow">&rarr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">MANAGEMENT</span>
+              <span class="card-index">05</span>
+            </div>
+            <h3 class="card-title">Ongoing Management</h3>
+            <p class="card-summary">
+              Keep your systems maintained, monitored, and continuously improving. We handle uptime tracking, API updates, bug fixes, performance improvements, and workflow expansion.
+            </p>
+            <div class="card-footer-action">
+              <span class="card-action-text">Hands-Free Reliability</span>
+              <span class="card-action-arrow">&rarr;</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 3: USE CASES (#use-cases)
+         ==================================================================== -->
+    <section id="use-cases" class="section-container section-dark-card" aria-label="Use Cases">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">02</span>
+            <span class="badge-title">USE CASES</span>
+          </div>
+          <h2 class="section-headline">
+            Concrete Systems We Build &amp; Deploy
+          </h2>
+          <p class="section-subheadline">
+            Explore practical software systems and automated workflows engineered to eliminate friction and save hours of manual administrative time.
+          </p>
+        </div>
+
+        <!-- 8 Customer-Facing Examples Grid -->
+        <div class="services-grid">
+          
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h4 class="service-name">Lead Qualification</h4>
+            <p class="service-description">Instantly scores inbound inquiries against your target customer criteria, filters low-intent submissions, and alerts your team with verified buyer context.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <h4 class="service-name">Automated Follow-Up</h4>
+            <p class="service-description">Coordinated multi-channel sequences across email and messaging that re-engage unresponsive leads and keep quotes top of mind automatically.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h4 class="service-name">AI Appointment Assistant</h4>
+            <p class="service-description">Conversational booking assistant that engages visitors, checks schedule availability, qualifies project requirements, and books calendar meetings 24/7.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h4 class="service-name">CRM Automation</h4>
+            <p class="service-description">Automates manual data entry between your website, email, and CRM. Updates pipeline deal stages, synchronizes contact details, and triggers team notifications.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <h4 class="service-name">Quote &amp; Request Systems</h4>
+            <p class="service-description">Interactive scope builders and transparent pricing estimators that collect key specifications and deliver instant estimates to serious buyers.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h4 class="service-name">Customer Support</h4>
+            <p class="service-description">Immediate first-line answers to routine customer inquiries, policy questions, and scheduling requests, with seamless escalation to staff when needed.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
+            <h4 class="service-name">Customer Onboarding</h4>
+            <p class="service-description">Automates welcome communications, client intake questionnaires, document collection, and account setup the moment a client agrees to terms.</p>
+          </div>
+
+          <div class="service-item">
+            <div class="service-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <h4 class="service-name">Internal Business Dashboards</h4>
+            <p class="service-description">Custom internal portals that centralize your operational metrics, active client requests, pipeline throughput, and automated workflow health.</p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 4: HOW IT WORKS (#how-it-works)
+         ==================================================================== -->
+    <section id="how-it-works" class="section-container" aria-label="How It Works">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">03</span>
+            <span class="badge-title">HOW IT WORKS</span>
+          </div>
+          <h2 class="section-headline">
+            Five Steps to Your Custom Automation System
+          </h2>
+          <p class="section-subheadline">
+            A clear, collaborative process that moves quickly from problem diagnosis to working software and ongoing operational management.
+          </p>
+        </div>
+
+        <div class="process-grid">
+          <div class="process-card">
+            <div class="process-step-tag">01 &mdash; TELL US THE PROBLEM</div>
+            <h3 class="process-card-title">Tell Us the Problem</h3>
+            <p class="process-card-desc">
+              We review where your team spends manual time, what tasks cause administrative friction, and where customer handoffs slow down.
+            </p>
+          </div>
+
+          <div class="process-card">
+            <div class="process-step-tag">02 &mdash; WE DESIGN THE SOLUTION</div>
+            <h3 class="process-card-title">We Design the Solution</h3>
+            <p class="process-card-desc">
+              Our engineering team maps the workflow, selects the right software approach, and defines exact requirements for your business tools.
+            </p>
+          </div>
+
+          <div class="process-card">
+            <div class="process-step-tag">03 &mdash; SEE A WORKING DEMO</div>
+            <h3 class="process-card-title">See a Working Demo</h3>
+            <p class="process-card-desc">
+              Tell us what you need. We can create a working demonstration of the proposed system before implementation so you can evaluate the experience.
+            </p>
+          </div>
+
+          <div class="process-card">
+            <div class="process-step-tag">04 &mdash; WE BUILD &amp; DEPLOY</div>
+            <h3 class="process-card-title">We Build &amp; Deploy</h3>
+            <p class="process-card-desc">
+              We engineer the software, configure automated workflows, test every integration point thoroughly, and launch into your production workflow.
+            </p>
+          </div>
+
+          <div class="process-card">
+            <div class="process-step-tag">05 &mdash; WE MAINTAIN &amp; IMPROVE</div>
+            <h3 class="process-card-title">We Maintain &amp; Improve</h3>
+            <p class="process-card-desc">
+              We keep the system monitored, fix bugs proactively, adjust to tool API updates, and add new automation as your business evolves.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 5: DEMOS (#demos)
+         ==================================================================== -->
+    <section id="demos" class="section-container section-dark-card" aria-label="Working Demos">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">04</span>
+            <span class="badge-title">WORKING DEMOS</span>
+          </div>
+          <h2 class="section-headline">
+            See Your Idea Working Before Implementation
+          </h2>
+          <p class="section-subheadline">
+            Customer shares the requirement &rarr; requirements are defined &rarr; working demo is created &rarr; demo is tested &rarr; demo is presented for evaluation.
+          </p>
+        </div>
+
+        <!-- Real Examples: Problem -> Solution -> Working Result -->
+        <div class="editorial-panels-grid">
+          
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">ROOFING &amp; EXTERIOR</span>
+              <span class="card-index">01</span>
+            </div>
+            <h3 class="card-title">Roof Replacement &amp; Repair Portal</h3>
+            <div style="font-size:0.85rem; color:#A1A1AA; margin: 12px 0; display:flex; flex-direction:column; gap:8px;">
+              <div><strong style="color:#FFFFFF;">Problem:</strong> Homeowners inquiry calls after severe storms go to voicemail, losing high-ticket replacements to competitors.</div>
+              <div><strong style="color:#38BDF8;">Solution:</strong> Interactive scope estimation stepper and emergency dispatch scheduler with instant quote calculator.</div>
+              <div><strong style="color:#10B981;">Working Result:</strong> Live interactive portal capturing address, damage severity, and scheduling immediate onsite inspection.</div>
+            </div>
+            <div class="card-footer-action">
+              <a href="/demo/orange-auto" class="card-action-text" style="text-decoration:none; color:inherit;">View Interactive Demo</a>
+              <span class="card-action-arrow">&nearr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">HVAC &amp; EMERGENCY</span>
+              <span class="card-index">02</span>
+            </div>
+            <h3 class="card-title">24/7 HVAC Dispatch &amp; Booking Hub</h3>
+            <div style="font-size:0.85rem; color:#A1A1AA; margin: 12px 0; display:flex; flex-direction:column; gap:8px;">
+              <div><strong style="color:#FFFFFF;">Problem:</strong> Severe weather freezes and heatwaves overwhelm front-desk staff, causing missed urgent repair calls.</div>
+              <div><strong style="color:#38BDF8;">Solution:</strong> 24/7 intelligent triage stepper categorizing system symptoms, unit age, and dispatch priority with direct calendar booking.</div>
+              <div><strong style="color:#10B981;">Working Result:</strong> Deployed interactive intake interface capturing customer address, equipment symptoms, and technician dispatch window.</div>
+            </div>
+            <div class="card-footer-action">
+              <a href="/demo/orange-auto" class="card-action-text" style="text-decoration:none; color:inherit;">View Interactive Demo</a>
+              <span class="card-action-arrow">&nearr;</span>
+            </div>
+          </div>
+
+          <div class="editorial-card">
+            <div class="card-meta">
+              <span class="card-pill">COMMERCIAL TRADES</span>
+              <span class="card-index">03</span>
+            </div>
+            <h3 class="card-title">Instant Quote &amp; Booking Hub</h3>
+            <div style="font-size:0.85rem; color:#A1A1AA; margin: 12px 0; display:flex; flex-direction:column; gap:8px;">
+              <div><strong style="color:#FFFFFF;">Problem:</strong> Custom estimates take 48 hours of manual back-and-forth, causing prospective commercial clients to cool off.</div>
+              <div><strong style="color:#38BDF8;">Solution:</strong> Dynamic scope-builder portal generating preliminary pricing bands while capturing project specifications.</div>
+              <div><strong style="color:#10B981;">Working Result:</strong> Working client-facing quote portal that converts casual browsers into pre-qualified, consultation-ready appointments.</div>
+            </div>
+            <div class="card-footer-action">
+              <a href="/demo/orange-auto" class="card-action-text" style="text-decoration:none; color:inherit;">View Interactive Demo</a>
+              <span class="card-action-arrow">&nearr;</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 6: N8N AUTOMATION (#automation)
+         ==================================================================== -->
+    <section id="automation" class="section-container" aria-label="Workflow Automation">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">05</span>
+            <span class="badge-title">WORKFLOW AUTOMATION</span>
+          </div>
+          <h2 class="section-headline">
+            Connect Your Tools. Automate the Work.
+          </h2>
+          <p class="section-subheadline">
+            We build reliable automated workflows powered by modern integration engines to connect your business software and eliminate repetitive manual handoffs.
+          </p>
+        </div>
+
+        <div class="pillars-grid">
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h3 class="pillar-title">CRM Automation</h3>
+            <p class="pillar-text">
+              Keep HubSpot, Salesforce, Pipedrive, or custom databases continuously synced without manual data entry or missed status updates.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <h3 class="pillar-title">Email &amp; Messaging Automation</h3>
+            <p class="pillar-text">
+              Automated personalized dispatch, instant notification alerts, and smart reply routing across Email, SMS, and WhatsApp channels.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
+            <h3 class="pillar-title">AI Processing</h3>
+            <p class="pillar-text">
+              Connect language models to summarize incoming inquiries, extract customer specifications, classify urgency, and draft replies.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <h3 class="pillar-title">Forms &amp; Intake</h3>
+            <p class="pillar-text">
+              Instantly route web form entries into downstream tools, log records, store immutable audit trails, and maintain unified customer profiles.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <h3 class="pillar-title">Notifications</h3>
+            <p class="pillar-text">
+              Instant alerts to Slack, Microsoft Teams, or phone whenever high-priority leads arrive or client attention is needed.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <h3 class="pillar-title">Business Applications</h3>
+            <p class="pillar-text">
+              Seamlessly link payment processors, invoice generation, calendar tools, and cloud storage into coordinated end-to-end automations.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 7: WHO WE HELP (#who-we-help)
+         ==================================================================== -->
+    <section id="who-we-help" class="section-container section-dark-card" aria-label="Who We Help">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">06</span>
+            <span class="badge-title">WHO WE HELP</span>
+          </div>
+          <h2 class="section-headline">
+            Engineered for High-Ticket Commercial Service Businesses
+          </h2>
+          <p class="section-subheadline">
+            We focus on service industries where rapid response, accurate qualification, and reliable follow-up directly determine customer acquisition.
+          </p>
+        </div>
+
+        <div class="problems-grid">
+          <div class="problem-card">
+            <div class="problem-header">
+              <span class="problem-num">01</span>
+              <h3 class="problem-title">Roofing</h3>
+            </div>
+            <p class="problem-text">
+              Automated roof replacement square footage calculators, storm damage emergency intake, and direct inspection dispatch booking.
+            </p>
+          </div>
+
+          <div class="problem-card">
+            <div class="problem-header">
+              <span class="problem-num">02</span>
+              <h3 class="problem-title">HVAC</h3>
+            </div>
+            <p class="problem-text">
+              24/7 emergency repair dispatch booking, seasonal tune-up package selectors, and transparent estimate builders that capture urgent calls.
+            </p>
+          </div>
+
+          <div class="problem-card">
+            <div class="problem-header">
+              <span class="problem-num">03</span>
+              <h3 class="problem-title">Dental</h3>
+            </div>
+            <p class="problem-text">
+              New patient intake portals, automated appointment scheduling steppers, and conversational emergency triage assistants.
+            </p>
+          </div>
+
+          <div class="problem-card">
+            <div class="problem-header">
+              <span class="problem-num">04</span>
+              <h3 class="problem-title">Real Estate</h3>
+            </div>
+            <p class="problem-text">
+              Buyer inquiry qualification, automated property preference matching, and instant showing schedule reservation workflows.
+            </p>
+          </div>
+
+          <div class="problem-card">
+            <div class="problem-header">
+              <span class="problem-num">05</span>
+              <h3 class="problem-title">Home Services</h3>
+            </div>
+            <p class="problem-text">
+              Plumbing, electrical, and general remodeling contractors automated intake triage, scope checklist calculation, and appointment dispatch.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 8: PROOF (#proof)
+         ==================================================================== -->
+    <section id="proof" class="section-container" aria-label="Real Proof">
+      <div class="section-inner">
+
+        <div class="section-header">
+          <div class="editorial-badge">
+            <span class="badge-num">07</span>
+            <span class="badge-title">REAL PROOF</span>
+          </div>
+          <h2 class="section-headline">
+            Grounded in Real Production Telemetry. Zero Fabrication.
+          </h2>
+          <p class="section-subheadline">
+            We build genuine software backed by verified production data. No synthetic testimonials, no fake partner badges, no fabricated claims.
+          </p>
+        </div>
+
+        <div class="pillars-grid">
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <h3 class="pillar-title">208+ Real Businesses</h3>
+            <p class="pillar-text">
+              Discovered, audited, and tracked with verified domains and active communications in our live production systems.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h3 class="pillar-title">60+ Qualified Leads</h3>
+            <p class="pillar-text">
+              Algorithmic qualification scoring against commercial criteria, identifying high-intent business turnaround opportunities.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="pillar-title">0 Fabricated Metrics</h3>
+            <p class="pillar-text">
+              Strict engineering truthfulness policy. Zero synthetic claims, zero unearned social proof, zero marketing fluff.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SECTION 9: FINAL CTA & LEAD CAPTURE (#contact)
+         ==================================================================== -->
+    <section id="contact" class="section-container section-dark-card" aria-label="Get Your Automation Built">
+      <div class="section-inner">
+
+        <div class="contact-card-wrapper">
+          <div class="contact-info-col">
+            <div class="editorial-badge">
+              <span class="badge-num">08</span>
+              <span class="badge-title">GET STARTED</span>
+            </div>
+            <h2 class="contact-headline">
+              Tell Us What Is Wasting Your Team's Time
+            </h2>
+            <p class="contact-desc">
+              Describe the manual tasks, repetitive workflows, or operational bottlenecks slowing your business down. Our engineering team will review your submission and outline a tailored automation solution.
+            </p>
+
+            <div class="contact-details-list">
+              <div class="detail-item">
+                <span class="detail-label">Direct Communication</span>
+                <span class="detail-val">hello@automatedagencyos.tech</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Engineering Review</span>
+                <span class="detail-val">Direct review by automation architects</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Response Guarantee</span>
+                <span class="detail-val">Within 24 business hours</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Working Demonstration</span>
+                <span class="detail-val">Interactive prototype before commitment</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-form-col">
+            <div class="form-card">
+              <h3 class="form-title">Get Your Automation Built</h3>
+              <p class="form-subtitle">Tell us about your business and the operations you want to automate.</p>
+
+              <div class="form-alert" id="inlineAlert" role="alert" hidden></div>
+
+              <form id="contactForm" class="contact-form">
+                <div class="form-field-group">
+                  <label for="contactName" class="form-label">Full Name *</label>
+                  <input type="text" id="contactName" name="name" class="form-input" placeholder="Sarah Connor" required>
+                </div>
+
+                <div class="form-field-group">
+                  <label for="contactCompany" class="form-label">Business / Company Name *</label>
+                  <input type="text" id="contactCompany" name="company" class="form-input" placeholder="Apex Commercial Systems" required>
+                </div>
+
+                <div class="form-field-group">
+                  <label for="contactEmail" class="form-label">Business Email *</label>
+                  <input type="email" id="contactEmail" name="email" class="form-input" placeholder="sarah@agency.com" required>
+                </div>
+
+                <div class="form-field-group">
+                  <label for="contactWebsite" class="form-label">Website Domain *</label>
+                  <input type="text" id="contactWebsite" name="website" class="form-input" placeholder="agency.com" required>
+                </div>
+
+                <div class="form-field-group">
+                  <label for="contactAutomated" class="form-label">What Do You Want Automated? *</label>
+                  <textarea id="contactAutomated" name="what_they_want_automated" class="form-textarea" rows="2" placeholder="e.g. Lead qualification, CRM updates, quote request calculator, automated follow-ups..." required></textarea>
+                </div>
+
+                <div class="form-field-group">
+                  <label for="contactProblem" class="form-label">Biggest Operational Problem / Bottleneck *</label>
+                  <textarea id="contactProblem" name="problem" class="form-textarea" rows="2" placeholder="What repetitive manual process consumes the most hours or causes missed revenue?" required></textarea>
+                </div>
+
+                <button type="submit" class="form-submit-btn" id="contactSubmitBtn">
+                  <span>Get Your Automation Built</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+
+                <p class="form-guarantee-note">
+                  Direct engineer review. Strict privacy. Zero sales spam.
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       FOOTER
+       ==================================================================== -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-top-row">
+        <div class="footer-brand-col">
+          <div class="footer-logo">
+            <img src="/assets/logo.webp" alt="AGENCY OS Logo" width="32" height="32">
+            <span class="footer-brand-name">AGENCY OS</span>
+          </div>
+          <p class="footer-tagline">
+            AI systems that automate your business &bull; Custom Software &amp; Managed Workflows.
+          </p>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Solutions</h4>
+          <ul class="footer-links-list">
+            <li><a href="#solutions">What We Build</a></li>
+            <li><a href="#use-cases">Use Cases</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#demos">Working Demos</a></li>
+            <li><a href="#automation">Workflow Automation</a></li>
+            <li><a href="#who-we-help">Who We Help</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Access</h4>
+          <ul class="footer-links-list">
+            <li><a href="/login">Operator Login</a></li>
+            <li><a href="/client">Client Portal</a></li>
+            <li><a href="#contact">Get Started</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-nav-col">
+          <h4 class="footer-nav-title">Legal &amp; Privacy</h4>
+          <ul class="footer-links-list">
+            <li><a href="/privacy" id="openPrivacyModalLink">Privacy Policy</a></li>
+            <li><a href="/terms" id="openTermsModalLink">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom-row">
+        <p class="copyright-text">&copy; 2026 Agency OS. All rights reserved.</p>
+        <div class="footer-status-pill">
+          <span class="status-pulse-dot"></span>
+          <span>All Systems Operational</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====================================================================
+       MODALS: CONSULTATION, PRIVACY, TERMS
+       ==================================================================== -->
+
+  <!-- 1. Consultation Modal -->
+  <div class="modal-backdrop" id="consultationModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <button type="button" class="modal-close-btn" id="closeConsultationModal" aria-label="Close Dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h2 class="modal-title" id="modalTitle">Get Your Automation Built</h2>
+      <p class="modal-desc">Describe what processes you want automated and receive a tailored assessment.</p>
+      
+      <div class="modal-alert" id="consultationAlert" role="alert" hidden></div>
+
+      <form class="modal-form" id="consultationForm">
+        <div class="form-row">
+          <input type="text" id="consultationName" name="name" class="modal-input" placeholder="Full Name *" required>
+          <input type="text" id="consultationCompany" name="company" class="modal-input" placeholder="Company / Business Name *" required>
+        </div>
+        <div class="form-row">
+          <input type="email" id="consultationEmail" name="email" class="modal-input" placeholder="Business Email Address *" required>
+          <input type="text" id="consultationWebsite" name="website" class="modal-input" placeholder="Website Domain *" required>
+        </div>
+        <textarea id="consultationAutomated" name="what_they_want_automated" class="modal-input" rows="2" placeholder="What processes do you want automated? *" required></textarea>
+        <textarea id="consultationProblem" name="problem" class="modal-input" rows="2" placeholder="What is your biggest manual bottleneck? *" required></textarea>
+        <button type="submit" class="modal-submit" id="consultationSubmitBtn">Get Your Automation Built</button>
+        <p class="form-privacy-note">We respect your privacy. Zero spam. Direct engineer response within 24 business hours.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Privacy Policy Modal -->
+  <div class="modal-backdrop" id="privacyModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="privacyTitle">
+    <div class="modal-box modal-box-large">
+      <button type="button" class="modal-close-btn" id="closePrivacyModal" aria-label="Close Dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h2 class="modal-title" id="privacyTitle">Privacy Policy</h2>
+      <div class="modal-legal-content">
+        <p><strong>Last Updated: September 2026</strong></p>
+        <p>Agency OS is committed to safeguarding the privacy and confidential data of our operators and clients. We collect only necessary operational information submitted via contact forms to deliver tailored automation assessments.</p>
+        <h4>1. Information Collection &amp; Use</h4>
+        <p>We process business contact information solely for responding to consultation requests, designing custom software specifications, and configuring requested automations. We never sell, lease, or distribute your data.</p>
+        <h4>2. Security Standards</h4>
+        <p>All sensitive credentials and database interactions are protected via encrypted transit (HTTPS/TLS 1.3), hashed tokens, strict session role isolation, and rate-limited endpoints.</p>
+        <h4>3. Direct Contact</h4>
+        <p>For questions regarding your data privacy, contact our team at hello@automatedagencyos.tech.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Terms of Service Modal -->
+  <div class="modal-backdrop" id="termsModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="termsTitle">
+    <div class="modal-box modal-box-large">
+      <button type="button" class="modal-close-btn" id="closeTermsModal" aria-label="Close Dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h2 class="modal-title" id="termsTitle">Terms of Service</h2>
+      <div class="modal-legal-content">
+        <p><strong>Last Updated: September 2026</strong></p>
+        <p>By accessing or utilizing Agency OS infrastructure and public interfaces, you agree to comply with our terms of service.</p>
+        <h4>1. Operational Boundaries</h4>
+        <p>Agency OS provides custom AI software, workflow automation, and systems management. Clients maintain full ownership of their data and client records.</p>
+        <h4>2. Intellectual Property &amp; Ownership</h4>
+        <p>Clients retain full ownership of their proprietary business data and deployed custom workflows. Agency OS software architecture remains copyrighted by Agency OS.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Back-to-Top Button -->
+  <button type="button" class="back-to-top" id="backToTop" aria-label="Scroll back to top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="12" y1="19" x2="12" y2="5"></line>
+      <polyline points="5 12 12 5 19 12"></polyline>
+    </svg>
+  </button>
+
+  <!-- Pure Vanilla Scripts -->
+  <script src="/static/hero_shader.js?v=20260916_restored"></script>
+  <script src="/static/landing.js?v=20260916_restored"></script>
+</body>
+</html>
