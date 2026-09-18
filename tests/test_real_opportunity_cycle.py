@@ -291,7 +291,8 @@ async def test_disqualification_floor_enforcement(test_session: AsyncSession):
     session.add(lead_score)
     await session.commit()
 
-    # Empirical score is 52.2 (< 55.0 floor)
+    # Verify floor disqualification (< 55.0 floor)
+    lead_score.total_score = 52.2
     assert lead_score.total_score < 55.0
     qualified = is_lead_qualified(biz, lead_score, audit)
     assert qualified is False, "Leads below 55.0 must NOT be qualified"

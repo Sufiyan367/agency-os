@@ -219,6 +219,49 @@ class N8nOrchestratorBridge:
                     "pipeline_stage": stage
                 })
 
+            # 11. CLIENT AUTOMATION: MISSED CALL
+            elif event_type in ("CLIENT_MISSED_CALL_PROCESSED", "CLIENT_MISSED_CALL"):
+                client_id = event.payload.get("client_id") or "default_client"
+                await self._forward_to_n8n("client_missed_call", event, {
+                    "action": "CLIENT_MISSED_CALL_OBSERVED",
+                    "client_id": client_id,
+                    "call_id": event.payload.get("call_id"),
+                    "textback_sent": event.payload.get("textback_sent", False),
+                })
+
+            # 12. CLIENT AUTOMATION: ESCALATION TRIGGERED
+            elif event_type in ("CLIENT_ESCALATION_TRIGGERED", "CLIENT_ESCALATED"):
+                client_id = event.payload.get("client_id") or "default_client"
+                await self._forward_to_n8n("client_escalation", event, {
+                    "action": "CLIENT_OPERATOR_ESCALATION",
+                    "client_id": client_id,
+                    "reason": event.payload.get("escalation_reason") or event.payload.get("reason"),
+                    "query": event.payload.get("query"),
+                    "urgency": "HIGH",
+                })
+
+            # 13. CLIENT AUTOMATION: LEAD QUALIFIED
+            elif event_type in ("CLIENT_LEAD_QUALIFIED", "CLIENT_LEAD_EVALUATED"):
+                client_id = event.payload.get("client_id") or "default_client"
+                await self._forward_to_n8n("client_lead_qualification", event, {
+                    "action": "CLIENT_LEAD_QUALIFICATION_OBSERVED",
+                    "client_id": client_id,
+                    "lead_id": event.payload.get("lead_id"),
+                    "is_qualified": event.payload.get("is_qualified", False),
+                    "score": event.payload.get("score", 0.0),
+                })
+
+            # 14. CLIENT AUTOMATION: APPOINTMENT BOOKED
+            elif event_type in ("CLIENT_APPOINTMENT_BOOKED", "CLIENT_BOOKING_CONFIRMED"):
+                client_id = event.payload.get("client_id") or "default_client"
+                await self._forward_to_n8n("client_appointment", event, {
+                    "action": "CLIENT_APPOINTMENT_RECORDED",
+                    "client_id": client_id,
+                    "appointment_id": event.payload.get("appointment_id"),
+                    "confirmation_code": event.payload.get("confirmation_code"),
+                    "service_name": event.payload.get("service_name"),
+                })
+
         except Exception as e:
             logger.error(f"[N8nOrchestratorBridge] Error processing agency event {event.event_type}: {e}", exc_info=True)
 
@@ -299,6 +342,10 @@ class N8nOrchestratorBridge:
                 return False
 
         return True
+
+    def get_mock_sink(self) -> List[Dict[str, Any]]:
+        """Returns recorded outbound n8n envelopes from the mock sink."""
+        return list(self._mock_sink)
 
     def _resolve_webhook_path(self, target_workflow: str) -> str:
         """

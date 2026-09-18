@@ -100,7 +100,7 @@ async def test_cold_external_outreach_allowed_with_ceo_approval(db_session: Asyn
         mock_auth.return_value = MagicMock(is_eligible=True, blocking_reasons=[])
         mock_titan.return_value = {"status": "SUCCESS", "provider": "titan", "message_id": "titan-test-123"}
 
-        res = await outreach_sender_adapter.send_approved_message(db_session, msg.id, force_live=True)
+        res = await outreach_sender_adapter.send_approved_message(db_session, msg.id, force_live=True, enforce_window=False)
         assert res.get("status") in ("sent", "SENT", "SUCCESS")
         await db_session.refresh(msg)
         assert msg.status == OutreachStatus.SENT.value
